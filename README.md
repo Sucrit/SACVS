@@ -1,1 +1,2 @@
-// Initial setup using React + Vite
+// Initial setup using React, Vite, Tailwind.
+
