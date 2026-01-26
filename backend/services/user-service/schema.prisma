@@ -1,5 +1,8 @@
-// Prisma schema for the User model
-// Save this file as schema.prisma in your project root or backend/services/user-service directory
+enum Role {
+  STUDENT
+  ADMIN
+  EMPLOYER
+}
 
 generator client {
   provider = "prisma-client-js"
@@ -14,7 +17,7 @@ model User {
   username  String   @unique
   email     String   @unique
   password  String
-  role      String   @default("USER")
+  role      Role     @default(STUDENT)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
