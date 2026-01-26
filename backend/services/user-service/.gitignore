@@ -1,2 +1,2 @@
-backend/services/user-service/.env
-backend/services/user-service/node_modules
+node_modules/
+.env
