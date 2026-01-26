@@ -4,9 +4,11 @@
   "private": true,
   "devDependencies": {
     "@types/node": "^25.0.10",
-    "@types/pg": "^8.16.0"
+    "@types/pg": "^8.16.0",
+    "prisma": "^7.3.0"
   },
   "dependencies": {
+    "@prisma/client": "^7.3.0",
     "pg": "^8.17.2"
   }
 }
