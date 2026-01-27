@@ -17,19 +17,9 @@ export class UserRepository {
     });
   }
 
-  async findByEmail(
-    email: string
-  ): Promise<User | null> {
+  async findByClerkId(clerkId: string): Promise<User | null> {
     return prisma.user.findUnique({
-      where: { email },
-    });
-  }
-
-  async findByUsername(
-    username: string
-  ): Promise<User | null> {
-    return prisma.user.findUnique({
-      where: { username },
+      where: { clerkId },
     });
   }
 

@@ -1,20 +1,11 @@
 export interface CreateUserDto {
-  username: string;
-  email: string;
-  password: string;
+  clerkId: string;
   role: string
-}
-
-export interface UpdateUserDto {
-  username?: string;
-  email?: string;
-  password?: string;
 }
 
 export interface UserResponseDto {
   id: string;
-  username: string;
-  email: string;
+  clerkId: string;
   role: 'STUDENT' | 'ADMIN' | 'EMPLOYEE';
   createdAt: Date;
   updatedAt: Date;

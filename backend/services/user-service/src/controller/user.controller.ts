@@ -14,13 +14,6 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
   res.status(201).json(user);
 });
 
-export const updateUser = asyncHandler(async (req: Request, res: Response) => {
-  const rawId = req.params.id;
-  const id = Array.isArray(rawId) ? rawId[0] : rawId;
-  const user = await userService.updateUser(id, req.body);
-  res.json(user);
-});
-
 export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
   const rawId = req.params.id;
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
@@ -31,6 +24,5 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
 export const UserController = {
   getUsers,
   createUser,
-  updateUser,
   deleteUser,
 };
