@@ -4,10 +4,10 @@ import { healthCheck } from '../controller/health.controller';
 
 const router = Router();
 
-router.get('/users/health', healthCheck);
-router.get('/users', UserController.getUsers);
-router.post('/users', UserController.createUser);
-router.patch('/users/:id', UserController.updateUser);
-router.delete('/users/:id', UserController.deleteUser);
+router.get('/health', healthCheck);
+router.get('', UserController.getUsers);
+router.post('', UserController.createUser);
+router.patch('/:id', UserController.updateUser);
+router.delete('/:id', UserController.deleteUser);
 
 export default router;

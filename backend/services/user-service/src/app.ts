@@ -10,7 +10,7 @@ app.use(cors({ origin: ENV.CORS_ORIGIN }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/', userRoutes);
+app.use('/users', userRoutes);
 app.use(errorHandler);
 
 export default app;
