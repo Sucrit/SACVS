@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 export type User = Prisma.UserGetPayload<{}>;
-import { prisma } from '../lib/prisma';
+import { prisma } from '../db/prisma';
 
 export class UserRepository {
   async create(

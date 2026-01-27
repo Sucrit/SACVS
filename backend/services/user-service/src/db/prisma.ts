@@ -4,7 +4,7 @@ import { ENV } from '../config/env';
 
 const connectionString = ENV.DATABASE_URL;
 if (!connectionString) {
-  throw new Error('Database connection string error');
+  throw new Error('env db connection string error');
 }
 
 const adapter = new PrismaPg({ connectionString });
