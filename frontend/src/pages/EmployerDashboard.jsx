@@ -27,6 +27,9 @@ import {
   FileCheck,
   AlertTriangle,
   History,
+  MoreHorizontal,
+  Download,
+  Filter
 } from 'lucide-react';
 import { format } from 'date-fns';
 import VerificationRequestForm from '@/components/forms/VerificationRequestForm';
@@ -34,38 +37,58 @@ import StatusIndicator from '@/components/ui/StatusIndicator';
 import BlockchainIndicator from '@/components/dashboard/BlockchainIndicator';
 import AIValidationPanel from '@/components/dashboard/AIValidationPanel';
 import SecurityBadge from '@/components/ui/SecurityBadge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 export default function EmployerDashboard() {
   const [showVerifyDialog, setShowVerifyDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [filterText, setFilterText] = useState('');
+
   // Demo data for verificationRequests
   const verificationRequests = [
-    { id: 1, status: 'completed', verification_result: 'authentic', purpose: 'Job Application', request_date: '2026-01-01', credential_id: 'CRED-001', blockchain: 'Yes' },
-    { id: 2, status: 'pending', verification_result: 'pending', purpose: 'Background Check', request_date: '2026-01-10', credential_id: 'CRED-002', blockchain: 'No' },
-    { id: 3, status: 'completed', verification_result: 'suspicious', purpose: 'Internship', request_date: '2026-01-15', credential_id: 'CRED-003', blockchain: 'Yes' },
+    { id: 1, applicant: 'Alex Rivers', status: 'completed', verification_result: 'authentic', purpose: 'Software Engineer Application', request_date: '2026-01-25', credential_id: 'CRED-8832', type: 'Degree', blockchain: 'Verified' },
+    { id: 2, applicant: 'Jordan Lee', status: 'pending', verification_result: 'pending', purpose: 'Background Check', request_date: '2026-01-26', credential_id: 'CRED-9941', type: 'Certificate', blockchain: 'Pending' },
+    { id: 3, applicant: 'Casey Smith', status: 'completed', verification_result: 'suspicious', purpose: 'Internship Validator', request_date: '2026-01-20', credential_id: 'CRED-7721', type: 'Diploma', blockchain: 'Failed' },
+    { id: 4, applicant: 'Morgan Chen', status: 'completed', verification_result: 'authentic', purpose: 'Senior Dev Role', request_date: '2026-01-18', credential_id: 'CRED-5512', type: 'Degree', blockchain: 'Verified'},
+    { id: 5, applicant: 'Taylor White', status: 'processing', verification_result: 'pending', purpose: 'Contract Renewal', request_date: '2026-01-27', credential_id: 'CRED-3392', type: 'License', blockchain: 'Checking'},
   ];
+
+  const filteredRequests = verificationRequests.filter(req => 
+    req.applicant.toLowerCase().includes(filterText.toLowerCase()) || 
+    req.credential_id.toLowerCase().includes(filterText.toLowerCase())
+  );
 
   const stats = {
     total: verificationRequests.length,
     completed: verificationRequests.filter((r) => r.status === 'completed').length,
     authentic: verificationRequests.filter((r) => r.verification_result === 'authentic').length,
-    pending: verificationRequests.filter((r) => r.status === 'pending').length,
+    pending: verificationRequests.filter((r) => r.status === 'pending' || r.status === 'processing').length,
   };
 
-  const resultConfig = {
-    authentic: { icon: CheckCircle2, color: 'text-primary', bg: 'bg-primary/10', label: 'Authentic' },
-    suspicious: { icon: AlertTriangle, color: 'text-primary', bg: 'bg-primary/10', label: 'Suspicious' },
-    fraudulent: { icon: XCircle, color: 'text-primary', bg: 'bg-primary/10', label: 'Fraudulent' },
-    pending: { icon: Clock, color: 'text-primary', bg: 'bg-primary/10', label: 'Pending' },
+  const statusStyles = {
+    authentic: 'bg-green-100 text-green-700 border-green-200',
+    suspicious: 'bg-amber-100 text-amber-700 border-amber-200',
+    fraudulent: 'bg-red-100 text-red-700 border-red-200',
+    pending: 'bg-slate-100 text-slate-700 border-slate-200',
+    processing: 'bg-blue-100 text-blue-700 border-blue-200',
   };
 
   return (
     <DashboardLayout
       title="Employer Dashboard"
-      subtitle="Verify candidate credentials securely"
+      subtitle="Verify candidate credentials and track applications"
       actions={[
         <SecurityBadge key="secure" variant="locked" label="Secure Verification" size="md" />,
-        <Button key="verify" onClick={() => setShowVerifyDialog(true)} className="bg-primary hover:bg-primary/90">
+        <Button key="verify" onClick={() => setShowVerifyDialog(true)} className="bg-primary hover:bg-primary/90 shadow-sm">
           <Plus className="w-4 h-4 mr-2" />
           New Verification Request
         </Button>
@@ -74,106 +97,133 @@ export default function EmployerDashboard() {
         { title: 'Total Requests', value: stats.total, icon: Search },
         { title: 'Completed', value: stats.completed, icon: CheckCircle2 },
         { title: 'Verified Authentic', value: stats.authentic, icon: Shield },
-        { title: 'Pending', value: stats.pending, icon: Clock },
+        { title: 'Pending Review', value: stats.pending, icon: Clock },
       ]}
     >
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="border-b border-border px-6 py-4 flex items-center gap-2">
-          <History className="w-5 h-5 text-primary" />
-          <span className="font-semibold text-foreground">Verification History</span>
+      <div className="bg-card border border-border/60 rounded-xl shadow-sm overflow-hidden flex flex-col">
+        {/* Table Header / Toolbar */}
+        <div className="p-4 border-b border-border/60 flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/10">
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-foreground flex items-center gap-2">
+              <History className="w-4 h-4 text-muted-foreground" />
+              Recent Verifications
+            </h2>
+            <Badge variant="outline" className="ml-2 font-normal bg-background">{filteredRequests.length}</Badge>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search applicant or ID..."
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                className="pl-9 h-9 bg-background"
+              />
+            </div>
+            <Button variant="outline" size="sm" className="h-9">
+              <Filter className="w-3.5 h-3.5 mr-2" />
+              Filter
+            </Button>
+            <Button variant="outline" size="sm" className="h-9">
+              <Download className="w-3.5 h-3.5 mr-2" />
+              Export
+            </Button>
+          </div>
         </div>
-        <div className="p-0">
+
+        {/* Data Table */}
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/60 border-border">
-                <TableHead className="text-muted-foreground">Credential ID</TableHead>
-                <TableHead className="text-muted-foreground">Purpose</TableHead>
-                <TableHead className="text-muted-foreground">Request Date</TableHead>
-                <TableHead className="text-muted-foreground">Status</TableHead>
-                <TableHead className="text-muted-foreground">Verification Result</TableHead>
-                <TableHead className="text-muted-foreground">Blockchain</TableHead>
-                <TableHead className="text-right text-muted-foreground">Actions</TableHead>
+            <TableHeader className="bg-muted/30">
+              <TableRow className="hover:bg-transparent border-border/60">
+                <TableHead className="w-[180px]">Applicant / ID</TableHead>
+                <TableHead>Type & Purpose</TableHead>
+                <TableHead>Date Sent</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Blockchain</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {verificationRequests.length === 0 ? (
+              {filteredRequests.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                    <div className="flex flex-col items-center gap-3">
-                      <Search className="w-12 h-12 text-muted" />
-                      <p>No verification requests yet</p>
-                      <Button onClick={() => setShowVerifyDialog(true)} className="bg-primary hover:bg-primary/90">
-                        Submit First Request
-                      </Button>
+                  <TableCell colSpan={6} className="h-48 text-center text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Search className="w-8 h-8 opacity-20" />
+                      <p>No verification requests found matching your search.</p>
+                      <Button variant="link" onClick={() => setFilterText('')}>Clear Filters</Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                verificationRequests.map((request) => {
-                  const resultConf = resultConfig[request.verification_result] || resultConfig.pending;
-                  const ResultIcon = resultConf.icon;
-                  return (
-                    <TableRow key={request.id} className="hover:bg-muted/20 transition-colors border-border">
-                      <TableCell>
-                        <code className="text-sm bg-muted/30 px-2 py-0.5 rounded font-mono text-foreground">
-                          {request.credential_id?.slice(0, 12)}...
-                        </code>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">{request.purpose}</TableCell>
-                      <TableCell>{
-                        request.request_date && !isNaN(new Date(request.request_date))
-                          ? format(new Date(request.request_date), 'PP')
-                          : '—'
-                      }</TableCell>
-                      <TableCell>
-                        <StatusIndicator status={request.status === 'completed' ? 'verified' : request.status} />
-                      </TableCell>
-                      <TableCell>
-                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${resultConf.bg} ${resultConf.color}`}>
-                          <ResultIcon className="w-3.5 h-3.5" />
-                          {resultConf.label}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {request.blockchain_verified ? (
-                          <span className="flex items-center gap-1 text-xs text-primary">
-                            <CheckCircle2 className="w-4 h-4" />
-                            Verified
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => setSelectedRequest(request)}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                filteredRequests.map((request) => (
+                  <TableRow key={request.id} className="hover:bg-muted/10 border-border/60 transition-colors">
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-foreground">{request.applicant}</span>
+                        <span className="text-xs text-muted-foreground font-mono">{request.credential_id}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                         <span className="text-sm font-medium">{request.type}</span>
+                         <span className="text-xs text-muted-foreground">{request.purpose}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {format(new Date(request.request_date), 'MMM d, yyyy')}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusStyles[request.verification_result] || statusStyles.pending}`}>
+                         {request.verification_result === 'authentic' && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                         {request.verification_result === 'suspicious' && <AlertTriangle className="w-3 h-3 mr-1" />}
+                         {request.verification_result === 'pending' && <Clock className="w-3 h-3 mr-1" />}
+                         <span className="capitalize">{request.verification_result}</span>
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <div className={`w-1.5 h-1.5 rounded-full ${request.blockchain === 'Verified' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                          {request.blockchain}
+                       </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
+                            <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => setSelectedRequest(request)}>
+                            <Eye className="w-4 h-4 mr-2" /> View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem>
+                             <Download className="w-4 h-4 mr-2" /> Download Report
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
         </div>
+        
+        {/* Pagination placeholder */}
+        <div className="border-t border-border/60 p-4 flex items-center justify-between text-xs text-muted-foreground">
+           <span>Showing 1-{filteredRequests.length} of {filteredRequests.length} results</span>
+           <div className="flex gap-2">
+             <Button variant="outline" size="sm" disabled className="h-8 w-8 p-0">&lt;</Button>
+             <Button variant="outline" size="sm" disabled className="h-8 w-8 p-0">&gt;</Button>
+           </div>
+        </div>
       </div>
 
-      <Dialog open={showVerifyDialog} onOpenChange={setShowVerifyDialog}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
-              Submit Verification Request
-            </DialogTitle>
-          </DialogHeader>
-          <VerificationRequestForm
-            onSubmit={() => {}}
-            isLoading={false}
-          />
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
+      <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>    
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">

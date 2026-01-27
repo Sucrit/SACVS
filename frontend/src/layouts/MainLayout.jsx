@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-// import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,167 +21,139 @@ import {
   Home,
   Lock,
   Menu,
+  Settings,
+  User,
+  LayoutDashboard,
+  FileCheck,
+  Search
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { UserButton, useUser, useClerk } from '@clerk/clerk-react';
 
 const roleNavItems = {
   student: [
-    { label: 'Dashboard', icon: Home, page: 'StudentDashboard' },
-    { label: 'My Credentials', icon: Shield, page: 'StudentCredentials' }, // unique key
+    { label: 'Dashboard', icon: LayoutDashboard, page: 'StudentDashboard', path: '/student-dashboard' },
+    { label: 'My Credentials', icon: GraduationCap, page: 'StudentCredentials', path: '#' },
+    { label: 'Settings', icon: Settings, page: 'Settings', path: '#' },
   ],
   institution: [
-    { label: 'Dashboard', icon: Home, page: 'InstitutionDashboard' },
-    { label: 'Issue Credentials', icon: Shield, page: 'InstitutionDashboard' },
+    { label: 'Dashboard', icon: LayoutDashboard, page: 'InstitutionDashboard', path: '/institution-dashboard' },
+    { label: 'Issue Credentials', icon: FileCheck, page: 'IssueCredentials', path: '#' },
+    { label: 'Students', icon: User, page: 'Students', path: '#' },
+    { label: 'Settings', icon: Settings, page: 'Settings', path: '#' },
   ],
   employer: [
-    { label: 'Dashboard', icon: Home, page: 'EmployerDashboard' },
-    { label: 'Verify Credentials', icon: Shield, page: 'EmployerDashboard' },
+    { label: 'Dashboard', icon: LayoutDashboard, page: 'EmployerDashboard', path: '/employer-dashboard' },
+    { label: 'Verify Credentials', icon: Search, page: 'EmployerDashboard', path: '#' },
+    { label: 'History', icon: Activity, page: 'History', path: '#' },
   ],
   admin: [
-    { label: 'Dashboard', icon: Home, page: 'AdminDashboard' },
-    { label: 'Security', icon: Shield, page: 'AdminDashboard' },
-    { label: 'Audit Logs', icon: Activity, page: 'AdminDashboard' },
+    { label: 'Dashboard', icon: LayoutDashboard, page: 'AdminDashboard', path: '/admin-dashboard' },
+    { label: 'Security', icon: Shield, page: 'AdminDashboard', path: '#' },
+    { label: 'Audit Logs', icon: Activity, page: 'AdminDashboard', path: '#' },
+    { label: 'Users', icon: User, page: 'UserManagement', path: '#' },
   ],
 };
 
-const roleIcons = {
-  student: GraduationCap,
-  institution: Building2,
-  employer: Briefcase,
-  admin: Shield,
-};
-
-const roleColors = {
-  student: 'from-blue-500 to-indigo-600',
-  institution: 'from-indigo-500 to-violet-600',
-  employer: 'from-cyan-500 to-blue-600',
-  admin: 'from-violet-500 to-fuchsia-600',
-};
-
-
 export default function MainLayout({ children, currentPageName }) {
-  // All hooks must be called unconditionally at the top
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [userRole, setUserRole] = useState(() => localStorage.getItem('demo_user_role') || 'student');
-  useEffect(() => {
-    const onStorage = () => setUserRole(localStorage.getItem('demo_user_role') || 'student');
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
-  useEffect(() => {
-    setUserRole(localStorage.getItem('demo_user_role') || 'student');
-  }, [currentPageName]);
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' });
-  }, []);
-  const user = { full_name: 'Demo User', email: 'demo@secvault.local', user_role: userRole };
-  const RoleIcon = roleIcons[userRole] || GraduationCap;
-  const navItems = roleNavItems[userRole] || [];
+  const location = useLocation();
+  const { user } = useUser();
+  const { signOut } = useClerk();
+
+  const userRole = user?.publicMetadata?.role || localStorage.getItem('demo_user_role') || 'student';
+  
+  const navItems = roleNavItems[userRole.toLowerCase()] || roleNavItems['student'];
 
   if (currentPageName === 'Home') {
     return <>{children}</>;
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-              <SheetTrigger asChild className="lg:hidden">
-                <Button variant="ghost" size="icon">
-                  <Menu className="w-5 h-5" />
+    <div className="flex min-h-screen w-full bg-muted/40">
+      {/* Desktop Sidebar */}
+      <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r bg-background sm:flex">
+        <div className="flex h-16 items-center border-b px-6">
+          <Link to="/" className="flex items-center gap-2 font-semibold">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <Shield className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <span className="text-lg">SACVS</span>
+          </Link>
+        </div>
+        <nav className="flex flex-col gap-2 px-4 py-6">
+          <div className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            {userRole} Account
+          </div>
+          {navItems.map((item, idx) => {
+            const isActive = location.pathname === item.path || (location.pathname === '/' && idx === 0);
+            return (
+              <Link
+                key={idx}
+                to={item.path !== '#' ? item.path : '#'}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  isActive 
+                    ? "bg-primary text-primary-foreground shadow-sm" 
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            )
+          })}
+        </nav>
+        <div className="mt-auto border-t p-4">
+           {/* Sidebar Footer if needed */}
+        </div>
+      </aside>
+
+      {/* Main Content Wrapper */}
+      <div className="flex flex-col sm:pl-64 w-full">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur px-6 shadow-sm sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:py-4">
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+             <SheetTrigger asChild>
+                <Button variant="outline" size="icon" className="sm:hidden">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Toggle Menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-72 p-0 border-r bg-background">
-                <div className="p-6 border-b border-border">
-                  <Link to={createPageUrl('Home')} className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                      <Shield className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <span className="font-bold text-foreground">SACVS</span>
-                      <p className="text-xs text-muted-foreground">Credential System</p>
-                    </div>
+              <SheetContent side="left" className="sm:max-w-xs">
+                <nav className="grid gap-6 text-lg font-medium">
+                  {/* Mobile Nav Items */}
+                  <Link to="/" className="flex items-center gap-2 text-lg font-semibold">
+                    <Shield className="h-6 w-6 text-primary" />
+                    <span>SACVS</span>
                   </Link>
-                </div>
-                {/* Navigation removed to avoid cross-dashboard access */}
-              </SheetContent>
-            </Sheet>
-
-            <Link to={createPageUrl('Home')} className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                <Shield className="w-5 h-5 text-white" />
-              </div>
-              <div className="hidden sm:block">
-                <span className="font-bold text-foreground">NAME</span>
-                <p className="text-xs text-muted-foreground">Secure Academic Credential Verification</p>
-              </div>
-            </Link>
-          </div>
-
-          {/* Navigation removed to avoid cross-dashboard access */}
-
-          <div className="flex items-center gap-3">
-            {/* ...existing code... */}
-
-            {/* Always show user dropdown for demo */}
-            {true ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2 px-2 hover:bg-muted/50">
-                    <div
-                      className={cn(
-                        'w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center ring-2 ring-background',
-                        roleColors[userRole]
-                      )}
+                  {navItems.map((item, idx) => (
+                    <Link
+                      key={idx}
+                      to={item.path}
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                     >
-                      <RoleIcon className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="hidden sm:block text-left">
-                      <p className="text-sm font-medium text-foreground">{user.full_name || 'User'}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-popover border-border">
-                  <DropdownMenuLabel>
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          'w-10 h-10 rounded-full bg-gradient-to-br flex items-center justify-center ring-2 ring-background',
-                          roleColors[userRole]
-                        )}
-                      >
-                        <RoleIcon className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{user.full_name || 'User'}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                      </div>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-border" />
-                  <DropdownMenuItem asChild className="focus:bg-muted focus:text-foreground">
-                    <Link to={createPageUrl('Home')} className="flex items-center gap-2 cursor-pointer">
-                      <Home className="w-4 h-4" />
-                      Switch Role
+                      <item.icon className="h-5 w-5" />
+                      {item.label}
                     </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
+                  ))}
+                </nav>
+              </SheetContent>
+          </Sheet>
+          
+          <div className="flex-1">
+             {/* Optional Breadcrumb or Page Title could go here */}
           </div>
-        </div>
-      </header>
 
-      <main className="min-h-[calc(100vh-8rem)]">{children}</main>
-
-      <footer className="border-t border-border/40 bg-background/95 py-6 mt-auto">
-        <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* ...existing code... */}
-        </div>
-      </footer>
+          <div className="flex items-center gap-4">
+             <UserButton afterSignOutUrl="/" />
+          </div>
+        </header>
+        
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-// import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
+import { fetchInstitutionCredentials } from '@/api/credentials';
 import { Button } from '@/components/ui/button';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Input } from '@/components/ui/input';
@@ -38,12 +39,12 @@ export default function InstitutionDashboard() {
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [selectedCredential, setSelectedCredential] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  // Demo data for credentials
-  const credentials = [
-    { id: 1, status: 'issued', title: 'BSc Computer Science', student_name: 'Alice', student_email: 'alice@example.com' },
-    { id: 2, status: 'pending', title: 'MSc Data Science', student_name: 'Bob', student_email: 'bob@example.com' },
-    { id: 3, status: 'verified', title: 'PhD AI', student_name: 'Charlie', student_email: 'charlie@example.com' },
-  ];
+
+  // Fetch credentials from backend
+  const { data: credentials = [], isLoading, isError } = useQuery({
+    queryKey: ['institutionCredentials'],
+    queryFn: fetchInstitutionCredentials,
+  });
 
   const handleIssue = (credential) => {
     updateCredentialMutation.mutate({
@@ -117,7 +118,15 @@ export default function InstitutionDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCredentials.length === 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12">Loading...</TableCell>
+                </TableRow>
+              ) : isError ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12 text-red-500">Failed to load credentials.</TableCell>
+                </TableRow>
+              ) : filteredCredentials.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                     No credentials found

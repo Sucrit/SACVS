@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-// import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import DashboardLayout from '@/layouts/DashboardLayout';
@@ -25,16 +25,18 @@ import CredentialUploadForm from '@/components/forms/CredentialUploadForm';
 import AIValidationPanel from '@/components/dashboard/AIValidationPanel';
 import BlockchainIndicator from '@/components/dashboard/BlockchainIndicator';
 import StatusIndicator from '@/components/ui/StatusIndicator';
+import { fetchStudentCredentials } from '@/api/credentials';
 
 export default function StudentDashboard() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [selectedCredential, setSelectedCredential] = useState(null);
-  // Demo data for credentials
-  const credentials = [
-    { id: 1, status: 'issued' },
-    { id: 2, status: 'pending' },
-    { id: 3, status: 'verified' },
-  ];
+
+  // Fetch credentials from backend
+  const { data: credentials = [], isLoading, isError } = useQuery({
+    queryKey: ['studentCredentials'],
+    queryFn: fetchStudentCredentials,
+  });
+
   const stats = {
     total: credentials.length,
     issued: credentials.filter((c) => c.status === 'issued').length,
@@ -67,7 +69,11 @@ export default function StudentDashboard() {
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-          {credentials.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-16">Loading...</div>
+          ) : isError ? (
+            <div className="text-center py-16 text-red-500">Failed to load credentials.</div>
+          ) : credentials.length === 0 ? (
             <Card className="text-center py-16 bg-card border border-border">
               <CardContent>
                 <div className="w-16 h-16 bg-muted/30 rounded-2xl mx-auto flex items-center justify-center mb-4">

@@ -47,73 +47,50 @@ export default function CredentialCard({ credential, showBlockchain = false, onV
   }
 
   return (
-    <div className={cn('bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all group', className)}>
-      <div className={cn('p-6 bg-gradient-to-br text-white relative overflow-hidden', gradientColor)}>
-        <div className="absolute top-0 right-0 p-3 opacity-10 transform translate-x-1/3 -translate-y-1/3">
-           <TypeIcon className="w-32 h-32" />
+    <div className={cn('bg-card rounded-2xl border border-border overflow-hidden hover:shadow-xl transition-all group duration-300', className)}>
+      <div className="p-6 relative">
+        <div className="flex items-start justify-between mb-4">
+           <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-sm', gradientColor)}>
+              <TypeIcon className="w-6 h-6 text-white" />
+           </div>
+           <StatusIndicator status={credential.status} size="sm" />
         </div>
-        <div className="flex items-start justify-between relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm shadow-inner border border-white/10">
-              <TypeIcon className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-xs font-medium text-white/80 uppercase tracking-wider">{credential.type}</span>
-              <h3 className="text-lg font-bold shadow-black/10 drop-shadow-md">{credential.title}</h3>
-            </div>
-          </div>
-          <StatusIndicator status={credential.status} size="sm" />
-        </div>
-      </div>
 
-      <div className="p-6 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Institution</p>
-              <p className="text-sm font-medium text-foreground">{credential.institution_name}</p>
+        <div className="mb-4">
+           <span className="text-xs font-semibold text-primary uppercase tracking-wider mb-1 block">{credential.type}</span>
+           <h3 className="text-xl font-bold text-foreground mb-1 group-hover:text-primary transition-colors">{credential.title}</h3>
+           <p className="text-sm text-muted-foreground flex items-center gap-1">
+             <Building2 className="w-3 h-3" />
+             {credential.institution_name}
+           </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm text-muted-foreground border-t border-border/60 pt-4 mb-4">
+            <div className="flex flex-col">
+              <span className="text-xs text-muted-foreground/70">Issued To</span>
+              <span className="font-medium text-foreground">{credential.student_name}</span>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <GraduationCap className="w-4 h-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Holder</p>
-              <p className="text-sm font-medium text-foreground">{credential.student_name}</p>
+            <div className="flex flex-col">
+              <span className="text-xs text-muted-foreground/70">Issue Date</span>
+              <span className="font-medium text-foreground">
+                {credential.issue_date ? format(new Date(credential.issue_date), 'MMM d, yyyy') : 'N/A'}
+              </span>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Issue Date</p>
-              <p className="text-sm font-medium text-foreground">
-                {credential.issue_date ? format(new Date(credential.issue_date), 'PP') : 'N/A'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-muted-foreground" />
-            <div>
-              <p className="text-xs text-muted-foreground">Expiry Date</p>
-              <p className="text-sm font-medium text-foreground">
-                {credential.expiry_date ? format(new Date(credential.expiry_date), 'PP') : 'No Expiry'}
-              </p>
-            </div>
-          </div>
         </div>
 
         {showBlockchain && credential.blockchain_hash && (
-          <BlockchainIndicator hash={credential.blockchain_hash} timestamp={credential.blockchain_timestamp} verified={credential.status === 'issued'} />
+          <div className="mb-4">
+             <BlockchainIndicator hash={credential.blockchain_hash} timestamp={credential.blockchain_timestamp} verified={credential.status === 'issued'} />
+          </div>
         )}
 
-        <div className="flex gap-2 pt-2">
-          <Button variant="outline" size="sm" className="flex-1" onClick={() => onView?.(credential)}>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="flex-1 hover:bg-muted font-medium" onClick={() => onView?.(credential)}>
             <ExternalLink className="w-4 h-4 mr-2" />
-            View Details
+            View
           </Button>
           {onVerify && (
-            <Button size="sm" className="flex-1 bg-indigo-600 hover:bg-indigo-700" onClick={() => onVerify?.(credential)}>
-              <Shield className="w-4 h-4 mr-2" />
+            <Button size="sm" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onVerify?.(credential)}>
               Verify
             </Button>
           )}
