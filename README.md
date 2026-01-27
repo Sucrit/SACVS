@@ -1,1 +1,9 @@
-# HI
+- API Gateway
+- User Service
+- Credential Management Service
+- AI Validation & Fraud Detection Service
+- Blockchain Interface Service
+- Verification Service
+- Audit & Logging Service
+- Notification Service
+- Document Storage Service (optional)

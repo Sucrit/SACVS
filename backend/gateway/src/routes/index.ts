@@ -7,7 +7,7 @@ const router = Router();
 router.use(healthCheckRouter);
 
 router.use(
-  '/users',
+  '/',
   createProxyMiddleware({
     target: ENV.USER_SERVICE_URL,
     changeOrigin: true,

@@ -23,16 +23,6 @@ export class UserRepository {
     });
   }
 
-  async update(
-    id: string,
-    data: Prisma.UserUpdateInput
-  ): Promise<User> {
-    return prisma.user.update({
-      where: { id },
-      data,
-    });
-  }
-
   async delete(
     id: string
   ): Promise<User> {

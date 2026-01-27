@@ -22,7 +22,9 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { SignIn } from '@clerk/clerk-react';
+
+import { SignIn, useUser } from '@clerk/clerk-react';
+import { useSyncUserToBackend } from '@/hooks/useSyncUserToBackend';
 
 const roles = [
   {
@@ -90,6 +92,23 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [showSignIn, setShowSignIn] = useState(false);
   const [pendingRole, setPendingRole] = useState(null);
+  const { isSignedIn } = useUser();
+
+  // Sync user to backend after sign-in and role selection
+  useSyncUserToBackend(
+    pendingRole
+      ? pendingRole.toUpperCase() === 'INSTITUTION'
+        ? 'EMPLOYEE' // Map 'institution' to 'EMPLOYEE' for backend
+        : pendingRole.toUpperCase()
+      : null
+  );
+
+  useEffect(() => {
+    if (isSignedIn && pendingRole) {
+      // Redirect to dashboard after sign-in and sync
+      window.location.href = `/${pendingRole.toLowerCase()}-dashboard`;
+    }
+  }, [isSignedIn, pendingRole]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const preloadSources = [studentImg, institutionImg, employerImg, adminImg];
@@ -139,6 +158,10 @@ export default function HomePage() {
   // }, []);
 
   const handleRoleSelect = (roleId) => {
+    // store the UI role for redirect and the mapped backend role for syncing
+    const mappedBackendRole =
+      roleId.toUpperCase() === 'INSTITUTION' ? 'EMPLOYEE' : roleId.toUpperCase();
+    localStorage.setItem('pending_role', mappedBackendRole);
     setPendingRole(roleId);
     setShowSignIn(true);
   };
@@ -146,6 +169,7 @@ export default function HomePage() {
   const handleSignInClose = () => {
     setShowSignIn(false);
     setPendingRole(null);
+    localStorage.removeItem('pending_role');
   };
 
   return (
