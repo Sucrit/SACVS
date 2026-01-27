@@ -1,8 +1,8 @@
-import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { ENV } from '../config/env';
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = ENV.DATABASE_URL;
 if (!connectionString) {
   throw new Error('Database connection string error');
 }
