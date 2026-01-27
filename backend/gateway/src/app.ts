@@ -5,7 +5,24 @@ import { ENV } from './config/env';
 
 const app = express();
 
-app.use(cors({ origin: ENV.CORS_ORIGIN }));
+if (!ENV.CORS_ORIGIN) {
+  app.use(cors());
+} else {
+  const allowed = ENV.CORS_ORIGIN.split(',').map(s => s.trim()).filter(Boolean);
+  const corsOptions = {
+    origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
+      // allow server-to-server requests (no origin) and matching origins
+      if (!origin) return cb(null, true);
+      if (allowed.includes(origin)) return cb(null, true);
+      cb(new Error('Not allowed by CORS'));
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true, // cookies/credentials in the browser
+  };
+  app.use(cors(corsOptions));
+}
+
 app.use(routes);
 
 export default app;
