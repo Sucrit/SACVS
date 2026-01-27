@@ -1,12 +1,11 @@
 enum Role {
   STUDENT
   ADMIN
-  EMPLOYER
+  EMPLOYEE
 }
 
 generator client {
   provider = "prisma-client-js"
-  output   = "./node_modules/@prisma/client/.prisma/client"
 }
 
 datasource db {

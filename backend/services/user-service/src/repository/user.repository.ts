@@ -1,4 +1,5 @@
-import { Prisma, User } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+export type User = Prisma.UserGetPayload<{}>;
 import { prisma } from '../lib/prisma';
 
 export class UserRepository {

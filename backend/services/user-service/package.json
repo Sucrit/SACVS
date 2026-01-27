@@ -2,7 +2,7 @@
   "name": "sacvs-user-service",
   "version": "0.1.0",
   "scripts": {
-    "dev": "nodemon --exec ts-node src/server.ts"
+    "dev": "nodemon"
   },
   "private": true,
   "devDependencies": {
