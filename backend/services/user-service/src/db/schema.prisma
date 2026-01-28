@@ -1,9 +1,3 @@
-enum Role {
-  STUDENT
-  ADMIN
-  EMPLOYEE
-}
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,10 +6,26 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  STUDENT
+  ADMIN
+  EMPLOYEE
+}
+
 model User {
-  id        String   @id @default(uuid()) 
-  clerkId   String   @unique            
+  id        String   @id @default(uuid())
+  clerkId   String   @unique
   role      Role     @default(STUDENT)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Credential {
+  id               String   @id @default(uuid())
+  uploaderClerkId  String
+  title            String
+  filename         String?
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
