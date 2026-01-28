@@ -6,18 +6,16 @@ import { healthCheckRouter } from '../controller/health.check';
 const router = Router();
 router.use(healthCheckRouter);
 
-// Proxy credentials service first so specific routes match before the catch-all
-if (ENV.CREDENTIALS_SERVICE_URL) {
+// credential service proxy
   router.use(
-    '/credentials',
+    '/',
     createProxyMiddleware({
       target: ENV.CREDENTIALS_SERVICE_URL,
       changeOrigin: true,
     })
   );
-}
 
-// Fallback proxy to user service for other API routes
+// user service proxy
 router.use(
   '/',
   createProxyMiddleware({
