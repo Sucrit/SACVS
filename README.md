@@ -10,7 +10,7 @@
 
 ## PRISMA CS
 // init Prisma
-npx prisma init
+ npx prisma init
 
 // format schema.prisma for readability 
 npx prisma format
