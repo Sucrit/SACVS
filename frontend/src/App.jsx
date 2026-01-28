@@ -5,10 +5,11 @@ import { AnimatePresence } from 'framer-motion'
 import AdminDashboard from '@/pages/AdminDashboard'
 import EmployerDashboard from '@/pages/EmployerDashboard'
 import HomePage from '@/pages/Home'
+import AuthPage from '@/pages/AuthPage'
+import AuthSuccess from '@/pages/AuthSuccess'
 import InstitutionDashboard from '@/pages/InstitutionDashboard'
 import StudentDashboard from '@/pages/StudentDashboard'
 import MainLayout from '@/layouts/MainLayout'
-// import SplashScreen from '@/components/ui/SplashScreen'
 import { pageNameByPath } from '@/utils'
 
 function App() {
@@ -17,11 +18,12 @@ function App() {
 
   return (
     <>
-      {/* Removed Clerk auth UI from header for public access */}
       <MainLayout currentPageName={currentPageName}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/student-dashboard" element={<StudentDashboard />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/auth/success" element={<AuthSuccess />} />
           <Route path="/institution-dashboard" element={<InstitutionDashboard />} />
           <Route path="/employer-dashboard" element={<EmployerDashboard />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />

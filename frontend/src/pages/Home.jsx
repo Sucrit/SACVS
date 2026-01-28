@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
 import studentImg from '@/assets/student.jpg';
 import institutionImg from '@/assets/institution.jpg';
 import employerImg from '@/assets/employer.jpg';
@@ -21,9 +20,9 @@ import {
   Globe,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
 
-import { SignIn, useUser } from '@clerk/clerk-react';
+
+import { useUser } from '@clerk/clerk-react';
 import { useSyncUserToBackend } from '@/hooks/useSyncUserToBackend';
 
 const roles = [
@@ -90,7 +89,7 @@ const features = [
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [showSignIn, setShowSignIn] = useState(false);
+  
   const [pendingRole, setPendingRole] = useState(null);
   const { isSignedIn } = useUser();
 
@@ -105,12 +104,60 @@ export default function HomePage() {
 
   useEffect(() => {
     if (isSignedIn && pendingRole) {
-      // Redirect to dashboard after sign-in and sync
-      window.location.href = `/${pendingRole.toLowerCase()}-dashboard`;
+      // Navigate client-side to dashboard after sign-in and sync (avoid full page reload)
+      navigate(`/${pendingRole.toLowerCase()}-dashboard`, { replace: true });
     }
-  }, [isSignedIn, pendingRole]);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  }, [isSignedIn, pendingRole, navigate]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('pending_role');
+    if (isSignedIn && stored) {
+      const uiRole = stored === 'EMPLOYEE' ? 'institution' : stored.toLowerCase();
+      localStorage.removeItem('pending_role');
+      navigate(`/${uiRole}-dashboard`, { replace: true });
+    }
+  }, [isSignedIn, navigate]);
+
+  // Listen for auth success messages from the auth popup/tab or storage changes
+  useEffect(() => {
+    function handleAuthMessage(e) {
+      // Only accept messages from the same origin
+      try {
+        if (e.origin !== window.location.origin) return;
+      } catch (err) {
+        return;
+      }
+
+      const data = e.data || {};
+      if (data.type === 'clerk_signed_in' && data.path) {
+        localStorage.removeItem('pending_role');
+        setPendingRole(null);
+        navigate(data.path, { replace: true });
+      }
+    }
+
+    function handleStorage(e) {
+      if (e.key === 'clerk_signed_in_path' && e.newValue) {
+        try {
+          const path = e.newValue;
+          localStorage.removeItem('pending_role');
+          // remove the storage key so it doesn't trigger again
+          localStorage.removeItem('clerk_signed_in_path');
+          setPendingRole(null);
+          navigate(path, { replace: true });
+        } catch (err) {
+          // ignore
+        }
+      }
+    }
+
+    window.addEventListener('message', handleAuthMessage);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('message', handleAuthMessage);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [navigate]);
   const preloadSources = [studentImg, institutionImg, employerImg, adminImg];
 
   useEffect(() => {
@@ -140,55 +187,31 @@ export default function HomePage() {
     };
   }, []);
 
-  // useEffect(() => {
-  //   const checkAuth = async () => {
-  //     try {
-  //       const isAuth = await base44.auth.isAuthenticated();
-  //       if (isAuth) {
-  //         const userData = await base44.auth.me();
-  //         setUser(userData);
-  //       }
-  //     } catch {
-  //       // ignore
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   checkAuth();
-  // }, []);
-
   const handleRoleSelect = (roleId) => {
-    // store the UI role for redirect and the mapped backend role for syncing
     const mappedBackendRole =
       roleId.toUpperCase() === 'INSTITUTION' ? 'EMPLOYEE' : roleId.toUpperCase();
     localStorage.setItem('pending_role', mappedBackendRole);
     setPendingRole(roleId);
-    setShowSignIn(true);
+
+    // Navigate current window to the auth route (replace history)
+    const authUrl = `/auth?role=${encodeURIComponent(roleId)}`;
+    navigate(authUrl, { replace: true });
   };
 
   const handleSignInClose = () => {
-    setShowSignIn(false);
     setPendingRole(null);
     localStorage.removeItem('pending_role');
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/20">
-      {showSignIn && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl p-6 relative">
-            <button onClick={handleSignInClose} className="absolute top-2 right-2 text-xl">×</button>
-            <SignIn afterSignInUrl={pendingRole ? `/${pendingRole.toLowerCase()}-dashboard` : '/'} />
-          </div>
-        </div>
-      )}
+      {/* Sign-in opens in a separate tab via `/auth`; inline modal removed */}
       <div className="sr-only" aria-hidden="true">
         {preloadSources.map((src) => (
           <img key={src} src={src} alt="" loading="eager" fetchPriority="high" decoding="async" />
         ))}
       </div>
       <header className="relative min-h-[90vh] flex items-center justify-center overflow-hidden" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 90vh' }}>
-        {/* Animated Background Gradients - Optimized for Light Mode */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-100 via-background to-background" />
         <div 
           className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" 
@@ -206,10 +229,7 @@ export default function HomePage() {
               animate={{ opacity: 1, scale: 1 }} 
               transition={{ duration: 0.7, ease: "easeOut" }}
             >
-              <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary mb-6 backdrop-blur-sm">
-                <Shield className="mr-2 h-4 w-4" />
-                Trusted by 500+ Institutions
-              </div>
+              
               
               <motion.h1 
                 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[1.1] mb-8 text-slate-900"
