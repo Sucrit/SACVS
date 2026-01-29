@@ -23,6 +23,6 @@ if (!ENV.CORS_ORIGIN) {
   app.use(cors(corsOptions));
 }
 
-app.use(routes);
+app.use('/', routes);
 
 export default app;

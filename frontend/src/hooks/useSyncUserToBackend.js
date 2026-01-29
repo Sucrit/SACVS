@@ -2,7 +2,7 @@ import { useUser } from '@clerk/clerk-react';
 import { useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:4000'; // Use gateway/proxy
+const API_BASE_URL = 'http://localhost:4000'; // Use gateway/proxy (mounted under /api)
 
 /**
  * Syncs the Clerk user to the backend user-service database.
@@ -20,7 +20,6 @@ export function useSyncUserToBackend(role) {
     axios.post(`${API_BASE_URL}/users`, payload)
       .then(() => {
         localStorage.removeItem('pending_role');
-        // user synced
       })
       .catch((err) => {
         console.error('failed to sync user to backend', err?.response?.data || err.message);
