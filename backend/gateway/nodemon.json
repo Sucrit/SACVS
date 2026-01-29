@@ -1,5 +1,6 @@
 {
   "watch": ["src"],
   "ext": "ts,json",
+  "env": { "NODE_OPTIONS": "--trace-deprecation" },
   "exec": "ts-node src/server.ts"
 }
