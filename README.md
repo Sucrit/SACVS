@@ -8,6 +8,10 @@
 - Notification Service
 - Document Storage Service (optional)
 
+### Truffle (Blockchain testing)
+- npx truffle compile
+- npx truffle migrate --network development
+
 #### PRISMA CS
 // init Prisma
 - npx prisma init
