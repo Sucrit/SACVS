@@ -19,7 +19,6 @@ import {
   Plus,
   Shield,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import CredentialCard from '@/components/credentials/CredentialCard';
 import CredentialUploadForm from '@/components/forms/CredentialUploadForm';
 import AIValidationPanel from '@/components/dashboard/AIValidationPanel';

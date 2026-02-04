@@ -36,16 +36,13 @@ const roleNavItems = {
     { label: 'My Credentials', icon: GraduationCap, page: 'StudentCredentials', path: '#' },
     { label: 'Settings', icon: Settings, page: 'Settings', path: '#' },
   ],
-  institution: [
-    { label: 'Dashboard', icon: LayoutDashboard, page: 'InstitutionDashboard', path: '/institution-dashboard' },
-    { label: 'Issue Credentials', icon: FileCheck, page: 'IssueCredentials', path: '#' },
+  employee: [
+    { label: 'Dashboard', icon: LayoutDashboard, page: 'EmployeeDashboard', path: '/employee-dashboard' },
+    { label: 'Issue Credentials', icon: FileCheck, page: 'InstitutionDashboard', path: '/institution-dashboard' },
+    { label: 'Verify Credentials', icon: Search, page: 'EmployerDashboard', path: '/employer-dashboard' },
     { label: 'Students', icon: User, page: 'Students', path: '#' },
-    { label: 'Settings', icon: Settings, page: 'Settings', path: '#' },
-  ],
-  employer: [
-    { label: 'Dashboard', icon: LayoutDashboard, page: 'EmployerDashboard', path: '/employer-dashboard' },
-    { label: 'Verify Credentials', icon: Search, page: 'EmployerDashboard', path: '#' },
     { label: 'History', icon: Activity, page: 'History', path: '#' },
+    { label: 'Settings', icon: Settings, page: 'Settings', path: '#' },
   ],
   admin: [
     { label: 'Dashboard', icon: LayoutDashboard, page: 'AdminDashboard', path: '/admin-dashboard' },
@@ -61,9 +58,10 @@ export default function MainLayout({ children, currentPageName }) {
   const { user } = useUser();
   const { signOut } = useClerk();
 
-  const userRole = user?.publicMetadata?.role || localStorage.getItem('demo_user_role') || 'student';
+  const rawRole = user?.publicMetadata?.role || localStorage.getItem('demo_user_role') || 'student';
+  const normalizedRole = ['institution', 'employer'].includes(rawRole?.toLowerCase()) ? 'employee' : rawRole?.toLowerCase();
   
-  const navItems = roleNavItems[userRole.toLowerCase()] || roleNavItems['student'];
+  const navItems = roleNavItems[normalizedRole] || roleNavItems['student'];
 
   if (currentPageName === 'Home') {
     return <>{children}</>;
@@ -83,7 +81,7 @@ export default function MainLayout({ children, currentPageName }) {
         </div>
         <nav className="flex flex-col gap-2 px-4 py-6">
           <div className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            {userRole} Account
+            {normalizedRole} Account
           </div>
           {navItems.map((item, idx) => {
             const isActive = location.pathname === item.path || (location.pathname === '/' && idx === 0);

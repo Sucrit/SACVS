@@ -3,6 +3,7 @@ const pageRoutes = {
   StudentDashboard: '/student-dashboard',
   InstitutionDashboard: '/institution-dashboard',
   EmployerDashboard: '/employer-dashboard',
+  EmployeeDashboard: '/employee-dashboard',
   AdminDashboard: '/admin-dashboard',
 };
 

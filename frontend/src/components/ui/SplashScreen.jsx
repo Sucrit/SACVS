@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Lock, FileKey, Server } from 'lucide-react';
 import studentImg from '@/assets/student.jpg';
-import institutionImg from '@/assets/institution.jpg';
-import employerImg from '@/assets/employer.jpg';
+import employeeImg from '@/assets/employer.jpg';
 import adminImg from '@/assets/admin.png';
 
 export default function SplashScreen({ onComplete }) {
@@ -12,7 +11,7 @@ export default function SplashScreen({ onComplete }) {
 
   useEffect(() => {
     // Preload images
-    const imagesToPreload = [studentImg, institutionImg, employerImg, adminImg];
+    const imagesToPreload = [studentImg, employeeImg, adminImg];
     let loadedCount = 0;
 
     const preloadImage = (src) => {

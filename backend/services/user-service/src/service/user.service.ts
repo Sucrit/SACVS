@@ -20,7 +20,6 @@ export class UserService {
 
   // create user account
   async createUser(data: CreateUserDto): Promise<UserResponseDto> {
-    // DTO validation
     if (!data.clerkId || typeof data.clerkId !== 'string') {
       throw { status: 400, message: 'ClerkId is required and must be a string.' };
     }
@@ -42,5 +41,4 @@ export class UserService {
     const deleted = await userRepository.delete(id);
     return this.toUserResponse(deleted);
   }
-
 }

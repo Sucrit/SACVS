@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import studentImg from '@/assets/student.jpg';
-import institutionImg from '@/assets/institution.jpg';
-import employerImg from '@/assets/employer.jpg';
+import employeeImg from '@/assets/employer.jpg';
 import adminImg from '@/assets/admin.png';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,22 +35,13 @@ const roles = [
     features: ['Upload credentials', 'Track verification status', 'Share with employers'],
   },
   {
-    id: 'institution',
-    title: 'Educational Institution',
-    description: 'Issue and manage credentials for students',
-    icon: Building2,
-    color: 'from-indigo-500 to-violet-600',
-    bgColor: 'bg-indigo-500/10',
-    features: ['Issue credentials', 'Manage student records', 'Digital signing'],
-  },
-  {
-    id: 'employer',
-    title: 'Employer',
-    description: 'Verify candidate credentials securely',
+    id: 'employee',
+    title: 'Employee',
+    description: 'Issue, manage, and verify credentials for organizations',
     icon: Briefcase,
-    color: 'from-cyan-500 to-blue-600',
-    bgColor: 'bg-cyan-500/10',
-    features: ['Request verification', 'View authenticity status', 'Verification history'],
+    color: 'from-indigo-500 to-cyan-500',
+    bgColor: 'bg-indigo-500/10',
+    features: ['Issue credentials', 'Manage student records', 'Request & verify credentials', 'Verification history'],
   },
   {
     id: 'admin',
@@ -96,9 +86,7 @@ export default function HomePage() {
   // Sync user to backend after sign-in and role selection
   useSyncUserToBackend(
     pendingRole
-      ? pendingRole.toUpperCase() === 'INSTITUTION'
-        ? 'EMPLOYEE' // Map 'institution' to 'EMPLOYEE' for backend
-        : pendingRole.toUpperCase()
+      ? (['INSTITUTION', 'EMPLOYER'].includes(pendingRole.toUpperCase()) ? 'EMPLOYEE' : pendingRole.toUpperCase())
       : null
   );
 
@@ -112,7 +100,7 @@ export default function HomePage() {
   useEffect(() => {
     const stored = localStorage.getItem('pending_role');
     if (isSignedIn && stored) {
-      const uiRole = stored === 'EMPLOYEE' ? 'institution' : stored.toLowerCase();
+      const uiRole = ['EMPLOYEE', 'INSTITUTION', 'EMPLOYER'].includes(stored) ? 'employee' : stored.toLowerCase();
       localStorage.removeItem('pending_role');
       navigate(`/${uiRole}-dashboard`, { replace: true });
     }
@@ -158,7 +146,7 @@ export default function HomePage() {
       window.removeEventListener('storage', handleStorage);
     };
   }, [navigate]);
-  const preloadSources = [studentImg, institutionImg, employerImg, adminImg];
+  const preloadSources = [studentImg, employeeImg, adminImg];
 
   useEffect(() => {
     const links = preloadSources.map((src) => {
@@ -188,8 +176,8 @@ export default function HomePage() {
   }, []);
 
   const handleRoleSelect = (roleId) => {
-    const mappedBackendRole =
-      roleId.toUpperCase() === 'INSTITUTION' ? 'EMPLOYEE' : roleId.toUpperCase();
+    const upper = roleId.toUpperCase();
+    const mappedBackendRole = ['INSTITUTION', 'EMPLOYER'].includes(upper) ? 'EMPLOYEE' : upper;
     localStorage.setItem('pending_role', mappedBackendRole);
     setPendingRole(roleId);
 

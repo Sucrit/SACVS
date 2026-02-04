@@ -41,8 +41,7 @@ const severityColors = {
 
 const roleColors = {
   student: 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20',
-  institution: 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20',
-  employer: 'bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20',
+  employee: 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20',
   admin: 'bg-violet-500/10 text-violet-400 hover:bg-violet-500/20',
 };
 
@@ -86,9 +85,14 @@ export default function AuditLogTable({ logs = [], className }) {
                   </TableCell>
                   <TableCell className="text-sm text-foreground">{log.actor_email}</TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={cn('capitalize border-0', roleColors[log.actor_role])}>
-                      {log.actor_role}
-                    </Badge>
+                    {(() => {
+                      const displayRole = log.actor_role && ['institution','employer'].includes(log.actor_role) ? 'employee' : log.actor_role;
+                      return (
+                        <Badge variant="secondary" className={cn('capitalize border-0', roleColors[displayRole])}>
+                          {displayRole}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={cn(severityColors[log.severity])}>
