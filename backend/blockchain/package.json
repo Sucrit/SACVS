@@ -1,5 +1,11 @@
 {
+  "scripts": {
+    "generate-data": "node ./scripts/dataset_generator.js --output-dir ./data-js --seed 42"
+  },
   "devDependencies": {
-    "truffle": "^5.11.5"
+    "truffle": "^5.11.5",
+    "@faker-js/faker": "^8.0.0",
+    "seedrandom": "^3.0.5",
+    "uuid": "^9.0.0"
   }
 }
