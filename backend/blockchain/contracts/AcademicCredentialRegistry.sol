@@ -39,7 +39,6 @@ contract AcademicCredentialRegistry {
     event CredentialRevoked(bytes32 indexed credentialId, address indexed revokedBy);
 
     // Admin Management
-
     function transferAdmin(address newAdmin) external onlyAdmin {
         require(newAdmin != address(0), "New admin is zero address");
         address oldAdmin = admin;
@@ -48,7 +47,6 @@ contract AcademicCredentialRegistry {
     }
 
     // Issuer Management
-
     function authorizeIssuer(address issuer) external onlyAdmin {
         require(issuer != address(0), "Issuer is zero address");
         authorizedIssuers[issuer] = true;
@@ -62,7 +60,6 @@ contract AcademicCredentialRegistry {
     }
 
     // Credential Management
-
     function issueCredential(
         bytes32 credentialId,
         bytes32 studentHash,
@@ -93,7 +90,6 @@ contract AcademicCredentialRegistry {
     }
 
     // Read Access
-
     function getCredential(bytes32 credentialId)
         external
         view
@@ -116,7 +112,6 @@ contract AcademicCredentialRegistry {
     }
 
     // Verification
-
     function verifyCredential(bytes32 credentialId)
         external
         view

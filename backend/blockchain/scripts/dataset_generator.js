@@ -68,7 +68,7 @@ function writeCsv(filename, rows, outDir) {
   console.log(`Wrote ${rows.length} rows to ${filepath}`);
 }
 
-function generateData({ nInstitutions = 10, nStudents = 200, nCredentials = 250, nRequests = 300, seed = null } = {}) {
+function generateData({ nStudents = 200, nCredentials = 250, nRequests = 300, seed = null } = {}) {
   if (seed !== null) {
     seedrandom(String(seed), { global: true });
     faker.seed(Number(seed));
@@ -92,17 +92,14 @@ function generateData({ nInstitutions = 10, nStudents = 200, nCredentials = 250,
     'BS Accounting Technology',
     'BS Business Administration (Marketing)',
     'BS Business Administration (Finance)',
-
     'BS Civil Engineering',
     'BS Computer Engineering',
     'BS Electrical Engineering',
     'BS Electronics Communication Engineering',
     'Architecture',
-
     'BS Nursing',
     'BS Medical Laboratory Science (MedTech)',
     'BS Physical Therapy',
-
     'Bachelor of Elementary Education (Early Childhood)',
     'Bachelor of Secondary Education - English',
     'Bachelor of Secondary Education - Math',
@@ -111,12 +108,9 @@ function generateData({ nInstitutions = 10, nStudents = 200, nCredentials = 250,
     'Bachelor of Secondary Education - Filipino',
     'Bachelor of Secondary Education - Biology',
     'AB Political Science',
-
     'BS Information Technology',
     'BS Computer Science',
-
     'BS Criminology',
-
     'BS Hotel and Restaurant Management',
     'BS Tourism Management',
   ];
@@ -128,7 +122,6 @@ function generateData({ nInstitutions = 10, nStudents = 200, nCredentials = 250,
     const inst = institutions[Math.floor(Math.random() * institutions.length)];
     const dob = faker.date.birthdate({ min: 18, max: 45, mode: 'age' });
 
-    // pick a program for the student
     const programName = programs[Math.floor(Math.random() * programs.length)];
     const studentFullName = faker.person.fullName();
     const yearLevel = yearLevels[Math.floor(Math.random() * yearLevels.length)];
@@ -240,7 +233,6 @@ function main() {
   writeCsv('credentials.csv', credentials, opts.outputDir);
   writeCsv('ai_validations.csv', aiValidations, opts.outputDir);
   writeCsv('verification_requests.csv', verificationRequests, opts.outputDir);
-  console.log('Dataset generated.');
 }
 
 if (require.main === module) main();

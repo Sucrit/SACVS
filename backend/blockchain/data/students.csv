@@ -1,0 +1,201 @@
+student_id,full_name,email,gender,date_of_birth,student_number,institution_id,institution_name,program_name,year_level
+83-6176-009789,Lori Beer,lori.beer.up@phinmaed.com,Female,1984-06-17,S-2019163,11111111-1111,University of Pangasinan,BS Civil Engineering,Graduate
+56-3102-932407,Michael Bahringer,mich.bahringer.up@phinmaed.com,Female,1997-03-21,S-6135954,11111111-1111,University of Pangasinan,AB Political Science,Graduate
+00-9995-833002,Arturo Dach,artu.dach.up@phinmaed.com,Male,1981-05-24,S-6246164,11111111-1111,University of Pangasinan,Architecture,3rd Year
+16-7345-255109,Wanda Hudson,wand.hudson.up@phinmaed.com,Other,2003-06-04,S-8749389,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - English,2nd Year
+15-0938-372585,Cornelius Bogisich,corn.bogisich.up@phinmaed.com,Other,1996-10-31,S-3926521,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Math,3rd Year
+31-2008-177777,Mr. Bobby Armstrong DDS,mr.dds.up@phinmaed.com,Male,1988-05-22,S-6093619,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Filipino,5th Year
+03-3636-756285,Evan Harris,evan.harris.up@phinmaed.com,Other,2004-04-05,S-4319787,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Science,Graduate
+05-7410-412086,Jeffery Gerhold,jeff.gerhold.up@phinmaed.com,Other,2000-04-20,S-4355691,11111111-1111,University of Pangasinan,BS Hotel and Restaurant Management,5th Year
+29-0526-189682,Nathaniel Roob,nath.roob.up@phinmaed.com,Other,1987-01-27,S-6184821,11111111-1111,University of Pangasinan,BS Hotel and Restaurant Management,3rd Year
+83-3912-264083,Mr. Sheldon Hane,mr.hane.up@phinmaed.com,Other,1991-10-03,S-8301554,11111111-1111,University of Pangasinan,AB Political Science,1st Year
+29-1325-574309,Alison Glover,alis.glover.up@phinmaed.com,Male,1993-09-01,S-2922647,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,Graduate
+95-4002-396261,Leslie Bashirian-Gleichner,lesl.bashiriangleichner.up@phinmaed.com,Female,1988-07-08,S-5449525,11111111-1111,University of Pangasinan,BS Electrical Engineering,3rd Year
+78-3469-635807,Kara Ferry,kara.ferry.up@phinmaed.com,Female,1998-11-30,S-8135160,11111111-1111,University of Pangasinan,BS Electronics Communication Engineering,1st Year
+75-8236-019633,Derek Ernser,dere.ernser.up@phinmaed.com,Female,2004-02-16,S-5981637,11111111-1111,University of Pangasinan,BS Computer Science,2nd Year
+22-6189-555229,Sophie Terry,soph.terry.up@phinmaed.com,Male,1983-04-09,S-0985986,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Social Studies,5th Year
+88-8847-868091,Eva Prohaska,eva.prohaska.up@phinmaed.com,Male,1985-05-18,S-7866503,11111111-1111,University of Pangasinan,BS Tourism Management,3rd Year
+35-4646-921702,Orlando Abshire-Graham,orla.abshiregraham.up@phinmaed.com,Male,1982-12-08,S-4317367,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,5th Year
+05-3622-259934,Matt Mante,matt.mante.up@phinmaed.com,Male,2003-11-15,S-8964735,11111111-1111,University of Pangasinan,Bachelor of Elementary Education (Early Childhood),3rd Year
+27-4250-760199,Ernesto Stracke,erne.stracke.up@phinmaed.com,Male,1998-02-26,S-4929837,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,1st Year
+95-9980-233182,Percy Keebler,perc.keebler.up@phinmaed.com,Male,1980-07-11,S-3413539,11111111-1111,University of Pangasinan,BS Computer Science,3rd Year
+26-6931-252837,Dexter Bernier,dext.bernier.up@phinmaed.com,Female,2003-09-25,S-8617735,11111111-1111,University of Pangasinan,BS Accounting Technology,4th Year
+86-9050-567160,Nichole Schroeder,nich.schroeder.up@phinmaed.com,Female,1988-04-24,S-7370883,11111111-1111,University of Pangasinan,BS Business Administration (Marketing),2nd Year
+60-3415-928580,Kristina Kessler,kris.kessler.up@phinmaed.com,Male,1980-11-12,S-2008335,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,3rd Year
+29-6408-015456,Patsy Russel,pats.russel.up@phinmaed.com,Female,1983-08-26,S-6171995,11111111-1111,University of Pangasinan,BS Accountancy,1st Year
+44-7020-190846,Michelle Jacobi,mich.jacobi.up@phinmaed.com,Female,2000-02-07,S-6401914,11111111-1111,University of Pangasinan,BS Accountancy,1st Year
+69-2695-765467,Carole Rau,caro.rau.up@phinmaed.com,Male,1987-02-06,S-4025317,11111111-1111,University of Pangasinan,BS Civil Engineering,5th Year
+00-3897-140074,Dolores Bosco,dolo.bosco.up@phinmaed.com,Male,1983-06-17,S-8431446,11111111-1111,University of Pangasinan,BS Accountancy,4th Year
+23-0695-585661,Cora Nicolas Jr.,cora.jr.up@phinmaed.com,Other,1991-04-02,S-6096908,11111111-1111,University of Pangasinan,BS Information Technology,5th Year
+35-6148-589638,Terrell Mayer,terr.mayer.up@phinmaed.com,Other,1996-06-29,S-9692120,11111111-1111,University of Pangasinan,BS Civil Engineering,2nd Year
+66-3063-386038,Loretta Batz,lore.batz.up@phinmaed.com,Male,1986-02-06,S-2241663,11111111-1111,University of Pangasinan,Architecture,5th Year
+89-2514-758597,Ignacio Rice,igna.rice.up@phinmaed.com,Other,1997-09-14,S-4132753,11111111-1111,University of Pangasinan,BS Criminology,4th Year
+67-7721-395548,Daryl Ferry,dary.ferry.up@phinmaed.com,Male,2004-05-16,S-3328030,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - English,Graduate
+39-9694-546040,Bert Bosco,bert.bosco.up@phinmaed.com,Female,1980-05-25,S-2635627,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Math,2nd Year
+94-9095-047853,Lowell Bruen,lowe.bruen.up@phinmaed.com,Other,2006-08-02,S-7191678,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Science,4th Year
+72-0388-710502,Joe Boehm,joe.boehm.up@phinmaed.com,Male,1997-05-27,S-9538388,11111111-1111,University of Pangasinan,BS Accountancy,1st Year
+37-0473-574293,Elbert McLaughlin-Romaguera,elbe.mclaughlinromaguera.up@phinmaed.com,Female,1986-09-20,S-1442044,11111111-1111,University of Pangasinan,BS Computer Engineering,4th Year
+86-7765-294342,Celia Runolfsson,celi.runolfsson.up@phinmaed.com,Female,1996-02-04,S-0852498,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Filipino,3rd Year
+80-5999-025690,Abel Baumbach,abel.baumbach.up@phinmaed.com,Female,1980-06-07,S-5162624,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - English,4th Year
+09-2990-834163,Rickey Hoppe DDS,rick.dds.up@phinmaed.com,Female,2007-12-23,S-2116433,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Science,Graduate
+94-6052-348662,Joel Hessel I,joel.i.up@phinmaed.com,Female,1986-07-08,S-1190899,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,Graduate
+09-8850-104378,Tracy VonRueden,trac.vonrueden.up@phinmaed.com,Male,1991-10-05,S-4991357,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,2nd Year
+80-4041-200086,Lela Spinka,lela.spinka.up@phinmaed.com,Other,1990-10-04,S-8597995,11111111-1111,University of Pangasinan,BS Criminology,2nd Year
+22-4212-926228,Mr. Wm Rosenbaum,mr.rosenbaum.up@phinmaed.com,Female,1996-06-23,S-6760321,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - English,4th Year
+53-8859-508745,Dr. Allan Kreiger,dr.kreiger.up@phinmaed.com,Other,1980-09-18,S-1404776,11111111-1111,University of Pangasinan,BS Electrical Engineering,Graduate
+60-9365-635409,Leland Turner,lela.turner.up@phinmaed.com,Other,1997-12-30,S-7355479,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Science,3rd Year
+97-1498-472040,Sabrina Stoltenberg,sabr.stoltenberg.up@phinmaed.com,Other,1991-03-13,S-9643326,11111111-1111,University of Pangasinan,BS Electrical Engineering,5th Year
+41-5141-661163,Dolores Lind,dolo.lind.up@phinmaed.com,Female,1996-04-28,S-4884569,11111111-1111,University of Pangasinan,BS Electronics Communication Engineering,3rd Year
+32-3100-515432,Mr. Johnny Bauch,mr.bauch.up@phinmaed.com,Male,1984-12-01,S-8315363,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,3rd Year
+05-8193-002880,Bernadette Murazik,bern.murazik.up@phinmaed.com,Male,1981-03-12,S-7519253,11111111-1111,University of Pangasinan,BS Electrical Engineering,Graduate
+54-7700-121768,Sherry Rowe,sher.rowe.up@phinmaed.com,Male,2005-12-19,S-8575018,11111111-1111,University of Pangasinan,BS Nursing,Graduate
+27-3105-382035,Margie Flatley,marg.flatley.up@phinmaed.com,Female,1992-08-14,S-1283546,11111111-1111,University of Pangasinan,BS Accounting Technology,Graduate
+55-7557-545132,Hubert Kris,hube.kris.up@phinmaed.com,Female,1990-01-13,S-3386652,11111111-1111,University of Pangasinan,Architecture,5th Year
+01-2132-418102,Ora Moen I,ora.i.up@phinmaed.com,Female,1990-01-24,S-8108800,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Math,Graduate
+35-9980-892417,Mrs. Terri Wunsch PhD,mrs.phd.up@phinmaed.com,Female,1994-10-12,S-6897555,11111111-1111,University of Pangasinan,BS Physical Therapy,1st Year
+93-7415-725176,Lora DuBuque,lora.dubuque.up@phinmaed.com,Male,1993-06-09,S-7205519,11111111-1111,University of Pangasinan,BS Business Administration (Finance),1st Year
+34-1505-923680,Margie Bechtelar,marg.bechtelar.up@phinmaed.com,Female,1993-07-25,S-2160715,11111111-1111,University of Pangasinan,Bachelor of Elementary Education (Early Childhood),4th Year
+19-8879-419799,Guadalupe Schimmel,guad.schimmel.up@phinmaed.com,Male,1993-05-05,S-2130977,11111111-1111,University of Pangasinan,BS Electronics Communication Engineering,2nd Year
+72-7181-182665,Dr. Mona Connelly,dr.connelly.up@phinmaed.com,Female,1996-03-06,S-9338536,11111111-1111,University of Pangasinan,BS Computer Science,Graduate
+63-5745-523833,Charlene Hodkiewicz IV,char.iv.up@phinmaed.com,Other,2002-12-16,S-5509265,11111111-1111,University of Pangasinan,BS Computer Science,2nd Year
+36-1178-645785,Lana Murazik,lana.murazik.up@phinmaed.com,Other,1983-05-14,S-7917372,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Science,3rd Year
+77-4873-185138,Wayne Doyle,wayn.doyle.up@phinmaed.com,Male,2001-11-22,S-4163575,11111111-1111,University of Pangasinan,BS Medical Laboratory Science (MedTech),4th Year
+06-5655-725381,Miss Wendy Reichert,miss.reichert.up@phinmaed.com,Male,1984-04-16,S-9935244,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - English,4th Year
+15-1620-785915,Essie Cremin V,essi.v.up@phinmaed.com,Male,1993-01-11,S-9679076,11111111-1111,University of Pangasinan,BS Electronics Communication Engineering,3rd Year
+40-7198-994112,Sergio Moen,serg.moen.up@phinmaed.com,Female,1984-05-13,S-9181189,11111111-1111,University of Pangasinan,AB Political Science,4th Year
+63-3073-287063,Alex Farrell,alex.farrell.up@phinmaed.com,Male,1989-05-24,S-1345899,11111111-1111,University of Pangasinan,BS Hotel and Restaurant Management,3rd Year
+52-0491-215414,Yvonne Rippin III,yvon.iii.up@phinmaed.com,Female,1989-10-16,S-0933752,11111111-1111,University of Pangasinan,AB Political Science,1st Year
+19-9415-480591,Maria Ondricka,mari.ondricka.up@phinmaed.com,Female,1997-10-18,S-5253037,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,4th Year
+41-6034-855027,Bernadette Heller,bern.heller.up@phinmaed.com,Female,1992-01-17,S-7455544,11111111-1111,University of Pangasinan,BS Physical Therapy,Graduate
+13-8097-322865,Tracey Crist,trac.crist.up@phinmaed.com,Female,1991-04-25,S-4809187,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Social Studies,Graduate
+22-1650-513751,Brett Lubowitz,bret.lubowitz.up@phinmaed.com,Other,2004-05-14,S-8652708,11111111-1111,University of Pangasinan,BS Criminology,5th Year
+93-9612-423800,Dr. Archie Steuber,dr.steuber.up@phinmaed.com,Other,1986-11-26,S-6072801,11111111-1111,University of Pangasinan,Bachelor of Elementary Education (Early Childhood),Graduate
+89-8633-283350,Seth Jones,seth.jones.up@phinmaed.com,Other,1985-03-04,S-2863475,11111111-1111,University of Pangasinan,Bachelor of Elementary Education (Early Childhood),3rd Year
+77-1185-498471,Christie Erdman DVM,chri.dvm.up@phinmaed.com,Female,1990-04-02,S-4405275,11111111-1111,University of Pangasinan,BS Tourism Management,2nd Year
+68-4915-916260,Reginald Erdman,regi.erdman.up@phinmaed.com,Other,1999-08-30,S-8951854,11111111-1111,University of Pangasinan,AB Political Science,1st Year
+87-2101-129287,Billie O'Hara,bill.ohara.up@phinmaed.com,Female,1987-10-08,S-5266641,11111111-1111,University of Pangasinan,BS Civil Engineering,3rd Year
+75-4031-971006,Lionel Jakubowski,lion.jakubowski.up@phinmaed.com,Male,1996-02-23,S-7203824,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Math,4th Year
+59-4369-917422,Preston Gulgowski,pres.gulgowski.up@phinmaed.com,Female,1990-01-19,S-0521580,11111111-1111,University of Pangasinan,BS Electronics Communication Engineering,1st Year
+67-4130-374476,Josefina Crist,jose.crist.up@phinmaed.com,Female,2003-10-17,S-5442080,11111111-1111,University of Pangasinan,BS Information Technology,Graduate
+13-3089-917964,Yvette Goldner-Abshire,yvet.goldnerabshire.up@phinmaed.com,Male,2002-06-23,S-5105987,11111111-1111,University of Pangasinan,BS Electrical Engineering,3rd Year
+66-8929-462690,Simon Okuneva,simo.okuneva.up@phinmaed.com,Female,2000-08-05,S-9600759,11111111-1111,University of Pangasinan,BS Criminology,3rd Year
+01-6721-919497,Billie Kozey II,bill.ii.up@phinmaed.com,Male,2008-01-28,S-4780843,11111111-1111,University of Pangasinan,BS Nursing,2nd Year
+32-5140-865347,Doug O'Conner,doug.oconner.up@phinmaed.com,Male,1994-09-21,S-4053855,11111111-1111,University of Pangasinan,Bachelor of Elementary Education (Early Childhood),Graduate
+84-6824-048900,Lloyd Murazik,lloy.murazik.up@phinmaed.com,Female,2002-03-26,S-8153997,11111111-1111,University of Pangasinan,BS Tourism Management,3rd Year
+40-4465-829370,Mr. William Bechtelar,mr.bechtelar.up@phinmaed.com,Male,1982-01-20,S-4345772,11111111-1111,University of Pangasinan,Bachelor of Elementary Education (Early Childhood),Graduate
+82-7250-209904,Claudia Gulgowski,clau.gulgowski.up@phinmaed.com,Male,1980-03-09,S-1336129,11111111-1111,University of Pangasinan,BS Business Administration (Marketing),4th Year
+49-8896-496917,Wilson Borer,wils.borer.up@phinmaed.com,Male,2006-09-10,S-9024986,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,3rd Year
+01-3201-978380,Levi Carter,levi.carter.up@phinmaed.com,Male,1986-07-20,S-6928595,11111111-1111,University of Pangasinan,BS Business Administration (Marketing),3rd Year
+74-6918-842627,Phillip Hyatt,phil.hyatt.up@phinmaed.com,Male,2007-12-14,S-5058580,11111111-1111,University of Pangasinan,BS Physical Therapy,Graduate
+48-0988-083695,Ramon Goodwin,ramo.goodwin.up@phinmaed.com,Female,1992-11-25,S-7024230,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Filipino,5th Year
+09-2168-098048,Archie Kunze,arch.kunze.up@phinmaed.com,Male,1987-05-14,S-4559853,11111111-1111,University of Pangasinan,BS Nursing,2nd Year
+78-5786-281817,Ivan Stracke,ivan.stracke.up@phinmaed.com,Female,1998-08-19,S-3826961,11111111-1111,University of Pangasinan,BS Hotel and Restaurant Management,4th Year
+98-4088-018327,Delbert Cronin PhD,delb.phd.up@phinmaed.com,Female,1997-05-31,S-9108587,11111111-1111,University of Pangasinan,Bachelor of Elementary Education (Early Childhood),1st Year
+63-9561-236058,Barbara Grant,barb.grant.up@phinmaed.com,Male,1994-04-21,S-7112705,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Filipino,1st Year
+19-7179-167093,Marty Huel,mart.huel.up@phinmaed.com,Male,1992-03-12,S-1770754,11111111-1111,University of Pangasinan,BS Electronics Communication Engineering,2nd Year
+99-6947-615730,Dr. Natasha Bayer,dr.bayer.up@phinmaed.com,Male,1989-10-11,S-0083348,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Math,3rd Year
+24-9941-481578,Kristine Kilback,kris.kilback.up@phinmaed.com,Male,2001-08-31,S-6228076,11111111-1111,University of Pangasinan,BS Medical Laboratory Science (MedTech),4th Year
+10-4799-486937,Benjamin Stroman DVM,benj.dvm.up@phinmaed.com,Other,1986-07-15,S-2493438,11111111-1111,University of Pangasinan,Architecture,Graduate
+86-7358-445911,Patty Dooley,patt.dooley.up@phinmaed.com,Female,2000-05-17,S-2807174,11111111-1111,University of Pangasinan,BS Tourism Management,2nd Year
+20-9996-174401,Mr. Lucas Murazik,mr.murazik.up@phinmaed.com,Male,2003-09-30,S-5166245,11111111-1111,University of Pangasinan,BS Tourism Management,3rd Year
+53-2574-394104,Marian Bergnaum,mari.bergnaum.up@phinmaed.com,Male,1985-09-16,S-0633496,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Science,3rd Year
+79-0747-112195,Dr. Lynda Rosenbaum,dr.rosenbaum.up@phinmaed.com,Other,2000-04-21,S-1044627,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Science,3rd Year
+05-5083-008033,Garrett Weissnat,garr.weissnat.up@phinmaed.com,Female,1989-10-12,S-3195266,11111111-1111,University of Pangasinan,BS Business Administration (Finance),5th Year
+19-6178-059606,Danny Cummings,dann.cummings.up@phinmaed.com,Male,2002-07-05,S-5279897,11111111-1111,University of Pangasinan,BS Accountancy,3rd Year
+06-8555-874460,Mr. Gregg Moore,mr.moore.up@phinmaed.com,Male,1997-08-08,S-5174070,11111111-1111,University of Pangasinan,BS Computer Science,2nd Year
+23-9437-187460,Miss Eunice Kris,miss.kris.up@phinmaed.com,Female,1996-09-14,S-4150762,11111111-1111,University of Pangasinan,BS Physical Therapy,5th Year
+14-6204-022841,Ivan Kunde-O'Conner,ivan.kundeoconner.up@phinmaed.com,Female,1989-05-25,S-8974784,11111111-1111,University of Pangasinan,BS Physical Therapy,4th Year
+58-5554-073468,Miss Whitney Runte Jr.,miss.jr.up@phinmaed.com,Female,1997-09-12,S-5974629,11111111-1111,University of Pangasinan,BS Business Administration (Finance),Graduate
+64-6872-177496,Alexis Ebert,alex.ebert.up@phinmaed.com,Other,1996-09-05,S-1623951,11111111-1111,University of Pangasinan,BS Criminology,Graduate
+08-4455-536501,Andrew Kertzmann,andr.kertzmann.up@phinmaed.com,Female,1991-08-29,S-6339328,11111111-1111,University of Pangasinan,BS Criminology,4th Year
+13-9242-280413,Cathy Rutherford,cath.rutherford.up@phinmaed.com,Male,1998-06-25,S-5436814,11111111-1111,University of Pangasinan,BS Civil Engineering,2nd Year
+21-3130-673654,Shelly White,shel.white.up@phinmaed.com,Other,1992-09-04,S-7878458,11111111-1111,University of Pangasinan,BS Accounting Technology,1st Year
+29-0152-900612,Tony Brown,tony.brown.up@phinmaed.com,Female,2004-05-28,S-4190315,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Science,Graduate
+60-0936-985425,Ms. Maryann Hyatt DVM,ms.dvm.up@phinmaed.com,Female,1996-06-18,S-5436511,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - English,4th Year
+76-1910-761428,Michele Purdy I,mich.i.up@phinmaed.com,Male,1980-12-06,S-9126689,11111111-1111,University of Pangasinan,BS Civil Engineering,Graduate
+68-8857-019769,Kristine Kuphal,kris.kuphal.up@phinmaed.com,Female,2006-07-17,S-6629683,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Math,3rd Year
+19-6039-849877,Sergio Heidenreich,serg.heidenreich.up@phinmaed.com,Male,1998-10-08,S-0527186,11111111-1111,University of Pangasinan,BS Computer Engineering,Graduate
+89-7873-488312,Warren Orn,warr.orn.up@phinmaed.com,Male,1991-05-30,S-5603363,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,4th Year
+54-5253-420056,Jenny Hoeger,jenn.hoeger.up@phinmaed.com,Male,1997-03-03,S-1666745,11111111-1111,University of Pangasinan,BS Medical Laboratory Science (MedTech),3rd Year
+90-8313-135525,Jody Leannon-Stamm,jody.leannonstamm.up@phinmaed.com,Female,1990-09-23,S-4637587,11111111-1111,University of Pangasinan,BS Criminology,3rd Year
+40-8608-926930,Mr. Tommie Auer,mr.auer.up@phinmaed.com,Female,2000-03-14,S-1943111,11111111-1111,University of Pangasinan,BS Business Administration (Finance),4th Year
+39-8555-306773,Jesus Graham,jesu.graham.up@phinmaed.com,Other,1993-09-12,S-2948151,11111111-1111,University of Pangasinan,Bachelor of Elementary Education (Early Childhood),4th Year
+17-2175-129944,Orville Schmidt,orvi.schmidt.up@phinmaed.com,Female,1983-07-18,S-0885305,11111111-1111,University of Pangasinan,BS Physical Therapy,Graduate
+85-8527-266143,Lorene Mills,lore.mills.up@phinmaed.com,Male,1997-10-27,S-8997352,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Social Studies,1st Year
+46-6807-614451,Dr. Jay Reynolds,dr.reynolds.up@phinmaed.com,Female,1987-04-02,S-1278842,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Math,5th Year
+26-2562-236504,Ruby Hahn,ruby.hahn.up@phinmaed.com,Male,1995-01-31,S-1921566,11111111-1111,University of Pangasinan,BS Nursing,1st Year
+60-9318-167359,Jessie Raynor,jess.raynor.up@phinmaed.com,Other,1991-06-01,S-2702068,11111111-1111,University of Pangasinan,BS Medical Laboratory Science (MedTech),Graduate
+33-6045-806802,Vicki Hilll,vick.hilll.up@phinmaed.com,Other,1996-10-09,S-6528566,11111111-1111,University of Pangasinan,AB Political Science,4th Year
+60-9363-597443,Cathy Hartmann,cath.hartmann.up@phinmaed.com,Male,1995-01-06,S-0550991,11111111-1111,University of Pangasinan,BS Medical Laboratory Science (MedTech),2nd Year
+40-4487-033697,Colin Dach,coli.dach.up@phinmaed.com,Male,1997-11-14,S-4932139,11111111-1111,University of Pangasinan,BS Electrical Engineering,3rd Year
+28-6506-207781,Miss Ollie Walter,miss.walter.up@phinmaed.com,Other,1984-05-12,S-6857170,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - English,3rd Year
+33-0392-553832,Alicia Gislason,alic.gislason.up@phinmaed.com,Other,1981-02-08,S-4968519,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - English,5th Year
+25-9315-863685,Bobbie Mann-Stark,bobb.mannstark.up@phinmaed.com,Female,2002-02-09,S-8781723,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Filipino,5th Year
+16-2399-569851,Lauren Bahringer,laur.bahringer.up@phinmaed.com,Male,2003-01-07,S-4839641,11111111-1111,University of Pangasinan,BS Business Administration (Finance),Graduate
+59-3816-310405,Noel Daniel,noel.daniel.up@phinmaed.com,Female,1997-01-25,S-1290579,11111111-1111,University of Pangasinan,BS Nursing,4th Year
+84-2186-020666,Erika Weber,erik.weber.up@phinmaed.com,Other,1983-07-06,S-3130571,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Social Studies,1st Year
+06-6294-211017,Melissa Ziemann,meli.ziemann.up@phinmaed.com,Other,1992-12-19,S-3211660,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - English,3rd Year
+62-3166-584717,Shannon Fay-Schultz,shan.fayschultz.up@phinmaed.com,Other,1997-05-26,S-8446133,11111111-1111,University of Pangasinan,BS Computer Engineering,5th Year
+37-9024-144072,Heidi Dare,heid.dare.up@phinmaed.com,Male,1994-10-22,S-5761156,11111111-1111,University of Pangasinan,BS Information Technology,4th Year
+91-8090-431256,Maria Flatley,mari.flatley.up@phinmaed.com,Male,1986-02-13,S-4482014,11111111-1111,University of Pangasinan,BS Medical Laboratory Science (MedTech),4th Year
+64-8363-843798,Mercedes Frami,merc.frami.up@phinmaed.com,Female,1983-08-28,S-1917639,11111111-1111,University of Pangasinan,BS Tourism Management,1st Year
+89-0297-486463,Brad Funk,brad.funk.up@phinmaed.com,Female,1999-05-12,S-8462680,11111111-1111,University of Pangasinan,BS Electrical Engineering,2nd Year
+95-4600-007760,Sheldon Braun,shel.braun.up@phinmaed.com,Other,1992-09-16,S-8010095,11111111-1111,University of Pangasinan,BS Computer Engineering,Graduate
+79-6713-140568,Ms. Samantha Gulgowski DVM,ms.dvm.up@phinmaed.com,Female,2000-09-28,S-7024000,11111111-1111,University of Pangasinan,BS Electronics Communication Engineering,2nd Year
+69-3620-126270,Mr. Santiago Sawayn,mr.sawayn.up@phinmaed.com,Other,1994-07-03,S-6954089,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,3rd Year
+64-5975-866110,Lawrence Krajcik Sr.,lawr.sr.up@phinmaed.com,Male,1989-02-11,S-3195203,11111111-1111,University of Pangasinan,BS Tourism Management,4th Year
+19-2291-614806,Brandy Howell,bran.howell.up@phinmaed.com,Other,1990-08-15,S-9268388,11111111-1111,University of Pangasinan,BS Tourism Management,1st Year
+72-4987-757160,Elvira Fritsch,elvi.fritsch.up@phinmaed.com,Female,2003-10-18,S-1357929,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,2nd Year
+67-0892-451837,Jeannette Brekke,jean.brekke.up@phinmaed.com,Female,1995-03-15,S-4575756,11111111-1111,University of Pangasinan,BS Electrical Engineering,5th Year
+85-6874-114508,Felicia Pfeffer,feli.pfeffer.up@phinmaed.com,Female,1988-06-04,S-2778920,11111111-1111,University of Pangasinan,BS Business Administration (Finance),1st Year
+35-7786-616337,Meghan Okuneva,megh.okuneva.up@phinmaed.com,Male,1985-07-10,S-5550878,11111111-1111,University of Pangasinan,BS Accountancy,5th Year
+97-3637-183485,Ed Douglas,ed.douglas.up@phinmaed.com,Female,1981-01-30,S-9133467,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Social Studies,Graduate
+64-0610-061317,Dale Conn,dale.conn.up@phinmaed.com,Female,2001-12-11,S-3045845,11111111-1111,University of Pangasinan,BS Tourism Management,4th Year
+57-5064-658620,Eric McClure,eric.mcclure.up@phinmaed.com,Other,1998-01-29,S-8346010,11111111-1111,University of Pangasinan,BS Nursing,2nd Year
+27-8554-311374,Patty Wunsch,patt.wunsch.up@phinmaed.com,Other,1999-07-26,S-2032058,11111111-1111,University of Pangasinan,BS Electronics Communication Engineering,4th Year
+61-4664-711649,Edmond Watsica,edmo.watsica.up@phinmaed.com,Other,2000-09-09,S-8737595,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Science,4th Year
+10-7058-526592,Felicia Wuckert,feli.wuckert.up@phinmaed.com,Other,1985-10-10,S-7902842,11111111-1111,University of Pangasinan,BS Electrical Engineering,3rd Year
+84-4947-160079,Mona Dibbert,mona.dibbert.up@phinmaed.com,Male,2004-07-12,S-4947707,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Math,1st Year
+37-9649-002002,Cindy Cole,cind.cole.up@phinmaed.com,Other,1981-09-12,S-0222297,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Social Studies,2nd Year
+48-7201-480006,Eddie Rowe,eddi.rowe.up@phinmaed.com,Other,1987-01-30,S-9513534,11111111-1111,University of Pangasinan,BS Computer Science,3rd Year
+76-5915-893084,Marie Feil,mari.feil.up@phinmaed.com,Male,2001-09-15,S-7267499,11111111-1111,University of Pangasinan,BS Physical Therapy,3rd Year
+53-4399-693110,Inez Donnelly,inez.donnelly.up@phinmaed.com,Male,1987-04-11,S-1724208,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - English,5th Year
+28-4750-775560,Johnnie Wuckert,john.wuckert.up@phinmaed.com,Female,1999-03-29,S-2484411,11111111-1111,University of Pangasinan,BS Nursing,4th Year
+48-4467-520751,Gilberto Ortiz,gilb.ortiz.up@phinmaed.com,Other,2006-07-28,S-8349077,11111111-1111,University of Pangasinan,BS Computer Engineering,2nd Year
+53-7775-021868,Beatrice Swaniawski,beat.swaniawski.up@phinmaed.com,Male,1994-01-06,S-1822945,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Biology,5th Year
+00-4392-534713,Edmund Balistreri,edmu.balistreri.up@phinmaed.com,Male,2007-09-03,S-6483307,11111111-1111,University of Pangasinan,BS Business Administration (Marketing),4th Year
+02-3775-263763,Earl Dibbert,earl.dibbert.up@phinmaed.com,Female,1992-06-11,S-1985514,11111111-1111,University of Pangasinan,BS Civil Engineering,2nd Year
+83-9821-951520,Kim Halvorson,kim.halvorson.up@phinmaed.com,Other,1999-07-31,S-1387681,11111111-1111,University of Pangasinan,BS Tourism Management,4th Year
+88-1875-399449,Bernadette Wisoky,bern.wisoky.up@phinmaed.com,Female,1988-11-10,S-1676319,11111111-1111,University of Pangasinan,BS Medical Laboratory Science (MedTech),5th Year
+06-5050-788203,Cecil Crooks,ceci.crooks.up@phinmaed.com,Other,2004-10-14,S-7913828,11111111-1111,University of Pangasinan,BS Nursing,2nd Year
+94-9864-332488,Justin Rowe,just.rowe.up@phinmaed.com,Female,2005-10-20,S-8351271,11111111-1111,University of Pangasinan,BS Criminology,2nd Year
+19-3741-766465,Alice Fisher,alic.fisher.up@phinmaed.com,Female,2003-03-22,S-3788489,11111111-1111,University of Pangasinan,Architecture,1st Year
+13-3600-611862,George Ritchie,geor.ritchie.up@phinmaed.com,Other,1987-03-16,S-9802063,11111111-1111,University of Pangasinan,Architecture,2nd Year
+20-0734-679982,Dwight Haag,dwig.haag.up@phinmaed.com,Female,1999-07-13,S-7870682,11111111-1111,University of Pangasinan,BS Nursing,2nd Year
+11-3434-283513,Hugo Abbott,hugo.abbott.up@phinmaed.com,Male,1998-04-25,S-4981440,11111111-1111,University of Pangasinan,BS Business Administration (Finance),5th Year
+18-7299-876880,Karla VonRueden II,karl.ii.up@phinmaed.com,Female,1981-04-09,S-9967536,11111111-1111,University of Pangasinan,Architecture,1st Year
+12-7150-022005,Alexander Swaniawski,alex.swaniawski.up@phinmaed.com,Other,2003-04-26,S-4238502,11111111-1111,University of Pangasinan,BS Nursing,1st Year
+09-8886-353891,Kelli Miller,kell.miller.up@phinmaed.com,Male,1986-06-07,S-6052872,11111111-1111,University of Pangasinan,BS Computer Science,2nd Year
+55-6028-254170,Dr. Misty Ziemann,dr.ziemann.up@phinmaed.com,Female,1981-01-23,S-5906880,11111111-1111,University of Pangasinan,BS Computer Science,Graduate
+40-3944-716381,Salvador Larson,salv.larson.up@phinmaed.com,Male,2004-09-14,S-4169645,11111111-1111,University of Pangasinan,Bachelor of Elementary Education (Early Childhood),Graduate
+11-2374-962926,Luke Padberg,luke.padberg.up@phinmaed.com,Female,2002-03-07,S-4795264,11111111-1111,University of Pangasinan,BS Tourism Management,2nd Year
+46-0912-249434,Bradley Hettinger,brad.hettinger.up@phinmaed.com,Female,1982-01-29,S-4614642,11111111-1111,University of Pangasinan,AB Political Science,5th Year
+80-0280-812348,Ramona Lind,ramo.lind.up@phinmaed.com,Female,1993-05-16,S-4525320,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - English,Graduate
+68-1538-558046,Beth Bogisich,beth.bogisich.up@phinmaed.com,Other,2006-03-08,S-7094192,11111111-1111,University of Pangasinan,BS Accounting Technology,4th Year
+89-6726-632879,Vanessa Renner,vane.renner.up@phinmaed.com,Female,1984-09-19,S-9870860,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Filipino,2nd Year
+68-6216-384630,Jesus Beier,jesu.beier.up@phinmaed.com,Female,1981-07-11,S-1545790,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Science,1st Year
+66-6638-550561,Geraldine Rohan III,gera.iii.up@phinmaed.com,Female,1991-05-31,S-9161817,11111111-1111,University of Pangasinan,BS Information Technology,1st Year
+85-9180-645244,Celia Lehner,celi.lehner.up@phinmaed.com,Male,1997-12-14,S-0530918,11111111-1111,University of Pangasinan,AB Political Science,5th Year
+08-3684-460253,Miss Bernice Rempel,miss.rempel.up@phinmaed.com,Female,1995-09-26,S-8754273,11111111-1111,University of Pangasinan,BS Civil Engineering,Graduate
+40-3850-336073,Janis Von,jani.von.up@phinmaed.com,Female,2003-02-14,S-6535114,11111111-1111,University of Pangasinan,BS Hotel and Restaurant Management,Graduate
+91-3056-360330,Sarah Ruecker,sara.ruecker.up@phinmaed.com,Male,1998-03-05,S-7453168,11111111-1111,University of Pangasinan,BS Electronics Communication Engineering,Graduate
+95-4161-194209,Herman Erdman,herm.erdman.up@phinmaed.com,Other,1997-01-20,S-5591300,11111111-1111,University of Pangasinan,BS Computer Science,5th Year
+30-3714-421981,Sophie Jerde,soph.jerde.up@phinmaed.com,Male,1985-12-10,S-3933484,11111111-1111,University of Pangasinan,AB Political Science,1st Year
+26-9130-393759,Kristopher Wyman,kris.wyman.up@phinmaed.com,Male,1996-12-22,S-1455517,11111111-1111,University of Pangasinan,BS Accountancy,5th Year
+82-7110-536229,Lionel Hermiston,lion.hermiston.up@phinmaed.com,Female,1987-01-03,S-8553155,11111111-1111,University of Pangasinan,AB Political Science,4th Year
+24-7978-363576,Mr. Roland Murazik,mr.murazik.up@phinmaed.com,Male,1983-12-28,S-4273108,11111111-1111,University of Pangasinan,BS Electronics Communication Engineering,5th Year
+95-9573-548017,Ivan Farrell,ivan.farrell.up@phinmaed.com,Female,1993-05-29,S-7510762,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Science,4th Year
+94-5904-784533,Steven Wisozk,stev.wisozk.up@phinmaed.com,Female,1993-03-01,S-4252574,11111111-1111,University of Pangasinan,BS Hotel and Restaurant Management,1st Year
+57-8894-448675,Dwayne Kulas,dway.kulas.up@phinmaed.com,Male,1990-12-01,S-5894291,11111111-1111,University of Pangasinan,AB Political Science,1st Year
+82-0382-405962,Mr. John Nikolaus,mr.nikolaus.up@phinmaed.com,Male,1981-10-04,S-9707496,11111111-1111,University of Pangasinan,AB Political Science,2nd Year
+62-6388-327259,Josh Legros,josh.legros.up@phinmaed.com,Female,1980-12-12,S-7099269,11111111-1111,University of Pangasinan,Bachelor of Secondary Education - Science,2nd Year
