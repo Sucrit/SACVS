@@ -1,3 +1,4 @@
+# Stucture
 - API Gateway
 - User Service
 - Credential Management Service
@@ -8,43 +9,30 @@
 - Notification Service
 - Document Storage Service (optional)
 
-### Truffle (Blockchain testing)
+### Truffle (Blockchain testing in ganache)
 - npx truffle compile
 - npx truffle migrate --network development
 
 #### PRISMA CS
-// init Prisma
+// init prisma
 - npx prisma init
-
 // format schema.prisma for readability 
 - npx prisma format
-
-// gen Prisma Client from schema.prisma
+// gen prisma client from schema.prisma
 - npx prisma generate
-
 // create a new migration from schema changes and applies it to DB
 - npx prisma migrate dev --name init
-
-// Applies existing migrations to the database (no schema diffing)
+// applies existing migrations to the database (no schema diffing)
 - npx prisma migrate deploy
-
-// Resets the database, reapplies all migrations, and reruns seed (DEV ONLY)
+// resets the database, reapplies all migrations, and reruns seed (DEV ONLY)
 - npx prisma migrate reset
-
-// Checks if schema.prisma matches the actual database (no changes applied)
+// checks if schema.prisma matches the actual database (no changes applied)
 - npx prisma migrate diff
-
-// Pulls the current database schema into schema.prisma (DB → Prisma)
+// pulls the current database schema into schema.prisma (DB → Prisma)
 - npx prisma db pull
-
-// Pushes schema.prisma directly to the database (no migrations)
+// pushes schema.prisma directly to the database (no migrations)
 - npx prisma db push
-
-// Opens Prisma Studio (GUI to view and edit DB records)
-- npx prisma studio
-
-// Runs the seed script defined in package.json
+// runs the seed script defined in package.json
 - npx prisma db seed
-
-// Validates schema.prisma without generating client or touching DB
+// validates schema.prisma without generating client or touching DB
 - npx prisma validate

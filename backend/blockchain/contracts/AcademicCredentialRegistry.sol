@@ -31,27 +31,43 @@ contract AcademicCredentialRegistry {
     mapping(bytes32 => Credential) private credentials;
     mapping(address => bool) public authorizedIssuers;
 
-    event CredentialIssued(bytes32 credentialId, address issuer);
-    event CredentialRevoked(bytes32 credentialId);
+    event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
+    event IssuerAuthorized(address indexed issuer);
+    event IssuerRevoked(address indexed issuer);
 
-    // ---- Issuer Management ----
+    event CredentialIssued(bytes32 indexed credentialId, address indexed issuer);
+    event CredentialRevoked(bytes32 indexed credentialId, address indexed revokedBy);
+
+    // Admin Management
+
+    function transferAdmin(address newAdmin) external onlyAdmin {
+        require(newAdmin != address(0), "New admin is zero address");
+        address oldAdmin = admin;
+        admin = newAdmin;
+        emit AdminTransferred(oldAdmin, newAdmin);
+    }
+
+    // Issuer Management
 
     function authorizeIssuer(address issuer) external onlyAdmin {
+        require(issuer != address(0), "Issuer is zero address");
         authorizedIssuers[issuer] = true;
+        emit IssuerAuthorized(issuer);
     }
 
     function revokeIssuer(address issuer) external onlyAdmin {
+        require(issuer != address(0), "Issuer is zero address");
         authorizedIssuers[issuer] = false;
+        emit IssuerRevoked(issuer);
     }
 
-    // ---- Credential Management ----
+    // Credential Management
 
     function issueCredential(
         bytes32 credentialId,
         bytes32 studentHash,
         bytes32 documentHash
     ) external onlyIssuer {
-
         require(credentials[credentialId].issuedAt == 0, "Credential already exists");
 
         credentials[credentialId] = Credential({
@@ -66,14 +82,40 @@ contract AcademicCredentialRegistry {
         emit CredentialIssued(credentialId, msg.sender);
     }
 
-    function revokeCredential(bytes32 credentialId) external onlyIssuer {
-        require(credentials[credentialId].issuedAt != 0, "Credential does not exist");
+    function revokeCredential(bytes32 credentialId) external {
+        Credential storage cred = credentials[credentialId];
+        require(cred.issuedAt != 0, "Credential does not exist");
+        require(!cred.revoked, "Credential already revoked");
+        require(msg.sender == cred.issuer || msg.sender == admin, "Not authorized to revoke");
 
-        credentials[credentialId].revoked = true;
-        emit CredentialRevoked(credentialId);
+        cred.revoked = true;
+        emit CredentialRevoked(credentialId, msg.sender);
     }
 
-    // ---- Verification ----
+    // Read Access
+
+    function getCredential(bytes32 credentialId)
+        external
+        view
+        returns (
+            bytes32 studentHash,
+            bytes32 documentHash,
+            address issuer,
+            uint256 issuedAt,
+            bool revoked
+        )
+    {
+        Credential memory cred = credentials[credentialId];
+        return (
+            cred.studentHash,
+            cred.documentHash,
+            cred.issuer,
+            cred.issuedAt,
+            cred.revoked
+        );
+    }
+
+    // Verification
 
     function verifyCredential(bytes32 credentialId)
         external
