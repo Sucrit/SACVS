@@ -1,11 +1,2 @@
-institution_id,name,type,country,accreditation_id
-c24c1c1d-7d21-4d3a-ac43-3283edb5405a,Schinner - Wiegand University,University,China,ACC-7755-IXIF
-6f47f7e5-b40c-4901-baf5-ba6221a92bee,Koelpin Group University,University,Germany,ACC-6176-BCYL
-5ef0ec5c-9492-48ff-866f-7096b41f0695,"Wehner, Effertz and Abbott University",Training Center,China,ACC-9163-FBAW
-4567496f-a048-4746-adb1-4af186c1e6bc,Greenfelder LLC University,College,Myanmar,ACC-3102-YTMX
-7dbc10ab-0852-439e-83b1-53d722f7c97a,Schaden LLC University,Training Center,Comoros,ACC-3595-YCSF
-223bee81-6611-47c6-8053-0d05cfe70504,"Dach, Klein and Bergnaum University",Training Center,Algeria,ACC-9995-QUPA
-7ee41877-b38f-4f11-a3d1-7fdec89d3e82,Feeney LLC University,Training Center,Denmark,ACC-4616-ZRBJ
-01db7d29-cc0e-4725-87ed-e38f76ee7ec9,"Hudson, Gerlach and Deckow University",College,North Macedonia,ACC-7345-KCDJ
-ada44028-a7f4-4317-8546-792c412aacda,Wisozk Group University,University,San Marino,ACC-4938-WFLV
-714e1604-99d8-42cc-8de3-985c4cc966d0,Bogisich LLC University,College,Colombia,ACC-5093-RUMO
+institution_id,name,type,city,country,country_code,accreditation_id
+11111111-1111-1111-1111-111111111111,University of Pangasinan,University,Dagupan,Philippines,PH,ACC-3791-MOFF

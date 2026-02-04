@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "generate-data": "node ./scripts/dataset_generator.js --output-dir ./data-js --seed 42"
+    "generate": "node ./scripts/dataset_generator.js --output-dir ./data-js --seed 42"
   },
   "devDependencies": {
     "truffle": "^5.11.5",

@@ -6,8 +6,38 @@ const { faker } = require('@faker-js/faker');
 const seedrandom = require('seedrandom');
 const { v4: uuidv4 } = require('uuid');
 
+const UNIVERSITY_OF_PANGASINAN_ID = '11111111-1111';
+
 function sha256Hash(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex');
+}
+
+const usedStudentIds = new Set();
+
+function generateStudentId() {
+  let id;
+  do {
+    const part1 = faker.string.numeric(2);
+    const part2 = faker.string.numeric(4);
+    const part3 = faker.string.numeric(6);
+    id = `${part1}-${part2}-${part3}`;
+  } while (usedStudentIds.has(id));
+  usedStudentIds.add(id);
+  return id;
+}
+
+function makePhinmaEmail(source) {
+  if (!source) return 'noreply@phinmaed.com';
+  const clean = String(source).trim().normalize('NFKD').replace(/[\u0300-\u036f]/g, '');
+  const parts = clean.split(/\s+/).filter(Boolean);
+  const first = (parts[0] || '').replace(/[^A-Za-z0-9]/g, '');
+  const last = (parts.length > 1 ? parts[parts.length - 1] : first).replace(/[^A-Za-z0-9]/g, '');
+
+  const first4 = (first || '').toLowerCase().slice(0, 4) || 'user';
+  const lastLower = (last || '').toLowerCase() || 'user';
+
+  const username = `${first4}.${lastLower}.up`.replace(/\.\.+/g, '.').replace(/^\.|\.$/g, '');
+  return `${username}@phinmaed.com`;
 }
 
 function randDate(startYear = 2018, endYear = 2026) {
@@ -16,7 +46,7 @@ function randDate(startYear = 2018, endYear = 2026) {
   const diff = end.getTime() - start.getTime();
   const randMs = Math.floor(Math.random() * diff);
   return new Date(start.getTime() + randMs);
-}
+} 
 
 function writeCsv(filename, rows, outDir) {
   if (!rows || rows.length === 0) return;
@@ -44,37 +74,79 @@ function generateData({ nInstitutions = 10, nStudents = 200, nCredentials = 250,
     faker.seed(Number(seed));
   }
 
-  // Institutions
-  const institutions = [];
-  for (let i = 0; i < nInstitutions; i++) {
-    institutions.push({
-      institution_id: uuidv4(),
-      name: faker.company.name() + ' University',
-      type: ['University', 'College', 'Training Center'][Math.floor(Math.random() * 3)],
-      country: faker.location.country(),
+  const institutions = [
+    {
+      institution_id: UNIVERSITY_OF_PANGASINAN_ID,
+      name: 'University of Pangasinan',
+      type: 'University',
+      city: 'Dagupan',
+      country: 'Philippines',
+      country_code: 'PH',
       accreditation_id: 'ACC-' + faker.string.numeric(4) + '-' + faker.string.alpha(4).toUpperCase()
-    });
-  }
+    }
+  ];
+
+  const credentialTypes = ['Diploma', 'Transcript', 'Certificate'];
+  const programs = [
+    'BS Accountancy',
+    'BS Accounting Technology',
+    'BS Business Administration (Marketing)',
+    'BS Business Administration (Finance)',
+
+    'BS Civil Engineering',
+    'BS Computer Engineering',
+    'BS Electrical Engineering',
+    'BS Electronics Communication Engineering',
+    'Architecture',
+
+    'BS Nursing',
+    'BS Medical Laboratory Science (MedTech)',
+    'BS Physical Therapy',
+
+    'Bachelor of Elementary Education (Early Childhood)',
+    'Bachelor of Secondary Education - English',
+    'Bachelor of Secondary Education - Math',
+    'Bachelor of Secondary Education - Science',
+    'Bachelor of Secondary Education - Social Studies',
+    'Bachelor of Secondary Education - Filipino',
+    'Bachelor of Secondary Education - Biology',
+    'AB Political Science',
+
+    'BS Information Technology',
+    'BS Computer Science',
+
+    'BS Criminology',
+
+    'BS Hotel and Restaurant Management',
+    'BS Tourism Management',
+  ];
 
   // Students
   const students = [];
+  const yearLevels = ['1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', 'Graduate'];
   for (let i = 0; i < nStudents; i++) {
     const inst = institutions[Math.floor(Math.random() * institutions.length)];
     const dob = faker.date.birthdate({ min: 18, max: 45, mode: 'age' });
+
+    // pick a program for the student
+    const programName = programs[Math.floor(Math.random() * programs.length)];
+    const studentFullName = faker.person.fullName();
+    const yearLevel = yearLevels[Math.floor(Math.random() * yearLevels.length)];
+
     students.push({
-      student_id: uuidv4(),
-      full_name: faker.person.fullName(),
-      email: faker.internet.email(),
+      student_id: generateStudentId(),
+      full_name: studentFullName,
+      email: makePhinmaEmail(studentFullName),
       gender: ['Male', 'Female', 'Other'][Math.floor(Math.random() * 3)],
       date_of_birth: dob.toISOString().split('T')[0],
       student_number: 'S-' + faker.string.numeric(7),
-      institution_id: inst.institution_id
+      institution_id: inst.institution_id,
+      institution_name: inst.name,
+      program_name: programName,
+      year_level: yearLevel
     });
   }
 
-  // Credentials
-  const credentialTypes = ['Diploma', 'Transcript', 'Certificate'];
-  const programs = ['Computer Science', 'Information Systems', 'Data Science', 'Cybersecurity', 'Software Engineering', 'AI & ML'];
   const credentials = [];
   for (let i = 0; i < nCredentials; i++) {
     const stu = students[Math.floor(Math.random() * students.length)];
@@ -89,7 +161,7 @@ function generateData({ nInstitutions = 10, nStudents = 200, nCredentials = 250,
       student_id: stu.student_id,
       institution_id: inst.institution_id,
       credential_type: credentialTypes[Math.floor(Math.random() * credentialTypes.length)],
-      program_name: programs[Math.floor(Math.random() * programs.length)],
+      program_name: stu.program_name || programs[Math.floor(Math.random() * programs.length)],
       issue_date: issueDate.toISOString().split('T')[0],
       expiry_date: expires,
       honors: (Math.random() < 0.2) ? ['Cum Laude', 'Magna Cum Laude', 'Summa Cum Laude'][Math.floor(Math.random() * 3)] : null,
@@ -122,10 +194,11 @@ function generateData({ nInstitutions = 10, nStudents = 200, nCredentials = 250,
   const verificationRequests = [];
   for (let i = 0; i < nRequests; i++) {
     const c = credentials[Math.floor(Math.random() * credentials.length)];
+    const employerName = faker.company.name();
     verificationRequests.push({
       request_id: uuidv4(),
-      employer_name: faker.company.name(),
-      employer_email: faker.internet.email(),
+      employer_name: employerName,
+      employer_email: makePhinmaEmail(employerName),
       credential_id: c.credential_id,
       request_date: randDate(2023, 2026).toISOString(),
       verification_result: ['Valid', 'Valid', 'Valid', 'Invalid', 'Pending'][Math.floor(Math.random() * 5)],
