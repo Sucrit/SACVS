@@ -1,4 +1,4 @@
-# Stucture
+# Structure
 - API Gateway
 - User Service
 - Credential Management Service
