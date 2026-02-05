@@ -7,7 +7,7 @@
 - Verification Service
 - Audit & Logging Service
 - Notification Service
-- Document Storage Service (optional)
+- Document Storage Service (ITFS)
 
 ### Truffle (Blockchain testing in ganache)
 - npx truffle compile

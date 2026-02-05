@@ -1,5 +1,5 @@
 const AcademicCredentialRegistry = artifacts.require("AcademicCredentialRegistry");
 
-export default function (deployer) {
+module.exports = function (deployer) {
   deployer.deploy(AcademicCredentialRegistry);
 };

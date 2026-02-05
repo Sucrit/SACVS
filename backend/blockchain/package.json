@@ -4,6 +4,7 @@
   },
   "devDependencies": {
     "truffle": "^5.11.5",
+    "chai": "^4.3.7",
     "@faker-js/faker": "^8.0.0",
     "seedrandom": "^3.0.5",
     "uuid": "^9.0.0"
