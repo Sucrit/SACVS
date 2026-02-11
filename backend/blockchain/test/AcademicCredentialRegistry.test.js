@@ -7,11 +7,16 @@ contract('AcademicCredentialRegistry', (accounts) => {
   const other = accounts[2];
 
   let registry;
+  const short = (h) => (typeof h === 'string' ? (h.slice(0,10) + '...' + h.slice(-6)) : h);
 
   beforeEach(async () => {
     registry = await AcademicCredentialRegistry.new({ from: admin });
   });
 
+  /*
+   Step 1: Ensure an authorized issuer can successfully issue a credential
+   *and that the credential can be retrieved and verified correctly.
+   */
   describe('Test 1: Happy Path', function () {
     it('should allow an authorized issuer to issue and verify a credential', async () => {
       await registry.authorizeIssuer(issuer, { from: admin });
@@ -24,56 +29,80 @@ contract('AcademicCredentialRegistry', (accounts) => {
 
       const tx = await registry.issueCredential(credentialId, studentHash, documentHash, { from: issuer });
       assert.exists(tx.receipt, 'transaction should have a receipt');
-      assert.equal(tx.receipt.status, true, 'issue tx should succeed');
+      assert.equal(tx.receipt.status, true, 'issue transaction should succeed');
 
-      // Credential hash found on "blockchain" via getCredential
       const cred = await registry.getCredential(credentialId);
-      assert.equal(cred[1], documentHash, 'documentHash should match');
+      assert.equal(cred[1], documentHash, 'documentHash stored on-chain should match the issued document hash');
 
-      // Verify returns valid true and issuer and timestamp
+      const t0 = Date.now();
       const verify = await registry.verifyCredential(credentialId);
-      assert.isTrue(verify[0], 'credential should be valid');
-      assert.equal(verify[1], issuer, 'issuer should match');
-      assert.isAbove(Number(verify[2]), 0, 'issuedAt should be set');
+      const t1 = Date.now();
+      const verifyMs = t1 - t0;
+
+      assert.isTrue(verify[0], 'verifyCredential should report the credential as valid');
+      assert.equal(verify[1], issuer, 'verifyCredential should return the correct issuer address');
+      assert.isAbove(Number(verify[2]), 0, 'verifyCredential should return a non-zero issuedAt timestamp');
+
+      console.log(`\n[Test 1] Authorized issuer ${issuer} issued credential ${short(credentialId)}.`);
+      console.log(`   Document hash on-chain: ${short(cred[1])}`);
+      console.log(`   Verification: valid=${verify[0]}, issuer=${verify[1]}, issuedAt=${verify[2]} (verified in ${verifyMs}ms)\n`);
     });
   });
 
+  /*
+   Test 2: Validate system behavior for invalid inputs and revoked credentials.
+   Checks:
+   - Verifying a non-existent credential must return invalid without reverting
+   - Verifying a revoked credential must return invalid
+   */
   describe('Test 2: Edge Case', function () {
     it('should return false for altered or missing credential (no crash)', async () => {
       const fakeId = web3.utils.soliditySha3('nonexistent');
 
-      // verifyCredential should not revert and should indicate invalid
       const verifyFake = await registry.verifyCredential(fakeId);
-      assert.isFalse(verifyFake[0], 'verification should fail for unknown credential');
-      assert.equal(verifyFake[1], '0x0000000000000000000000000000000000000000', 'issuer should be zero address');
-      assert.equal(Number(verifyFake[2]), 0, 'issuedAt should be zero');
+      assert.isFalse(verifyFake[0], 'verification should fail for a non-existent credential');
+      assert.equal(verifyFake[1], '0x0000000000000000000000000000000000000000', 'issuer should be zero address when invalid');
+      assert.equal(Number(verifyFake[2]), 0, 'issuedAt should be zero for invalid credentials');
 
-      // Also test revoked credential
+      console.log(`\n[Test 2] Non-existent credential ${short(fakeId)} correctly reported as invalid.`);
+
+      // Setup a revoked credential and ensure verification fails
       await registry.authorizeIssuer(issuer, { from: admin });
       const credentialId = web3.utils.soliditySha3('cred-revoke');
       const studentHash = web3.utils.soliditySha3('student-x');
       const documentHash = web3.utils.soliditySha3('doc-x');
 
       await registry.issueCredential(credentialId, studentHash, documentHash, { from: issuer });
-      // revoke as issuer
       await registry.revokeCredential(credentialId, { from: issuer });
 
       const verifyRevoked = await registry.verifyCredential(credentialId);
-      assert.isFalse(verifyRevoked[0], 'revoked credential should not verify');
+      assert.isFalse(verifyRevoked[0], 'revoked credentials must not verify as valid');
+
+      console.log(`   Revoked credential ${short(credentialId)} verification returned invalid as expected.\n`);
     });
   });
 
+  /*
+   Test 3: Performance test
+   Chwck:
+   - Authorize an issuer and issue N credentials (transactions)
+   - Verify transaction success rate (>= 95%)
+   - Measure verification-only latency by calling verifyCredential for both 
+     existing and non-existent IDs (50/50 mix)
+   - Assert average verification latency is below the threshold and
+     the failure rate for existing credentials is within acceptable limits
+   */
   describe('Test 3: Performance Test', function () {
-    this.timeout(60000); // allow more time
+    this.timeout(60000);
 
     it('should perform verification quickly and maintain high transaction success rate', async () => {
       await registry.authorizeIssuer(issuer, { from: admin });
 
-      const N = 100; // number of credentials to issue and verify
-      const issueResults = [];  
+      const N = 100; // # of credentials
+      const issueResults = [];
       const issuedIds = [];
 
-      // Issue N credentials
+      // Issue N credentials and record successful IDs
       for (let i = 0; i < N; i++) {
         const id = web3.utils.soliditySha3('perf-' + i + '-' + Math.random());
         const studentHash = web3.utils.soliditySha3('s-' + i + '-' + Math.random());
@@ -90,20 +119,15 @@ contract('AcademicCredentialRegistry', (accounts) => {
       const successCount = issueResults.filter(Boolean).length;
       const successRate = (successCount / N) * 100;
 
-      // Assert transaction success rate >= 95%
-      assert.isAtLeast(successRate, 95, `transaction success rate should be >= 95% (got ${successRate}%)`);
-
-      // Run verification calls and measure time
+      // Measure verification-only latency for N calls (50% existing, 50% random)
       const start = Date.now();
       let verifyFailures = 0;
 
       for (let i = 0; i < N; i++) {
-        // 50% of the time verify a real issued credential, otherwise verify a random non-existent id
         const useExisting = (i % 2 === 0);
-        const idToCheck = useExisting && issuedIds[i/2] ? issuedIds[i/2] : web3.utils.soliditySha3('random-' + i + '-' + Math.random());
+        const idToCheck = useExisting && issuedIds[i / 2] ? issuedIds[i / 2] : web3.utils.soliditySha3('random-' + i + '-' + Math.random());
         try {
           const res = await registry.verifyCredential(idToCheck);
-          // if we used an existing id we expect valid true, otherwise expect false
           if (useExisting && (!res[0])) verifyFailures++;
         } catch (e) {
           verifyFailures++;
@@ -113,11 +137,22 @@ contract('AcademicCredentialRegistry', (accounts) => {
       const elapsedMs = Date.now() - start;
       const avgMs = elapsedMs / N;
 
-      // Average verification call completes in less than 5 seconds
-      assert.isBelow(avgMs, 5000, `average verification should be < 5000ms (got ${avgMs}ms)`);
+      const allowedFailures = Math.ceil((N / 2) * 0.05);
 
-      // Allow up to 5% failures for verifications on existing credentials
-      const allowedFailures = Math.ceil((N/2) * 0.05); // 5% of the existing checks
+      // Print a concise performance summary so test output is easy to scan
+      console.log(`\n[Test 3] Performance summary:`);
+      console.log(`   Issued: ${issuedIds.length}/${N} credentials  —  Success rate: ${successRate.toFixed(2)}% (${successCount}/${N})`);
+      console.log(`   Verification calls: ${N} (50% existing / 50% random)`);
+      console.log(`   Avg verification latency: ${avgMs.toFixed(2)}ms`);
+      console.log(`   Verification failures for existing creds: ${verifyFailures}  (allowed: ${allowedFailures})`);
+
+      if (successRate >= 95) console.log('   Transaction success rate target met'); else console.log('   Transaction success rate below target');
+      if (avgMs < 5000) console.log('   Average verification latency target met'); else console.log('   Average verification latency too high');
+      if (verifyFailures <= allowedFailures) console.log('   Verification failure rate within allowed threshold'); else console.log('   Verification failure rate exceeded threshold');
+
+      // Performance assertions
+      assert.isAtLeast(successRate, 95, `transaction success rate should be >= 95% (got ${successRate}%)`);
+      assert.isBelow(avgMs, 5000, `average verification should be < 5000ms (got ${avgMs}ms)`);
       assert.isAtMost(verifyFailures, allowedFailures, `verification failure count should be <= ${allowedFailures} (got ${verifyFailures})`);
     });
   });

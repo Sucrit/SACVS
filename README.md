@@ -11,7 +11,8 @@
 
 ### Truffle (Blockchain testing in ganache)
 - npx truffle compile
-- npx truffle migrate --network development
+- npx truffle migrate --network development // deploying changes in contract
+- npx truffle test --network development // smart contract testing
 
 #### PRISMA CS
 // init prisma
