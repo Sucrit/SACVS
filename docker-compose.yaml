@@ -11,6 +11,7 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:admin@host.docker.internal:5432/sacvs_db?schema=public
 
   credential-service:
     build: ./backend/services/credential-service
@@ -21,6 +22,7 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:admin@host.docker.internal:5432/sacvs_db?schema=public
 
   gateway:
     build: ./backend/gateway
@@ -31,6 +33,8 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - USER_SERVICE_URL=http://user-service:5000
+      - CREDENTIALS_SERVICE_URL=http://credential-service:5100
 
   frontend:
     build: ./frontend

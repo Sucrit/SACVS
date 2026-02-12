@@ -7,8 +7,8 @@ const router = Router();
 
 // public
 router.get('/health', healthCheck);
-router.post('', UserController.createUser);
 // private
+router.post('', requireAuth(), UserController.createUser);
 router.get('', requireAuth(), UserController.getUsers);
 router.delete('/:id', requireAuth(), UserController.deleteUser);
 

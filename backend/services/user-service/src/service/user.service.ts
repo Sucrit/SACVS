@@ -8,7 +8,7 @@ const userRepository = new UserRepository();
 
 export class UserService {
   private toUserResponse(user: UserEntity): UserResponseDto {
-    const { id, clerkId, role, createdAt, updatedAt } = user as any;
+    const { id, clerkId, role, createdAt, updatedAt } = user;
     return { id, clerkId, role, createdAt, updatedAt };
   }
 
@@ -27,7 +27,7 @@ export class UserService {
     if (existing) {
       throw { status: 409, message: 'User with this Clerk ID already exists.' };
     }
-    // Create user (no password)
+    // db 
     const user = await userRepository.create({
       clerkId: data.clerkId,
       role: data.role as Role

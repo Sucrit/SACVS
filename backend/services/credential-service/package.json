@@ -16,6 +16,7 @@
     "ts-node": "^10.9.2"
   },
   "dependencies": {
+    "@clerk/express": "^1.7.65",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "dotenv": "^17.2.3",
