@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+
+  user-service:
+    build: ./backend/services/user-service
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend/services/user-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
+  credential-service:
+    build: ./backend/services/credential-service
+    ports:
+      - "5100:5100"
+    volumes:
+      - ./backend/services/credential-service:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
+  gateway:
+    build: ./backend/gateway
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend/gateway:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
