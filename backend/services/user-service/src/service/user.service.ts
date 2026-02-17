@@ -50,8 +50,8 @@ export class UserService {
     return this.toUserResponse(existing);
   }
 
-  // self-registration: always STUDENT and PENDING
-  async createSelfUser(clerkId: string): Promise<UserResponseDto> {
+  // self-registration: STUDENT/REGISTRAR only, always PENDING
+  async createSelfUser(clerkId: string, requestedRole?: string): Promise<UserResponseDto> {
     if (!clerkId || typeof clerkId !== 'string') {
       throw { status: 400, message: 'ClerkId is required and must be a string.' };
     }
@@ -61,9 +61,16 @@ export class UserService {
       return this.toUserResponse(existing);
     }
 
+    const normalizedRequestedRole = this.normalizeRole(requestedRole);
+    if (normalizedRequestedRole === Role.ADMIN) {
+      throw { status: 403, message: 'Admin accounts cannot be self-requested.' };
+    }
+
+    const role = normalizedRequestedRole === Role.REGISTRAR ? Role.REGISTRAR : Role.STUDENT;
+
     const user = await userRepository.create({
       clerkId,
-      role: Role.STUDENT,
+      role,
       status: Status.PENDING,
     });
 

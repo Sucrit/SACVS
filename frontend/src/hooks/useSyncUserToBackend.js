@@ -1,5 +1,6 @@
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { ENV } from '../config/env.js';
 
@@ -9,10 +10,22 @@ import { ENV } from '../config/env.js';
 export function useSyncUserToBackend(role) {
   const { user, isSignedIn, isLoaded: isUserLoaded } = useUser();
   const { getToken, isLoaded: isAuthLoaded } = useAuth();
+  const location = useLocation();
   const inFlightRef = useRef(false);
 
   useEffect(() => {
     if (!isUserLoaded || !isAuthLoaded || !isSignedIn || !user) return;
+    const pendingRoleRaw = role || localStorage.getItem('pending_role');
+    const pendingRole = typeof pendingRoleRaw === 'string' ? pendingRoleRaw.toUpperCase() : '';
+    const queryRole = new URLSearchParams(location.search).get('role');
+    const queryRoleUpper = typeof queryRole === 'string' ? queryRole.toUpperCase() : '';
+    const isAdminFlow =
+      pendingRole === 'ADMIN' ||
+      queryRoleUpper === 'ADMIN' ||
+      location.pathname.startsWith('/admin');
+
+    // Admin accounts are login-only and must already exist in DB.
+    if (isAdminFlow) return;
     if (inFlightRef.current) return; // avoid duplicate calls
 
     const controller = new AbortController();
@@ -94,5 +107,5 @@ export function useSyncUserToBackend(role) {
       controller.abort();
       inFlightRef.current = false;
     };
-  }, [isSignedIn, user, role, getToken, isAuthLoaded, isUserLoaded]);
+  }, [isSignedIn, user, role, getToken, isAuthLoaded, isUserLoaded, location.pathname, location.search]);
 }

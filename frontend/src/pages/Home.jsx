@@ -23,11 +23,11 @@ const roles = [
   {
     id: 'student',
     title: 'Student',
-    description: 'View and manage your academic credentials',
+    description: 'View and track your approved academic credentials',
     icon: GraduationCap,
     color: 'from-blue-500 to-indigo-600',
     bgColor: 'bg-blue-500/10',
-    features: ['Upload credentials', 'Track verification status', 'Share with registrars'],
+    features: ['View issued credentials', 'Track verification status', 'Download records'],
   },
   {
     id: 'registrar',
@@ -79,7 +79,7 @@ export default function HomePage() {
   const { isSignedIn } = useUser();
 
   useEffect(() => {
-    if (isSignedIn && pendingRole) {
+    if (isSignedIn && pendingRole && pendingRole !== 'admin') {
       navigate(`/${pendingRole.toLowerCase()}-dashboard`, { replace: true });
     }
   }, [isSignedIn, pendingRole, navigate]);
@@ -88,7 +88,11 @@ export default function HomePage() {
     const stored = localStorage.getItem('pending_role');
     if (isSignedIn && stored) {
       const normalized = stored.toUpperCase();
-      const uiRole = ['STUDENT', 'REGISTRAR', 'ADMIN'].includes(normalized) ? normalized.toLowerCase() : 'student';
+      if (normalized === 'ADMIN') {
+        localStorage.removeItem('pending_role');
+        return;
+      }
+      const uiRole = ['STUDENT', 'REGISTRAR'].includes(normalized) ? normalized.toLowerCase() : 'student';
       navigate(`/${uiRole}-dashboard`, { replace: true });
     }
   }, [isSignedIn, navigate]);
@@ -160,6 +164,13 @@ export default function HomePage() {
   }, []);
 
   const handleRoleSelect = (roleId) => {
+    if (roleId === 'admin') {
+      localStorage.removeItem('pending_role');
+      setPendingRole(null);
+      navigate('/auth?role=admin', { replace: true });
+      return;
+    }
+
     localStorage.setItem('pending_role', roleId.toUpperCase());
     setPendingRole(roleId);
 
@@ -270,7 +281,7 @@ export default function HomePage() {
                       ))}
                     </ul>
                     <Button onClick={() => handleRoleSelect(role.id)} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border border-transparent shadow-md transition-all duration-300">
-                      Authenticate
+                      {role.id === 'admin' ? 'Admin Login' : 'Authenticate'}
                       <ArrowDown className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </div>

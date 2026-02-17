@@ -1,9 +1,23 @@
 import React from 'react';
 import { useClerk } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 export default function PendingApproval() {
   const { signOut } = useClerk();
+  const navigate = useNavigate();
+
+  const handleBackToHome = () => {
+    localStorage.removeItem('pending_role');
+    localStorage.removeItem('clerk_signed_in_path');
+    navigate('/', { replace: true });
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('pending_role');
+    localStorage.removeItem('clerk_signed_in_path');
+    signOut({ redirectUrl: '/' });
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -14,10 +28,10 @@ export default function PendingApproval() {
           Please wait for approval before accessing dashboards.
         </p>
         <div className="mt-6 flex items-center justify-center gap-3">
-          <Button variant="outline" onClick={() => window.location.assign('/')}>
+          <Button variant="outline" onClick={handleBackToHome}>
             Back to Home
           </Button>
-          <Button onClick={() => signOut({ redirectUrl: '/' })}>
+          <Button onClick={handleSignOut}>
             Sign Out
           </Button>
         </div>

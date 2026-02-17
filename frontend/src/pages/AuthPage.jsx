@@ -4,13 +4,17 @@ import { useSearchParams } from 'react-router-dom';
 
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
-  const role = searchParams.get('role');
+  const role = searchParams.get('role')?.toLowerCase();
+  const isAdminLogin = role === 'admin';
 
   const after = role ? `/auth/success?role=${encodeURIComponent(role)}` : '/auth/success';
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <SignIn afterSignInUrl={after} />
+      <SignIn
+        afterSignInUrl={after}
+        signUpUrl={isAdminLogin ? '/admin-signup-disabled' : undefined}
+      />
     </div>
   );
 }
