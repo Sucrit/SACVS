@@ -4,8 +4,22 @@ import { asyncHandler } from '../utils/asyncHandler';
 
 const credentialService = new CredentialService();
 
-export const createCredential = asyncHandler(async (req: Request, res: Response) => {
-  const payload = req.body;
+type AuthenticatedRequest = Request & {
+  auth?: {
+    userId?: string;
+  };
+};
+
+export const createCredential = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const clerkId = req.auth?.userId;
+  if (!clerkId) {
+    throw { status: 401, message: 'Unauthorized' };
+  }
+
+  const payload = {
+    ...req.body,
+    uploaderClerkId: clerkId,
+  };
   const created = await credentialService.createCredential(payload);
   res.status(201).json(created);
 });

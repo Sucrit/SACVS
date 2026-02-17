@@ -20,7 +20,9 @@ export async function fetchRegistrarCredentials() {
   return response.data;
 }
 
-export async function createCredential(payload) {
-  const response = await axios.post(`${API_BASE_URL}/credentials`, payload);
+export async function createCredential(payload, token) {
+  const response = await axios.post(`${API_BASE_URL}/credentials`, payload, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
   return response.data;
 }

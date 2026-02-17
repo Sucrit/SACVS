@@ -5,7 +5,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 
 const permissions = [
   { id: 'view_own_credentials', label: 'View Own Credentials' },
-  { id: 'upload_credentials', label: 'Upload Credentials' },
   { id: 'issue_credentials', label: 'Issue Credentials' },
   { id: 'verify_credentials', label: 'Verify Credentials' },
   { id: 'request_verification', label: 'Request Verification' },
@@ -17,14 +16,10 @@ const permissions = [
 ];
 
 const rolePermissions = {
-  student: ['view_own_credentials', 'upload_credentials', 'view_verification_history'],
-  registrar: ['view_own_credentials', 'upload_credentials', 'issue_credentials', 'verify_credentials', 'request_verification', 'view_verification_history'],
+  student: ['view_own_credentials', 'view_verification_history'],
+  registrar: ['view_own_credentials', 'issue_credentials', 'verify_credentials', 'request_verification', 'view_verification_history'],
   admin: [
     'view_own_credentials',
-    'upload_credentials',
-    'issue_credentials',
-    'verify_credentials',
-    'request_verification',
     'view_verification_history',
     'manage_users',
     'view_audit_logs',

@@ -38,7 +38,7 @@ import CredentialUploadForm from '@/components/forms/CredentialUploadForm';
 import AIValidationPanel from '@/components/dashboard/AIValidationPanel';
 import BlockchainIndicator from '@/components/dashboard/BlockchainIndicator';
 import SecurityBadge from '@/components/ui/SecurityBadge';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -55,6 +55,7 @@ export default function RegistrarIssuingDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [locallyIssuedIds, setLocallyIssuedIds] = useState(() => new Set());
   const { user } = useUser();
+  const { getToken } = useAuth();
 
   // Fetch credentials from backend
   const { data: credentials = [], isLoading, isError, refetch, isFetching } = useQuery({
@@ -63,7 +64,7 @@ export default function RegistrarIssuingDashboard() {
   });
 
   const { mutateAsync: submitCredential, isPending: isSubmitting } = useMutation({
-    mutationFn: createCredential,
+    mutationFn: ({ payload, token }) => createCredential(payload, token),
   });
 
   const handleCredentialSubmit = async (formData) => {
@@ -73,7 +74,7 @@ export default function RegistrarIssuingDashboard() {
     }
 
     const payload = {
-      uploaderClerkId: user?.id || 'anonymous-registrar',
+      uploaderClerkId: user?.id || '',
       title: formData.title,
       filename: formData.filename || formData.document_original_name || null,
       type: formData.type,
@@ -91,7 +92,12 @@ export default function RegistrarIssuingDashboard() {
       },
     };
 
-    await submitCredential(payload);
+    const token = await getToken();
+    if (!token) {
+      throw new Error('Authentication token is required to issue credentials.');
+    }
+
+    await submitCredential({ payload, token });
     setShowIssueDialog(false);
     await refetch();
   };

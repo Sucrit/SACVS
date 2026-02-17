@@ -30,10 +30,19 @@ model User {
   updatedAt   DateTime @updatedAt
 }
 
+enum CredentialStatus {
+  PENDING
+  ISSUED
+  VERIFIED
+  REVOKED
+  EXPIRED
+}
+
 model Credential {
   id               String   @id @default(uuid())
   uploaderClerkId  String
   title            String
+  status           CredentialStatus @default(PENDING)
   filename         String?
   metadata         Json?
   createdAt        DateTime @default(now())

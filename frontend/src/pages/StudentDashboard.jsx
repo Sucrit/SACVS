@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import DashboardLayout from '@/layouts/DashboardLayout';
@@ -14,34 +14,21 @@ import {
 } from '@/components/ui/dialog';
 import {
   GraduationCap,
-  Upload,
   FileCheck,
   Clock,
   CheckCircle2,
-  Plus,
   Shield,
   AlertTriangle,
   RefreshCw,
 } from 'lucide-react';
 import CredentialCard from '@/components/credentials/CredentialCard';
-import CredentialUploadForm from '@/components/forms/CredentialUploadForm';
 import AIValidationPanel from '@/components/dashboard/AIValidationPanel';
 import BlockchainIndicator from '@/components/dashboard/BlockchainIndicator';
 import StatusIndicator from '@/components/ui/StatusIndicator';
-import { createCredential, fetchStudentCredentials } from '@/api/credentials';
+import { fetchStudentCredentials } from '@/api/credentials';
 import { useUser } from '@clerk/clerk-react';
 
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
 export default function StudentDashboard() {
-  const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [selectedCredential, setSelectedCredential] = useState(null);
   const { user } = useUser();
 
@@ -50,40 +37,6 @@ export default function StudentDashboard() {
     queryKey: ['studentCredentials', user?.id],
     queryFn: () => fetchStudentCredentials(user?.id),
   });
-
-  const { mutateAsync: submitCredential, isPending: isSubmitting } = useMutation({
-    mutationFn: createCredential,
-  });
-
-  const handleCredentialSubmit = async (formData) => {
-    let documentBase64;
-    if (formData.file instanceof File) {
-      documentBase64 = await fileToDataUrl(formData.file);
-    }
-
-    const payload = {
-      uploaderClerkId: user?.id || 'anonymous-student',
-      title: formData.title,
-      filename: formData.filename || formData.document_original_name || null,
-      type: formData.type,
-      institution_name: formData.institution_name,
-      student_name: formData.student_name,
-      issue_date: formData.issue_date,
-      expiry_date: formData.expiry_date || undefined,
-      status: 'pending',
-      document_url: formData.document_url || undefined,
-      document_original_name: formData.document_original_name || undefined,
-      document_mime_type: formData.document_mime_type || undefined,
-      ...(documentBase64 ? { document_base64: documentBase64 } : {}),
-      metadata: {
-        source: 'student-dashboard',
-      },
-    };
-
-    await submitCredential(payload);
-    setShowUploadDialog(false);
-    await refetch();
-  };
 
   const issuedCredentials = credentials.filter((c) => c.status === 'issued');
   const pendingCredentials = credentials.filter((c) => c.status === 'pending' || c.status === 'ai_review');
@@ -138,11 +91,7 @@ export default function StudentDashboard() {
           <GraduationCap className="w-8 h-8 text-muted-foreground" />
         </div>
         <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-        <p className="text-muted-foreground mt-2 mb-6">{description}</p>
-        <Button onClick={() => setShowUploadDialog(true)} className="bg-primary hover:bg-primary/90">
-          <Upload className="w-4 h-4 mr-2" />
-          Upload Credential
-        </Button>
+        <p className="text-muted-foreground mt-2">{description}</p>
       </CardContent>
     </Card>
   );
@@ -164,13 +113,7 @@ export default function StudentDashboard() {
   return (
     <DashboardLayout
       title="Student Dashboard"
-      subtitle="Manage and track your academic credentials"
-      actions={
-        <Button onClick={() => setShowUploadDialog(true)} className="bg-primary hover:bg-primary/90">
-          <Plus className="w-4 h-4 mr-2" />
-          Upload Credential
-        </Button>
-      }
+      subtitle="View and track your academic credentials"
       stats={[
         { title: 'Total Credentials', value: stats.total, icon: GraduationCap },
         { title: 'Issued', value: stats.issued, icon: CheckCircle2 },
@@ -191,7 +134,7 @@ export default function StudentDashboard() {
           : isError
             ? renderErrorState()
             : credentials.length === 0
-              ? renderEmptyState('No Credentials Yet', 'Upload your first credential to start verification.')
+              ? renderEmptyState('No Credentials Yet', 'No credentials have been issued to your account yet.')
               : renderCredentialGrid(credentials, true)}
         </TabsContent>
 
@@ -215,21 +158,6 @@ export default function StudentDashboard() {
                 : renderCredentialGrid(pendingCredentials)}
         </TabsContent>
       </Tabs>
-
-      <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5 text-primary" />
-              Upload New Credential
-            </DialogTitle>
-          </DialogHeader>
-          <CredentialUploadForm
-            onSubmit={handleCredentialSubmit}
-            isLoading={isSubmitting}
-          />
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!selectedCredential} onOpenChange={() => setSelectedCredential(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
