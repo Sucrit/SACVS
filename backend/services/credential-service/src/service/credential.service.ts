@@ -1,6 +1,6 @@
 import { CredentialRepository } from '../repository/credential.repository';
 import { CreateCredentialDto, CredentialResponseDto } from '../dto/credential.dto';
-import { archiveCredentialDocument, archiveCredentialPayload } from '../utils/credentialArchive';
+import { archiveCredentialDocument } from '../utils/credentialArchive';
 import { Prisma } from '@prisma/client';
 
 const credentialRepository = new CredentialRepository();
@@ -60,7 +60,6 @@ export class CredentialService {
       throw { status: 400, message: 'uploaderClerkId and title are required' };
     }
 
-    const requestArchivePath = await archiveCredentialPayload('credential-received', data);
     const baseMetadata = this.normalizeMetadata(data.metadata);
 
     let documentArchivePath: string | undefined;
@@ -83,7 +82,6 @@ export class CredentialService {
       expiry_date: data.expiry_date ?? baseMetadata.expiry_date,
       status: data.status ?? baseMetadata.status ?? 'pending',
       document_url: data.document_url ?? baseMetadata.document_url,
-      request_archive_path: requestArchivePath,
       ...(documentArchivePath ? { document_archive_path: documentArchivePath } : {}),
     };
 
@@ -94,39 +92,25 @@ export class CredentialService {
       metadata: mergedMetadata as Prisma.InputJsonValue,
     });
 
-    const dto = this.toDto(created);
-    const responseArchivePath = await archiveCredentialPayload('credential-created', dto);
-    return {
-      ...dto,
-      metadata: {
-        ...(dto.metadata || {}),
-        response_archive_path: responseArchivePath,
-      },
-    };
+    return this.toDto(created);
   }
 
   async getAllCredentials(): Promise<CredentialResponseDto[]> {
     const items = await credentialRepository.list();
-    const dto = items.map((i: any) => this.toDto(i));
-    await archiveCredentialPayload('credentials-list-sent', { count: dto.length, credentials: dto });
-    return dto;
+    return items.map((i: any) => this.toDto(i));
   }
 
   async getStudentCredentials(clerkId?: string): Promise<CredentialResponseDto[]> {
     const items = clerkId
       ? await credentialRepository.listByUploaderClerkId(clerkId)
       : await credentialRepository.list();
-    const dto = items.map((i: any) => this.toDto(i));
-    await archiveCredentialPayload('credentials-student-list-sent', { clerkId: clerkId || null, count: dto.length, credentials: dto });
-    return dto;
+    return items.map((i: any) => this.toDto(i));
   }
 
   async getCredentialById(id: string): Promise<CredentialResponseDto> {
     if (!id) throw { status: 400, message: 'id required' };
     const item = await credentialRepository.findById(id);
     if (!item) throw { status: 404, message: 'Credential not found' };
-    const dto = this.toDto(item);
-    await archiveCredentialPayload('credential-details-sent', dto);
-    return dto;
+    return this.toDto(item);
   }
 }

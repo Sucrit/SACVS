@@ -5,7 +5,7 @@ import { ENV } from '../config/env';
 
 const DEFAULT_DOCUMENTS_DIR = path.resolve(process.cwd(), '../../documents');
 const DOCUMENTS_DIR = path.resolve(ENV.DOCUMENTS_DIR || DEFAULT_DOCUMENTS_DIR);
-const CREDENTIAL_ARCHIVE_DIR = path.join(DOCUMENTS_DIR, 'credentials');
+const DOCUMENT_UPLOAD_DIR = path.join(DOCUMENTS_DIR, 'uploads');
 
 const MIME_EXTENSION_MAP: Record<string, string> = {
   'application/pdf': '.pdf',
@@ -55,15 +55,7 @@ function parseBase64Payload(payload: string, mimeType?: string) {
 }
 
 async function ensureArchiveDir() {
-  await fs.mkdir(CREDENTIAL_ARCHIVE_DIR, { recursive: true });
-}
-
-export async function archiveCredentialPayload(kind: string, payload: unknown): Promise<string> {
-  await ensureArchiveDir();
-  const filename = `${nowStamp()}-${safeSegment(kind)}-${rand()}.json`;
-  const fullPath = path.join(CREDENTIAL_ARCHIVE_DIR, filename);
-  await fs.writeFile(fullPath, JSON.stringify(payload, null, 2), 'utf-8');
-  return fullPath;
+  await fs.mkdir(DOCUMENT_UPLOAD_DIR, { recursive: true });
 }
 
 export async function archiveCredentialDocument(input: {
@@ -77,9 +69,8 @@ export async function archiveCredentialDocument(input: {
   const baseName = safeSegment(input.originalName || input.tag || 'credential');
   const ext = extensionFromName(input.originalName) || extensionFromMime(parsed.mimeType) || '.bin';
   const filename = `${nowStamp()}-${baseName}-${rand()}${ext}`;
-  const fullPath = path.join(CREDENTIAL_ARCHIVE_DIR, filename);
+  const fullPath = path.join(DOCUMENT_UPLOAD_DIR, filename);
   const buffer = Buffer.from(parsed.base64, 'base64');
   await fs.writeFile(fullPath, buffer);
   return fullPath;
 }
-
