@@ -5,12 +5,7 @@ import { format } from 'date-fns';
 
 export default function BlockchainIndicator({ hash, timestamp, verified = false, className }) {
   const displayHash =
-    hash ||
-    '0x' +
-      Array(64)
-        .fill(0)
-        .map(() => Math.floor(Math.random() * 16).toString(16))
-        .join('');
+    hash || '0x0000000000000000000000000000000000000000000000000000000000000000';
 
   const truncatedHash = `${displayHash.slice(0, 10)}...${displayHash.slice(-8)}`;
 

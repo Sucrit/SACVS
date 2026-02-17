@@ -12,7 +12,7 @@ export default function AuthSuccess() {
       // also write to localStorage as a reliable cross-tab signal
       try {
         localStorage.setItem('clerk_signed_in_path', dashboardPath);
-      } catch (e) {
+      } catch {
         // ignore storage errors
       }
       // If this tab was opened by the app, notify the opener so it can navigate
@@ -24,7 +24,7 @@ export default function AuthSuccess() {
         // Otherwise navigate this tab to the dashboard
         navigate(dashboardPath, { replace: true });
       }
-    } catch (e) {
+    } catch {
       // fallback: navigate here
       navigate(dashboardPath, { replace: true });
     }

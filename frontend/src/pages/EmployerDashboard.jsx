@@ -20,7 +20,6 @@ import {
   Shield,
   Clock,
   CheckCircle2,
-  XCircle,
   Eye,
   Plus,
   FileCheck,
@@ -31,8 +30,6 @@ import {
   Filter
 } from 'lucide-react';
 import { format } from 'date-fns';
-import VerificationRequestForm from '@/components/forms/VerificationRequestForm';
-import StatusIndicator from '@/components/ui/StatusIndicator';
 import BlockchainIndicator from '@/components/dashboard/BlockchainIndicator';
 import AIValidationPanel from '@/components/dashboard/AIValidationPanel';
 import SecurityBadge from '@/components/ui/SecurityBadge';
@@ -47,8 +44,16 @@ import {
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 
+const pseudoHashFrom = (value = '') =>
+  '0x' +
+  String(value)
+    .split('')
+    .map((char) => char.charCodeAt(0).toString(16))
+    .join('')
+    .padEnd(64, '0')
+    .slice(0, 64);
+
 export default function EmployerDashboard() {
-  const [showVerifyDialog, setShowVerifyDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [filterText, setFilterText] = useState('');
 
@@ -87,7 +92,7 @@ export default function EmployerDashboard() {
       subtitle="Verify candidate credentials and track applications"
       actions={[
         <SecurityBadge key="secure" variant="locked" label="Secure Verification" size="md" />,
-        <Button key="verify" onClick={() => setShowVerifyDialog(true)} className="bg-primary hover:bg-primary/90 shadow-sm">
+        <Button key="verify" className="bg-primary hover:bg-primary/90 shadow-sm">
           <Plus className="w-4 h-4 mr-2" />
           New Verification Request
         </Button>
@@ -266,16 +271,7 @@ export default function EmployerDashboard() {
                   status={selectedRequest.status === 'pending' ? 'processing' : 'completed'}
                 />
                 <BlockchainIndicator
-                  hash={
-                    selectedRequest.blockchain_verified
-                      ?
-                        '0x' +
-                        Array(64)
-                          .fill(0)
-                          .map(() => Math.floor(Math.random() * 16).toString(16))
-                          .join('')
-                      : null
-                  }
+                  hash={selectedRequest.blockchain_verified ? pseudoHashFrom(selectedRequest.credential_id) : null}
                   timestamp={selectedRequest.verified_at}
                   verified={selectedRequest.blockchain_verified}
                 />

@@ -6,7 +6,6 @@ import adminImg from '@/assets/admin.png';
 import { Button } from '@/components/ui/button';
 import {
   GraduationCap,
-  Building2,
   Briefcase,
   Shield,
   ArrowDown,
@@ -15,13 +14,10 @@ import {
   Brain,
   Box,
   FileCheck,
-  Users,
-  Globe,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
-
-
 import { useUser } from '@clerk/clerk-react';
+
+const PRELOAD_SOURCES = [studentImg, employeeImg, adminImg];
 
 const roles = [
   {
@@ -103,7 +99,7 @@ export default function HomePage() {
       // Only accept messages from the same origin
       try {
         if (e.origin !== window.location.origin) return;
-      } catch (err) {
+      } catch {
         return;
       }
 
@@ -122,7 +118,7 @@ export default function HomePage() {
           localStorage.removeItem('clerk_signed_in_path');
           setPendingRole(null);
           navigate(path, { replace: true });
-        } catch (err) {
+        } catch {
           // ignore
         }
       }
@@ -135,10 +131,9 @@ export default function HomePage() {
       window.removeEventListener('storage', handleStorage);
     };
   }, [navigate]);
-  const preloadSources = [studentImg, employeeImg, adminImg];
 
   useEffect(() => {
-    const links = preloadSources.map((src) => {
+    const links = PRELOAD_SOURCES.map((src) => {
       const link = document.createElement('link');
       link.rel = 'preload';
       link.as = 'image';
@@ -149,7 +144,7 @@ export default function HomePage() {
     });
 
     const timeoutId = setTimeout(() => {
-      preloadSources.forEach((src) => {
+      PRELOAD_SOURCES.forEach((src) => {
         const img = new Image();
         img.src = src;
         if (img.decode) {
@@ -175,16 +170,11 @@ export default function HomePage() {
     navigate(authUrl, { replace: true });
   };
 
-  const handleSignInClose = () => {
-    setPendingRole(null);
-    localStorage.removeItem('pending_role');
-  };
-
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/20">
       {/* Sign-in opens in a separate tab via `/auth`; inline modal removed */}
       <div className="sr-only" aria-hidden="true">
-        {preloadSources.map((src) => (
+        {PRELOAD_SOURCES.map((src) => (
           <img key={src} src={src} alt="" loading="eager" fetchPriority="high" decoding="async" />
         ))}
       </div>
@@ -201,81 +191,44 @@ export default function HomePage() {
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 relative z-10 w-full">
           <div className="text-center max-w-4xl mx-auto">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }} 
-              animate={{ opacity: 1, scale: 1 }} 
-              transition={{ duration: 0.7, ease: "easeOut" }}
-            >
+            <div>
               
               
-              <motion.h1 
-                className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[1.1] mb-8 text-slate-900"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-[1.1] mb-8 text-slate-900">
                 Trust in Every
                 <br />
                 <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   Digital Credential
                 </span>
-              </motion.h1>
+              </h1>
               
-              <motion.p 
-                className="mt-6 text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
+              <p className="mt-6 text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
                 Next-generation verification system powered by privacy-focused AI and immutable ledger technology.
-              </motion.p>
-            </motion.div>
+              </p>
+            </div>
 
-             <motion.div 
-               className="mt-12 group"
-               initial={{ opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ delay: 0.5 }}
-             >
+             <div className="mt-12 group">
                 <a href="#roles" className="inline-flex flex-col items-center gap-2 text-slate-400 hover:text-primary transition-colors cursor-pointer">
                   <span className="text-sm font-medium tracking-widest uppercase opacity-70">Explore Us</span>
                   <ArrowDown className="w-5 h-5 animate-bounce" />
                 </a>
-             </motion.div>
+             </div>
           </div>
         </div>
 
         {/* Floating Abstract Elements - Subtle in Light Mode */}
         <div className="absolute inset-0 pointer-events-none opacity-40">
-          <motion.div 
-            initial={{ rotate: 0 }}
-            whileInView={{ rotate: 360 }}
-            viewport={{ once: false }}
-            transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
-            style={{ willChange: "transform" }}
-            className="absolute top-1/4 left-1/4 w-96 h-96 border border-indigo-200 rounded-full"
-          />
-           <motion.div 
-            initial={{ rotate: 0 }}
-            whileInView={{ rotate: -360 }}
-            viewport={{ once: false }}
-            transition={{ duration: 150, repeat: Infinity, ease: "linear" }}
-            style={{ willChange: "transform" }}
-            className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] border border-purple-200 rounded-full"
-          />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 border border-indigo-200 rounded-full" />
+          <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] border border-purple-200 rounded-full" />
         </div>
       </header>
 
       <div id="roles" className="relative z-20 -mt-20" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 1000px' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-24">
-            {features.map((feature, index) => (
-              <motion.div
+            {features.map((feature) => (
+              <div
                 key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "100px" }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
                 style={{ willChange: "transform, opacity" }}
                 className="bg-card/50 backdrop-blur-md border border-border/50 p-6 rounded-2xl hover:bg-card/80 hover:border-primary/30 transition-all duration-300 group"
               >
@@ -284,7 +237,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="font-semibold text-foreground text-base mb-2">{feature.title}</h3>
                 <p className="text-sm text-muted-foreground">{feature.description}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
 
@@ -296,14 +249,9 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pb-24">
-            {roles.map((role, idx) => (
-              <motion.div
+            {roles.map((role) => (
+              <div
                 key={role.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "100px" }}
-                transition={{ duration: 0.5, delay: idx * 0.1 }}
-                whileHover={{ y: -5 }}
                 style={{ willChange: "transform, opacity" }}
                 className="group relative"
               >
@@ -329,7 +277,7 @@ export default function HomePage() {
                     </Button>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>

@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +20,8 @@ import {
   CheckCircle2,
   Plus,
   Shield,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import CredentialCard from '@/components/credentials/CredentialCard';
 import CredentialUploadForm from '@/components/forms/CredentialUploadForm';
@@ -31,17 +35,86 @@ export default function StudentDashboard() {
   const [selectedCredential, setSelectedCredential] = useState(null);
 
   // Fetch credentials from backend
-  const { data: credentials = [], isLoading, isError } = useQuery({
+  const { data: credentials = [], isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['studentCredentials'],
     queryFn: fetchStudentCredentials,
   });
 
+  const issuedCredentials = credentials.filter((c) => c.status === 'issued');
+  const pendingCredentials = credentials.filter((c) => c.status === 'pending' || c.status === 'ai_review');
+
   const stats = {
     total: credentials.length,
-    issued: credentials.filter((c) => c.status === 'issued').length,
-    pending: credentials.filter((c) => c.status === 'pending' || c.status === 'ai_review').length,
+    issued: issuedCredentials.length,
+    pending: pendingCredentials.length,
     verified: credentials.filter((c) => c.status === 'verified' || c.status === 'issued').length,
   };
+
+  const renderLoadingState = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={`student-skeleton-${i}`} className="surface-card p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-10 w-10 rounded-xl" />
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+          </div>
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <div className="flex gap-2">
+            <Skeleton className="h-9 flex-1 rounded-lg" />
+            <Skeleton className="h-9 w-24 rounded-lg" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderErrorState = () => (
+    <Alert variant="destructive" className="surface-card border-destructive/40">
+      <AlertTriangle className="h-4 w-4" />
+      <AlertTitle>Unable to load credentials</AlertTitle>
+      <AlertDescription className="mt-2 flex items-center justify-between gap-3">
+        <span>We could not fetch your records from the server. Try again.</span>
+        <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+          Retry
+        </Button>
+      </AlertDescription>
+    </Alert>
+  );
+
+  const renderEmptyState = (title, description) => (
+    <Card className="text-center py-16 surface-card">
+      <CardContent>
+        <div className="w-16 h-16 bg-muted/40 rounded-2xl mx-auto flex items-center justify-center mb-4">
+          <GraduationCap className="w-8 h-8 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        <p className="text-muted-foreground mt-2 mb-6">{description}</p>
+        <Button onClick={() => setShowUploadDialog(true)} className="bg-primary hover:bg-primary/90">
+          <Upload className="w-4 h-4 mr-2" />
+          Upload Credential
+        </Button>
+      </CardContent>
+    </Card>
+  );
+
+  const renderCredentialGrid = (list, showBlockchain = false) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {list.map((credential) => (
+        <div key={credential.id}>
+          <CredentialCard
+            credential={credential}
+            showBlockchain={showBlockchain ? credential.status === 'issued' : false}
+            onView={(c) => setSelectedCredential(c)}
+          />
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <DashboardLayout
@@ -64,65 +137,37 @@ export default function StudentDashboard() {
         <TabsList className="bg-muted border border-border">
           <TabsTrigger value="all">All Credentials</TabsTrigger>
           <TabsTrigger value="issued">Issued</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-        </TabsList>
+        <TabsTrigger value="pending">Pending</TabsTrigger>
+      </TabsList>
 
-        <TabsContent value="all" className="space-y-4">
-          {isLoading ? (
-            <div className="text-center py-16">Loading...</div>
-          ) : isError ? (
-            <div className="text-center py-16 text-red-500">Failed to load credentials.</div>
-          ) : credentials.length === 0 ? (
-            <Card className="text-center py-16 bg-card border border-border">
-              <CardContent>
-                <div className="w-16 h-16 bg-muted/30 rounded-2xl mx-auto flex items-center justify-center mb-4">
-                  <GraduationCap className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">No Credentials Yet</h3>
-                <p className="text-muted-foreground mt-2 mb-6">Upload your first credential to get started</p>
-                <Button onClick={() => setShowUploadDialog(true)} className="bg-primary hover:bg-primary/90">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Credential
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {credentials.map((credential, index) => (
-                <motion.div key={credential.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
-                  <CredentialCard
-                    credential={credential}
-                    showBlockchain={credential.status === 'issued'}
-                    onView={(c) => setSelectedCredential(c)}
-                  />
-                </motion.div>
-              ))}
-            </div>
-          )}
+      <TabsContent value="all" className="space-y-4">
+        {isLoading
+          ? renderLoadingState()
+          : isError
+            ? renderErrorState()
+            : credentials.length === 0
+              ? renderEmptyState('No Credentials Yet', 'Upload your first credential to start verification.')
+              : renderCredentialGrid(credentials, true)}
         </TabsContent>
 
         <TabsContent value="issued" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {credentials
-              .filter((c) => c.status === 'issued')
-              .map((credential, index) => (
-                <motion.div key={credential.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
-                  <CredentialCard credential={credential} showBlockchain onView={(c) => setSelectedCredential(c)} />
-                </motion.div>
-              ))}
-          </div>
+          {isLoading
+            ? renderLoadingState()
+            : isError
+              ? renderErrorState()
+              : issuedCredentials.length === 0
+                ? renderEmptyState('No Issued Credentials', 'Issued credentials will appear here once approved.')
+                : renderCredentialGrid(issuedCredentials, true)}
         </TabsContent>
 
         <TabsContent value="pending" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {credentials
-              .filter((c) => c.status === 'pending' || c.status === 'ai_review')
-              .map((credential, index) => (
-                <motion.div key={credential.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
-                  <CredentialCard credential={credential} onView={(c) => setSelectedCredential(c)} />
-                </motion.div>
-              ))}
-          </div>
+          {isLoading
+            ? renderLoadingState()
+            : isError
+              ? renderErrorState()
+              : pendingCredentials.length === 0
+                ? renderEmptyState('No Pending Credentials', 'You have no credentials waiting for review right now.')
+                : renderCredentialGrid(pendingCredentials)}
         </TabsContent>
       </Tabs>
 

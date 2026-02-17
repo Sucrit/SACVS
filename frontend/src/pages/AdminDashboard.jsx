@@ -14,7 +14,6 @@ import {
   Cpu,
   CheckCircle2,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 import SecurityStatusPanel from '@/components/dashboard/SecurityStatusPanel';
 import AuditLogTable from '@/components/audit/AuditLogTable';
 import ThreatIndicator from '@/components/security/ThreatIndicator';
@@ -196,9 +195,9 @@ export default function AdminDashboard() {
           {securityEvents.length > 0 ? (
             <div className="space-y-4">
               {securityEvents.map((event) => (
-                <motion.div key={event.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                <div key={event.id}>
                   <ThreatIndicator event={event} />
-                </motion.div>
+                </div>
               ))}
             </div>
           ) : (
