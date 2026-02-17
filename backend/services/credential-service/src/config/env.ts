@@ -5,5 +5,6 @@ export const ENV = {
     PORT: process.env.PORT || '5100',
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
-    PRISMA_SCHEMA_PATH: process.env.PRISMA_SCHEMA_PATH
+    PRISMA_SCHEMA_PATH: process.env.PRISMA_SCHEMA_PATH,
+    DOCUMENTS_DIR: process.env.DOCUMENTS_DIR
 };

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import DashboardLayout from '@/layouts/DashboardLayout';
@@ -28,17 +28,62 @@ import CredentialUploadForm from '@/components/forms/CredentialUploadForm';
 import AIValidationPanel from '@/components/dashboard/AIValidationPanel';
 import BlockchainIndicator from '@/components/dashboard/BlockchainIndicator';
 import StatusIndicator from '@/components/ui/StatusIndicator';
-import { fetchStudentCredentials } from '@/api/credentials';
+import { createCredential, fetchStudentCredentials } from '@/api/credentials';
+import { useUser } from '@clerk/clerk-react';
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function StudentDashboard() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [selectedCredential, setSelectedCredential] = useState(null);
+  const { user } = useUser();
 
   // Fetch credentials from backend
   const { data: credentials = [], isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: ['studentCredentials'],
-    queryFn: fetchStudentCredentials,
+    queryKey: ['studentCredentials', user?.id],
+    queryFn: () => fetchStudentCredentials(user?.id),
   });
+
+  const { mutateAsync: submitCredential, isPending: isSubmitting } = useMutation({
+    mutationFn: createCredential,
+  });
+
+  const handleCredentialSubmit = async (formData) => {
+    let documentBase64;
+    if (formData.file instanceof File) {
+      documentBase64 = await fileToDataUrl(formData.file);
+    }
+
+    const payload = {
+      uploaderClerkId: user?.id || 'anonymous-student',
+      title: formData.title,
+      filename: formData.filename || formData.document_original_name || null,
+      type: formData.type,
+      institution_name: formData.institution_name,
+      student_name: formData.student_name,
+      issue_date: formData.issue_date,
+      expiry_date: formData.expiry_date || undefined,
+      status: 'pending',
+      document_url: formData.document_url || undefined,
+      document_original_name: formData.document_original_name || undefined,
+      document_mime_type: formData.document_mime_type || undefined,
+      ...(documentBase64 ? { document_base64: documentBase64 } : {}),
+      metadata: {
+        source: 'student-dashboard',
+      },
+    };
+
+    await submitCredential(payload);
+    setShowUploadDialog(false);
+    await refetch();
+  };
 
   const issuedCredentials = credentials.filter((c) => c.status === 'issued');
   const pendingCredentials = credentials.filter((c) => c.status === 'pending' || c.status === 'ai_review');
@@ -180,8 +225,8 @@ export default function StudentDashboard() {
             </DialogTitle>
           </DialogHeader>
           <CredentialUploadForm
-            onSubmit={() => {}}
-            isLoading={false}
+            onSubmit={handleCredentialSubmit}
+            isLoading={isSubmitting}
           />
         </DialogContent>
       </Dialog>

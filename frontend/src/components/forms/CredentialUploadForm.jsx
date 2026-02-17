@@ -32,6 +32,7 @@ export default function CredentialUploadForm({ onSubmit, isLoading, className })
   });
   const [dragActive, setDragActive] = useState(false);
   const [fileName, setFileName] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -52,21 +53,31 @@ export default function CredentialUploadForm({ onSubmit, isLoading, className })
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFileName(e.dataTransfer.files[0].name);
-      handleChange('document_url', 'conceptual://uploaded-document.pdf');
+      const file = e.dataTransfer.files[0];
+      setSelectedFile(file);
+      setFileName(file.name);
+      handleChange('document_url', `upload://${file.name}`);
     }
   };
 
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFileName(e.target.files[0].name);
-      handleChange('document_url', 'conceptual://uploaded-document.pdf');
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      setFileName(file.name);
+      handleChange('document_url', `upload://${file.name}`);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit?.(formData);
+    await onSubmit?.({
+      ...formData,
+      file: selectedFile,
+      filename: fileName || selectedFile?.name || null,
+      document_original_name: selectedFile?.name || null,
+      document_mime_type: selectedFile?.type || null,
+    });
   };
 
   return (

@@ -15,4 +15,11 @@ export class CredentialRepository {
   async list(): Promise<Credential[]> {
     return prisma.credential.findMany({ orderBy: { createdAt: 'desc' } });
   }
+
+  async listByUploaderClerkId(uploaderClerkId: string): Promise<Credential[]> {
+    return prisma.credential.findMany({
+      where: { uploaderClerkId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }

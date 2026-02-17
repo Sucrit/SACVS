@@ -15,6 +15,13 @@ export const getCredentials = asyncHandler(async (_req: Request, res: Response) 
   res.json(list);
 });
 
+export const getStudentCredentials = asyncHandler(async (req: Request, res: Response) => {
+  const rawClerkId = req.query.clerkId;
+  const clerkId = Array.isArray(rawClerkId) ? rawClerkId[0] : rawClerkId;
+  const list = await credentialService.getStudentCredentials(typeof clerkId === 'string' ? clerkId : undefined);
+  res.json(list);
+});
+
 export const getCredential = asyncHandler(async (req: Request, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const item = await credentialService.getCredentialById(id);
@@ -24,5 +31,6 @@ export const getCredential = asyncHandler(async (req: Request, res: Response) =>
 export const CredentialController = {
   createCredential,
   getCredentials,
+  getStudentCredentials,
   getCredential,
 };
