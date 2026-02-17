@@ -9,33 +9,39 @@ import { ENV } from './config/env.js'
 
 const queryClient = new QueryClient()
 
-function resolveClerkKey(location) {
-  const searchParams = new URLSearchParams(location.search);
-  const role = (searchParams.get('role') || '').trim().toLowerCase();
+function resolveClerkConfig(location) {
   const isAdminContext =
-    location.pathname.startsWith('/admin') ||
     location.pathname.startsWith('/admin-auth') ||
-    (location.pathname === '/auth' && role === 'admin') ||
-    (location.pathname === '/auth/success' && role === 'admin');
+    location.pathname.startsWith('/admin-dashboard');
 
-  if (isAdminContext && ENV.CLERK_ADMIN_PUBLISHABLE_KEY) {
-    return ENV.CLERK_ADMIN_PUBLISHABLE_KEY;
+  if (isAdminContext) {
+    if (!ENV.CLERK_ADMIN_PUBLISHABLE_KEY) {
+      throw new Error('Missing VITE_CLERK_ADMIN_PUBLISHABLE_KEY for admin auth routes.');
+    }
+    return {
+      publishableKey: ENV.CLERK_ADMIN_PUBLISHABLE_KEY,
+      context: 'admin',
+    };
   }
-  return ENV.CLERK_PUBLISHABLE_KEY;
+
+  if (!ENV.CLERK_PUBLISHABLE_KEY) {
+    throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY for user auth routes.');
+  }
+
+  return {
+    publishableKey: ENV.CLERK_PUBLISHABLE_KEY,
+    context: 'user',
+  };
 }
 
 export function ClerkRouterWrapper({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const publishableKey = resolveClerkKey(location);
-
-  if (!publishableKey) {
-    throw new Error('Missing Clerk publishable key in frontend environment.');
-  }
+  const { publishableKey, context } = resolveClerkConfig(location);
 
   return (
     <ClerkProvider
-      key={publishableKey}
+      key={`${context}:${publishableKey}`}
       publishableKey={publishableKey}
       navigate={(to) => navigate(to)}
     >

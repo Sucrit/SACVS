@@ -167,16 +167,19 @@ export default function HomePage() {
     if (roleId === 'admin') {
       localStorage.removeItem('pending_role');
       setPendingRole(null);
-      navigate('/auth?role=admin', { replace: true });
+      // Clerk instance switching is not reliable via SPA navigation.
+      // Force a full reload so /admin-auth always boots with the admin publishable key.
+      window.location.assign('/admin-auth');
       return;
     }
 
     localStorage.setItem('pending_role', roleId.toUpperCase());
     setPendingRole(roleId);
 
-    // Navigate current window to the auth route (replace history)
+    // Force full reload for user auth too, so Clerk always boots in the correct instance
+    // after coming from admin routes (and vice versa).
     const authUrl = `/auth?role=${encodeURIComponent(roleId)}`;
-    navigate(authUrl, { replace: true });
+    window.location.assign(authUrl);
   };
 
   return (

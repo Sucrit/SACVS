@@ -26,7 +26,7 @@ function App() {
         )}
       />
       <Route
-        path="/auth"
+        path="/auth/*"
         element={(
           <MainLayout currentPageName="Home">
             <AuthPage />
@@ -34,7 +34,7 @@ function App() {
         )}
       />
       <Route
-        path="/admin-auth"
+        path="/admin-auth/*"
         element={(
           <MainLayout currentPageName="Home">
             <AuthPage />
@@ -43,6 +43,14 @@ function App() {
       />
       <Route
         path="/auth/success"
+        element={(
+          <MainLayout currentPageName="Home">
+            <AuthSuccess />
+          </MainLayout>
+        )}
+      />
+      <Route
+        path="/admin-auth/success"
         element={(
           <MainLayout currentPageName="Home">
             <AuthSuccess />
