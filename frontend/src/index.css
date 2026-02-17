@@ -101,26 +101,6 @@
 }
 
 @layer utilities {
-  .glass {
-    @apply bg-background/70 backdrop-blur-lg border border-border/80;
-  }
-  
-  .glass-card {
-    @apply bg-card/65 backdrop-blur-md border border-border/80 shadow-sm;
-  }
-
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-sky-600 via-cyan-500 to-teal-500;
-  }
-  
-  .dark .text-gradient {
-     @apply from-sky-300 via-cyan-300 to-teal-300;
-  }
-
-  .glow {
-    box-shadow: 0 0 24px -8px theme('colors.sky.500');
-  }
-
   .surface-card {
     @apply rounded-2xl border border-border/80 bg-card/80 backdrop-blur-sm shadow-sm transition-all duration-300;
   }

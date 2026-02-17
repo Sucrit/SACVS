@@ -38,6 +38,10 @@ export default function ProtectedDashboardRoute({ allowedRoles, children }) {
     let mounted = true;
 
     async function loadCurrentUser() {
+      if (mounted) {
+        setState({ loading: true, user: null, error: null });
+      }
+
       const maxAttempts = 6;
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
@@ -71,7 +75,6 @@ export default function ProtectedDashboardRoute({ allowedRoles, children }) {
       }
     }
 
-    setState({ loading: true, user: null, error: null });
     loadCurrentUser();
 
     return () => {
