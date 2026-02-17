@@ -20,14 +20,17 @@ enum Status {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  clerkId     String   @unique
-  role        Role     @default(STUDENT)
-  status      Status   @default(PENDING)
+  id           String   @id @default(uuid())
+  clerkId      String   @unique
+  role         Role     @default(STUDENT)
+  status       Status   @default(PENDING)
   approvedById String?
-  approvedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  approvedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  studentCredentials Credential[] @relation("StudentCredentials")
+  issuedCredentials  Credential[] @relation("IssuedCredentials")
 }
 
 enum CredentialStatus {
@@ -39,14 +42,32 @@ enum CredentialStatus {
 }
 
 model Credential {
-  id               String   @id @default(uuid())
-  uploaderClerkId  String
-  title            String
-  status           CredentialStatus @default(PENDING)
-  filename         String?
-  metadata         Json?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id          String           @id @default(uuid())
+  title       String
+  status      CredentialStatus @default(PENDING)
 
-  @@index([uploaderClerkId])
+  studentId   String
+  issuedById  String
+  student     User   @relation("StudentCredentials", fields: [studentId], references: [id])
+  issuedBy    User   @relation("IssuedCredentials", fields: [issuedById], references: [id])
+
+  filename    String?
+  mimeType    String?
+  storageKey  String?
+  fileHash    String?
+  metadata    Json?
+
+  aiStatus    String?
+  aiScore     Float?
+  aiReport    Json?
+
+  chain       String?
+  txHash      String?
+  anchoredAt  DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([studentId])
+  @@index([issuedById])
 }
