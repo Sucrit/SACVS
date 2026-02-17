@@ -3,13 +3,6 @@ import { useEffect, useRef } from 'react';
 import axios from 'axios';
 import { ENV } from '../config/env.js';
 
-function normalizeRole(rawRole) {
-  if (!rawRole || typeof rawRole !== 'string') return null;
-  const upper = rawRole.trim().toUpperCase();
-  if (['STUDENT', 'ADMIN', 'REGISTRAR'].includes(upper)) return upper;
-  return null;
-}
-
 /**
  * @param {string|null} role
  */
@@ -19,17 +12,13 @@ export function useSyncUserToBackend(role) {
   const inFlightRef = useRef(false);
 
   useEffect(() => {
-    const storedRole = role || localStorage.getItem('pending_role');
-    const normalizedRole = normalizeRole(storedRole);
     if (!isUserLoaded || !isAuthLoaded || !isSignedIn || !user) return;
     if (inFlightRef.current) return; // avoid duplicate calls
 
     const controller = new AbortController();
     inFlightRef.current = true;
 
-    const payload = normalizedRole
-      ? { clerkId: user.id, role: normalizedRole }
-      : { clerkId: user.id };
+    const payload = { clerkId: user.id };
     const maxAttempts = 5;
     const baseDelay = 500; // ms
 

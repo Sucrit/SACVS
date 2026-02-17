@@ -5,6 +5,7 @@ const pageRoutes = {
   RegistrarIssuingDashboard: '/registrar-issuing-dashboard',
   RegistrarVerificationDashboard: '/registrar-verification-dashboard',
   AdminDashboard: '/admin-dashboard',
+  PendingApproval: '/pending-approval',
 };
 
 export function createPageUrl(pageName) {
