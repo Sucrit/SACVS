@@ -1,4 +1,3 @@
-import { Role } from '@prisma/client';
 import { UserRepository } from '../repository/user.repository';
 import { CreateUserDto, UserResponseDto } from '../dto/user.dto';
 import { Prisma } from '@prisma/client';
@@ -30,7 +29,7 @@ export class UserService {
     // db 
     const user = await userRepository.create({
       clerkId: data.clerkId,
-      role: data.role as Role
+      role: data.role
     });
     return this.toUserResponse(user);
   }
