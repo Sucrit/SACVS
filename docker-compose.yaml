@@ -8,10 +8,13 @@ services:
       - "5000:5000"
     volumes:
       - ./backend/services/user-service:/app
+      - ./backend/prisma:/prisma
       - /app/node_modules
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:admin@host.docker.internal:5432/sacvs_db?schema=public
+      - PRISMA_SCHEMA_PATH=/prisma/schema.prisma
+    command: sh -c "cp /prisma/schema.prisma /app/schema.prisma && npx prisma generate --schema /app/schema.prisma && npm run dev"
 
   credential-service:
     build: ./backend/services/credential-service
@@ -19,10 +22,13 @@ services:
       - "5100:5100"
     volumes:
       - ./backend/services/credential-service:/app
+      - ./backend/prisma:/prisma
       - /app/node_modules
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:admin@host.docker.internal:5432/sacvs_db?schema=public
+      - PRISMA_SCHEMA_PATH=/prisma/schema.prisma
+    command: sh -c "cp /prisma/schema.prisma /app/schema.prisma && npx prisma generate --schema /app/schema.prisma && npm run dev"
 
   gateway:
     build: ./backend/gateway

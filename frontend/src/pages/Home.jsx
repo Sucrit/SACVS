@@ -80,7 +80,6 @@ export default function HomePage() {
 
   useEffect(() => {
     if (isSignedIn && pendingRole) {
-      // Navigate client-side to dashboard after sign-in and sync (avoid full page reload)
       navigate(`/${pendingRole.toLowerCase()}-dashboard`, { replace: true });
     }
   }, [isSignedIn, pendingRole, navigate]);
@@ -88,7 +87,8 @@ export default function HomePage() {
   useEffect(() => {
     const stored = localStorage.getItem('pending_role');
     if (isSignedIn && stored) {
-      const uiRole = ['REGISTRAR', 'INSTITUTION'].includes(stored) ? 'registrar' : stored.toLowerCase();
+      const normalized = stored.toUpperCase();
+      const uiRole = ['STUDENT', 'REGISTRAR', 'ADMIN'].includes(normalized) ? normalized.toLowerCase() : 'student';
       navigate(`/${uiRole}-dashboard`, { replace: true });
     }
   }, [isSignedIn, navigate]);
@@ -160,9 +160,7 @@ export default function HomePage() {
   }, []);
 
   const handleRoleSelect = (roleId) => {
-    const upper = roleId.toUpperCase();
-    const mappedBackendRole = ['INSTITUTION'].includes(upper) ? 'REGISTRAR' : upper;
-    localStorage.setItem('pending_role', mappedBackendRole);
+    localStorage.setItem('pending_role', roleId.toUpperCase());
     setPendingRole(roleId);
 
     // Navigate current window to the auth route (replace history)

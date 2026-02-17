@@ -24,7 +24,7 @@ const roleNavItems = {
   ],
   registrar: [
     { label: 'Dashboard', icon: LayoutDashboard, page: 'RegistrarDashboard', path: '/registrar-dashboard' },
-    { label: 'Issue Credentials', icon: FileCheck, page: 'InstitutionDashboard', path: '/institution-dashboard' },
+    { label: 'Issue Credentials', icon: FileCheck, page: 'RegistrarIssuingDashboard', path: '/registrar-issuing-dashboard' },
     { label: 'Verify Credentials', icon: Search, page: 'RegistrarVerificationDashboard', path: '/registrar-verification-dashboard' },
     { label: 'Students', icon: User, page: 'Students', path: '#' },
     { label: 'History', icon: Activity, page: 'History', path: '#' },
@@ -43,8 +43,8 @@ export default function MainLayout({ children, currentPageName }) {
   const location = useLocation();
   const { user } = useUser();
 
-  const rawRole = user?.publicMetadata?.role || localStorage.getItem('demo_user_role') || 'student';
-  const normalizedRole = ['institution'].includes(rawRole?.toLowerCase()) ? 'registrar' : rawRole?.toLowerCase();
+  const rawRole = (user?.publicMetadata?.role || localStorage.getItem('demo_user_role') || 'student')?.toLowerCase();
+  const normalizedRole = ['student', 'registrar', 'admin'].includes(rawRole) ? rawRole : 'student';
   
   const navItems = roleNavItems[normalizedRole] || roleNavItems['student'];
 

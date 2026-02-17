@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "nodemon",
-    "db:generate": "prisma generate --schema ../../prisma/schema.prisma",
-    "db:push": "prisma db push --schema ../../prisma/schema.prisma",
-    "db:migrate:dev": "prisma migrate dev --schema ../../prisma/schema.prisma",
-    "db:migrate:deploy": "prisma migrate deploy --schema ../../prisma/schema.prisma"
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy"
   },
   "private": true,
   "devDependencies": {

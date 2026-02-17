@@ -11,7 +11,7 @@ export async function fetchStudentCredentials() {
   return response.data;
 }
 
-export async function fetchInstitutionCredentials() {
-  const response = await axios.get(`${API_BASE_URL}/credentials/institution`);
+export async function fetchRegistrarCredentials() {
+  const response = await axios.get(`${API_BASE_URL}/credentials`);
   return response.data;
 }

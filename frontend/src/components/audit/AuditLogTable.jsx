@@ -86,7 +86,8 @@ export default function AuditLogTable({ logs = [], className }) {
                   <TableCell className="text-sm text-foreground">{log.actor_email}</TableCell>
                   <TableCell>
                     {(() => {
-                      const displayRole = log.actor_role === 'institution' ? 'registrar' : log.actor_role;
+                      const actorRole = (log.actor_role || '').toLowerCase();
+                      const displayRole = ['student', 'registrar', 'admin'].includes(actorRole) ? actorRole : 'registrar';
                       return (
                         <Badge variant="secondary" className={cn('capitalize border-0', roleColors[displayRole])}>
                           {displayRole}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchInstitutionCredentials } from '@/api/credentials';
+import { fetchRegistrarCredentials } from '@/api/credentials';
 import { Button } from '@/components/ui/button';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Input } from '@/components/ui/input';
@@ -39,7 +39,7 @@ import AIValidationPanel from '@/components/dashboard/AIValidationPanel';
 import BlockchainIndicator from '@/components/dashboard/BlockchainIndicator';
 import SecurityBadge from '@/components/ui/SecurityBadge';
 
-export default function InstitutionDashboard() {
+export default function RegistrarIssuingDashboard() {
   const [showIssueDialog, setShowIssueDialog] = useState(false);
   const [selectedCredential, setSelectedCredential] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,8 +47,8 @@ export default function InstitutionDashboard() {
 
   // Fetch credentials from backend
   const { data: credentials = [], isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: ['institutionCredentials'],
-    queryFn: fetchInstitutionCredentials,
+    queryKey: ['registrarCredentials'],
+    queryFn: fetchRegistrarCredentials,
   });
 
   const handleIssue = (credential) => {
@@ -96,7 +96,7 @@ export default function InstitutionDashboard() {
 
   return (
     <DashboardLayout
-      title="Institution Dashboard"
+      title="Registrar Issuing Dashboard"
       subtitle="Issue and manage academic credentials"
       actions={[
         <SecurityBadge key="issuer" variant="secure" label="Authorized Issuer" size="md" />,

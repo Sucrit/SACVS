@@ -2,7 +2,7 @@ import { Role } from '@prisma/client';
 
 export interface CreateUserDto {
   clerkId: string;
-  role: Role;
+  role?: Role | string;
 }
 
 export interface UserResponseDto {
