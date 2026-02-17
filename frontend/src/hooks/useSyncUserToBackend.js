@@ -24,14 +24,16 @@ export function useSyncUserToBackend(role) {
       queryRoleUpper === 'ADMIN' ||
       location.pathname.startsWith('/admin');
 
-    // Admin accounts are login-only and must already exist in DB.
+    // Admin accounts are login-only in a separate Clerk project and are never stored in user-service DB.
     if (isAdminFlow) return;
     if (inFlightRef.current) return; // avoid duplicate calls
 
     const controller = new AbortController();
     inFlightRef.current = true;
 
-    const payload = { clerkId: user.id };
+    const requestedRole =
+      pendingRole === 'REGISTRAR' ? 'REGISTRAR' : pendingRole === 'STUDENT' ? 'STUDENT' : undefined;
+    const payload = requestedRole ? { clerkId: user.id, role: requestedRole } : { clerkId: user.id };
     const maxAttempts = 5;
     const baseDelay = 500; // ms
 

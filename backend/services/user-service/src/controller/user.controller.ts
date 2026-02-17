@@ -4,28 +4,34 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { CreateUserDto, UpdateUserStatusDto } from '../dto/user.dto';
 
 const userService = new UserService();
+type AuthenticatedRequest = Request & { auth?: { userId?: string; isAdminAuth?: boolean } };
 
-export const getUsers = asyncHandler(async (_req: Request & { auth?: { userId?: string } }, res: Response) => {
+export const getUsers = asyncHandler(async (_req: AuthenticatedRequest, res: Response) => {
   const users = await userService.getAllUsers();
   res.json(users);
 });
 
-export const createUser = asyncHandler(async (req: Request & { auth?: { userId?: string } }, res: Response) => {
+export const createUser = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const clerkIdFromAuth = req.auth?.userId;
   if (!clerkIdFromAuth) throw { status: 401, message: 'Unauthorized' };
+  const payload = req.body as CreateUserDto;
 
-  const user = await userService.createSelfUser(clerkIdFromAuth);
+  const user = await userService.createSelfUser(
+    clerkIdFromAuth,
+    payload?.role ? String(payload.role) : undefined,
+    Boolean(req.auth?.isAdminAuth)
+  );
   res.status(201).json(user);
 });
 
-export const getCurrentUser = asyncHandler(async (req: Request & { auth?: { userId?: string } }, res: Response) => {
+export const getCurrentUser = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const clerkIdFromAuth = req.auth?.userId;
   if (!clerkIdFromAuth) throw { status: 401, message: 'Unauthorized' };
-  const user = await userService.getCurrentUser(clerkIdFromAuth);
+  const user = await userService.getCurrentUser(clerkIdFromAuth, Boolean(req.auth?.isAdminAuth));
   res.json(user);
 });
 
-export const adminCreateUser = asyncHandler(async (req: Request & { auth?: { userId?: string } }, res: Response) => {
+export const adminCreateUser = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const actorClerkId = req.auth?.userId;
   if (!actorClerkId) throw { status: 401, message: 'Unauthorized' };
   const payload = req.body as CreateUserDto;
@@ -33,7 +39,7 @@ export const adminCreateUser = asyncHandler(async (req: Request & { auth?: { use
   res.status(201).json(user);
 });
 
-export const updateUserStatus = asyncHandler(async (req: Request & { auth?: { userId?: string } }, res: Response) => {
+export const updateUserStatus = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const actorClerkId = req.auth?.userId;
   if (!actorClerkId) throw { status: 401, message: 'Unauthorized' };
   const rawId = req.params.id;
@@ -43,7 +49,7 @@ export const updateUserStatus = asyncHandler(async (req: Request & { auth?: { us
   res.json(user);
 });
 
-export const deleteUser = asyncHandler(async (req: Request & { auth?: { userId?: string } }, res: Response) => {
+export const deleteUser = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const actorClerkId = req.auth?.userId;
   if (!actorClerkId) throw { status: 401, message: 'Unauthorized' };
   const rawId = req.params.id;

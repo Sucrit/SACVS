@@ -18,12 +18,19 @@ export default function ProtectedDashboardRoute({ allowedRoles, children }) {
   const { isSignedIn, isLoaded: isUserLoaded } = useUser();
   const { getToken, isLoaded: isAuthLoaded } = useAuth();
   const [state, setState] = useState({ loading: true, user: null, error: null });
+  const [adminRedirectReady, setAdminRedirectReady] = useState(false);
   const normalizedAllowedRoles = useMemo(
     () => (Array.isArray(allowedRoles) ? allowedRoles.map((r) => String(r).toUpperCase()) : []),
     [allowedRoles]
   );
+  const isAdminOnlyRoute =
+    normalizedAllowedRoles.length > 0 && normalizedAllowedRoles.every((role) => role === 'ADMIN');
 
   useEffect(() => {
+    if (isAdminOnlyRoute) {
+      return;
+    }
+
     if (!isUserLoaded || !isAuthLoaded || !isSignedIn) {
       return;
     }
@@ -72,14 +79,34 @@ export default function ProtectedDashboardRoute({ allowedRoles, children }) {
       mounted = false;
       controller.abort();
     };
-  }, [isSignedIn, isUserLoaded, isAuthLoaded, getToken]);
+  }, [isSignedIn, isUserLoaded, isAuthLoaded, getToken, isAdminOnlyRoute]);
 
-  if (!isUserLoaded || !isAuthLoaded || state.loading) {
+  useEffect(() => {
+    if (!isAdminOnlyRoute || !isUserLoaded || !isAuthLoaded || isSignedIn) {
+      setAdminRedirectReady(false);
+      return;
+    }
+
+    const timer = setTimeout(() => setAdminRedirectReady(true), 1500);
+    return () => clearTimeout(timer);
+  }, [isAdminOnlyRoute, isUserLoaded, isAuthLoaded, isSignedIn]);
+
+  if (!isUserLoaded || !isAuthLoaded || (!isAdminOnlyRoute && state.loading)) {
     return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Checking account access...</div>;
   }
 
   if (!isSignedIn) {
+    if (isAdminOnlyRoute) {
+      if (!adminRedirectReady) {
+        return <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Checking account access...</div>;
+      }
+      return <Navigate to="/auth?role=admin" replace />;
+    }
     return <Navigate to="/" replace />;
+  }
+
+  if (isAdminOnlyRoute) {
+    return <>{children}</>;
   }
 
   if (state.error || !state.user) {

@@ -25,24 +25,31 @@ export class UserService {
     return { id, clerkId, role, status, approvedById, approvedAt, createdAt, updatedAt };
   }
 
-  private async requireApprovedAdmin(actorClerkId: string): Promise<UserEntity> {
-    const actor = await userRepository.findByClerkId(actorClerkId);
-    if (!actor || actor.role !== Role.ADMIN || actor.status !== Status.APPROVED) {
-      throw { status: 403, message: 'Admin privileges required.' };
-    }
-    return actor;
-  }
-
   // get all users
   async getAllUsers(): Promise<UserResponseDto[]> {
     const users: UserEntity[] = await userRepository.list();
     return users.map(u => this.toUserResponse(u));
   }
 
-  async getCurrentUser(clerkId: string): Promise<UserResponseDto> {
+  async getCurrentUser(clerkId: string, isAdminAuth = false): Promise<UserResponseDto> {
     if (!clerkId || typeof clerkId !== 'string') {
       throw { status: 400, message: 'ClerkId is required and must be a string.' };
     }
+
+    if (isAdminAuth) {
+      const now = new Date();
+      return {
+        id: `admin:${clerkId}`,
+        clerkId,
+        role: Role.ADMIN,
+        status: Status.APPROVED,
+        approvedById: clerkId,
+        approvedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+    }
+
     const existing = await userRepository.findByClerkId(clerkId);
     if (!existing) {
       throw { status: 404, message: 'User not found.' };
@@ -51,9 +58,13 @@ export class UserService {
   }
 
   // self-registration: STUDENT/REGISTRAR only, always PENDING
-  async createSelfUser(clerkId: string, requestedRole?: string): Promise<UserResponseDto> {
+  async createSelfUser(clerkId: string, requestedRole?: string, isAdminAuth = false): Promise<UserResponseDto> {
     if (!clerkId || typeof clerkId !== 'string') {
       throw { status: 400, message: 'ClerkId is required and must be a string.' };
+    }
+
+    if (isAdminAuth) {
+      throw { status: 403, message: 'Admin accounts are managed in Clerk and are not stored in the user database.' };
     }
 
     const existing = await userRepository.findByClerkId(clerkId);
@@ -77,10 +88,8 @@ export class UserService {
     return this.toUserResponse(user);
   }
 
-  // admin creates user accounts (student/registrar/admin)
+  // admin creates user accounts (student/registrar)
   async createUserByAdmin(actorClerkId: string, data: CreateUserDto): Promise<UserResponseDto> {
-    const admin = await this.requireApprovedAdmin(actorClerkId);
-
     if (!data.clerkId || typeof data.clerkId !== 'string') {
       throw { status: 400, message: 'ClerkId is required and must be a string.' };
     }
@@ -91,6 +100,10 @@ export class UserService {
     }
 
     const role = this.normalizeRole(data.role) || Role.STUDENT;
+    if (role === Role.ADMIN) {
+      throw { status: 400, message: 'Admin accounts are managed in Clerk and should not be created in the user database.' };
+    }
+
     const status = this.normalizeStatus(data.status) || Status.APPROVED;
     const isApproved = status === Status.APPROVED;
 
@@ -98,7 +111,7 @@ export class UserService {
       clerkId: data.clerkId,
       role,
       status,
-      approvedById: isApproved ? admin.id : null,
+      approvedById: isApproved ? actorClerkId : null,
       approvedAt: isApproved ? new Date() : null,
     });
 
@@ -107,8 +120,6 @@ export class UserService {
 
   // admin updates account status
   async updateUserStatusByAdmin(actorClerkId: string, id: string, rawStatus: string): Promise<UserResponseDto> {
-    const admin = await this.requireApprovedAdmin(actorClerkId);
-
     if (!id) throw { status: 400, message: 'User id is required.' };
     const status = this.normalizeStatus(rawStatus);
     if (!status) throw { status: 400, message: 'Valid status is required.' };
@@ -119,7 +130,7 @@ export class UserService {
     const isApproved = status === Status.APPROVED;
     const updated = await userRepository.update(id, {
       status,
-      approvedById: isApproved ? admin.id : null,
+      approvedById: isApproved ? actorClerkId : null,
       approvedAt: isApproved ? new Date() : null,
     });
 
@@ -128,8 +139,10 @@ export class UserService {
 
   // admin only: delete user account
   async deleteUserByAdmin(actorClerkId: string, id: string): Promise<UserResponseDto> {
-    await this.requireApprovedAdmin(actorClerkId);
     if (!id) throw { status: 400, message: 'User id is required.' };
+    if (!actorClerkId || typeof actorClerkId !== 'string') {
+      throw { status: 401, message: 'Unauthorized' };
+    }
     const deleted = await userRepository.delete(id);
     return this.toUserResponse(deleted);
   }

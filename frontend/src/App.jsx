@@ -8,7 +8,6 @@ import AuthPage from '@/pages/AuthPage'
 import AuthSuccess from '@/pages/AuthSuccess'
 import StudentDashboard from '@/pages/StudentDashboard'
 import PendingApproval from '@/pages/PendingApproval'
-import AdminSignupDisabled from '@/pages/AdminSignupDisabled'
 import MainLayout from '@/layouts/MainLayout'
 import { useSyncUserToBackend } from '@/hooks/useSyncUserToBackend';
 import ProtectedDashboardRoute from '@/components/auth/ProtectedDashboardRoute';
@@ -35,18 +34,18 @@ function App() {
         )}
       />
       <Route
-        path="/auth/success"
+        path="/admin-auth"
         element={(
           <MainLayout currentPageName="Home">
-            <AuthSuccess />
+            <AuthPage />
           </MainLayout>
         )}
       />
       <Route
-        path="/admin-signup-disabled"
+        path="/auth/success"
         element={(
           <MainLayout currentPageName="Home">
-            <AdminSignupDisabled />
+            <AuthSuccess />
           </MainLayout>
         )}
       />

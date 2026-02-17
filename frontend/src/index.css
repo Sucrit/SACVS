@@ -129,3 +129,10 @@
     @apply shadow-lg border-primary/20;
   }
 }
+
+/* Scope admin sign-in lock so it never affects student/registrar auth screens. */
+.admin-auth-signin .cl-footerAction,
+.admin-auth-signin .cl-footerActionText,
+.admin-auth-signin .cl-footerActionLink {
+  display: none !important;
+}

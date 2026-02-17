@@ -1,38 +1,46 @@
 import React, { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useUser } from '@clerk/clerk-react';
 
 export default function AuthSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const role = searchParams.get('role');
-  const dashboardPath = role ? `/${role.toLowerCase()}-dashboard` : '/';
+  const { isLoaded, isSignedIn } = useUser();
+
+  const rawRole = (searchParams.get('role') || '').toLowerCase();
+  const role = ['student', 'registrar', 'admin'].includes(rawRole) ? rawRole : '';
+  const dashboardPath = role ? `/${role}-dashboard` : '/';
+  const authPath = role ? `/auth?role=${encodeURIComponent(role)}` : '/auth';
 
   useEffect(() => {
+    if (!isLoaded) return;
+
+    if (!isSignedIn) {
+      navigate(authPath, { replace: true });
+      return;
+    }
+
     try {
-      // also write to localStorage as a reliable cross-tab signal
       try {
         localStorage.setItem('clerk_signed_in_path', dashboardPath);
       } catch {
         // ignore storage errors
       }
-      // If this tab was opened by the app, notify the opener so it can navigate
+
       if (window.opener && !window.opener.closed) {
         window.opener.postMessage({ type: 'clerk_signed_in', path: dashboardPath }, window.location.origin);
-        // Give the opener a moment to process, then close this tab
         setTimeout(() => window.close(), 500);
       } else {
-        // Otherwise navigate this tab to the dashboard
         navigate(dashboardPath, { replace: true });
       }
     } catch {
-      // fallback: navigate here
       navigate(dashboardPath, { replace: true });
     }
-  }, [dashboardPath, navigate]);
+  }, [isLoaded, isSignedIn, authPath, dashboardPath, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
-      <div>Signing you in… Redirecting to your dashboard.</div>
+      <div>Signing you in... Redirecting to your dashboard.</div>
     </div>
   );
 }
