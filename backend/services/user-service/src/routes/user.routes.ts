@@ -8,8 +8,8 @@ const router = Router();
 // public
 router.get('/health', healthCheck);
 // private
-router.post('', requireAuth(), UserController.createUser);
-router.get('', requireAuth(), UserController.getUsers);
+router.post('/', requireAuth(), UserController.createUser);
+router.get('/', requireAuth(), UserController.getUsers);
 router.delete('/:id', requireAuth(), UserController.deleteUser);
 
 export default router;

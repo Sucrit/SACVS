@@ -14,6 +14,9 @@ router.use(
   createProxyMiddleware({
     target: ENV.USER_SERVICE_URL,
     changeOrigin: true,
+    pathRewrite: {
+      '^/users': '',
+    },
   })
 );
 
@@ -23,6 +26,9 @@ router.use(
   createProxyMiddleware({
     target: ENV.CREDENTIALS_SERVICE_URL,
     changeOrigin: true,
+    pathRewrite: {
+      '^/credentials': '',
+    },
   })
 );
 

@@ -53,6 +53,7 @@ contract AcademicCredentialRegistry {
         emit IssuerAuthorized(issuer);
     }
 
+    // revoke issuer
     function revokeIssuer(address issuer) external onlyAdmin {
         require(issuer != address(0), "Issuer is zero address");
         authorizedIssuers[issuer] = false;
@@ -79,6 +80,7 @@ contract AcademicCredentialRegistry {
         emit CredentialIssued(credentialId, msg.sender);
     }
 
+    // credential revocation (issuer , admin only)
     function revokeCredential(bytes32 credentialId) external {
         Credential storage cred = credentials[credentialId];
         require(cred.issuedAt != 0, "Credential does not exist");
