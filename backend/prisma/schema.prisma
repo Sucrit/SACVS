@@ -9,7 +9,7 @@ datasource db {
 enum Role {
   STUDENT
   ADMIN
-  EMPLOYEE
+  REGISTRAR
 }
 
 enum Status {

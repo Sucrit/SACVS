@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import studentImg from '@/assets/student.jpg';
-import employeeImg from '@/assets/employer.jpg';
+import registrarImg from '@/assets/registrar.jpg';
 import adminImg from '@/assets/admin.png';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useUser } from '@clerk/clerk-react';
 
-const PRELOAD_SOURCES = [studentImg, employeeImg, adminImg];
+const PRELOAD_SOURCES = [studentImg, registrarImg, adminImg];
 
 const roles = [
   {
@@ -27,11 +27,11 @@ const roles = [
     icon: GraduationCap,
     color: 'from-blue-500 to-indigo-600',
     bgColor: 'bg-blue-500/10',
-    features: ['Upload credentials', 'Track verification status', 'Share with employers'],
+    features: ['Upload credentials', 'Track verification status', 'Share with registrars'],
   },
   {
-    id: 'employee',
-    title: 'Employee',
+    id: 'registrar',
+    title: 'Registrar',
     description: 'Issue, manage, and verify credentials for organizations',
     icon: Briefcase,
     color: 'from-indigo-500 to-cyan-500',
@@ -88,7 +88,7 @@ export default function HomePage() {
   useEffect(() => {
     const stored = localStorage.getItem('pending_role');
     if (isSignedIn && stored) {
-      const uiRole = ['EMPLOYEE', 'INSTITUTION', 'EMPLOYER'].includes(stored) ? 'employee' : stored.toLowerCase();
+      const uiRole = ['REGISTRAR', 'INSTITUTION'].includes(stored) ? 'registrar' : stored.toLowerCase();
       navigate(`/${uiRole}-dashboard`, { replace: true });
     }
   }, [isSignedIn, navigate]);
@@ -161,7 +161,7 @@ export default function HomePage() {
 
   const handleRoleSelect = (roleId) => {
     const upper = roleId.toUpperCase();
-    const mappedBackendRole = ['INSTITUTION', 'EMPLOYER'].includes(upper) ? 'EMPLOYEE' : upper;
+    const mappedBackendRole = ['INSTITUTION'].includes(upper) ? 'REGISTRAR' : upper;
     localStorage.setItem('pending_role', mappedBackendRole);
     setPendingRole(roleId);
 

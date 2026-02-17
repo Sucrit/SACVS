@@ -53,7 +53,7 @@ const pseudoHashFrom = (value = '') =>
     .padEnd(64, '0')
     .slice(0, 64);
 
-export default function EmployerDashboard() {
+export default function RegistrarVerificationDashboard() {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [filterText, setFilterText] = useState('');
 
@@ -88,7 +88,7 @@ export default function EmployerDashboard() {
 
   return (
     <DashboardLayout
-      title="Employer Dashboard"
+      title="Registrar Verification Dashboard"
       subtitle="Verify candidate credentials and track applications"
       actions={[
         <SecurityBadge key="secure" variant="locked" label="Secure Verification" size="md" />,

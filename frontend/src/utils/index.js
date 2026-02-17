@@ -2,8 +2,8 @@ const pageRoutes = {
   Home: '/',
   StudentDashboard: '/student-dashboard',
   InstitutionDashboard: '/institution-dashboard',
-  EmployerDashboard: '/employer-dashboard',
-  EmployeeDashboard: '/employee-dashboard',
+  RegistrarDashboard: '/registrar-dashboard',
+  RegistrarVerificationDashboard: '/registrar-verification-dashboard',
   AdminDashboard: '/admin-dashboard',
 };
 

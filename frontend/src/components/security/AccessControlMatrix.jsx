@@ -18,7 +18,7 @@ const permissions = [
 
 const rolePermissions = {
   student: ['view_own_credentials', 'upload_credentials', 'view_verification_history'],
-  employee: ['view_own_credentials', 'upload_credentials', 'issue_credentials', 'verify_credentials', 'request_verification', 'view_verification_history'],
+  registrar: ['view_own_credentials', 'upload_credentials', 'issue_credentials', 'verify_credentials', 'request_verification', 'view_verification_history'],
   admin: [
     'view_own_credentials',
     'upload_credentials',
@@ -35,12 +35,12 @@ const rolePermissions = {
 
 const roleColors = {
   student: 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border-blue-500/20',
-  employee: 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border-indigo-500/20',
+  registrar: 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border-indigo-500/20',
   admin: 'bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 border-violet-500/20',
 };
 
 export default function AccessControlMatrix({ highlightRole, className }) {
-  const roles = ['student', 'employee', 'admin'];
+  const roles = ['student', 'registrar', 'admin'];
 
   const hasPermission = (role, permissionId) => rolePermissions[role]?.includes(permissionId);
 

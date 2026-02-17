@@ -4,12 +4,12 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Building2, Briefcase } from 'lucide-react';
 
-export default function EmployeeDashboard() {
+export default function RegistrarDashboard() {
   const navigate = useNavigate();
 
   return (
     <DashboardLayout
-      title="Employee Dashboard"
+      title="Registrar Dashboard"
       subtitle="Issue and verify credentials for your organization"
       actions={[]}
       stats={[]}
@@ -24,7 +24,7 @@ export default function EmployeeDashboard() {
         <div className="bg-card border border-border rounded-xl p-6">
           <h3 className="text-lg font-semibold mb-2 flex items-center gap-2"><Briefcase className="w-5 h-5 text-primary" /> Verify Credentials</h3>
           <p className="text-sm text-muted-foreground mb-4">Request and verify candidate credentials submitted for review.</p>
-          <Button onClick={() => navigate('/employer-dashboard')} className="bg-primary hover:bg-primary/90">Go to Verification</Button>
+          <Button onClick={() => navigate('/registrar-verification-dashboard')} className="bg-primary hover:bg-primary/90">Go to Verification</Button>
         </div>
       </div>
     </DashboardLayout>

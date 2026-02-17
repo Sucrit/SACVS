@@ -22,10 +22,10 @@ const roleNavItems = {
     { label: 'My Credentials', icon: GraduationCap, page: 'StudentCredentials', path: '#' },
     { label: 'Settings', icon: Settings, page: 'Settings', path: '#' },
   ],
-  employee: [
-    { label: 'Dashboard', icon: LayoutDashboard, page: 'EmployeeDashboard', path: '/employee-dashboard' },
+  registrar: [
+    { label: 'Dashboard', icon: LayoutDashboard, page: 'RegistrarDashboard', path: '/registrar-dashboard' },
     { label: 'Issue Credentials', icon: FileCheck, page: 'InstitutionDashboard', path: '/institution-dashboard' },
-    { label: 'Verify Credentials', icon: Search, page: 'EmployerDashboard', path: '/employer-dashboard' },
+    { label: 'Verify Credentials', icon: Search, page: 'RegistrarVerificationDashboard', path: '/registrar-verification-dashboard' },
     { label: 'Students', icon: User, page: 'Students', path: '#' },
     { label: 'History', icon: Activity, page: 'History', path: '#' },
     { label: 'Settings', icon: Settings, page: 'Settings', path: '#' },
@@ -44,7 +44,7 @@ export default function MainLayout({ children, currentPageName }) {
   const { user } = useUser();
 
   const rawRole = user?.publicMetadata?.role || localStorage.getItem('demo_user_role') || 'student';
-  const normalizedRole = ['institution', 'employer'].includes(rawRole?.toLowerCase()) ? 'employee' : rawRole?.toLowerCase();
+  const normalizedRole = ['institution'].includes(rawRole?.toLowerCase()) ? 'registrar' : rawRole?.toLowerCase();
   
   const navItems = roleNavItems[normalizedRole] || roleNavItems['student'];
 

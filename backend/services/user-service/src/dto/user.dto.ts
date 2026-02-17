@@ -6,7 +6,7 @@ export interface CreateUserDto {
 export interface UserResponseDto {
   id: string;
   clerkId: string;
-  role: 'STUDENT' | 'ADMIN' | 'EMPLOYEE';
+  role: 'STUDENT' | 'ADMIN' | 'REGISTRAR';
   createdAt: Date;
   updatedAt: Date;
 }

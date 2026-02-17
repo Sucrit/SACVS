@@ -1,4 +1,4 @@
-request_id,employer_name,employer_email,credential_id,request_date,verification_result,response_time_ms,fraud_flag
+request_id,registrar_name,registrar_email,credential_id,request_date,verification_result,response_time_ms,fraud_flag
 6e014662-94ff-4478-88c0-fd1deb71dd67,Weissnat Inc,weis.inc.up@phinmaed.com,69ce1560-da19-4aed-b189-104ba5fae59e,2024-07-09T19:55:01.037Z,Valid,451,0
 06e991fe-f659-4d61-a987-56d63931b9a3,Shanahan and Sons,shan.sons.up@phinmaed.com,989145b5-658e-40b0-a31f-4bef478ff8c2,2024-03-31T07:04:56.227Z,Invalid,705,1
 1c1537de-d0d6-4f8e-9dfd-4149bf12c877,"Satterfield, Braun and Boyle",satt.boyle.up@phinmaed.com,9e5971d4-d1c1-44df-b553-81e881eed9f6,2026-06-11T12:21:00.283Z,Valid,1526,0

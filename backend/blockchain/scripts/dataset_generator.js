@@ -187,11 +187,11 @@ function generateData({ nStudents = 200, nCredentials = 250, nRequests = 300, se
   const verificationRequests = [];
   for (let i = 0; i < nRequests; i++) {
     const c = credentials[Math.floor(Math.random() * credentials.length)];
-    const employerName = faker.company.name();
+    const registrarName = faker.company.name();
     verificationRequests.push({
       request_id: uuidv4(),
-      employer_name: employerName,
-      employer_email: makePhinmaEmail(employerName),
+      registrar_name: registrarName,
+      registrar_email: makePhinmaEmail(registrarName),
       credential_id: c.credential_id,
       request_date: randDate(2023, 2026).toISOString(),
       verification_result: ['Valid', 'Valid', 'Valid', 'Invalid', 'Pending'][Math.floor(Math.random() * 5)],
