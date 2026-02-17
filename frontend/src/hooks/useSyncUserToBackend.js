@@ -8,7 +8,7 @@ import { ENV } from '../config/env.js';
  * - Prevents duplicate/in-flight requests
  * - Retries transient failures with exponential backoff
  * - Treats 409 (already exists) as success
- * - Cancels request on unmount
+ * - Uses pending_role when present, but can sync without role
  *
  * @param {string|null} role
  */
@@ -19,13 +19,15 @@ export function useSyncUserToBackend(role) {
 
   useEffect(() => {
     const storedRole = role || localStorage.getItem('pending_role');
-    if (!isSignedIn || !user || !storedRole) return;
+    if (!isSignedIn || !user) return;
     if (inFlightRef.current) return; // avoid duplicate calls
 
     const controller = new AbortController();
     inFlightRef.current = true;
 
-    const payload = { clerkId: user.id, role: storedRole.toUpperCase() };
+    const payload = storedRole
+      ? { clerkId: user.id, role: storedRole.toUpperCase() }
+      : { clerkId: user.id };
     const maxAttempts = 3;
     const baseDelay = 500; // ms
 

@@ -22,7 +22,6 @@ import { motion } from 'framer-motion';
 
 
 import { useUser } from '@clerk/clerk-react';
-import { useSyncUserToBackend } from '@/hooks/useSyncUserToBackend';
 
 const roles = [
   {
@@ -83,13 +82,6 @@ export default function HomePage() {
   const [pendingRole, setPendingRole] = useState(null);
   const { isSignedIn } = useUser();
 
-  // Sync user to backend after sign-in and role selection
-  useSyncUserToBackend(
-    pendingRole
-      ? (['INSTITUTION', 'EMPLOYER'].includes(pendingRole.toUpperCase()) ? 'EMPLOYEE' : pendingRole.toUpperCase())
-      : null
-  );
-
   useEffect(() => {
     if (isSignedIn && pendingRole) {
       // Navigate client-side to dashboard after sign-in and sync (avoid full page reload)
@@ -101,7 +93,6 @@ export default function HomePage() {
     const stored = localStorage.getItem('pending_role');
     if (isSignedIn && stored) {
       const uiRole = ['EMPLOYEE', 'INSTITUTION', 'EMPLOYER'].includes(stored) ? 'employee' : stored.toLowerCase();
-      localStorage.removeItem('pending_role');
       navigate(`/${uiRole}-dashboard`, { replace: true });
     }
   }, [isSignedIn, navigate]);
@@ -118,7 +109,6 @@ export default function HomePage() {
 
       const data = e.data || {};
       if (data.type === 'clerk_signed_in' && data.path) {
-        localStorage.removeItem('pending_role');
         setPendingRole(null);
         navigate(data.path, { replace: true });
       }
@@ -128,7 +118,6 @@ export default function HomePage() {
       if (e.key === 'clerk_signed_in_path' && e.newValue) {
         try {
           const path = e.newValue;
-          localStorage.removeItem('pending_role');
           // remove the storage key so it doesn't trigger again
           localStorage.removeItem('clerk_signed_in_path');
           setPendingRole(null);

@@ -1,7 +1,4 @@
-import { useState } from 'react'
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { AnimatePresence } from 'framer-motion'
 import AdminDashboard from '@/pages/AdminDashboard'
 import EmployerDashboard from '@/pages/EmployerDashboard'
 import EmployeeDashboard from '@/pages/EmployeeDashboard'
@@ -12,10 +9,12 @@ import InstitutionDashboard from '@/pages/InstitutionDashboard'
 import StudentDashboard from '@/pages/StudentDashboard'
 import MainLayout from '@/layouts/MainLayout'
 import { pageNameByPath } from '@/utils'
+import { useSyncUserToBackend } from '@/hooks/useSyncUserToBackend';
 
 function App() {
   const location = useLocation()
   const currentPageName = pageNameByPath[location.pathname] || 'Home'
+  useSyncUserToBackend(null);
 
   return (
     <>
