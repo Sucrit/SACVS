@@ -141,11 +141,11 @@ model StudentProfile {
   userId        String   @unique
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   studentNumber String   @unique
-  address       String?
-  phone         String?
-  courseOfStudy String?
-  yearLevel     String?
-  department    String?
+  address       String
+  phone         String
+  courseOfStudy String
+  yearLevel     String
+  department    String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
