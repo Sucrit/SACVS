@@ -9,7 +9,7 @@ export class CredentialRepository {
     return prisma.credential.create({
       data: {
         ...data,
-        status: CredentialStatus.PENDING,
+        status: CredentialStatus.PENDING,  
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -27,7 +27,7 @@ export class CredentialRepository {
   async updateCredentialStatus(credentialId: string, status: string): Promise<Credential> {
     return prisma.credential.update({
       where: { id: credentialId },
-      data: { status: CredentialStatus[status], updatedAt: new Date() }, 
+      data: { status: CredentialStatus[status as keyof typeof CredentialStatus], updatedAt: new Date() },
     });
   }
 }
