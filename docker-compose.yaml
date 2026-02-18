@@ -14,6 +14,9 @@ services:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:admin@host.docker.internal:5432/sacvs_db?schema=public
       - PRISMA_SCHEMA_PATH=/prisma/schema.prisma
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY:-}
+      - CLERK_ADMIN_SECRET_KEY=${CLERK_ADMIN_SECRET_KEY:-}
+      - CREDENTIALS_SERVICE_URL=http://credential-service:5100
 
   credential-service:
     build: ./backend/services/credential-service
@@ -28,6 +31,12 @@ services:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:admin@host.docker.internal:5432/sacvs_db?schema=public
       - PRISMA_SCHEMA_PATH=/prisma/schema.prisma
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY:-}
+      - CLERK_ADMIN_SECRET_KEY=${CLERK_ADMIN_SECRET_KEY:-}
+      - BLOCKCHAIN_RPC_URL=http://host.docker.internal:7545
+      - BLOCKCHAIN_CONTRACT_ADDRESS=${BLOCKCHAIN_CONTRACT_ADDRESS:-0x091BbE5f369FB8e3e34ec340675dc2dC22810642}
+      - AI_SERVICE_URL=${AI_SERVICE_URL:-}
+      - AI_ENABLED=${AI_ENABLED:-true}
 
   gateway:
     build: ./backend/gateway
@@ -40,6 +49,7 @@ services:
       - NODE_ENV=development
       - USER_SERVICE_URL=http://user-service:5000
       - CREDENTIALS_SERVICE_URL=http://credential-service:5100
+      - RATE_LIMIT_MAX=200
 
   frontend:
     build: ./frontend
@@ -50,3 +60,6 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - VITE_GATEWAY_URL=http://localhost:4000
+      - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY:-}
+      - VITE_CLERK_ADMIN_PUBLISHABLE_KEY=${VITE_CLERK_ADMIN_PUBLISHABLE_KEY:-}

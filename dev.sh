@@ -49,6 +49,7 @@ start_service() {
 
   (
     cd "$abs_path"
+    npm run db:generate --if-present 2>&1 | sed "s/^/[$name] /"
     echo "[$name] starting (npm run dev)"
     npm run dev 2>&1 | sed "s/^/[$name] /"
   ) &

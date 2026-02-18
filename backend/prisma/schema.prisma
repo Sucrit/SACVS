@@ -6,6 +6,8 @@ datasource db {
   provider = "postgresql"
 }
 
+// Enums 
+
 enum Role {
   STUDENT
   ADMIN
@@ -19,55 +21,238 @@ enum Status {
   SUSPENDED
 }
 
-model User {
-  id           String   @id @default(uuid())
-  clerkId      String   @unique
-  role         Role     @default(STUDENT)
-  status       Status   @default(PENDING)
-  approvedById String?
-  approvedAt   DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  studentCredentials Credential[] @relation("StudentCredentials")
-  issuedCredentials  Credential[] @relation("IssuedCredentials")
-}
-
 enum CredentialStatus {
   PENDING
-  ISSUED
+  AI_REVIEW
   VERIFIED
+  ISSUED
   REVOKED
   EXPIRED
+  REJECTED
 }
 
+enum CredentialRequestStatus {
+  PENDING
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum CredentialType {
+  TRANSCRIPT
+  DIPLOMA
+  CERTIFICATE
+  DEGREE
+  LICENSE
+}
+
+enum DeliveryMethod {
+  DIGITAL
+  PHYSICAL
+  BOTH
+}
+
+enum AuditAction {
+  USER_CREATED
+  USER_APPROVED
+  USER_REJECTED
+  USER_SUSPENDED
+  USER_DELETED
+  LOGIN
+  LOGOUT
+  CREDENTIAL_CREATED
+  CREDENTIAL_ISSUED
+  CREDENTIAL_VERIFIED
+  CREDENTIAL_REVOKED
+  CREDENTIAL_REQUESTED
+  CREDENTIAL_REQUEST_APPROVED
+  CREDENTIAL_REQUEST_REJECTED
+  AI_VALIDATION_RUN
+  BLOCKCHAIN_ANCHORED
+  SETTINGS_CHANGED
+  ROLE_CHANGED
+  ACCESS_DENIED
+  SECURITY_ALERT
+}
+
+enum AuditSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum NotificationType {
+  ACCOUNT_APPROVED
+  ACCOUNT_REJECTED
+  CREDENTIAL_ISSUED
+  CREDENTIAL_VERIFIED
+  CREDENTIAL_REVOKED
+  CREDENTIAL_REQUEST_UPDATE
+  SECURITY_ALERT
+  SYSTEM_ANNOUNCEMENT
+}
+
+// User & Profile
+
+model User {
+  id           String    @id @default(uuid())
+  clerkId      String    @unique
+  email        String?
+  fullName     String?
+  role         Role      @default(STUDENT)
+  status       Status    @default(PENDING)
+  approvedById String?
+  approvedAt   DateTime?
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  profile            StudentProfile?
+  studentCredentials Credential[]          @relation("StudentCredentials")
+  issuedCredentials  Credential[]          @relation("IssuedCredentials")
+  credentialRequests CredentialRequest[]   @relation("StudentRequests")
+  processedRequests  CredentialRequest[]   @relation("ProcessedByRegistrar")
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+
+  @@index([role])
+  @@index([status])
+}
+
+model StudentProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentNumber String   @unique
+  address       String?
+  phone         String?
+  courseOfStudy  String?
+  yearLevel     String?
+  department    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([studentNumber])
+}
+
+// ─── Credentials ─────────────────────────────────────────────
+
 model Credential {
-  id          String           @id @default(uuid())
-  title       String
-  status      CredentialStatus @default(PENDING)
+  id              String           @id @default(uuid())
+  title           String
+  type            CredentialType   @default(CERTIFICATE)
+  status          CredentialStatus @default(PENDING)
+  description     String?
 
-  studentId   String
-  issuedById  String
-  student     User   @relation("StudentCredentials", fields: [studentId], references: [id])
-  issuedBy    User   @relation("IssuedCredentials", fields: [issuedById], references: [id])
+  studentId       String
+  issuedById      String
+  student         User             @relation("StudentCredentials", fields: [studentId], references: [id])
+  issuedBy        User             @relation("IssuedCredentials", fields: [issuedById], references: [id])
 
-  filename    String?
-  mimeType    String?
-  storageKey  String?
-  fileHash    String?
-  metadata    Json?
+  // Document storage
+  filename        String?
+  mimeType        String?
+  storageKey      String?
+  fileHash        String?
+  metadata        Json?
 
-  aiStatus    String?
-  aiScore     Float?
-  aiReport    Json?
+  // AI validation fields
+  aiStatus        String?
+  aiScore         Float?
+  aiReport        Json?
+  aiValidatedAt   DateTime?
 
-  chain       String?
-  txHash      String?
-  anchoredAt  DateTime?
+  // Blockchain anchoring
+  chain           String?
+  txHash          String?
+  blockNumber     Int?
+  anchoredAt      DateTime?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // Expiry
+  issuedDate      DateTime?
+  expiryDate      DateTime?
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  requests        CredentialRequest[]
 
   @@index([studentId])
   @@index([issuedById])
+  @@index([status])
+  @@index([type])
+}
+
+// Credential Requests
+
+model CredentialRequest {
+  id              String                  @id @default(uuid())
+  studentId       String
+  student         User                    @relation("StudentRequests", fields: [studentId], references: [id])
+  credentialId    String?
+  credential      Credential?             @relation(fields: [credentialId], references: [id])
+
+  type            CredentialType
+  title           String
+  description     String?
+  purpose         String?
+  deliveryMethod  DeliveryMethod          @default(DIGITAL)
+
+  status          CredentialRequestStatus @default(PENDING)
+  processedById   String?
+  processedBy     User?                   @relation("ProcessedByRegistrar", fields: [processedById], references: [id])
+  processedAt     DateTime?
+  rejectionReason String?
+  notes           String?
+
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  @@index([studentId])
+  @@index([status])
+  @@index([processedById])
+}
+
+// Audit Logging 
+
+model AuditLog {
+  id              String        @id @default(uuid())
+  action          AuditAction
+  severity        AuditSeverity @default(INFO)
+  actorId         String?
+  actor           User?         @relation(fields: [actorId], references: [id])
+  actorEmail      String?
+  actorRole       Role?
+  targetType      String?
+  targetId        String?
+  description     String?
+  metadata        Json?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime      @default(now())
+
+  @@index([action])
+  @@index([actorId])
+  @@index([createdAt])
+  @@index([severity])
+}
+
+// ─── Notifications ───────────────────────────────────────────
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        NotificationType
+  title       String
+  message     String
+  read        Boolean          @default(false)
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
 }
