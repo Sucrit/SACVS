@@ -9,3 +9,4 @@ export interface CreateCredentialDto {
 export interface UpdateCredentialStatusDto {
   status: 'PENDING' | 'VERIFIED' | 'ISSUED' | 'REVOKED' | 'EXPIRED';
 }
+  

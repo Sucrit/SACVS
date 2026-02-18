@@ -1,4 +1,4 @@
-import { PrismaClient, Credential } from '@prisma/client';
+import { PrismaClient, Credential, CredentialStatus } from '@prisma/client';
 import { CreateCredentialDto } from '../dto/credential.dto';
 
 const prisma = new PrismaClient();
@@ -9,7 +9,7 @@ export class CredentialRepository {
     return prisma.credential.create({
       data: {
         ...data,
-        status: 'PENDING',
+        status: CredentialStatus.PENDING,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -27,7 +27,7 @@ export class CredentialRepository {
   async updateCredentialStatus(credentialId: string, status: string): Promise<Credential> {
     return prisma.credential.update({
       where: { id: credentialId },
-      data: { status, updatedAt: new Date() },
+      data: { status: CredentialStatus[status], updatedAt: new Date() }, 
     });
   }
 }

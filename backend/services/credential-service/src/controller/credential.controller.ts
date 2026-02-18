@@ -14,7 +14,7 @@ export class CredentialController {
 
   // Get a credential by ID
   async getCredentialById(req: Request, res: Response): Promise<Response> {
-    const credentialId = req.params.id;
+    const credentialId: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const credential = await credentialService.getCredentialById(credentialId);
     if (credential) {
       return res.status(200).json(credential);
@@ -25,7 +25,7 @@ export class CredentialController {
 
   // Update credential status
   async updateCredentialStatus(req: Request, res: Response): Promise<Response> {
-    const credentialId = req.params.id;
+    const credentialId: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const { status }: UpdateCredentialStatusDto = req.body;
     const updatedCredential = await credentialService.updateCredentialStatus(credentialId, { status });
     return res.status(200).json(updatedCredential);
