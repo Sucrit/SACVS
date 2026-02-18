@@ -9,14 +9,13 @@ export class UserController {
   async createUser(req: Request, res: Response): Promise<Response> {
     try {
       const userData: CreateUserDto = req.body;
-      
-      // Ensure role is valid or default to 'STUDENT'
+
       if (userData.role && !['STUDENT', 'ADMIN', 'REGISTRAR'].includes(userData.role)) {
         return res.status(400).json({ error: 'Invalid role provided.' });
       }
 
       const newUser = await userService.createUser(userData);
-      return res.status(201).json(newUser); // Return the response object
+      return res.status(201).json(newUser); 
     } catch (error) {
       console.error('Error creating user:', error);
       return res.status(500).json({ error: 'Internal Server Error' });

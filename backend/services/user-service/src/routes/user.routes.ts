@@ -1,16 +1,17 @@
 import express from 'express';
 import { UserController } from '../controller/user.controller';
+import { requireAuth } from '@clerk/express';
 
 const router = express.Router();
 const userController = new UserController();
 
-// Route for creating a user
+// cretae user
 router.post('/', userController.createUser.bind(userController));
 
-// Route for getting a user by ID
-router.get('/:id', userController.getUserById.bind(userController));
+// get user by ID
+router.get('/:id', requireAuth, userController.getUserById.bind(userController));
 
-// Route for updating user status
-router.put('/:id/status', userController.updateUserStatus.bind(userController));
+// uodfate user status
+router.put('/:id/status', requireAuth, userController.updateUserStatus.bind(userController));
 
 export default router;
