@@ -1,69 +1,69 @@
-import { useEffect } from 'react';
-import { Outlet, Navigate, useLocation } from 'react-router-dom';
-import Sidebar from '../components/layout/Sidebar';
-import { useUserRole, UserRole } from '../hooks/useUserRole';
-import { useAuth, UserButton } from '@clerk/clerk-react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Bell } from 'lucide-react';
-import { api } from '../api/client';
+import Sidebar from '../components/layout/Sidebar';
+import { UserRole } from '../services/user.service';
+import { useLegacyAuth } from '../auth/legacy-auth-context';
 
 export default function DashboardLayout() {
-  const { role, isLoaded } = useUserRole();
-  const { getToken } = useAuth();
   const location = useLocation();
+  const { user, isLoading } = useLegacyAuth();
 
-  useEffect(() => {
-    const setupAuth = async () => {
-      const token = await getToken();
-      if (token) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      }
-    };
-    setupAuth();
-  }, [getToken]);
-
-  if (!isLoaded) {
+  if (isLoading) {
     return <div className="h-screen flex items-center justify-center bg-gray-50 text-indigo-600 font-medium">Loading session...</div>;
   }
 
-  // Basic role-based access control redirect
-  const path = location.pathname;
-  if (role === 'STUDENT' && !path.includes('/dashboard/student')) {
-      return <Navigate to="/dashboard/student" replace />;
-  }
-  if (role === 'REGISTRAR' && !path.includes('/dashboard/registrar')) {
-      return <Navigate to="/dashboard/registrar" replace />;
-  }
-  if (role === 'ADMIN' && !path.includes('/dashboard/admin')) {
-      return <Navigate to="/dashboard/admin" replace />;
+  if (!user) {
+    return <Navigate to="/" replace />;
   }
 
-  // Redirect /dashboard to specific role dashboard
+  if (user.role === 'STUDENT' && (!user.profile || user.status !== 'APPROVED')) {
+    return <Navigate to="/" replace />;
+  }
+
+  const role = user.role as UserRole;
+  const roleRoutes: Record<UserRole, string> = {
+    STUDENT: '/dashboard/student',
+    REGISTRAR: '/dashboard/registrar',
+    ADMIN: '/dashboard/admin',
+  };
+
+  const expectedRoutePrefix = roleRoutes[role];
+  const path = location.pathname;
+
   if (path === '/dashboard') {
-      return <Navigate to={`/dashboard/${role?.toLowerCase()}`} replace />;
+    return <Navigate to={expectedRoutePrefix} replace />;
+  }
+
+  if (!path.startsWith(expectedRoutePrefix)) {
+    return <Navigate to={expectedRoutePrefix} replace />;
   }
 
   return (
-    <div className="flex bg-gray-50 min-h-screen font-sans text-gray-800">
-      <Sidebar role={role as UserRole || 'STUDENT'} />
-      
-      <div className="flex-1 ml-64 flex flex-col min-h-screen">
-        <header className="bg-white h-16 border-b border-gray-100 flex items-center justify-between px-8 sticky top-0 z-40">
-           <div className="text-sm breadcrumbs text-gray-500">
-             SACVS / <span className="font-semibold text-gray-800 uppercase">{role}</span>
-           </div>
+    <div className="flex bg-[#F3F4F6] min-h-screen font-sans selection:bg-indigo-500 selection:text-white">
+      <Sidebar role={role} />
 
-           <div className="flex items-center gap-6">
-              <button className="relative p-2 text-gray-400 hover:text-indigo-600 transition">
-                <Bell size={20} />
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-              </button>
-              <div className="h-8 w-px bg-gray-200"></div>
-              <UserButton />
-           </div>
+      <div className="flex-1 ml-72 flex flex-col min-h-screen relative">
+        <div className="absolute top-0 left-0 w-full h-[300px] bg-gradient-to-b from-indigo-50 to-transparent -z-10 pointer-events-none"></div>
+
+        <header className="h-20 flex items-center justify-between px-8 sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200/50">
+          <div className="flex flex-col">
+            <div className="text-xs font-bold text-indigo-600 tracking-wider uppercase mb-0.5">Academic Verification System</div>
+            <h1 className="text-xl font-display font-semibold text-gray-800 capitalize">{role.toLowerCase()} Dashboard</h1>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <button className="relative p-2.5 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all duration-300">
+              <Bell size={22} />
+            </button>
+            <div className="h-8 w-px bg-gray-200"></div>
+            <div className="text-sm font-medium text-slate-700">{user.fullName || user.email || 'User'}</div>
+          </div>
         </header>
 
         <main className="flex-1 p-8 overflow-y-auto">
-          <Outlet />
+          <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

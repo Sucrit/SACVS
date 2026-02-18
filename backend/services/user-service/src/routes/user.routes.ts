@@ -1,17 +1,40 @@
 import express from 'express';
 import { UserController } from '../controller/user.controller';
-import { requireAuth } from '@clerk/express';
+import { requireAuth, requireRoles } from '../middleware/auth.middleware';
 
 const router = express.Router();
 const userController = new UserController();
 
-// cretae user
-router.post('/', userController.createUser.bind(userController));
+router.post('/auth/register', userController.register.bind(userController));
+router.post('/auth/login', userController.login.bind(userController));
+router.post('/auth/verify-otp', userController.verifyOtp.bind(userController));
 
-// get user by ID
-router.get('/:id', requireAuth, userController.getUserById.bind(userController));
+router.get('/me', requireAuth, userController.getCurrentUser.bind(userController));
+router.put('/me/profile', requireAuth, userController.upsertMyProfile.bind(userController));
 
-// uodfate user status
-router.put('/:id/status', requireAuth, userController.updateUserStatus.bind(userController));
+router.get(
+  '/',
+  requireAuth,
+  requireRoles('ADMIN', 'REGISTRAR'),
+  userController.listUsers.bind(userController),
+);
+router.post(
+  '/',
+  requireAuth,
+  requireRoles('ADMIN'),
+  userController.createUser.bind(userController),
+);
+router.get(
+  '/:id',
+  requireAuth,
+  requireRoles('ADMIN', 'REGISTRAR'),
+  userController.getUserById.bind(userController),
+);
+router.put(
+  '/:id/status',
+  requireAuth,
+  requireRoles('ADMIN', 'REGISTRAR'),
+  userController.updateUserStatus.bind(userController),
+);
 
 export default router;

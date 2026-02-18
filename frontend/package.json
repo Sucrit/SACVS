@@ -15,7 +15,6 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@clerk/clerk-react": "^5.60.2",
     "axios": "^1.13.5",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -27,6 +26,7 @@
     "tailwind-merge": "^3.4.1"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^25.2.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

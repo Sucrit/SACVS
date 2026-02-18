@@ -1,7 +1,14 @@
 import { PrismaClient, Credential, CredentialStatus } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { CreateCredentialDto } from '../dto/credential.dto';
+import { ENV } from '../config/env';
 
-const prisma = new PrismaClient();
+if (!ENV.DATABASE_URL) {
+  throw new Error('DATABASE_URL is not configured for credential-service.');
+}
+
+const prismaAdapter = new PrismaPg({ connectionString: ENV.DATABASE_URL });
+const prisma = new PrismaClient({ adapter: prismaAdapter });
 
 export class CredentialRepository {
   // Create a new credential

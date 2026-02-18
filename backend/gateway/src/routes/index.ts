@@ -14,7 +14,7 @@ router.use(
   createProxyMiddleware({
     target: ENV.USER_SERVICE_URL,
     changeOrigin: true,
-    pathRewrite: { '^/users': '' },
+    pathRewrite: path => (path.startsWith('/users') ? path : `/users${path}`),
     on: {
       error: (err, _req, res: any) => {
         console.error('[PROXY] User service error:', err.message);
@@ -32,7 +32,7 @@ router.use(
   createProxyMiddleware({
     target: ENV.CREDENTIALS_SERVICE_URL,
     changeOrigin: true,
-    pathRewrite: { '^/credentials': '' },
+    pathRewrite: path => (path.startsWith('/credentials') ? path : `/credentials${path}`),
     on: {
       error: (err, _req, res: any) => {
         console.error('[PROXY] Credential service error:', err.message);
