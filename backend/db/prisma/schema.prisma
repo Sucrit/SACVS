@@ -1,16 +1,13 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL") // Make sure you have DATABASE_URL in your .env file
 }
-
-
-
-
-
-
 
 // ─── Enums ───────────────────────────────────────────────────
 
@@ -96,13 +93,6 @@ enum NotificationType {
   SYSTEM_ANNOUNCEMENT
 }
 
-
-
-
-
-
-
-
 // ─── User & Profile ─────────────────────────────────────────
 
 model User {
@@ -122,19 +112,12 @@ model User {
   issuedCredentials  Credential[]        @relation("IssuedCredentials")
   credentialRequests CredentialRequest[] @relation("StudentRequests")
   processedRequests  CredentialRequest[] @relation("ProcessedByRegistrar")
-  auditLogs          AuditLog[]
+  auditLogs          AuditLog[] 
   notifications      Notification[]
 
   @@index([role])
   @@index([status])
 }
-
-
-
-
-
-
-
 
 model StudentProfile {
   id            String   @id @default(uuid())
@@ -152,14 +135,6 @@ model StudentProfile {
   @@index([studentNumber])
 }
 
-
-
-
-
-
-
-
-
 // ─── Credentials ─────────────────────────────────────────────
 
 model Credential {
@@ -174,26 +149,22 @@ model Credential {
   student    User   @relation("StudentCredentials", fields: [studentId], references: [id])
   issuedBy   User   @relation("IssuedCredentials", fields: [issuedById], references: [id])
 
-  // Document storage
   filename   String?
   mimeType   String?
   storageKey String?
   fileHash   String?
   metadata   Json?
 
-  // AI validation fields
   aiStatus      String?
   aiScore       Float?
   aiReport      Json?
   aiValidatedAt DateTime?
 
-  // Blockchain anchoring
   chain       String?
   txHash      String?
   blockNumber Int?
   anchoredAt  DateTime?
 
-  // Expiry
   issuedDate DateTime?
   expiryDate DateTime?
 
@@ -207,14 +178,6 @@ model Credential {
   @@index([status])
   @@index([type])
 }
-
-
-
-
-
-
-
-
 
 // ─── Credential Requests ─────────────────────────────────────
 
@@ -246,12 +209,6 @@ model CredentialRequest {
   @@index([processedById])
 }
 
-
-
-
-
-
-
 // ─── Audit Logging ───────────────────────────────────────────
 
 model AuditLog {
@@ -273,13 +230,6 @@ model AuditLog {
   @@index([createdAt])
   @@index([severity])
 }
-
-
-
-
-
-
-
 
 // ─── Notifications ───────────────────────────────────────────
 
