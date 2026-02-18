@@ -6,8 +6,11 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // Make sure you have DATABASE_URL in your .env file
 }
+
+
+
+
 
 // ─── Enums ───────────────────────────────────────────────────
 
@@ -93,6 +96,12 @@ enum NotificationType {
   SYSTEM_ANNOUNCEMENT
 }
 
+
+
+
+
+
+
 // ─── User & Profile ─────────────────────────────────────────
 
 model User {
@@ -119,6 +128,12 @@ model User {
   @@index([status])
 }
 
+
+
+
+
+
+
 model StudentProfile {
   id            String   @id @default(uuid())
   userId        String   @unique
@@ -134,6 +149,12 @@ model StudentProfile {
 
   @@index([studentNumber])
 }
+
+
+
+
+
+
 
 // ─── Credentials ─────────────────────────────────────────────
 
@@ -179,6 +200,12 @@ model Credential {
   @@index([type])
 }
 
+
+
+
+
+
+
 // ─── Credential Requests ─────────────────────────────────────
 
 model CredentialRequest {
@@ -209,6 +236,13 @@ model CredentialRequest {
   @@index([processedById])
 }
 
+
+
+
+
+
+
+
 // ─── Audit Logging ───────────────────────────────────────────
 
 model AuditLog {
@@ -230,6 +264,14 @@ model AuditLog {
   @@index([createdAt])
   @@index([severity])
 }
+
+
+
+
+
+
+
+
 
 // ─── Notifications ───────────────────────────────────────────
 
