@@ -89,8 +89,11 @@ export default function LandingPage() {
   const { user, isAuthenticated, isLoading, register, login, verifyOtp, refreshUser, logout } = useLegacyAuth();
   const [authModal, setAuthModal] = useState<'signin' | 'signup' | 'otp' | null>(null);
   const [authEmail, setAuthEmail] = useState('');
-  const [authFullName, setAuthFullName] = useState('');
+  const [authFirstName, setAuthFirstName] = useState('');
+  const [authMiddleName, setAuthMiddleName] = useState('');
+  const [authLastName, setAuthLastName] = useState('');
   const [pendingOtpEmail, setPendingOtpEmail] = useState('');
+  const [pendingSignupProfile, setPendingSignupProfile] = useState<UpsertStudentProfilePayload | null>(null);
   const [otpCode, setOtpCode] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [authHint, setAuthHint] = useState<string | null>(null);
@@ -134,6 +137,19 @@ export default function LandingPage() {
     setAuthError(null);
     setAuthHint(null);
     setOtpCode('');
+
+    if (mode === 'signin') {
+      setAuthEmail('');
+      setPendingSignupProfile(null);
+      return;
+    }
+
+    setAuthEmail('');
+    setAuthFirstName('');
+    setAuthMiddleName('');
+    setAuthLastName('');
+    setProfileForm(initialProfileForm);
+    setPendingSignupProfile(null);
   };
 
   const closeAuthModal = () => {
@@ -141,6 +157,7 @@ export default function LandingPage() {
     setAuthError(null);
     setAuthHint(null);
     setOtpCode('');
+    setPendingSignupProfile(null);
   };
 
   const handleStartAuth = async (event: FormEvent<HTMLFormElement>) => {
@@ -157,10 +174,37 @@ export default function LandingPage() {
       }
 
       if (authModal === 'signup') {
+        const firstName = authFirstName.trim();
+        const middleName = authMiddleName.trim();
+        const lastName = authLastName.trim();
+        if (!firstName || !lastName) {
+          setAuthError('First name and last name are required.');
+          return;
+        }
+
+        const profilePayload: UpsertStudentProfilePayload = {
+          studentNumber: profileForm.studentNumber.trim(),
+          address: profileForm.address.trim(),
+          phone: profileForm.phone.trim(),
+          courseOfStudy: profileForm.courseOfStudy.trim(),
+          yearLevel: profileForm.yearLevel.trim(),
+          department: profileForm.department.trim(),
+        };
+
+        const hasMissingProfile = Object.values(profilePayload).some(value => !value);
+        if (hasMissingProfile) {
+          setAuthError('Complete all student profile fields before requesting account creation.');
+          return;
+        }
+
         const response = await register({
           email,
-          fullName: authFullName.trim() || undefined,
+          firstName,
+          middleName: middleName || undefined,
+          lastName,
         });
+        setProfileForm(profilePayload);
+        setPendingSignupProfile(profilePayload);
         setPendingOtpEmail(email);
         setAuthHint(response.otpBypassCode ? `OTP bypass code: ${response.otpBypassCode}` : 'Use OTP code.');
         setAuthModal('otp');
@@ -186,6 +230,15 @@ export default function LandingPage() {
 
     try {
       await verifyOtp({ email: pendingOtpEmail.trim().toLowerCase(), otp: otpCode.trim() });
+      if (pendingSignupProfile) {
+        try {
+          await UserService.upsertMyProfile(pendingSignupProfile);
+          setPendingSignupProfile(null);
+        } catch (profileSaveError) {
+          console.error('Failed to save student profile after OTP verification:', profileSaveError);
+          setProfileError('Account verified, but we could not save your student profile. Please submit it below.');
+        }
+      }
       await refreshUser();
       closeAuthModal();
     } catch (error) {
@@ -481,7 +534,11 @@ export default function LandingPage() {
 
       {authModal && (
         <div className="fixed inset-0 z-[65] flex items-center justify-center bg-slate-900/45 p-6 backdrop-blur-[2px]">
-          <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl md:p-8">
+          <div
+            className={`w-full rounded-2xl border border-gray-200 bg-white p-6 shadow-xl md:p-8 ${
+              authModal === 'signup' ? 'max-w-2xl' : 'max-w-md'
+            }`}
+          >
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-xl font-bold text-slate-900">
                 {authModal === 'signin' ? 'Sign In' : authModal === 'signup' ? 'Create Student Account' : 'Verify OTP'}
@@ -494,13 +551,75 @@ export default function LandingPage() {
             {(authModal === 'signin' || authModal === 'signup') && (
               <form className="space-y-3" onSubmit={handleStartAuth}>
                 {authModal === 'signup' && (
-                  <input
-                    required
-                    value={authFullName}
-                    onChange={event => setAuthFullName(event.target.value)}
-                    placeholder="Full Name"
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
-                  />
+                  <>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <input
+                        required
+                        value={authFirstName}
+                        onChange={event => setAuthFirstName(event.target.value)}
+                        placeholder="First Name"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                      />
+                      <input
+                        value={authMiddleName}
+                        onChange={event => setAuthMiddleName(event.target.value)}
+                        placeholder="Middle Name (Optional)"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                      />
+                      <input
+                        required
+                        value={authLastName}
+                        onChange={event => setAuthLastName(event.target.value)}
+                        placeholder="Last Name"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <input
+                        required
+                        value={profileForm.studentNumber}
+                        onChange={event => setProfileForm(prev => ({ ...prev, studentNumber: event.target.value }))}
+                        placeholder="Student Number"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                      />
+                      <input
+                        required
+                        value={profileForm.phone}
+                        onChange={event => setProfileForm(prev => ({ ...prev, phone: event.target.value }))}
+                        placeholder="Phone"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                      />
+                      <input
+                        required
+                        value={profileForm.courseOfStudy}
+                        onChange={event => setProfileForm(prev => ({ ...prev, courseOfStudy: event.target.value }))}
+                        placeholder="Course of Study"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                      />
+                      <input
+                        required
+                        value={profileForm.yearLevel}
+                        onChange={event => setProfileForm(prev => ({ ...prev, yearLevel: event.target.value }))}
+                        placeholder="Year Level"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                      />
+                      <input
+                        required
+                        value={profileForm.department}
+                        onChange={event => setProfileForm(prev => ({ ...prev, department: event.target.value }))}
+                        placeholder="Department"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10 md:col-span-2"
+                      />
+                      <textarea
+                        required
+                        rows={2}
+                        value={profileForm.address}
+                        onChange={event => setProfileForm(prev => ({ ...prev, address: event.target.value }))}
+                        placeholder="Address"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10 md:col-span-2"
+                      />
+                    </div>
+                  </>
                 )}
                 <input
                   required

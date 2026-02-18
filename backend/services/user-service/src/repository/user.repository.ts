@@ -1,5 +1,4 @@
-import { randomUUID } from 'crypto';
-import { PrismaClient, Prisma, User, Status, Role } from '@prisma/client';
+import { PrismaClient, Prisma, User, Status, Role } from '../../../../db/node_modules/@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { CreateUserDto, UpsertStudentProfileDto, UserRole, UserStatus } from '../dto/user.dto';
 import { ENV } from '../config/env';
@@ -13,16 +12,12 @@ const prisma = new PrismaClient({ adapter: prismaAdapter });
 
 export type UserWithProfile = Prisma.UserGetPayload<{ include: { profile: true } }>;
 
-const normalizeOptionalString = (value: string | null | undefined): string | null => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
+const normalizeEmail = (email: string): string => email.trim().toLowerCase();
+const normalizeOptionalString = (value?: string | null): string | null => {
+  if (!value) return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 };
-
-const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
 const toPrismaRole = (role?: UserRole): Role => {
   if (!role) {
@@ -44,7 +39,7 @@ export class UserRepository {
 
   async findByEmail(email: string): Promise<UserWithProfile | null> {
     const normalized = normalizeEmail(email);
-    return prisma.user.findFirst({
+    return prisma.user.findUnique({
       where: { email: normalized },
       include: { profile: true },
     });
@@ -53,9 +48,10 @@ export class UserRepository {
   async createUser(data: CreateUserDto): Promise<UserWithProfile> {
     return prisma.user.create({
       data: {
-        clerkId: `legacy_${randomUUID()}`,
-        email: data.email ? normalizeEmail(data.email) : null,
-        fullName: normalizeOptionalString(data.fullName),
+        email: normalizeEmail(data.email),
+        firstName: data.firstName.trim(),
+        middleName: normalizeOptionalString(data.middleName),
+        lastName: data.lastName.trim(),
         role: toPrismaRole(data.role),
         status: Status.PENDING,
       },

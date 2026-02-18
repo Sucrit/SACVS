@@ -10,8 +10,8 @@ const formatDate = (value: string | null | undefined) => {
   return date.toLocaleString();
 };
 
-const getInitials = (fullName: string | null, email: string | null) => {
-  const source = fullName || email || 'U';
+const getInitials = (firstName: string, middleName: string | null, lastName: string, email: string) => {
+  const source = [firstName, middleName, lastName].filter(Boolean).join(' ') || email || 'U';
   const tokens = source.split(' ').filter(Boolean);
   if (tokens.length === 1) return tokens[0].slice(0, 2).toUpperCase();
   return `${tokens[0][0] || ''}${tokens[1][0] || ''}`.toUpperCase();
@@ -180,11 +180,11 @@ export default function AdminDashboard() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold">
-                              {getInitials(user.fullName, user.email)}
+                              {getInitials(user.firstName, user.middleName, user.lastName, user.email)}
                             </div>
                             <div>
-                              <div className="font-semibold text-gray-700">{user.fullName || 'Unnamed User'}</div>
-                              <div className="text-xs text-gray-400">{user.email || 'No email'}</div>
+                              <div className="font-semibold text-gray-700">{[user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ')}</div>
+                              <div className="text-xs text-gray-400">{user.email}</div>
                             </div>
                           </div>
                         </td>

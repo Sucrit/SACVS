@@ -1,4 +1,4 @@
-import { PrismaClient, Credential, CredentialStatus } from '@prisma/client';
+import { PrismaClient, Credential, CredentialStatus } from '../../../../db/node_modules/@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { CreateCredentialDto } from '../dto/credential.dto';
 import { ENV } from '../config/env';

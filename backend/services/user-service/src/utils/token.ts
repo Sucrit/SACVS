@@ -4,7 +4,7 @@ import { UserRole, UserStatus } from '../dto/user.dto';
 
 export interface AccessTokenPayload {
   sub: string;
-  email: string | null;
+  email: string;
   role: UserRole;
   status: UserStatus;
   type: 'access';

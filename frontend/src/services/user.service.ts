@@ -18,9 +18,10 @@ export interface StudentProfile {
 
 export interface User {
   id: string;
-  clerkId: string;
-  email: string | null;
-  fullName: string | null;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  email: string;
   role: UserRole;
   status: UserStatus;
   approvedById: string | null;
@@ -31,14 +32,18 @@ export interface User {
 }
 
 export interface CreateUserPayload {
-  email?: string | null;
-  fullName?: string | null;
+  email: string;
+  firstName: string;
+  middleName?: string | null;
+  lastName: string;
   role?: UserRole;
 }
 
 export interface RegisterPayload {
   email: string;
-  fullName?: string | null;
+  firstName: string;
+  middleName?: string | null;
+  lastName: string;
 }
 
 export interface LoginPayload {

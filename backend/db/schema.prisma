@@ -104,9 +104,11 @@ enum NotificationType {
 
 model User {
   id           String    @id @default(uuid())
-  clerkId      String    @unique
-  email        String?
-  fullName     String?
+  firstName    String
+  middleName   String?
+  lastName     String
+  email        String    @unique
+  password
   role         Role      @default(STUDENT)
   status       Status    @default(PENDING)
   approvedById String?

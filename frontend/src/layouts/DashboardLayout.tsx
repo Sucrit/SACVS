@@ -21,6 +21,7 @@ export default function DashboardLayout() {
   }
 
   const role = user.role as UserRole;
+  const displayName = [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ');
   const roleRoutes: Record<UserRole, string> = {
     STUDENT: '/dashboard/student',
     REGISTRAR: '/dashboard/registrar',
@@ -56,7 +57,7 @@ export default function DashboardLayout() {
               <Bell size={22} />
             </button>
             <div className="h-8 w-px bg-gray-200"></div>
-            <div className="text-sm font-medium text-slate-700">{user.fullName || user.email || 'User'}</div>
+            <div className="text-sm font-medium text-slate-700">{displayName || user.email || 'User'}</div>
           </div>
         </header>
 

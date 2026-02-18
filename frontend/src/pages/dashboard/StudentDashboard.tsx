@@ -49,6 +49,7 @@ const getStatusLabel = (status: Credential['status']) => {
 
 export default function StudentDashboard() {
   const { user } = useLegacyAuth();
+  const displayName = user ? [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ') : '';
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
   const [credentialsError, setCredentialsError] = useState<string | null>(null);
@@ -137,7 +138,7 @@ export default function StudentDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-end gap-4 mb-2">
         <div>
           <h2 className="text-3xl font-display font-bold text-gray-800">
-            Welcome back, {user?.fullName || user?.email || 'Student'}
+            Welcome back, {displayName || user?.email || 'Student'}
           </h2>
           <p className="text-gray-500 mt-1">Track your academic progress and manage your digital credentials.</p>
         </div>

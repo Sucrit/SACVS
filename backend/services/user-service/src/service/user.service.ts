@@ -12,7 +12,7 @@ export class UserService {
     return userRepository.listUsers();
   }
 
-  async register(data: { email: string; fullName?: string | null }) {
+  async register(data: { email: string; firstName: string; middleName?: string | null; lastName: string }) {
     const email = normalizeEmail(data.email);
     const existing = await userRepository.findByEmail(email);
     if (existing) {
@@ -21,7 +21,9 @@ export class UserService {
 
     const user = await userRepository.createUser({
       email,
-      fullName: data.fullName ?? null,
+      firstName: data.firstName.trim(),
+      middleName: data.middleName?.trim() || null,
+      lastName: data.lastName.trim(),
       role: 'STUDENT',
     });
 

@@ -25,13 +25,19 @@ export class UserController {
         return res.status(400).json({ error: 'Email is required.' });
       }
 
-      if (payload.role && payload.role !== 'STUDENT') {
-        return res.status(403).json({ error: 'Only student self-registration is allowed.' });
+      if (!payload?.firstName || typeof payload.firstName !== 'string') {
+        return res.status(400).json({ error: 'First name is required.' });
+      }
+
+      if (!payload?.lastName || typeof payload.lastName !== 'string') {
+        return res.status(400).json({ error: 'Last name is required.' });
       }
 
       const result = await userService.register({
         email: payload.email,
-        fullName: payload.fullName,
+        firstName: payload.firstName,
+        middleName: typeof payload.middleName === 'string' ? payload.middleName : null,
+        lastName: payload.lastName,
       });
       return res.status(201).json(result);
     } catch (error) {
@@ -160,6 +166,16 @@ export class UserController {
   async createUser(req: Request, res: Response): Promise<Response> {
     try {
       const userData: CreateUserDto = req.body;
+
+      if (!userData?.email || typeof userData.email !== 'string') {
+        return res.status(400).json({ error: 'Email is required.' });
+      }
+      if (!userData?.firstName || typeof userData.firstName !== 'string') {
+        return res.status(400).json({ error: 'First name is required.' });
+      }
+      if (!userData?.lastName || typeof userData.lastName !== 'string') {
+        return res.status(400).json({ error: 'Last name is required.' });
+      }
 
       if (userData.role && !['STUDENT', 'ADMIN', 'REGISTRAR'].includes(userData.role)) {
         return res.status(400).json({ error: 'Invalid role provided.' });

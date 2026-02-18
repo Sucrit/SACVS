@@ -3,8 +3,9 @@ export type UserStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 
 export interface RegisterDto {
   email: string;
-  fullName?: string | null;
-  role?: UserRole;
+  firstName: string;
+  middleName?: string | null;
+  lastName: string;
 }
 
 export interface LoginDto {
@@ -17,8 +18,10 @@ export interface VerifyOtpDto {
 }
 
 export interface CreateUserDto {
-  email?: string | null;
-  fullName?: string | null;
+  email: string;
+  firstName: string;
+  middleName?: string | null;
+  lastName: string;
   role?: UserRole;
 }
 
