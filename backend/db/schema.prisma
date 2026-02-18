@@ -108,7 +108,7 @@ model User {
   middleName   String?
   lastName     String
   email        String    @unique
-  password
+  password     String?
   role         Role      @default(STUDENT)
   status       Status    @default(PENDING)
   approvedById String?
@@ -139,7 +139,11 @@ model StudentProfile {
   userId        String   @unique
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   studentNumber String   @unique
-  address       String
+  street        String
+  barangay      String
+  city          String
+  province      String
+  zipCode       Int
   phone         String
   courseOfStudy String
   yearLevel     String

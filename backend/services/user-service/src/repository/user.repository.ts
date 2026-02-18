@@ -74,7 +74,11 @@ export class UserRepository {
           upsert: {
             create: {
               studentNumber: data.studentNumber.trim(),
-              address: data.address.trim(),
+              street: data.street.trim(),
+              barangay: data.barangay.trim(),
+              city: data.city.trim(),
+              province: data.province.trim(),
+              zipCode: data.zipCode,
               phone: data.phone.trim(),
               courseOfStudy: data.courseOfStudy.trim(),
               yearLevel: data.yearLevel.trim(),
@@ -82,7 +86,11 @@ export class UserRepository {
             },
             update: {
               studentNumber: data.studentNumber.trim(),
-              address: data.address.trim(),
+              street: data.street.trim(),
+              barangay: data.barangay.trim(),
+              city: data.city.trim(),
+              province: data.province.trim(),
+              zipCode: data.zipCode,
               phone: data.phone.trim(),
               courseOfStudy: data.courseOfStudy.trim(),
               yearLevel: data.yearLevel.trim(),

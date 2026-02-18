@@ -7,7 +7,11 @@ export interface StudentProfile {
   id: string;
   userId: string;
   studentNumber: string;
-  address: string;
+  street: string;
+  barangay: string;
+  city: string;
+  province: string;
+  zipCode: number;
   phone: string;
   courseOfStudy: string;
   yearLevel: string;
@@ -70,7 +74,11 @@ export interface AuthVerifyResponse {
 
 export interface UpsertStudentProfilePayload {
   studentNumber: string;
-  address: string;
+  street: string;
+  barangay: string;
+  city: string;
+  province: string;
+  zipCode: number;
   phone: string;
   courseOfStudy: string;
   yearLevel: string;

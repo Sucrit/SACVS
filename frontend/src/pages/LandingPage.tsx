@@ -53,7 +53,11 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
 
 const initialProfileForm: UpsertStudentProfilePayload = {
   studentNumber: '',
-  address: '',
+  street: '',
+  barangay: '',
+  city: '',
+  province: '',
+  zipCode: 0,
   phone: '',
   courseOfStudy: '',
   yearLevel: '',
@@ -81,7 +85,7 @@ const getStatusMessage = (status: UserStatus) => {
     title: 'Account request is pending',
     description:
       'Your profile has been submitted. You can access the student dashboard after admin and registrar approval.',
-    tone: 'text-sky-700 bg-sky-50 border-sky-200',
+    tone: 'text-slate-700 bg-slate-100 border-slate-300',
   };
 };
 
@@ -113,12 +117,22 @@ export default function LandingPage() {
 
     const payload: UpsertStudentProfilePayload = {
       studentNumber: profileForm.studentNumber.trim(),
-      address: profileForm.address.trim(),
+      street: profileForm.street.trim(),
+      barangay: profileForm.barangay.trim(),
+      city: profileForm.city.trim(),
+      province: profileForm.province.trim(),
+      zipCode: Number(profileForm.zipCode),
       phone: profileForm.phone.trim(),
       courseOfStudy: profileForm.courseOfStudy.trim(),
       yearLevel: profileForm.yearLevel.trim(),
       department: profileForm.department.trim(),
     };
+
+    if (!Number.isInteger(payload.zipCode) || payload.zipCode <= 0) {
+      setProfileError('Zip code must be a valid number.');
+      setIsSubmittingProfile(false);
+      return;
+    }
 
     try {
       await UserService.upsertMyProfile(payload);
@@ -184,14 +198,29 @@ export default function LandingPage() {
 
         const profilePayload: UpsertStudentProfilePayload = {
           studentNumber: profileForm.studentNumber.trim(),
-          address: profileForm.address.trim(),
+          street: profileForm.street.trim(),
+          barangay: profileForm.barangay.trim(),
+          city: profileForm.city.trim(),
+          province: profileForm.province.trim(),
+          zipCode: Number(profileForm.zipCode),
           phone: profileForm.phone.trim(),
           courseOfStudy: profileForm.courseOfStudy.trim(),
           yearLevel: profileForm.yearLevel.trim(),
           department: profileForm.department.trim(),
         };
 
-        const hasMissingProfile = Object.values(profilePayload).some(value => !value);
+        const hasMissingProfile =
+          profilePayload.studentNumber.length === 0 ||
+          profilePayload.street.length === 0 ||
+          profilePayload.barangay.length === 0 ||
+          profilePayload.city.length === 0 ||
+          profilePayload.province.length === 0 ||
+          !Number.isInteger(profilePayload.zipCode) ||
+          profilePayload.zipCode <= 0 ||
+          profilePayload.phone.length === 0 ||
+          profilePayload.courseOfStudy.length === 0 ||
+          profilePayload.yearLevel.length === 0 ||
+          profilePayload.department.length === 0;
         if (hasMissingProfile) {
           setAuthError('Complete all student profile fields before requesting account creation.');
           return;
@@ -256,7 +285,7 @@ export default function LandingPage() {
       <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-slate-100 bg-white/80 px-6 py-4 backdrop-blur-xl md:px-20">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="text-[#0073e6]">
+            <div className="text-slate-900">
               <Logo />
             </div>
             <h2 className="text-xl font-extrabold tracking-tight">credence</h2>
@@ -273,7 +302,7 @@ export default function LandingPage() {
                 </button>
                 <button
                   onClick={() => openAuthModal('signup')}
-                  className="flex h-10 items-center justify-center rounded-xl bg-[#0073e6] px-5 text-sm font-semibold text-white shadow-md shadow-[#0073e6]/10 transition-all hover:brightness-105"
+                  className="flex h-10 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-md shadow-black/20 transition-all hover:brightness-105"
                 >
                   Get Started
                 </button>
@@ -289,13 +318,13 @@ export default function LandingPage() {
                     Dashboard
                   </Link>
                 ) : (
-                  <span className="hidden rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 text-xs font-semibold text-sky-700 sm:inline-flex">
+                  <span className="hidden rounded-xl border border-slate-300 bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 sm:inline-flex">
                     Verification Required
                   </span>
                 )}
                 <button
                   onClick={logout}
-                  className="flex h-10 items-center justify-center rounded-xl bg-[#0073e6] px-5 text-sm font-semibold text-white shadow-md shadow-[#0073e6]/10 transition-all hover:brightness-105"
+                  className="flex h-10 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-md shadow-black/20 transition-all hover:brightness-105"
                 >
                   Sign Out
                 </button>
@@ -316,13 +345,9 @@ export default function LandingPage() {
             <div className="credence-bg-orb credence-bg-orb-three"></div>
           </div>
           <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center px-6 text-center md:px-20">
-            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-[#0073e6]/10 bg-[#0073e6]/5 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#0073e6]">
-              <Icon className="text-sm" name="verified" />
-              Blockchain &amp; AI Powered
-            </div>
             <h1 className="mb-6 max-w-4xl text-5xl font-extrabold leading-[1.1] tracking-tight text-slate-900 md:text-7xl">
-              Securing Academic Excellence with <span className="text-[#0073e6]">Blockchain</span> and{' '}
-              <span className="text-[#0073e6]">AI</span>
+              Securing Academic Excellence with <span className="text-slate-500">Blockchain</span> and{' '}
+              <span className="text-slate-500">AI</span>
             </h1>
             <p className="mb-10 max-w-2xl text-lg leading-relaxed text-slate-500 md:text-xl">
               The standard for immutable, instantly verifiable academic credentials. Own your achievement,
@@ -353,12 +378,12 @@ export default function LandingPage() {
                 return (
                   <div
                     key={feature.title}
-                    className="credence-glass-card group rounded-3xl border border-slate-100 p-8 transition-all hover:border-[#0073e6]/20"
+                    className="credence-glass-card group rounded-3xl border border-slate-100 p-8 transition-all hover:border-slate-300"
                   >
                     <div className="mb-6 inline-flex">
-                      <div className="relative flex size-14 items-center justify-center rounded-2xl border border-[#0073e6]/15 bg-white/90 shadow-[0_10px_25px_-14px_rgba(0,115,230,0.55)] transition-transform group-hover:scale-110">
-                        <div className="absolute inset-[1px] rounded-2xl bg-gradient-to-br from-[#0073e6]/15 via-[#60a5fa]/10 to-transparent"></div>
-                        <FeatureIcon className="relative h-7 w-7 text-[#0073e6]" strokeWidth={2.2} />
+                      <div className="relative flex size-14 items-center justify-center rounded-2xl border border-slate-300 bg-white/90 shadow-[0_10px_25px_-14px_rgba(15,23,42,0.35)] transition-transform group-hover:scale-110">
+                        <div className="absolute inset-[1px] rounded-2xl bg-gradient-to-br from-slate-300/40 via-slate-200/30 to-transparent"></div>
+                        <FeatureIcon className="relative h-7 w-7 text-slate-900" strokeWidth={2.2} />
                       </div>
                     </div>
                     <h3 className="mb-3 text-xl font-bold">{feature.title}</h3>
@@ -383,7 +408,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <div className="order-1 w-full md:order-2 md:w-1/2">
-                <div className="mb-6 inline-flex items-center rounded-full bg-[#0073e6]/10 px-3 py-1 text-xs font-bold uppercase text-[#0073e6]">
+                <div className="mb-6 inline-flex items-center rounded-full bg-black/10 px-3 py-1 text-xs font-bold uppercase text-slate-900">
                   For Students
                 </div>
                 <h2 className="mb-6 text-4xl font-black">Own Your Achievement</h2>
@@ -393,15 +418,15 @@ export default function LandingPage() {
                 </p>
                 <ul className="mb-10 space-y-4">
                   <li className="flex items-start gap-3">
-                    <Icon className="text-[#0073e6]" name="check_circle" />
-                    <span>Instant sharing via QR or secure link</span>
+                    <Icon className="text-slate-900" name="check_circle" />
+                    <span>Faster and safer sharing of credentials</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Icon className="text-[#0073e6]" name="check_circle" />
-                    <span>Lifetime access to verified credentials</span>
+                    <Icon className="text-slate-900" name="check_circle" />
+                    <span>Secure and tamper-proof digital certificates</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Icon className="text-[#0073e6]" name="check_circle" />
+                    <Icon className="text-slate-900" name="check_circle" />
                     <span>Blockchain-backed proof of authenticity</span>
                   </li>
                 </ul>
@@ -410,25 +435,25 @@ export default function LandingPage() {
 
             <div className="flex flex-col items-center gap-16 md:flex-row">
               <div className="w-full md:w-1/2">
-                <div className="mb-6 inline-flex items-center rounded-full bg-[#0073e6]/10 px-3 py-1 text-xs font-bold uppercase text-[#0073e6]">
+                <div className="mb-6 inline-flex items-center rounded-full bg-black/10 px-3 py-1 text-xs font-bold uppercase text-slate-900">
                   For University
                 </div>
-                <h2 className="mb-6 text-4xl font-black">Modernize Your Credentials</h2>
+                <h2 className="mb-6 text-4xl font-black">Modernize Your Workflow</h2>
                 <p className="mb-8 text-lg leading-relaxed text-slate-500">
                   Eliminate administrative overhead and manual verification requests. Issue tamper-proof digital
                   certificates in bulk and protect your institution&apos;s reputation.
                 </p>
                 <ul className="mb-10 space-y-4">
                   <li className="flex items-start gap-3">
-                    <Icon className="text-[#0073e6]" name="check_circle" />
-                    <span>Bulk issuance in seconds</span>
+                    <Icon className="text-slate-900" name="check_circle" />
+                    <span>Instant issuance in seconds</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Icon className="text-[#0073e6]" name="check_circle" />
-                    <span>Zero manual verification workload</span>
+                    <Icon className="text-slate-900" name="check_circle" />
+                    <span>Efficient credential management</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <Icon className="text-[#0073e6]" name="check_circle" />
+                    <Icon className="text-slate-900" name="check_circle" />
                     <span>Comprehensive analytics dashboard</span>
                   </li>
                 </ul>
@@ -453,7 +478,7 @@ export default function LandingPage() {
           <div className="mb-16 grid grid-cols-2 gap-12 md:grid-cols-4 lg:grid-cols-5">
             <div className="col-span-2 lg:col-span-2">
               <div className="mb-6 flex items-center gap-3">
-                <div className="text-[#0073e6]">
+                <div className="text-slate-900">
                   <Logo className="w-6 h-6" />
                 </div>
                 <h2 className="text-lg font-extrabold tracking-tight">credence</h2>
@@ -463,13 +488,13 @@ export default function LandingPage() {
               </p>
               <div className="flex gap-4">
                 <a
-                  className="flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-all hover:bg-[#0073e6]/5 hover:text-[#0073e6]"
+                  className="flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900"
                   href="#"
                 >
                   <Icon name="share" />
                 </a>
                 <a
-                  className="flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-all hover:bg-[#0073e6]/5 hover:text-[#0073e6]"
+                  className="flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900"
                   href="#"
                 >
                   <Icon name="language" />
@@ -482,7 +507,7 @@ export default function LandingPage() {
               <ul className="space-y-4 text-sm text-slate-500">
                 {platformLinks.map(link => (
                   <li key={link}>
-                    <a className="transition-colors hover:text-[#0073e6]" href="#">
+                    <a className="transition-colors hover:text-slate-900" href="#">
                       {link}
                     </a>
                   </li>
@@ -494,7 +519,7 @@ export default function LandingPage() {
               <ul className="space-y-4 text-sm text-slate-500">
                 {audienceLinks.map(link => (
                   <li key={link}>
-                    <a className="transition-colors hover:text-[#0073e6]" href="#">
+                    <a className="transition-colors hover:text-slate-900" href="#">
                       {link}
                     </a>
                   </li>
@@ -506,7 +531,7 @@ export default function LandingPage() {
               <ul className="space-y-4 text-sm text-slate-500">
                 {companyLinks.map(link => (
                   <li key={link}>
-                    <a className="transition-colors hover:text-[#0073e6]" href="#">
+                    <a className="transition-colors hover:text-slate-900" href="#">
                       {link}
                     </a>
                   </li>
@@ -515,16 +540,16 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="flex flex-col items-center justify-between gap-6 border-t border-white/5 pt-10 md:flex-row">
-            <p className="text-sm text-slate-500">&copy; 2024 credence Systems. All academic rights reserved.</p>
+          <div className="flex flex-col items-center justify-between gap-6 border-t border-slate-200 pt-10 md:flex-row">
+            <p className="text-sm text-slate-500">&copy; 2026 Credence. All academic rights reserved.</p>
             <div className="flex gap-8 text-xs font-bold uppercase tracking-widest text-slate-500">
-              <a className="hover:text-white" href="#">
+              <a className="hover:text-slate-900" href="#">
                 Whitepaper
               </a>
-              <a className="hover:text-white" href="#">
+              <a className="hover:text-slate-900" href="#">
                 Security Audit
               </a>
-              <a className="hover:text-white" href="#">
+              <a className="hover:text-slate-900" href="#">
                 API Docs
               </a>
             </div>
@@ -558,20 +583,20 @@ export default function LandingPage() {
                         value={authFirstName}
                         onChange={event => setAuthFirstName(event.target.value)}
                         placeholder="First Name"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                       />
                       <input
                         value={authMiddleName}
                         onChange={event => setAuthMiddleName(event.target.value)}
                         placeholder="Middle Name (Optional)"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                       />
                       <input
                         required
                         value={authLastName}
                         onChange={event => setAuthLastName(event.target.value)}
                         placeholder="Last Name"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                       />
                     </div>
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -580,43 +605,77 @@ export default function LandingPage() {
                         value={profileForm.studentNumber}
                         onChange={event => setProfileForm(prev => ({ ...prev, studentNumber: event.target.value }))}
                         placeholder="Student Number"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                       />
                       <input
                         required
                         value={profileForm.phone}
                         onChange={event => setProfileForm(prev => ({ ...prev, phone: event.target.value }))}
                         placeholder="Phone"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                       />
                       <input
                         required
                         value={profileForm.courseOfStudy}
                         onChange={event => setProfileForm(prev => ({ ...prev, courseOfStudy: event.target.value }))}
                         placeholder="Course of Study"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                       />
                       <input
                         required
                         value={profileForm.yearLevel}
                         onChange={event => setProfileForm(prev => ({ ...prev, yearLevel: event.target.value }))}
                         placeholder="Year Level"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                       />
                       <input
                         required
                         value={profileForm.department}
                         onChange={event => setProfileForm(prev => ({ ...prev, department: event.target.value }))}
                         placeholder="Department"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10 md:col-span-2"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                       />
-                      <textarea
+                      <input
                         required
-                        rows={2}
-                        value={profileForm.address}
-                        onChange={event => setProfileForm(prev => ({ ...prev, address: event.target.value }))}
-                        placeholder="Address"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10 md:col-span-2"
+                        value={profileForm.street}
+                        onChange={event => setProfileForm(prev => ({ ...prev, street: event.target.value }))}
+                        placeholder="Street"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
+                      />
+                      <input
+                        required
+                        value={profileForm.barangay}
+                        onChange={event => setProfileForm(prev => ({ ...prev, barangay: event.target.value }))}
+                        placeholder="Barangay"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
+                      />
+                      <input
+                        required
+                        value={profileForm.city}
+                        onChange={event => setProfileForm(prev => ({ ...prev, city: event.target.value }))}
+                        placeholder="City"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
+                      />
+                      <input
+                        required
+                        value={profileForm.province}
+                        onChange={event => setProfileForm(prev => ({ ...prev, province: event.target.value }))}
+                        placeholder="Province"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
+                      />
+                      <input
+                        required
+                        type="number"
+                        min={1}
+                        value={profileForm.zipCode || ''}
+                        onChange={event =>
+                          setProfileForm(prev => ({
+                            ...prev,
+                            zipCode: Number.isNaN(event.target.valueAsNumber) ? 0 : event.target.valueAsNumber,
+                          }))
+                        }
+                        placeholder="Zip Code"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                       />
                     </div>
                   </>
@@ -627,13 +686,13 @@ export default function LandingPage() {
                   value={authEmail}
                   onChange={event => setAuthEmail(event.target.value)}
                   placeholder="Email Address"
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                 />
                 {authError && <p className="text-sm text-rose-700">{authError}</p>}
                 <button
                   type="submit"
                   disabled={isSubmittingAuth}
-                  className="w-full rounded-xl bg-[#0073e6] px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-105 disabled:opacity-60"
+                  className="w-full rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-105 disabled:opacity-60"
                 >
                   {isSubmittingAuth
                     ? 'Please wait...'
@@ -652,14 +711,14 @@ export default function LandingPage() {
                   value={otpCode}
                   onChange={event => setOtpCode(event.target.value)}
                   placeholder="Enter OTP"
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                 />
                 <p className="text-xs text-slate-500">{authHint || 'Use bypass OTP: 000000'}</p>
                 {authError && <p className="text-sm text-rose-700">{authError}</p>}
                 <button
                   type="submit"
                   disabled={isSubmittingAuth}
-                  className="w-full rounded-xl bg-[#0073e6] px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-105 disabled:opacity-60"
+                  className="w-full rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-105 disabled:opacity-60"
                 >
                   {isSubmittingAuth ? 'Verifying...' : 'Verify OTP'}
                 </button>
@@ -674,7 +733,7 @@ export default function LandingPage() {
           <div className="w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-6 shadow-xl md:p-8">
             {gateState === 'loading' && (
               <div className="flex items-center gap-3 text-slate-700">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#0073e6] border-t-transparent"></div>
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
                 <p className="text-sm font-medium">Preparing your account verification flow...</p>
               </div>
             )}
@@ -692,43 +751,77 @@ export default function LandingPage() {
                     value={profileForm.studentNumber}
                     onChange={event => setProfileForm(prev => ({ ...prev, studentNumber: event.target.value }))}
                     placeholder="Student Number"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                   />
                   <input
                     required
                     value={profileForm.phone}
                     onChange={event => setProfileForm(prev => ({ ...prev, phone: event.target.value }))}
                     placeholder="Phone"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                   />
                   <input
                     required
                     value={profileForm.courseOfStudy}
                     onChange={event => setProfileForm(prev => ({ ...prev, courseOfStudy: event.target.value }))}
                     placeholder="Course of Study"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                   />
                   <input
                     required
                     value={profileForm.yearLevel}
                     onChange={event => setProfileForm(prev => ({ ...prev, yearLevel: event.target.value }))}
                     placeholder="Year Level"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10"
+                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                   />
                   <input
                     required
                     value={profileForm.department}
                     onChange={event => setProfileForm(prev => ({ ...prev, department: event.target.value }))}
                     placeholder="Department"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10 md:col-span-2"
+                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                   />
-                  <textarea
+                  <input
                     required
-                    rows={3}
-                    value={profileForm.address}
-                    onChange={event => setProfileForm(prev => ({ ...prev, address: event.target.value }))}
-                    placeholder="Address"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-[#0073e6] focus:ring-2 focus:ring-[#0073e6]/10 md:col-span-2"
+                    value={profileForm.street}
+                    onChange={event => setProfileForm(prev => ({ ...prev, street: event.target.value }))}
+                    placeholder="Street"
+                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
+                  />
+                  <input
+                    required
+                    value={profileForm.barangay}
+                    onChange={event => setProfileForm(prev => ({ ...prev, barangay: event.target.value }))}
+                    placeholder="Barangay"
+                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
+                  />
+                  <input
+                    required
+                    value={profileForm.city}
+                    onChange={event => setProfileForm(prev => ({ ...prev, city: event.target.value }))}
+                    placeholder="City"
+                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
+                  />
+                  <input
+                    required
+                    value={profileForm.province}
+                    onChange={event => setProfileForm(prev => ({ ...prev, province: event.target.value }))}
+                    placeholder="Province"
+                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
+                  />
+                  <input
+                    required
+                    type="number"
+                    min={1}
+                    value={profileForm.zipCode || ''}
+                    onChange={event =>
+                      setProfileForm(prev => ({
+                        ...prev,
+                        zipCode: Number.isNaN(event.target.valueAsNumber) ? 0 : event.target.valueAsNumber,
+                      }))
+                    }
+                    placeholder="Zip Code"
+                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
                   />
 
                   {profileError && (
@@ -741,7 +834,7 @@ export default function LandingPage() {
                     <button
                       type="submit"
                       disabled={isSubmittingProfile}
-                      className="inline-flex items-center rounded-xl bg-[#0073e6] px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isSubmittingProfile ? 'Submitting...' : 'Submit Account Creation Request'}
                     </button>
@@ -766,7 +859,7 @@ export default function LandingPage() {
                 })()}
                 <button
                   onClick={() => void refreshUser()}
-                  className="mt-6 inline-flex items-center rounded-lg bg-[#0073e6] px-4 py-2 text-sm font-semibold text-white hover:brightness-105"
+                  className="mt-6 inline-flex items-center rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:brightness-105"
                 >
                   Refresh Status
                 </button>

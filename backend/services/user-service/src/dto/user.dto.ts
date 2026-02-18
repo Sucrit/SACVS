@@ -31,7 +31,11 @@ export interface UpdateUserStatusDto {
 
 export interface UpsertStudentProfileDto {
   studentNumber: string;
-  address: string;
+  street: string;
+  barangay: string;
+  city: string;
+  province: string;
+  zipCode: number;
   phone: string;
   courseOfStudy: string;
   yearLevel: string;

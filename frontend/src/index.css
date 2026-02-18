@@ -58,31 +58,31 @@ body {
 }
 
 .credence-page-bg {
-  background-color: #ffffff;
+  background-color: #f7f7f7;
 }
 
 .credence-bg-mesh {
   background:
-    radial-gradient(120% 95% at 8% -12%, rgba(0, 115, 230, 0.2) 0%, rgba(0, 115, 230, 0) 56%),
-    radial-gradient(88% 82% at 94% 8%, rgba(128, 206, 255, 0.24) 0%, rgba(128, 206, 255, 0) 58%),
-    linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+    radial-gradient(120% 95% at 8% -12%, rgba(15, 23, 42, 0.08) 0%, rgba(15, 23, 42, 0) 56%),
+    radial-gradient(88% 82% at 94% 8%, rgba(148, 163, 184, 0.16) 0%, rgba(148, 163, 184, 0) 58%),
+    linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%);
 }
 
 .credence-bg-grid {
   background-image:
-    linear-gradient(rgba(15, 23, 42, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.055) 1px, transparent 1px);
+    linear-gradient(rgba(15, 23, 42, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.045) 1px, transparent 1px);
   background-size: 44px 44px;
-  opacity: 0.2;
+  opacity: 0.16;
   -webkit-mask-image: radial-gradient(circle at 50% 8%, black 18%, transparent 78%);
   mask-image: radial-gradient(circle at 50% 8%, black 18%, transparent 78%);
 }
 
 .credence-bg-grain {
   background-image:
-    repeating-radial-gradient(circle at 0 0, rgba(15, 23, 42, 0.08) 0 0.7px, transparent 0.7px 3px),
+    repeating-radial-gradient(circle at 0 0, rgba(15, 23, 42, 0.06) 0 0.7px, transparent 0.7px 3px),
     repeating-radial-gradient(circle at 100% 100%, rgba(255, 255, 255, 0.6) 0 0.9px, transparent 0.9px 3.3px);
-  opacity: 0.14;
+  opacity: 0.11;
   mix-blend-mode: multiply;
 }
 
@@ -99,7 +99,7 @@ body {
   top: 56px;
   height: 300px;
   width: 340px;
-  background: rgba(0, 179, 255, 0.35);
+  background: rgba(148, 163, 184, 0.28);
 }
 
 .credence-bg-orb-two {
@@ -107,7 +107,7 @@ body {
   top: 270px;
   height: 360px;
   width: 360px;
-  background: rgba(64, 161, 255, 0.26);
+  background: rgba(51, 65, 85, 0.2);
 }
 
 .credence-bg-orb-three {
@@ -123,22 +123,22 @@ body {
 
 .credence-hero-gradient {
   background:
-    radial-gradient(circle at 50% 0%, rgba(0, 115, 230, 0.1) 0%, rgba(255, 255, 255, 0) 56%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, #ffffff 72%, #ffffff 100%);
+    radial-gradient(circle at 50% 0%, rgba(15, 23, 42, 0.08) 0%, rgba(255, 255, 255, 0) 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, #f7f7f7 72%, #f7f7f7 100%);
 }
 
 .credence-academic-bg {
   background-image:
     linear-gradient(
       135deg,
-      rgba(147, 197, 253, 0.24) 0%,
-      rgba(191, 219, 254, 0.18) 45%,
-      rgba(255, 255, 255, 0.22) 100%
+      rgba(15, 23, 42, 0.15) 0%,
+      rgba(148, 163, 184, 0.12) 45%,
+      rgba(255, 255, 255, 0.25) 100%
     ),
-    url("https://images.pexels.com/photos/207692/pexels-photo-207692.jpeg?auto=compress&cs=tinysrgb&w=2200");
+    url("./assets/landing_pageBG.jpg");
   background-position: center 45%;
   background-size: cover;
-  filter: saturate(0.9) brightness(1.08) contrast(0.94);
+  filter: grayscale(1) saturate(0.55) brightness(1.03) contrast(0.92);
 }
 
 .material-symbols-outlined {

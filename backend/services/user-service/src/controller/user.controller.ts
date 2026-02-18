@@ -126,16 +126,19 @@ export class UserController {
     }
 
     const profileData: UpsertStudentProfileDto = req.body;
-    const requiredFields: Array<keyof UpsertStudentProfileDto> = [
+    const requiredStringFields: Array<keyof UpsertStudentProfileDto> = [
       'studentNumber',
-      'address',
+      'street',
+      'barangay',
+      'city',
+      'province',
       'phone',
       'courseOfStudy',
       'yearLevel',
       'department',
     ];
 
-    const missingField = requiredFields.find(field => {
+    const missingField = requiredStringFields.find(field => {
       const value = profileData?.[field];
       return typeof value !== 'string' || value.trim().length === 0;
     });
@@ -144,8 +147,16 @@ export class UserController {
       return res.status(400).json({ error: `Missing required field: ${missingField}` });
     }
 
+    const parsedZipCode = Number(profileData?.zipCode);
+    if (!Number.isInteger(parsedZipCode) || parsedZipCode <= 0) {
+      return res.status(400).json({ error: 'Missing required field: zipCode' });
+    }
+
     try {
-      const updatedUser = await userService.upsertStudentProfileByUserId(userId, profileData);
+      const updatedUser = await userService.upsertStudentProfileByUserId(userId, {
+        ...profileData,
+        zipCode: parsedZipCode,
+      });
       return res.status(200).json(updatedUser);
     } catch (error) {
       console.error('Error upserting student profile:', error);
