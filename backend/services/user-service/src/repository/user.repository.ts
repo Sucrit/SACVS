@@ -3,10 +3,6 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { CreateUserDto, UpsertStudentProfileDto, UserRole, UserStatus } from '../dto/user.dto';
 import { ENV } from '../config/env';
 
-if (!ENV.DATABASE_URL) {
-  throw new Error('DATABASE_URL is not configured for user-service.');
-}
-
 const prismaAdapter = new PrismaPg({ connectionString: ENV.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: prismaAdapter });
 

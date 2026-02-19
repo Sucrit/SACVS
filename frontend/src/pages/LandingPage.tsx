@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLegacyAuth } from '../auth/auth-context';
 import studentsGraduateImage from '../assets/students-graduates.jpg';
+import logo2 from '../assets/logo2.png';
 
 const platformLinks = ['How it works', 'Blockchain', 'AI Security', 'Verification'];
 const audienceLinks = ['For Universities', 'For Students', 'For Registrar'];
@@ -33,17 +34,6 @@ const features: Array<{
   },
 ];
 
-function Logo({ className = 'w-8 h-8' }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z"
-        fill="currentColor"
-      ></path>
-    </svg>
-  );
-}
-
 function Icon({ name, className = '' }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
 }
@@ -56,27 +46,34 @@ export default function LandingPage() {
 
   return (
     <div className="credence-font credence-page-bg relative flex min-h-screen w-full flex-col overflow-x-hidden text-slate-900 antialiased">
-      <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-slate-100 bg-white/80 px-6 py-4 backdrop-blur-xl md:px-20">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="text-slate-900">
-              <Logo />
-            </div>
-            <h2 className="text-xl font-extrabold tracking-tight">credence</h2>
-          </div>
+      <header className="fixed inset-x-0 top-0 z-50 w-full px-4 py-4 md:px-10">
+        <div className="mx-auto flex max-w-7xl items-center justify-between rounded-full border border-slate-200/60 bg-white/60 px-5 py-3 shadow-[0_10px_28px_rgba(15,23,42,0.06)] backdrop-blur-xl md:px-7">
+          <img alt="Credence logo" className="h-7 w-auto" src={logo2} />
+
+          <nav className="hidden items-center gap-10 md:flex">
+            <a className="text-sm font-medium text-slate-600 transition hover:text-slate-900" href="#features">
+              Features
+            </a>
+            <a className="text-sm font-medium text-slate-600 transition hover:text-slate-900" href="#solutions">
+              Solutions
+            </a>
+            <a className="text-sm font-medium text-slate-600 transition hover:text-slate-900" href="#team">
+              Team
+            </a>
+          </nav>
 
           <div className="flex items-center gap-3">
             {!isSessionAuthenticated && (
               <>
                 <Link
                   to="/auth/signin"
-                  className="hidden h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 sm:flex"
+                  className="hidden h-9 items-center justify-center rounded-full px-4 text-sm font-medium text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 sm:flex"
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/auth/signup"
-                  className="flex h-10 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-md shadow-black/20 transition-all hover:brightness-105"
+                  className="flex h-9 items-center justify-center rounded-full bg-black px-5 text-sm font-semibold text-white shadow-md shadow-black/20 transition-all hover:brightness-105"
                 >
                   Get Started
                 </Link>
@@ -87,14 +84,14 @@ export default function LandingPage() {
               <>
                 {isApprovedSession ? (
                   <Link
-                    className="flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50"
+                    className="flex h-9 items-center justify-center rounded-full border border-slate-200 px-4 text-sm font-medium text-slate-700 transition-all hover:bg-slate-100"
                     to="/dashboard"
                   >
                     Dashboard
                   </Link>
                 ) : (
                   <Link
-                    className="flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50"
+                    className="flex h-9 items-center justify-center rounded-full border border-slate-200 px-4 text-sm font-medium text-slate-700 transition-all hover:bg-slate-100"
                     to={shouldContinueOnboarding ? '/auth/signup' : '/auth/signin'}
                   >
                     Continue Onboarding
@@ -103,7 +100,7 @@ export default function LandingPage() {
 
                 <button
                   onClick={() => void logout()}
-                  className="flex h-10 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-md shadow-black/20 transition-all hover:brightness-105"
+                  className="flex h-9 items-center justify-center rounded-full bg-black px-5 text-sm font-semibold text-white shadow-md shadow-black/20 transition-all hover:brightness-105"
                 >
                   Sign Out
                 </button>
@@ -130,7 +127,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="relative overflow-hidden py-24">
+        <section id="features" className="relative overflow-hidden py-24">
           <div aria-hidden className="absolute inset-0">
             <div className="credence-academic-bg absolute inset-0"></div>
             <div className="absolute inset-0 bg-white/90"></div>
@@ -168,93 +165,87 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="py-24">
-          <div className="mx-auto flex max-w-7xl flex-col gap-32 px-6 md:px-20">
-            <div className="flex flex-col items-center gap-16 md:flex-row">
-              <div className="order-2 w-full md:order-1 md:w-1/2">
-                <div className="relative overflow-hidden rounded-3xl">
-                  <img
-                    alt="Group of happy graduates holding digital tablets"
-                    className="relative aspect-video w-full object-cover object-[50%_22%]"
-                    src={studentsGraduateImage}
-                  />
+        <section id="solutions" className="py-24">
+          <div className="mx-auto max-w-7xl px-6 md:px-20">
+            <div className="space-y-8">
+              <article className="overflow-hidden rounded-[2rem] border border-[#2b3e52] bg-[#1b2a3a] shadow-[0_18px_44px_rgba(15,23,42,0.28)]">
+                <div className="grid grid-cols-1 md:grid-cols-2">
+                  <div className="relative order-2 min-h-[280px] md:order-1 md:min-h-full">
+                    <img
+                      alt="Graduates celebrating their accomplishments"
+                      className="absolute inset-0 h-full w-full object-cover object-[50%_25%]"
+                      src={studentsGraduateImage}
+                    />
+                    <div
+                      className="absolute inset-y-0 right-0 w-28"
+                      style={{
+                        background:
+                          'linear-gradient(to left, #1b2a3a 0%, rgba(27,42,58,0.9) 20%, rgba(27,42,58,0.65) 40%, rgba(27,42,58,0.35) 62%, rgba(27,42,58,0.14) 80%, rgba(27,42,58,0) 100%)',
+                      }}
+                    ></div>
+                  </div>
+                  <div className="relative z-10 order-1 p-8 md:order-2 md:p-12 lg:p-14">
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-300">For Students</p>
+                    <h3 className="mt-4 text-4xl font-black leading-tight text-white">
+                      Your degree.
+                      <br />
+                      In your pocket.
+                    </h3>
+                    <p className="mt-6 max-w-md text-lg leading-relaxed text-slate-300">
+                      Access your credentials from anywhere and share instantly with schools, employers, and licensing
+                      offices with trusted verifiable proof.
+                    </p>
+                    <a className="mt-8 inline-flex items-center gap-1 text-sm font-bold text-white hover:text-slate-200" href="#">
+                      View student access
+                      <Icon className="text-base" name="chevron_right" />
+                    </a>
+                  </div>
                 </div>
-              </div>
-              <div className="order-1 w-full md:order-2 md:w-1/2">
-                <div className="mb-6 inline-flex items-center rounded-full bg-black/10 px-3 py-1 text-xs font-bold uppercase text-slate-900">
-                  For Students
+              </article>
+              <article className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[#eaf1f7] shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
+                <div className="grid grid-cols-1 md:grid-cols-2">
+                  <div className="relative z-10 p-8 md:p-12 lg:p-14">
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-blue-700">For Institutions</p>
+                    <h3 className="mt-4 text-4xl font-black leading-tight text-slate-900">
+                      Secure issuance.
+                      <br />
+                      At massive scale.
+                    </h3>
+                    <p className="mt-6 max-w-md text-lg leading-relaxed text-slate-600">
+                      Protect your institution with a streamlined dashboard built for bulk credential issuance,
+                      verification, and lifecycle management.
+                    </p>
+                    <a className="mt-8 inline-flex items-center gap-1 text-sm font-bold text-blue-700 hover:text-blue-800" href="#">
+                      Learn more
+                      <Icon className="text-base" name="chevron_right" />
+                    </a>
+                  </div>
+                  <div className="relative min-h-[280px] md:min-h-full">
+                    <img
+                      alt="Modern university campus building with glass architecture"
+                      className="absolute inset-0 h-full w-full object-cover"
+                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNVUgPGIQ0caDCAW9maqGPHMUeOBWjSUH2m3q1whcJU_ad4juI3QauIHYNhfmyoMad-RM_3WCHJHWy1gEphuhusPlySi6ktAOgQkgR14dDoqRqk8eFEv2_yw7eGYDa2_sJoc_i_DpFynBt70ebv9wulR4h_CPI3bJEK8My5v3z12QoH97Q95KpGkxlGiYWAYQzRAGbu06hw_ueDuS-NDQUHS4eJkwocbBjFNHKjp70R0fkW3Pryqq84ZJ1Y9HSuyPUe-obaov0bJzl"
+                    />
+                    <div
+                      className="absolute inset-y-0 left-0 w-28"
+                      style={{
+                        background:
+                          'linear-gradient(to right, #eaf1f7 0%, rgba(234,241,247,0.92) 22%, rgba(234,241,247,0.66) 44%, rgba(234,241,247,0.36) 64%, rgba(234,241,247,0.14) 82%, rgba(234,241,247,0) 100%)',
+                      }}
+                    ></div>
+                  </div>
                 </div>
-                <h2 className="mb-6 text-4xl font-black">Own Your Achievement</h2>
-                <p className="mb-8 text-lg leading-relaxed text-slate-500">
-                  No more waiting weeks for paper transcripts. Store your degrees, certifications, and skills in a
-                  secure digital vault that you control. Share with employers in one click.
-                </p>
-                <ul className="mb-10 space-y-4">
-                  <li className="flex items-start gap-3">
-                    <Icon className="text-slate-900" name="check_circle" />
-                    <span>Faster and safer sharing of credentials</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Icon className="text-slate-900" name="check_circle" />
-                    <span>Secure and tamper-proof digital certificates</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Icon className="text-slate-900" name="check_circle" />
-                    <span>Blockchain-backed proof of authenticity</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center gap-16 md:flex-row">
-              <div className="w-full md:w-1/2">
-                <div className="mb-6 inline-flex items-center rounded-full bg-black/10 px-3 py-1 text-xs font-bold uppercase text-slate-900">
-                  For University
-                </div>
-                <h2 className="mb-6 text-4xl font-black">Modernize Your Workflow</h2>
-                <p className="mb-8 text-lg leading-relaxed text-slate-500">
-                  Eliminate administrative overhead and manual verification requests. Issue tamper-proof digital
-                  certificates in bulk and protect your institution&apos;s reputation.
-                </p>
-                <ul className="mb-10 space-y-4">
-                  <li className="flex items-start gap-3">
-                    <Icon className="text-slate-900" name="check_circle" />
-                    <span>Instant issuance in seconds</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Icon className="text-slate-900" name="check_circle" />
-                    <span>Efficient credential management</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <Icon className="text-slate-900" name="check_circle" />
-                    <span>Comprehensive analytics dashboard</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="w-full md:w-1/2">
-                <div className="relative">
-                  <img
-                    alt="Modern university campus building with glass architecture"
-                    className="relative aspect-video rounded-3xl border border-slate-100 object-cover shadow-xl"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNVUgPGIQ0caDCAW9maqGPHMUeOBWjSUH2m3q1whcJU_ad4juI3QauIHYNhfmyoMad-RM_3WCHJHWy1gEphuhusPlySi6ktAOgQkgR14dDoqRqk8eFEv2_yw7eGYDa2_sJoc_i_DpFynBt70ebv9wulR4h_CPI3bJEK8My5v3z12QoH97Q95KpGkxlGiYWAYQzRAGbu06hw_ueDuS-NDQUHS4eJkwocbBjFNHKjp70R0fkW3Pryqq84ZJ1Y9HSuyPUe-obaov0bJzl"
-                  />
-                </div>
-              </div>
+              </article>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-slate-100 bg-slate-50 px-6 pb-10 pt-20 md:px-20">
+      <footer id="team" className="border-t border-slate-100 bg-slate-50 px-6 pb-10 pt-20 md:px-20">
         <div className="mx-auto max-w-7xl">
           <div className="mb-16 grid grid-cols-2 gap-12 md:grid-cols-4 lg:grid-cols-5">
             <div className="col-span-2 lg:col-span-2">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="text-slate-900">
-                  <Logo className="w-6 h-6" />
-                </div>
-                <h2 className="text-lg font-extrabold tracking-tight">credence</h2>
-              </div>
+              <img alt="Credence logo" className="mb-6 h-7 w-auto" src={logo2} />
               <p className="mb-6 max-w-sm text-slate-500">
                 Decentralizing credential verification to eliminate fraud and empower lifetime learning achievements.
               </p>

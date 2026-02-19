@@ -2,11 +2,12 @@ import { NavLink } from 'react-router-dom';
 import { 
   Users, 
   FileText, 
-  ShieldCheck, 
+  ShieldCheck,
   LayoutDashboard, 
   History, 
   Settings
 } from 'lucide-react';
+import logo2 from '../../assets/logo2.png';
 
 interface SidebarProps {
   role: 'STUDENT' | 'REGISTRAR' | 'ADMIN';
@@ -37,31 +38,19 @@ export default function Sidebar({ role }: SidebarProps) {
   const roleLinks = links[role] || links['STUDENT'];
 
   return (
-    <aside className="fixed left-0 top-0 z-50 flex h-screen w-72 flex-col overflow-hidden border-r border-slate-200 bg-white">
-      <div className="border-b border-slate-200 p-8 pb-6">
-        <div className="mb-1 flex items-center gap-3">
-          <div className="rounded-xl bg-slate-900 p-2 shadow-sm">
-            <ShieldCheck className="text-white" size={24} />
-          </div>
-          <h2 className="font-display text-2xl font-bold tracking-tight text-slate-900">
-            Credence
-          </h2>
-        </div>
-        <div className="ml-12">
-          <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">
-            {role} PORTAL
-          </span>
-        </div>
+    <aside className="fixed left-0 top-0 z-50 flex h-screen w-56 flex-col overflow-hidden border-r border-slate-200 bg-white">
+      <div className="border-b border-slate-200 p-4">
+        <img alt="Credence logo" className="h-8 w-auto" src={logo2} />
       </div>
 
-      <nav className="mt-4 flex-1 space-y-2 px-4">
+      <nav className="mt-3 flex-1 space-y-1.5 px-2.5">
         {roleLinks.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}
             end={link.to === `/dashboard/${role.toLowerCase()}`}
             className={({ isActive }) =>
-              `group relative flex items-center justify-between overflow-hidden rounded-xl px-4 py-3.5 transition-all duration-200 ${
+              `group relative flex items-center justify-between overflow-hidden rounded-xl px-3 py-2.5 transition-all duration-200 ${
                 isActive 
                   ? 'bg-slate-900 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -69,8 +58,8 @@ export default function Sidebar({ role }: SidebarProps) {
             }
           >
             <div className="relative z-10 flex items-center gap-3">
-              <link.icon size={20} />
-              <span className="font-medium tracking-wide">{link.label}</span>
+              <link.icon size={18} />
+              <span className="text-[15px] font-medium tracking-wide">{link.label}</span>
             </div>
           </NavLink>
         ))}

@@ -47,7 +47,7 @@ export default function DashboardLayout() {
     <div className="min-h-screen bg-[#f7f7f8] font-sans selection:bg-slate-900 selection:text-white">
       <Sidebar role={role} />
 
-      <div className="relative ml-72 flex min-h-screen flex-1 flex-col">
+      <div className="relative ml-56 flex min-h-screen flex-1 flex-col">
         <div className="pointer-events-none absolute left-0 top-0 -z-10 h-[260px] w-full bg-gradient-to-b from-slate-100 to-transparent"></div>
 
         <header className="sticky top-0 z-40 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/90 px-8 backdrop-blur-md">

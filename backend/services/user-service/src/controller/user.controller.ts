@@ -1,11 +1,6 @@
 import { Request, Response } from 'express';
 import { UserService } from '../service/user.service';
-import {
-  CompleteStudentOnboardingDto,
-  CreateUserDto,
-  UpdateUserStatusDto,
-  UpsertStudentProfileDto,
-} from '../dto/user.dto';
+import { CompleteStudentOnboardingDto, CreateUserDto, UpdateUserStatusDto, UpsertStudentProfileDto } from '../dto/user.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 const userService = new UserService();

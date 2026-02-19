@@ -14,6 +14,7 @@ import {
   User,
   UserService,
 } from '../services/user.service';
+import logo2 from '../assets/logo2.png';
 
 type AuthMode = 'signin' | 'signup';
 type SignupStep = 1 | 2 | 3;
@@ -70,17 +71,6 @@ const mapProfileToForm = (user: User): UpsertStudentProfilePayload => ({
   yearLevel: user.profile?.yearLevel ?? '',
   department: user.profile?.department ?? '',
 });
-
-function Logo({ className = 'h-8 w-8' }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M8.57829 8.57829C5.52816 11.6284 3.451 15.5145 2.60947 19.7452C1.76794 23.9758 2.19984 28.361 3.85056 32.3462C5.50128 36.3314 8.29667 39.7376 11.8832 42.134C15.4698 44.5305 19.6865 45.8096 24 45.8096C28.3135 45.8096 32.5302 44.5305 36.1168 42.134C39.7033 39.7375 42.4987 36.3314 44.1494 32.3462C45.8002 28.361 46.2321 23.9758 45.3905 19.7452C44.549 15.5145 42.4718 11.6284 39.4217 8.57829L24 24L8.57829 8.57829Z"
-        fill="currentColor"
-      ></path>
-    </svg>
-  );
-}
 
 function Icon({ name, className = '' }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
@@ -157,11 +147,6 @@ export default function AuthPage() {
           setProfileForm(mapProfileToForm(localUser));
           setSignupStep(2);
 
-          if (localUser.profile) {
-            setAuthHint('Loaded your saved student profile from your previous submission.');
-          } else {
-            setAuthHint(null);
-          }
           return;
         }
 
@@ -351,13 +336,13 @@ export default function AuthPage() {
     <div className="credence-font min-h-screen bg-[#f7f7f8] px-4 py-8 text-slate-900 antialiased sm:px-6">
       <div className="mx-auto mb-8 flex w-full max-w-[960px] items-center justify-between">
         <Link className="flex items-center gap-3 text-slate-900" to="/">
-          <Logo className="h-8 w-8" />
-          <span className="text-xl font-extrabold tracking-tight">credence</span>
+          <img alt="Credence logo" className="h-8 w-auto" src={logo2} />
         </Link>
         <Link
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
           to="/"
         >
+          <Icon className="text-sm" name="arrow_back" />
           Back to Home
         </Link>
       </div>
