@@ -5,18 +5,14 @@ import {
   ShieldCheck, 
   LayoutDashboard, 
   History, 
-  Settings,
-  LogOut
+  Settings
 } from 'lucide-react';
-import { useLegacyAuth } from '../../auth/legacy-auth-context';
 
 interface SidebarProps {
   role: 'STUDENT' | 'REGISTRAR' | 'ADMIN';
 }
 
 export default function Sidebar({ role }: SidebarProps) {
-  const { logout } = useLegacyAuth();
-
   const links = {
     STUDENT: [
       { to: '/dashboard/student', label: 'Dashboard', icon: LayoutDashboard },
@@ -41,65 +37,44 @@ export default function Sidebar({ role }: SidebarProps) {
   const roleLinks = links[role] || links['STUDENT'];
 
   return (
-    <aside className="w-72 glass-dark text-slate-300 flex flex-col h-screen fixed left-0 top-0 overflow-hidden border-r border-slate-700/50 shadow-2xl z-50">
-      <div className="p-8 pb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="bg-gradient-to-tr from-indigo-500 to-violet-500 p-2 rounded-xl shadow-lg shadow-indigo-500/20">
+    <aside className="fixed left-0 top-0 z-50 flex h-screen w-72 flex-col overflow-hidden border-r border-slate-200 bg-white">
+      <div className="border-b border-slate-200 p-8 pb-6">
+        <div className="mb-1 flex items-center gap-3">
+          <div className="rounded-xl bg-slate-900 p-2 shadow-sm">
             <ShieldCheck className="text-white" size={24} />
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight font-display">
+          <h2 className="font-display text-2xl font-bold tracking-tight text-slate-900">
             Credence
           </h2>
         </div>
         <div className="ml-12">
-          <span className="text-[10px] font-bold tracking-[0.2em] text-indigo-400 uppercase bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+          <span className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600">
             {role} PORTAL
           </span>
         </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-2 mt-4">
+      <nav className="mt-4 flex-1 space-y-2 px-4">
         {roleLinks.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}
             end={link.to === `/dashboard/${role.toLowerCase()}`}
             className={({ isActive }) =>
-              `group flex items-center justify-between px-4 py-3.5 rounded-xl transition-all duration-300 ease-in-out relative overflow-hidden ${
+              `group relative flex items-center justify-between overflow-hidden rounded-xl px-4 py-3.5 transition-all duration-200 ${
                 isActive 
-                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-900/20 translate-x-1' 
-                  : 'hover:bg-slate-800/50 hover:text-white hover:translate-x-1 text-slate-400'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`
             }
           >
-            <div className="flex items-center gap-3 relative z-10">
-              <link.icon size={20} className={`transition-transform duration-300 ${""/*isActive ? 'scale-110' : 'group-hover:scale-110'*/}`} />
+            <div className="relative z-10 flex items-center gap-3">
+              <link.icon size={20} />
               <span className="font-medium tracking-wide">{link.label}</span>
             </div>
-            {/* {isActive && <ChevronRight size={16} className="text-indigo-200 animate-pulse" />} */}
           </NavLink>
         ))}
       </nav>
-
-      <div className="p-4 m-4 rounded-2xl bg-gradient-to-b from-slate-800/50 to-slate-900/50 border border-slate-700/50">
-        <div className="flex items-start gap-3 mb-3">
-          <div className="p-1.5 bg-yellow-500/10 rounded-lg">
-             <ShieldCheck size={16} className="text-yellow-500" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-slate-200">Secure Status</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">System Online & Protected</p>
-          </div>
-        </div>
-        
-        <button 
-          onClick={logout} 
-          className="flex items-center justify-center gap-2 px-4 py-2.5 w-full rounded-xl bg-slate-800 text-slate-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20 border border-transparent transition-all text-sm font-medium mt-2"
-        >
-          <LogOut size={16} />
-          Sign Out
-        </button>
-      </div>
     </aside>
   );
 }

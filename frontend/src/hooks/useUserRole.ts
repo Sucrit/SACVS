@@ -1,4 +1,4 @@
-import { useLegacyAuth } from '../auth/legacy-auth-context';
+import { useLegacyAuth } from '../auth/auth-context';
 
 export type UserRole = 'STUDENT' | 'REGISTRAR' | 'ADMIN';
 

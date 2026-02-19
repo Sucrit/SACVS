@@ -7,13 +7,13 @@ import AdminDashboard from './pages/dashboard/AdminDashboard';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import Unauthorized from './pages/Unauthorized';
-import { useLegacyAuth } from './auth/legacy-auth-context';
+import { useLegacyAuth } from './auth/auth-context';
 
 function RequireAuth({ children }: { children: ReactElement }) {
   const { isAuthenticated, isLoading } = useLegacyAuth();
 
   if (isLoading) {
-    return <div className="h-screen flex items-center justify-center bg-gray-50 text-indigo-600 font-medium">Loading session...</div>;
+    return <div className="h-screen flex items-center justify-center bg-[#f7f7f8] text-slate-700 font-medium">Loading session...</div>;
   }
 
   if (!isAuthenticated) {
@@ -30,6 +30,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/:mode" element={<AuthPage />} />
+        <Route path="/auth/:mode/*" element={<AuthPage />} />
         
         <Route
           path="/dashboard"

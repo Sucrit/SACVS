@@ -1,5 +1,6 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
+import { isAxiosError } from 'axios';
 import { setAuthTokenGetter } from '../api/client';
 import { User, UserService } from '../services/user.service';
 
@@ -21,6 +22,7 @@ export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshUser = useCallback(async (): Promise<User | null> => {
     if (!isSignedIn) {
+      setAuthTokenGetter(null);
       setUser(null);
       return null;
     }
@@ -30,12 +32,17 @@ export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
         const token = await getToken();
         return token ?? null;
       });
+
       const currentUser = await UserService.getMe();
       setUser(currentUser);
       return currentUser;
     } catch (error) {
-      setUser(null);
-      return null;
+      if (isAxiosError(error) && error.response?.status === 404) {
+        setUser(null);
+        return null;
+      }
+
+      throw error;
     }
   }, [getToken, isSignedIn]);
 
@@ -51,19 +58,19 @@ export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    setAuthTokenGetter(async () => {
-      const token = await getToken();
-      return token ?? null;
-    });
-
     const initialize = async () => {
       setIsLoading(true);
-      await refreshUser();
-      setIsLoading(false);
+      try {
+        await refreshUser();
+      } catch (error) {
+        console.error('Failed to refresh current user:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     void initialize();
-  }, [getToken, isLoaded, isSignedIn, refreshUser]);
+  }, [isLoaded, isSignedIn, refreshUser]);
 
   const logout = useCallback(async () => {
     await signOut({ redirectUrl: '/' });

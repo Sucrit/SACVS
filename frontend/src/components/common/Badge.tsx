@@ -19,17 +19,17 @@ interface BadgeProps {
 }
 
 const statusStyles: Record<BadgeStatus, string> = {
-  PENDING: 'bg-amber-100 text-amber-700 border-amber-200 shadow-amber-500/10',
-  APPROVED: 'bg-emerald-100 text-emerald-700 border-emerald-200 shadow-emerald-500/10',
-  REJECTED: 'bg-rose-100 text-rose-700 border-rose-200 shadow-rose-500/10',
-  VERIFIED: 'bg-blue-100 text-blue-700 border-blue-200 shadow-blue-500/10',
-  ISSUED: 'bg-indigo-100 text-indigo-700 border-indigo-200 shadow-indigo-500/10',
-  REVOKED: 'bg-slate-100 text-slate-600 border-slate-200 line-through decoration-slate-400',
-  SUSPENDED: 'bg-orange-100 text-orange-700 border-orange-200 shadow-orange-500/10',
-  AI_REVIEW: 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200 shadow-fuchsia-500/10',
-  EXPIRED: 'bg-zinc-100 text-zinc-700 border-zinc-200 shadow-zinc-400/10',
-  COMPLETED: 'bg-teal-100 text-teal-700 border-teal-200 shadow-teal-500/10',
-  CANCELLED: 'bg-neutral-100 text-neutral-700 border-neutral-200 shadow-neutral-500/10',
+  PENDING: 'bg-amber-50 text-amber-800 border-amber-200',
+  APPROVED: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  REJECTED: 'bg-rose-50 text-rose-800 border-rose-200',
+  VERIFIED: 'bg-cyan-50 text-cyan-800 border-cyan-200',
+  ISSUED: 'bg-slate-100 text-slate-800 border-slate-300',
+  REVOKED: 'bg-slate-100 text-slate-500 border-slate-300 line-through decoration-slate-400',
+  SUSPENDED: 'bg-orange-50 text-orange-800 border-orange-200',
+  AI_REVIEW: 'bg-violet-50 text-violet-800 border-violet-200',
+  EXPIRED: 'bg-zinc-100 text-zinc-700 border-zinc-300',
+  COMPLETED: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  CANCELLED: 'bg-neutral-100 text-neutral-700 border-neutral-300',
 };
 
 export default function Badge({ status, className }: BadgeProps) {

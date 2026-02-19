@@ -1,10 +1,8 @@
 import { Bot, Globe2, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { FormEvent, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useLegacyAuth } from '../auth/legacy-auth-context';
+import { useLegacyAuth } from '../auth/auth-context';
 import studentsGraduateImage from '../assets/students-graduates.jpg';
-import { UpsertStudentProfilePayload, UserService, UserStatus } from '../services/user.service';
 
 const platformLinks = ['How it works', 'Blockchain', 'AI Security', 'Verification'];
 const audienceLinks = ['For Universities', 'For Students', 'For Registrar'];
@@ -50,91 +48,11 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
 }
 
-const initialProfileForm: UpsertStudentProfilePayload = {
-  studentNumber: '',
-  street: '',
-  barangay: '',
-  city: '',
-  province: '',
-  zipCode: 0,
-  phone: '',
-  courseOfStudy: '',
-  yearLevel: '',
-  department: '',
-};
-
-const getStatusMessage = (status: UserStatus) => {
-  if (status === 'REJECTED') {
-    return {
-      title: 'Account request was rejected',
-      description: 'Your account request was reviewed and rejected. Please contact admin or registrar.',
-      tone: 'text-rose-700 bg-rose-50 border-rose-200',
-    };
-  }
-
-  if (status === 'SUSPENDED') {
-    return {
-      title: 'Account is suspended',
-      description: 'Your student account is suspended. Please contact admin for reactivation.',
-      tone: 'text-amber-700 bg-amber-50 border-amber-200',
-    };
-  }
-
-  return {
-    title: 'Account request is pending',
-    description:
-      'Your profile has been submitted. You can access the student dashboard after admin and registrar approval.',
-    tone: 'text-slate-700 bg-slate-100 border-slate-300',
-  };
-};
-
 export default function LandingPage() {
-  const { user, isAuthenticated, isSessionAuthenticated, isLoading, refreshUser, logout } = useLegacyAuth();
-  const [profileForm, setProfileForm] = useState<UpsertStudentProfilePayload>(initialProfileForm);
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
+  const { user, isSessionAuthenticated, logout } = useLegacyAuth();
 
-  const isStudent = user?.role === 'STUDENT';
-  const gateState: 'idle' | 'loading' | 'profile' | 'status' | 'approved' =
-    !isAuthenticated ? 'idle' : isLoading ? 'loading' : !isStudent ? 'approved' : !user?.profile ? 'profile' : user.status !== 'APPROVED' ? 'status' : 'approved';
-
-  const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setProfileError(null);
-    setIsSubmittingProfile(true);
-
-    const payload: UpsertStudentProfilePayload = {
-      studentNumber: profileForm.studentNumber.trim(),
-      street: profileForm.street.trim(),
-      barangay: profileForm.barangay.trim(),
-      city: profileForm.city.trim(),
-      province: profileForm.province.trim(),
-      zipCode: Number(profileForm.zipCode),
-      phone: profileForm.phone.trim(),
-      courseOfStudy: profileForm.courseOfStudy.trim(),
-      yearLevel: profileForm.yearLevel.trim(),
-      department: profileForm.department.trim(),
-    };
-
-    if (!Number.isInteger(payload.zipCode) || payload.zipCode <= 0) {
-      setProfileError('Zip code must be a valid number.');
-      setIsSubmittingProfile(false);
-      return;
-    }
-
-    try {
-      await UserService.upsertMyProfile(payload);
-      setProfileForm(payload);
-      await refreshUser();
-    } catch (error) {
-      console.error('Failed to submit student profile:', error);
-      setProfileError('Unable to submit profile. Please verify your information and try again.');
-    } finally {
-      setIsSubmittingProfile(false);
-    }
-  };
-
-  const shouldShowStudentGate = isAuthenticated && ['loading', 'profile', 'status'].includes(gateState);
+  const isApprovedSession = isSessionAuthenticated && !!user && user.status === 'APPROVED';
+  const shouldContinueOnboarding = isSessionAuthenticated && !isApprovedSession;
 
   return (
     <div className="credence-font credence-page-bg relative flex min-h-screen w-full flex-col overflow-x-hidden text-slate-900 antialiased">
@@ -164,27 +82,25 @@ export default function LandingPage() {
                 </Link>
               </>
             )}
+
             {isSessionAuthenticated && (
               <>
-                {isAuthenticated && gateState === 'approved' ? (
+                {isApprovedSession ? (
                   <Link
                     className="flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50"
                     to="/dashboard"
                   >
                     Dashboard
                   </Link>
-                ) : !isAuthenticated ? (
+                ) : (
                   <Link
                     className="flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50"
-                    to="/auth/signup"
+                    to={shouldContinueOnboarding ? '/auth/signup' : '/auth/signin'}
                   >
                     Continue Onboarding
                   </Link>
-                ) : (
-                  <span className="hidden rounded-xl border border-slate-300 bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 sm:inline-flex">
-                    Verification Required
-                  </span>
                 )}
+
                 <button
                   onClick={() => void logout()}
                   className="flex h-10 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-md shadow-black/20 transition-all hover:brightness-105"
@@ -212,7 +128,6 @@ export default function LandingPage() {
               empower your institution with decentralized trust.
             </p>
           </div>
-
         </section>
 
         <section className="relative overflow-hidden py-24">
@@ -328,7 +243,6 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-
       </main>
 
       <footer className="border-t border-slate-100 bg-slate-50 px-6 pb-10 pt-20 md:px-20">
@@ -414,147 +328,6 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-
-      {shouldShowStudentGate && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/38 p-6">
-          <div className="w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-6 shadow-xl md:p-8">
-            {gateState === 'loading' && (
-              <div className="flex items-center gap-3 text-slate-700">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
-                <p className="text-sm font-medium">Preparing your account verification flow...</p>
-              </div>
-            )}
-
-            {gateState === 'profile' && (
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">Student Verification Required</h2>
-                <p className="mt-2 text-sm text-slate-600">
-                  Complete your Student Profile details before your account creation request can be reviewed.
-                </p>
-
-                <form className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleProfileSubmit}>
-                  <input
-                    required
-                    value={profileForm.studentNumber}
-                    onChange={event => setProfileForm(prev => ({ ...prev, studentNumber: event.target.value }))}
-                    placeholder="Student Number"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                  />
-                  <input
-                    required
-                    value={profileForm.phone}
-                    onChange={event => setProfileForm(prev => ({ ...prev, phone: event.target.value }))}
-                    placeholder="Phone"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                  />
-                  <input
-                    required
-                    value={profileForm.courseOfStudy}
-                    onChange={event => setProfileForm(prev => ({ ...prev, courseOfStudy: event.target.value }))}
-                    placeholder="Course of Study"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                  />
-                  <input
-                    required
-                    value={profileForm.yearLevel}
-                    onChange={event => setProfileForm(prev => ({ ...prev, yearLevel: event.target.value }))}
-                    placeholder="Year Level"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                  />
-                  <input
-                    required
-                    value={profileForm.department}
-                    onChange={event => setProfileForm(prev => ({ ...prev, department: event.target.value }))}
-                    placeholder="Department"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                  />
-                  <input
-                    required
-                    value={profileForm.street}
-                    onChange={event => setProfileForm(prev => ({ ...prev, street: event.target.value }))}
-                    placeholder="Street"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                  />
-                  <input
-                    required
-                    value={profileForm.barangay}
-                    onChange={event => setProfileForm(prev => ({ ...prev, barangay: event.target.value }))}
-                    placeholder="Barangay"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                  />
-                  <input
-                    required
-                    value={profileForm.city}
-                    onChange={event => setProfileForm(prev => ({ ...prev, city: event.target.value }))}
-                    placeholder="City"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                  />
-                  <input
-                    required
-                    value={profileForm.province}
-                    onChange={event => setProfileForm(prev => ({ ...prev, province: event.target.value }))}
-                    placeholder="Province"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                  />
-                  <input
-                    required
-                    type="number"
-                    min={1}
-                    value={profileForm.zipCode || ''}
-                    onChange={event =>
-                      setProfileForm(prev => ({
-                        ...prev,
-                        zipCode: Number.isNaN(event.target.valueAsNumber) ? 0 : event.target.valueAsNumber,
-                      }))
-                    }
-                    placeholder="Zip Code"
-                    className="rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                  />
-
-                  {profileError && (
-                    <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 md:col-span-2">
-                      {profileError}
-                    </div>
-                  )}
-
-                  <div className="flex justify-end md:col-span-2">
-                    <button
-                      type="submit"
-                      disabled={isSubmittingProfile}
-                      className="inline-flex items-center rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isSubmittingProfile ? 'Submitting...' : 'Submit Account Creation Request'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {gateState === 'status' && user && (
-              <div>
-                {(() => {
-                  const statusMeta = getStatusMessage(user.status);
-                  return (
-                    <>
-                      <h2 className="text-2xl font-bold text-slate-900">{statusMeta.title}</h2>
-                      <p className="mt-2 text-sm text-slate-600">{statusMeta.description}</p>
-                      <div className={`mt-5 rounded-xl border px-4 py-3 text-sm font-medium ${statusMeta.tone}`}>
-                        Current account status: {user.status}
-                      </div>
-                    </>
-                  );
-                })()}
-                <button
-                  onClick={() => void refreshUser()}
-                  className="mt-6 inline-flex items-center rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:brightness-105"
-                >
-                  Refresh Status
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
