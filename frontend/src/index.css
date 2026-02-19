@@ -62,10 +62,11 @@ body {
 }
 
 .credence-bg-mesh {
-  background:
-    radial-gradient(120% 95% at 8% -12%, rgba(15, 23, 42, 0.08) 0%, rgba(15, 23, 42, 0) 56%),
-    radial-gradient(88% 82% at 94% 8%, rgba(148, 163, 184, 0.16) 0%, rgba(148, 163, 184, 0) 58%),
-    linear-gradient(180deg, #ffffff 0%, #f7f7f7 100%);
+  background-image: url("./assets/hero_bg.jpg");
+  background-position: left top;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0.55;
 }
 
 .credence-bg-grid {
@@ -121,10 +122,22 @@ body {
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
 }
 
+.credence-auth-card {
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.07);
+}
+
+.credence-auth-input {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.credence-auth-input:focus {
+  background-color: #ffffff;
+  border-color: #0f172a;
+  box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.09);
+}
+
 .credence-hero-gradient {
-  background:
-    radial-gradient(circle at 50% 0%, rgba(15, 23, 42, 0.08) 0%, rgba(255, 255, 255, 0) 58%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, #f7f7f7 72%, #f7f7f7 100%);
+  background-color: #f7f7f7;
 }
 
 .credence-academic-bg {
@@ -138,7 +151,7 @@ body {
     url("./assets/landing_pageBG.jpg");
   background-position: center 45%;
   background-size: cover;
-  filter: grayscale(1) saturate(0.55) brightness(1.03) contrast(0.92);
+  filter: none;
 }
 
 .material-symbols-outlined {

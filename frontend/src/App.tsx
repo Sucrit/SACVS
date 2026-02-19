@@ -5,6 +5,7 @@ import StudentDashboard from './pages/dashboard/StudentDashboard';
 import RegistrarDashboard from './pages/dashboard/RegistrarDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import LandingPage from './pages/LandingPage';
+import AuthPage from './pages/AuthPage';
 import Unauthorized from './pages/Unauthorized';
 import { useLegacyAuth } from './auth/legacy-auth-context';
 
@@ -27,6 +28,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/:mode" element={<AuthPage />} />
         
         <Route
           path="/dashboard"

@@ -48,7 +48,7 @@ export default function Sidebar({ role }: SidebarProps) {
             <ShieldCheck className="text-white" size={24} />
           </div>
           <h2 className="text-2xl font-bold text-white tracking-tight font-display">
-            SACVS
+            Credence
           </h2>
         </div>
         <div className="ml-12">

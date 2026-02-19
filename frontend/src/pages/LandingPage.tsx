@@ -1,4 +1,3 @@
-import { X } from 'lucide-react';
 import { Bot, Globe2, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { FormEvent, useState } from 'react';
@@ -90,18 +89,7 @@ const getStatusMessage = (status: UserStatus) => {
 };
 
 export default function LandingPage() {
-  const { user, isAuthenticated, isLoading, register, login, verifyOtp, refreshUser, logout } = useLegacyAuth();
-  const [authModal, setAuthModal] = useState<'signin' | 'signup' | 'otp' | null>(null);
-  const [authEmail, setAuthEmail] = useState('');
-  const [authFirstName, setAuthFirstName] = useState('');
-  const [authMiddleName, setAuthMiddleName] = useState('');
-  const [authLastName, setAuthLastName] = useState('');
-  const [pendingOtpEmail, setPendingOtpEmail] = useState('');
-  const [pendingSignupProfile, setPendingSignupProfile] = useState<UpsertStudentProfilePayload | null>(null);
-  const [otpCode, setOtpCode] = useState('');
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [authHint, setAuthHint] = useState<string | null>(null);
-  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
+  const { user, isAuthenticated, isLoading, refreshUser, logout } = useLegacyAuth();
   const [profileForm, setProfileForm] = useState<UpsertStudentProfilePayload>(initialProfileForm);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
@@ -146,138 +134,6 @@ export default function LandingPage() {
     }
   };
 
-  const openAuthModal = (mode: 'signin' | 'signup') => {
-    setAuthModal(mode);
-    setAuthError(null);
-    setAuthHint(null);
-    setOtpCode('');
-
-    if (mode === 'signin') {
-      setAuthEmail('');
-      setPendingSignupProfile(null);
-      return;
-    }
-
-    setAuthEmail('');
-    setAuthFirstName('');
-    setAuthMiddleName('');
-    setAuthLastName('');
-    setProfileForm(initialProfileForm);
-    setPendingSignupProfile(null);
-  };
-
-  const closeAuthModal = () => {
-    setAuthModal(null);
-    setAuthError(null);
-    setAuthHint(null);
-    setOtpCode('');
-    setPendingSignupProfile(null);
-  };
-
-  const handleStartAuth = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setAuthError(null);
-    setAuthHint(null);
-    setIsSubmittingAuth(true);
-
-    try {
-      const email = authEmail.trim().toLowerCase();
-      if (!email) {
-        setAuthError('Email is required.');
-        return;
-      }
-
-      if (authModal === 'signup') {
-        const firstName = authFirstName.trim();
-        const middleName = authMiddleName.trim();
-        const lastName = authLastName.trim();
-        if (!firstName || !lastName) {
-          setAuthError('First name and last name are required.');
-          return;
-        }
-
-        const profilePayload: UpsertStudentProfilePayload = {
-          studentNumber: profileForm.studentNumber.trim(),
-          street: profileForm.street.trim(),
-          barangay: profileForm.barangay.trim(),
-          city: profileForm.city.trim(),
-          province: profileForm.province.trim(),
-          zipCode: Number(profileForm.zipCode),
-          phone: profileForm.phone.trim(),
-          courseOfStudy: profileForm.courseOfStudy.trim(),
-          yearLevel: profileForm.yearLevel.trim(),
-          department: profileForm.department.trim(),
-        };
-
-        const hasMissingProfile =
-          profilePayload.studentNumber.length === 0 ||
-          profilePayload.street.length === 0 ||
-          profilePayload.barangay.length === 0 ||
-          profilePayload.city.length === 0 ||
-          profilePayload.province.length === 0 ||
-          !Number.isInteger(profilePayload.zipCode) ||
-          profilePayload.zipCode <= 0 ||
-          profilePayload.phone.length === 0 ||
-          profilePayload.courseOfStudy.length === 0 ||
-          profilePayload.yearLevel.length === 0 ||
-          profilePayload.department.length === 0;
-        if (hasMissingProfile) {
-          setAuthError('Complete all student profile fields before requesting account creation.');
-          return;
-        }
-
-        const response = await register({
-          email,
-          firstName,
-          middleName: middleName || undefined,
-          lastName,
-        });
-        setProfileForm(profilePayload);
-        setPendingSignupProfile(profilePayload);
-        setPendingOtpEmail(email);
-        setAuthHint(response.otpBypassCode ? `OTP bypass code: ${response.otpBypassCode}` : 'Use OTP code.');
-        setAuthModal('otp');
-        return;
-      }
-
-      const response = await login({ email });
-      setPendingOtpEmail(email);
-      setAuthHint(response.otpBypassCode ? `OTP bypass code: ${response.otpBypassCode}` : 'Use OTP code.');
-      setAuthModal('otp');
-    } catch (error) {
-      console.error('Failed to start auth:', error);
-      setAuthError('Unable to continue authentication. Please verify your email and try again.');
-    } finally {
-      setIsSubmittingAuth(false);
-    }
-  };
-
-  const handleVerifyOtp = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setAuthError(null);
-    setIsSubmittingAuth(true);
-
-    try {
-      await verifyOtp({ email: pendingOtpEmail.trim().toLowerCase(), otp: otpCode.trim() });
-      if (pendingSignupProfile) {
-        try {
-          await UserService.upsertMyProfile(pendingSignupProfile);
-          setPendingSignupProfile(null);
-        } catch (profileSaveError) {
-          console.error('Failed to save student profile after OTP verification:', profileSaveError);
-          setProfileError('Account verified, but we could not save your student profile. Please submit it below.');
-        }
-      }
-      await refreshUser();
-      closeAuthModal();
-    } catch (error) {
-      console.error('OTP verification failed:', error);
-      setAuthError('Invalid OTP. Use 000000 for now.');
-    } finally {
-      setIsSubmittingAuth(false);
-    }
-  };
-
   const shouldShowStudentGate = isAuthenticated && ['loading', 'profile', 'status'].includes(gateState);
 
   return (
@@ -294,18 +150,18 @@ export default function LandingPage() {
           <div className="flex items-center gap-3">
             {!isAuthenticated && (
               <>
-                <button
-                  onClick={() => openAuthModal('signin')}
+                <Link
+                  to="/auth/signin"
                   className="hidden h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 sm:flex"
                 >
                   Sign In
-                </button>
-                <button
-                  onClick={() => openAuthModal('signup')}
+                </Link>
+                <Link
+                  to="/auth/signup"
                   className="flex h-10 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-md shadow-black/20 transition-all hover:brightness-105"
                 >
                   Get Started
-                </button>
+                </Link>
               </>
             )}
             {isAuthenticated && (
@@ -338,11 +194,6 @@ export default function LandingPage() {
         <section className="credence-hero-gradient relative overflow-hidden pb-32 pt-40">
           <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
             <div className="credence-bg-mesh absolute inset-0"></div>
-            <div className="credence-bg-grid absolute inset-0"></div>
-            <div className="credence-bg-grain absolute inset-0"></div>
-            <div className="credence-bg-orb credence-bg-orb-one"></div>
-            <div className="credence-bg-orb credence-bg-orb-two"></div>
-            <div className="credence-bg-orb credence-bg-orb-three"></div>
           </div>
           <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center px-6 text-center md:px-20">
             <h1 className="mb-6 max-w-4xl text-5xl font-extrabold leading-[1.1] tracking-tight text-slate-900 md:text-7xl">
@@ -360,14 +211,14 @@ export default function LandingPage() {
         <section className="relative overflow-hidden py-24">
           <div aria-hidden className="absolute inset-0">
             <div className="credence-academic-bg absolute inset-0"></div>
-            <div className="absolute inset-0 bg-white/88 backdrop-blur-[1.5px]"></div>
+            <div className="absolute inset-0 bg-white/90"></div>
           </div>
 
           <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-20">
             <div className="mb-16">
               <h2 className="mb-4 text-3xl font-black md:text-4xl">The Future of Academic Integrity</h2>
               <p className="mb-8 text-lg leading-relaxed text-slate-500">
-                credence leverages cutting-edge technology to create a seamless, fraud-free ecosystem for academic
+                Leveraging cutting-edge technology to create a seamless, fraud-free ecosystem for academic
                 credentials.
               </p>
             </div>
@@ -557,179 +408,8 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {authModal && (
-        <div className="fixed inset-0 z-[65] flex items-center justify-center bg-slate-900/45 p-6 backdrop-blur-[2px]">
-          <div
-            className={`w-full rounded-2xl border border-gray-200 bg-white p-6 shadow-xl md:p-8 ${
-              authModal === 'signup' ? 'max-w-2xl' : 'max-w-md'
-            }`}
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-slate-900">
-                {authModal === 'signin' ? 'Sign In' : authModal === 'signup' ? 'Create Student Account' : 'Verify OTP'}
-              </h3>
-              <button onClick={closeAuthModal} className="rounded-lg p-1 text-slate-500 hover:bg-slate-100">
-                <X size={18} />
-              </button>
-            </div>
-
-            {(authModal === 'signin' || authModal === 'signup') && (
-              <form className="space-y-3" onSubmit={handleStartAuth}>
-                {authModal === 'signup' && (
-                  <>
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                      <input
-                        required
-                        value={authFirstName}
-                        onChange={event => setAuthFirstName(event.target.value)}
-                        placeholder="First Name"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                      <input
-                        value={authMiddleName}
-                        onChange={event => setAuthMiddleName(event.target.value)}
-                        placeholder="Middle Name (Optional)"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                      <input
-                        required
-                        value={authLastName}
-                        onChange={event => setAuthLastName(event.target.value)}
-                        placeholder="Last Name"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <input
-                        required
-                        value={profileForm.studentNumber}
-                        onChange={event => setProfileForm(prev => ({ ...prev, studentNumber: event.target.value }))}
-                        placeholder="Student Number"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                      <input
-                        required
-                        value={profileForm.phone}
-                        onChange={event => setProfileForm(prev => ({ ...prev, phone: event.target.value }))}
-                        placeholder="Phone"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                      <input
-                        required
-                        value={profileForm.courseOfStudy}
-                        onChange={event => setProfileForm(prev => ({ ...prev, courseOfStudy: event.target.value }))}
-                        placeholder="Course of Study"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                      <input
-                        required
-                        value={profileForm.yearLevel}
-                        onChange={event => setProfileForm(prev => ({ ...prev, yearLevel: event.target.value }))}
-                        placeholder="Year Level"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                      <input
-                        required
-                        value={profileForm.department}
-                        onChange={event => setProfileForm(prev => ({ ...prev, department: event.target.value }))}
-                        placeholder="Department"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                      <input
-                        required
-                        value={profileForm.street}
-                        onChange={event => setProfileForm(prev => ({ ...prev, street: event.target.value }))}
-                        placeholder="Street"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                      <input
-                        required
-                        value={profileForm.barangay}
-                        onChange={event => setProfileForm(prev => ({ ...prev, barangay: event.target.value }))}
-                        placeholder="Barangay"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                      <input
-                        required
-                        value={profileForm.city}
-                        onChange={event => setProfileForm(prev => ({ ...prev, city: event.target.value }))}
-                        placeholder="City"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                      <input
-                        required
-                        value={profileForm.province}
-                        onChange={event => setProfileForm(prev => ({ ...prev, province: event.target.value }))}
-                        placeholder="Province"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                      <input
-                        required
-                        type="number"
-                        min={1}
-                        value={profileForm.zipCode || ''}
-                        onChange={event =>
-                          setProfileForm(prev => ({
-                            ...prev,
-                            zipCode: Number.isNaN(event.target.valueAsNumber) ? 0 : event.target.valueAsNumber,
-                          }))
-                        }
-                        placeholder="Zip Code"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                      />
-                    </div>
-                  </>
-                )}
-                <input
-                  required
-                  type="email"
-                  value={authEmail}
-                  onChange={event => setAuthEmail(event.target.value)}
-                  placeholder="Email Address"
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                />
-                {authError && <p className="text-sm text-rose-700">{authError}</p>}
-                <button
-                  type="submit"
-                  disabled={isSubmittingAuth}
-                  className="w-full rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-105 disabled:opacity-60"
-                >
-                  {isSubmittingAuth
-                    ? 'Please wait...'
-                    : authModal === 'signup'
-                      ? 'Request Account Creation'
-                      : 'Send OTP'}
-                </button>
-              </form>
-            )}
-
-            {authModal === 'otp' && (
-              <form className="space-y-3" onSubmit={handleVerifyOtp}>
-                <p className="text-sm text-slate-600">OTP sent to: {pendingOtpEmail || authEmail}</p>
-                <input
-                  required
-                  value={otpCode}
-                  onChange={event => setOtpCode(event.target.value)}
-                  placeholder="Enter OTP"
-                  className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
-                />
-                <p className="text-xs text-slate-500">{authHint || 'Use bypass OTP: 000000'}</p>
-                {authError && <p className="text-sm text-rose-700">{authError}</p>}
-                <button
-                  type="submit"
-                  disabled={isSubmittingAuth}
-                  className="w-full rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition-all hover:brightness-105 disabled:opacity-60"
-                >
-                  {isSubmittingAuth ? 'Verifying...' : 'Verify OTP'}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-
       {shouldShowStudentGate && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-6 backdrop-blur-[2px]">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/38 p-6">
           <div className="w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-6 shadow-xl md:p-8">
             {gateState === 'loading' && (
               <div className="flex items-center gap-3 text-slate-700">
