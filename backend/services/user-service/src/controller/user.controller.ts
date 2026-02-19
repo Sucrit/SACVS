@@ -1,12 +1,10 @@
 import { Request, Response } from 'express';
 import { UserService } from '../service/user.service';
 import {
+  CompleteStudentOnboardingDto,
   CreateUserDto,
-  LoginDto,
-  RegisterDto,
   UpdateUserStatusDto,
   UpsertStudentProfileDto,
-  VerifyOtpDto,
 } from '../dto/user.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
@@ -18,84 +16,6 @@ const getAuthUserId = (req: Request): string | null => {
 };
 
 export class UserController {
-  async register(req: Request, res: Response): Promise<Response> {
-    try {
-      const payload: RegisterDto = req.body;
-      if (!payload?.email || typeof payload.email !== 'string') {
-        return res.status(400).json({ error: 'Email is required.' });
-      }
-
-      if (!payload?.firstName || typeof payload.firstName !== 'string') {
-        return res.status(400).json({ error: 'First name is required.' });
-      }
-
-      if (!payload?.lastName || typeof payload.lastName !== 'string') {
-        return res.status(400).json({ error: 'Last name is required.' });
-      }
-
-      const result = await userService.register({
-        email: payload.email,
-        firstName: payload.firstName,
-        middleName: typeof payload.middleName === 'string' ? payload.middleName : null,
-        lastName: payload.lastName,
-      });
-      return res.status(201).json(result);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'EMAIL_ALREADY_EXISTS') {
-        return res.status(409).json({ error: 'Email already exists.' });
-      }
-
-      console.error('Error registering user:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-  }
-
-  async login(req: Request, res: Response): Promise<Response> {
-    try {
-      const payload: LoginDto = req.body;
-      if (!payload?.email || typeof payload.email !== 'string') {
-        return res.status(400).json({ error: 'Email is required.' });
-      }
-
-      const result = await userService.login(payload);
-      return res.status(200).json(result);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
-        return res.status(404).json({ error: 'User not found.' });
-      }
-
-      console.error('Error starting login:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-  }
-
-  async verifyOtp(req: Request, res: Response): Promise<Response> {
-    try {
-      const payload: VerifyOtpDto = req.body;
-      if (!payload?.email || typeof payload.email !== 'string') {
-        return res.status(400).json({ error: 'Email is required.' });
-      }
-
-      if (!payload?.otp || typeof payload.otp !== 'string') {
-        return res.status(400).json({ error: 'OTP is required.' });
-      }
-
-      const result = await userService.verifyOtp(payload);
-      return res.status(200).json(result);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'INVALID_OTP') {
-        return res.status(401).json({ error: 'Invalid OTP.' });
-      }
-
-      if (error instanceof Error && error.message === 'USER_NOT_FOUND') {
-        return res.status(404).json({ error: 'User not found.' });
-      }
-
-      console.error('Error verifying otp:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-  }
-
   async getCurrentUser(req: Request, res: Response): Promise<Response> {
     const userId = getAuthUserId(req);
     if (!userId) {
@@ -111,6 +31,65 @@ export class UserController {
       return res.status(200).json(user);
     } catch (error) {
       console.error('Error fetching current user:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async completeStudentOnboarding(req: Request, res: Response): Promise<Response> {
+    const userId = getAuthUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const data: CompleteStudentOnboardingDto = req.body;
+    if (!data?.firstName || typeof data.firstName !== 'string') {
+      return res.status(400).json({ error: 'Missing required field: firstName' });
+    }
+    if (!data?.lastName || typeof data.lastName !== 'string') {
+      return res.status(400).json({ error: 'Missing required field: lastName' });
+    }
+
+    const requiredStringFields: Array<keyof CompleteStudentOnboardingDto> = [
+      'studentNumber',
+      'street',
+      'barangay',
+      'city',
+      'province',
+      'phone',
+      'courseOfStudy',
+      'yearLevel',
+      'department',
+    ];
+
+    const missingField = requiredStringFields.find(field => {
+      const value = data?.[field];
+      return typeof value !== 'string' || value.trim().length === 0;
+    });
+
+    if (missingField) {
+      return res.status(400).json({ error: `Missing required field: ${missingField}` });
+    }
+
+    const parsedZipCode = Number(data?.zipCode);
+    if (!Number.isInteger(parsedZipCode) || parsedZipCode <= 0) {
+      return res.status(400).json({ error: 'Missing required field: zipCode' });
+    }
+
+    try {
+      const user = await userService.completeStudentOnboarding(userId, {
+        ...data,
+        zipCode: parsedZipCode,
+      });
+      return res.status(200).json(user);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'CLERK_EMAIL_NOT_AVAILABLE') {
+        return res.status(400).json({ error: 'Authenticated account has no usable email.' });
+      }
+      if (error instanceof Error && error.message === 'EMAIL_ALREADY_LINKED_TO_ANOTHER_ACCOUNT') {
+        return res.status(409).json({ error: 'Email is already linked to another account.' });
+      }
+
+      console.error('Error completing student onboarding:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }

@@ -5,11 +5,8 @@ import { requireAuth, requireRoles } from '../middleware/auth.middleware';
 const router = express.Router();
 const userController = new UserController();
 
-router.post('/auth/register', userController.register.bind(userController));
-router.post('/auth/login', userController.login.bind(userController));
-router.post('/auth/verify-otp', userController.verifyOtp.bind(userController));
-
 router.get('/me', requireAuth, userController.getCurrentUser.bind(userController));
+router.post('/me/onboarding', requireAuth, userController.completeStudentOnboarding.bind(userController));
 router.put('/me/profile', requireAuth, userController.upsertMyProfile.bind(userController));
 
 router.get(

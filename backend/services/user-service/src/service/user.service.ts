@@ -1,7 +1,11 @@
-import { CreateUserDto, UpdateUserStatusDto, UpsertStudentProfileDto } from '../dto/user.dto';
+import { clerkClient } from '@clerk/express';
+import {
+  CreateUserDto,
+  CompleteStudentOnboardingDto,
+  UpdateUserStatusDto,
+  UpsertStudentProfileDto,
+} from '../dto/user.dto';
 import { UserRepository } from '../repository/user.repository';
-import { signAccessToken } from '../utils/token';
-import { ENV } from '../config/env';
 
 const userRepository = new UserRepository();
 
@@ -10,65 +14,6 @@ const normalizeEmail = (value: string): string => value.trim().toLowerCase();
 export class UserService {
   async listUsers() {
     return userRepository.listUsers();
-  }
-
-  async register(data: { email: string; firstName: string; middleName?: string | null; lastName: string }) {
-    const email = normalizeEmail(data.email);
-    const existing = await userRepository.findByEmail(email);
-    if (existing) {
-      throw new Error('EMAIL_ALREADY_EXISTS');
-    }
-
-    const user = await userRepository.createUser({
-      email,
-      firstName: data.firstName.trim(),
-      middleName: data.middleName?.trim() || null,
-      lastName: data.lastName.trim(),
-      role: 'STUDENT',
-    });
-
-    return {
-      message: 'Registration request created. Verify OTP to continue.',
-      requiresOtp: true,
-      otpBypassCode: ENV.OTP_BYPASS_CODE,
-      user,
-    };
-  }
-
-  async login(data: { email: string }) {
-    const email = normalizeEmail(data.email);
-    const user = await userRepository.findByEmail(email);
-    if (!user) {
-      throw new Error('USER_NOT_FOUND');
-    }
-
-    return {
-      message: 'OTP challenge created.',
-      requiresOtp: true,
-      otpBypassCode: ENV.OTP_BYPASS_CODE,
-      email,
-    };
-  }
-
-  async verifyOtp(data: { email: string; otp: string }) {
-    if (data.otp !== ENV.OTP_BYPASS_CODE) {
-      throw new Error('INVALID_OTP');
-    }
-
-    const email = normalizeEmail(data.email);
-    const user = await userRepository.findByEmail(email);
-    if (!user) {
-      throw new Error('USER_NOT_FOUND');
-    }
-
-    const token = signAccessToken({
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-    });
-
-    return { token, user };
   }
 
   async createUser(data: CreateUserDto) {
@@ -85,6 +30,38 @@ export class UserService {
 
   async upsertStudentProfileByUserId(userId: string, data: UpsertStudentProfileDto) {
     return userRepository.upsertStudentProfileByUserId(userId, data);
+  }
+
+  async completeStudentOnboarding(clerkUserId: string, data: CompleteStudentOnboardingDto) {
+    const clerkUser = await clerkClient.users.getUser(clerkUserId);
+    const primaryEmail = clerkUser.emailAddresses.find(
+      entry => entry.id === clerkUser.primaryEmailAddressId,
+    )?.emailAddress;
+    const fallbackEmail = clerkUser.emailAddresses[0]?.emailAddress;
+    const resolvedEmail = normalizeEmail(primaryEmail ?? fallbackEmail ?? '');
+
+    if (!resolvedEmail) {
+      throw new Error('CLERK_EMAIL_NOT_AVAILABLE');
+    }
+
+    return userRepository.upsertStudentOnboardingByClerkUserId(clerkUserId, {
+      email: resolvedEmail,
+      firstName: data.firstName.trim(),
+      middleName: data.middleName?.trim() || null,
+      lastName: data.lastName.trim(),
+      profile: {
+        studentNumber: data.studentNumber,
+        street: data.street,
+        barangay: data.barangay,
+        city: data.city,
+        province: data.province,
+        zipCode: data.zipCode,
+        phone: data.phone,
+        courseOfStudy: data.courseOfStudy,
+        yearLevel: data.yearLevel,
+        department: data.department,
+      },
+    });
   }
 
   async updateUserStatus(userId: string, data: UpdateUserStatusDto, actorId?: string | null) {

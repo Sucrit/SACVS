@@ -1,7 +1,11 @@
 import { getAuth } from '@clerk/express';
 import { NextFunction, Request, Response } from 'express';
-import { UserRole, UserStatus } from '../dto/user.dto';
-import { UserRepository } from '../repository/user.repository';
+import { PrismaClient, Role, Status } from '../../../../db/node_modules/@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { ENV } from '../config/env';
+
+type UserRole = `${Role}`;
+type UserStatus = `${Status}`;
 
 export interface AuthenticatedRequest extends Request {
   auth?: {
@@ -11,7 +15,12 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-const userRepository = new UserRepository();
+if (!ENV.DATABASE_URL) {
+  throw new Error('DATABASE_URL is not configured for credential-service.');
+}
+
+const prismaAdapter = new PrismaPg({ connectionString: ENV.DATABASE_URL });
+const prisma = new PrismaClient({ adapter: prismaAdapter });
 
 export const requireAuth = async (
   req: Request,
@@ -24,7 +33,11 @@ export const requireAuth = async (
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const localUser = await userRepository.getUserById(clerkAuth.userId);
+    const localUser = await prisma.user.findUnique({
+      where: { id: clerkAuth.userId },
+      select: { role: true, status: true },
+    });
+
     (req as AuthenticatedRequest).auth = {
       sub: clerkAuth.userId,
       role: localUser?.role as UserRole | undefined,
@@ -33,7 +46,7 @@ export const requireAuth = async (
 
     return next();
   } catch (error) {
-    console.error('Clerk auth middleware failed:', error);
+    console.error('Credential auth middleware failed:', error);
     return res.status(401).json({ error: 'Unauthorized' });
   }
 };

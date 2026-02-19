@@ -43,35 +43,6 @@ export interface CreateUserPayload {
   role?: UserRole;
 }
 
-export interface RegisterPayload {
-  email: string;
-  firstName: string;
-  middleName?: string | null;
-  lastName: string;
-}
-
-export interface LoginPayload {
-  email: string;
-}
-
-export interface VerifyOtpPayload {
-  email: string;
-  otp: string;
-}
-
-export interface AuthChallengeResponse {
-  message: string;
-  requiresOtp: boolean;
-  otpBypassCode?: string;
-  email?: string;
-  user?: User;
-}
-
-export interface AuthVerifyResponse {
-  token: string;
-  user: User;
-}
-
 export interface UpsertStudentProfilePayload {
   studentNumber: string;
   street: string;
@@ -83,6 +54,12 @@ export interface UpsertStudentProfilePayload {
   courseOfStudy: string;
   yearLevel: string;
   department: string;
+}
+
+export interface CompleteStudentOnboardingPayload extends UpsertStudentProfilePayload {
+  firstName: string;
+  middleName?: string | null;
+  lastName: string;
 }
 
 export interface UserListQuery {
@@ -99,18 +76,8 @@ export const UserService = {
     return response.data;
   },
 
-  register: async (data: RegisterPayload) => {
-    const response = await api.post<AuthChallengeResponse>('/users/auth/register', data);
-    return response.data;
-  },
-
-  login: async (data: LoginPayload) => {
-    const response = await api.post<AuthChallengeResponse>('/users/auth/login', data);
-    return response.data;
-  },
-
-  verifyOtp: async (data: VerifyOtpPayload) => {
-    const response = await api.post<AuthVerifyResponse>('/users/auth/verify-otp', data);
+  completeStudentOnboarding: async (data: CompleteStudentOnboardingPayload) => {
+    const response = await api.post<User>('/users/me/onboarding', data);
     return response.data;
   },
 

@@ -89,7 +89,7 @@ const getStatusMessage = (status: UserStatus) => {
 };
 
 export default function LandingPage() {
-  const { user, isAuthenticated, isLoading, refreshUser, logout } = useLegacyAuth();
+  const { user, isAuthenticated, isSessionAuthenticated, isLoading, refreshUser, logout } = useLegacyAuth();
   const [profileForm, setProfileForm] = useState<UpsertStudentProfilePayload>(initialProfileForm);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
@@ -148,7 +148,7 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {!isAuthenticated && (
+            {!isSessionAuthenticated && (
               <>
                 <Link
                   to="/auth/signin"
@@ -164,14 +164,21 @@ export default function LandingPage() {
                 </Link>
               </>
             )}
-            {isAuthenticated && (
+            {isSessionAuthenticated && (
               <>
-                {gateState === 'approved' ? (
+                {isAuthenticated && gateState === 'approved' ? (
                   <Link
                     className="flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50"
                     to="/dashboard"
                   >
                     Dashboard
+                  </Link>
+                ) : !isAuthenticated ? (
+                  <Link
+                    className="flex h-10 items-center justify-center rounded-xl border border-slate-200 px-5 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50"
+                    to="/auth/signup"
+                  >
+                    Continue Onboarding
                   </Link>
                 ) : (
                   <span className="hidden rounded-xl border border-slate-300 bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-700 sm:inline-flex">
@@ -179,7 +186,7 @@ export default function LandingPage() {
                   </span>
                 )}
                 <button
-                  onClick={logout}
+                  onClick={() => void logout()}
                   className="flex h-10 items-center justify-center rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-md shadow-black/20 transition-all hover:brightness-105"
                 >
                   Sign Out

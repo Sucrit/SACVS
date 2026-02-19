@@ -1,22 +1,6 @@
 export type UserRole = 'STUDENT' | 'ADMIN' | 'REGISTRAR';
 export type UserStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 
-export interface RegisterDto {
-  email: string;
-  firstName: string;
-  middleName?: string | null;
-  lastName: string;
-}
-
-export interface LoginDto {
-  email: string;
-}
-
-export interface VerifyOtpDto {
-  email: string;
-  otp: string;
-}
-
 export interface CreateUserDto {
   email: string;
   firstName: string;
@@ -40,4 +24,10 @@ export interface UpsertStudentProfileDto {
   courseOfStudy: string;
   yearLevel: string;
   department: string;
+}
+
+export interface CompleteStudentOnboardingDto extends UpsertStudentProfileDto {
+  firstName: string;
+  middleName?: string | null;
+  lastName: string;
 }

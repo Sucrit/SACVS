@@ -59,6 +59,86 @@ export class UserRepository {
     });
   }
 
+  async upsertStudentOnboardingByClerkUserId(
+    clerkUserId: string,
+    data: {
+      email: string;
+      firstName: string;
+      middleName?: string | null;
+      lastName: string;
+      profile: UpsertStudentProfileDto;
+    },
+  ): Promise<UserWithProfile> {
+    const normalizedEmail = normalizeEmail(data.email);
+    const existingByEmail = await this.findByEmail(normalizedEmail);
+    if (existingByEmail && existingByEmail.id !== clerkUserId) {
+      throw new Error('EMAIL_ALREADY_LINKED_TO_ANOTHER_ACCOUNT');
+    }
+
+    return prisma.user.upsert({
+      where: { id: clerkUserId },
+      create: {
+        id: clerkUserId,
+        email: normalizedEmail,
+        firstName: data.firstName.trim(),
+        middleName: normalizeOptionalString(data.middleName),
+        lastName: data.lastName.trim(),
+        role: Role.STUDENT,
+        status: Status.PENDING,
+        profile: {
+          create: {
+            studentNumber: data.profile.studentNumber.trim(),
+            street: data.profile.street.trim(),
+            barangay: data.profile.barangay.trim(),
+            city: data.profile.city.trim(),
+            province: data.profile.province.trim(),
+            zipCode: data.profile.zipCode,
+            phone: data.profile.phone.trim(),
+            courseOfStudy: data.profile.courseOfStudy.trim(),
+            yearLevel: data.profile.yearLevel.trim(),
+            department: data.profile.department.trim(),
+          },
+        },
+      },
+      update: {
+        email: normalizedEmail,
+        firstName: data.firstName.trim(),
+        middleName: normalizeOptionalString(data.middleName),
+        lastName: data.lastName.trim(),
+        role: Role.STUDENT,
+        profile: {
+          upsert: {
+            create: {
+              studentNumber: data.profile.studentNumber.trim(),
+              street: data.profile.street.trim(),
+              barangay: data.profile.barangay.trim(),
+              city: data.profile.city.trim(),
+              province: data.profile.province.trim(),
+              zipCode: data.profile.zipCode,
+              phone: data.profile.phone.trim(),
+              courseOfStudy: data.profile.courseOfStudy.trim(),
+              yearLevel: data.profile.yearLevel.trim(),
+              department: data.profile.department.trim(),
+            },
+            update: {
+              studentNumber: data.profile.studentNumber.trim(),
+              street: data.profile.street.trim(),
+              barangay: data.profile.barangay.trim(),
+              city: data.profile.city.trim(),
+              province: data.profile.province.trim(),
+              zipCode: data.profile.zipCode,
+              phone: data.profile.phone.trim(),
+              courseOfStudy: data.profile.courseOfStudy.trim(),
+              yearLevel: data.profile.yearLevel.trim(),
+              department: data.profile.department.trim(),
+            },
+          },
+        },
+      },
+      include: { profile: true },
+    });
+  }
+
   async getUserById(userId: string): Promise<UserWithProfile | null> {
     return prisma.user.findUnique({
       where: { id: userId },

@@ -5,6 +5,10 @@ const API_URL =
   import.meta.env.VITE_API_URL ||
   'http://localhost:4900';
 
+type TokenGetter = (() => Promise<string | null>) | null;
+
+let authTokenGetter: TokenGetter = null;
+
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -12,10 +16,22 @@ export const api = axios.create({
   },
 });
 
-export const setAuthToken = (token: string | null) => {
-  if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    delete api.defaults.headers.common['Authorization'];
-  }
+export const setAuthTokenGetter = (getter: TokenGetter) => {
+  authTokenGetter = getter;
 };
+
+api.interceptors.request.use(async config => {
+  if (!authTokenGetter) {
+    delete config.headers.Authorization;
+    return config;
+  }
+
+  const token = await authTokenGetter();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    delete config.headers.Authorization;
+  }
+
+  return config;
+});
