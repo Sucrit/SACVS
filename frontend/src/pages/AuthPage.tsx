@@ -87,6 +87,13 @@ const clerkAppearance = {
   },
 };
 
+const signInClerkAppearance = {
+  elements: {
+    ...clerkAppearance.elements,
+    card: 'w-full max-w-[520px] border border-slate-200 shadow-none',
+  },
+};
+
 export default function AuthPage() {
   const navigate = useNavigate();
   const { mode } = useParams<{ mode: string }>();
@@ -329,8 +336,62 @@ export default function AuthPage() {
   };
 
   const step = authMode === 'signup' ? signupStep : 1;
-  const isClerkAuthStep =
-    authMode === 'signin' || (authMode === 'signup' && (signupStep === 1 || isHydratingSignup));
+  const isSignupClerkAuthStep = authMode === 'signup' && (signupStep === 1 || isHydratingSignup);
+
+  if (authMode === 'signin') {
+    return (
+      <div className="credence-font min-h-screen bg-[#f7f7f8] px-4 py-6 text-slate-900 antialiased sm:px-6">
+        <div className="mx-auto grid w-full max-w-[1120px] items-center gap-7 py-2 md:grid-cols-2 md:gap-10 md:py-6">
+          <div className="mx-auto w-full max-w-[440px] md:mx-0">
+            <img alt="Credence logo" className="h-20 w-auto md:h-24" src={logo2} />
+            <p className="mt-5 text-xl leading-relaxed text-slate-600 md:text-2xl">
+              Access your credentials anywhere, and manage records with confidence.
+            </p>
+          </div>
+
+          <div className="mx-auto w-full max-w-[540px]">
+            {!isClerkLoaded && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-700">
+                <div className="flex items-center gap-3">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
+                  <p className="font-medium">Loading authentication...</p>
+                </div>
+              </div>
+            )}
+
+            {isClerkLoaded && (
+              <div className="space-y-4">
+                <SignedOut>
+                  <div className="flex justify-center">
+                    <SignIn
+                      routing="path"
+                      path="/auth/signin"
+                      signUpUrl="/auth/signup"
+                      forceRedirectUrl="/auth/signin"
+                      fallbackRedirectUrl="/auth/signin"
+                      oauthFlow="redirect"
+                      appearance={signInClerkAppearance}
+                    />
+                  </div>
+                </SignedOut>
+                <SignedIn>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-700">
+                    <div className="flex items-center gap-3">
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
+                      <p className="font-medium">Authentication complete. Validating account access...</p>
+                    </div>
+                  </div>
+                </SignedIn>
+              </div>
+            )}
+
+            {authError && <p className="mt-4 text-sm text-rose-700">{authError}</p>}
+            {authHint && <p className="mt-2 text-sm text-slate-600">{authHint}</p>}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="credence-font min-h-screen bg-[#f7f7f8] px-4 py-8 text-slate-900 antialiased sm:px-6">
@@ -392,12 +453,12 @@ export default function AuthPage() {
 
       <div
         className={
-          isClerkAuthStep
+          isSignupClerkAuthStep
             ? 'mx-auto w-full max-w-[520px]'
             : 'mx-auto w-full max-w-[760px] rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12)] md:p-8'
         }
       >
-        {isClerkAuthStep && !isClerkLoaded && (
+        {isSignupClerkAuthStep && !isClerkLoaded && (
           <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-700">
             <div className="flex items-center gap-3">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
@@ -435,32 +496,6 @@ export default function AuthPage() {
                 <div className="flex items-center gap-3">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
                   <p className="font-medium">Authentication complete. Proceeding to Step 2...</p>
-                </div>
-              </div>
-            </SignedIn>
-          </div>
-        )}
-
-        {isClerkLoaded && authMode === 'signin' && (
-          <div className="space-y-4">
-            <SignedOut>
-              <div className="flex justify-center">
-                <SignIn
-                  routing="path"
-                  path="/auth/signin"
-                  signUpUrl="/auth/signup"
-                  forceRedirectUrl="/auth/signin"
-                  fallbackRedirectUrl="/auth/signin"
-                  oauthFlow="redirect"
-                  appearance={clerkAppearance}
-                />
-              </div>
-            </SignedOut>
-            <SignedIn>
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-700">
-                <div className="flex items-center gap-3">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
-                  <p className="font-medium">Authentication complete. Validating account access...</p>
                 </div>
               </div>
             </SignedIn>
@@ -746,7 +781,7 @@ export default function AuthPage() {
           </form>
         )}
 
-        {authError && isClerkAuthStep && <p className="mt-4 text-sm text-rose-700">{authError}</p>}
+        {authError && isSignupClerkAuthStep && <p className="mt-4 text-sm text-rose-700">{authError}</p>}
       </div>
     </div>
   );

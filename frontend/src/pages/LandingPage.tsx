@@ -58,7 +58,7 @@ export default function LandingPage() {
               Solutions
             </a>
             <a className="text-sm font-medium text-slate-600 transition hover:text-slate-900" href="#team">
-              Team
+              Team  
             </a>
           </nav>
 
@@ -306,9 +306,6 @@ export default function LandingPage() {
           <div className="flex flex-col items-center justify-between gap-6 border-t border-slate-200 pt-10 md:flex-row">
             <p className="text-sm text-slate-500">&copy; 2026 Credence. All academic rights reserved.</p>
             <div className="flex gap-8 text-xs font-bold uppercase tracking-widest text-slate-500">
-              <a className="hover:text-slate-900" href="#">
-                Whitepaper
-              </a>
               <a className="hover:text-slate-900" href="#">
                 Security Audit
               </a>
