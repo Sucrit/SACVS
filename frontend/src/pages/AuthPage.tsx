@@ -139,6 +139,7 @@ export default function AuthPage() {
       ''
     );
   }, [clerkUser]);
+  const isClerkAuthStep = authMode === 'signin' || (authMode === 'signup' && signupStep === 1);
 
   const validateStepTwo = () => {
     if (!firstName.trim()) {
@@ -317,7 +318,7 @@ export default function AuthPage() {
               {authMode === 'signup' ? 'Register Student Account' : 'Sign In'}
             </h3>
             <p className="mt-1 text-sm text-slate-500">
-              {authMode === 'signup' ? 'Complete the onboarding flow to submit for verification.' : 'Access your account through Clerk.'}
+              {authMode === 'signup' ? 'Complete the onboarding flow to submit for verification.' : 'Log in to your account.'}
             </p>
           </div>
           <button
@@ -328,7 +329,7 @@ export default function AuthPage() {
           </button>
         </div>
 
-        <div className="credence-auth-card rounded-3xl border border-white/80 bg-white p-5 md:p-6">
+        <div className={isClerkAuthStep ? '' : 'credence-auth-card rounded-3xl border border-white/80 bg-white p-5 md:p-6'}>
           {authMode === 'signup' && signupStep === 1 && (
             <div className="space-y-4">
               <SignedOut>
