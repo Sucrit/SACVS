@@ -5,7 +5,7 @@ import { ENV } from './config/env';
 
 const app = express();
 
-// ── Security headers ─────────────────────────────────────────
+// Security headers 
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -15,7 +15,7 @@ app.use((_req, res, next) => {
   next();
 });
 
-// ── CORS ─────────────────────────────────────────────────────
+// CORS
 if (!ENV.CORS_ORIGIN) {
   app.use(cors());
 } else {
@@ -33,7 +33,7 @@ if (!ENV.CORS_ORIGIN) {
   app.use(cors(corsOptions));
 }
 
-// ── Simple rate limiting (in-memory) ─────────────────────────
+// rate limiting
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX = ENV.RATE_LIMIT_MAX;
@@ -57,7 +57,7 @@ app.use((req, res, next) => {
   return next();
 });
 
-// Clean up stale entries periodically
+// cleanup old entries 
 setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of rateLimitMap) {
@@ -65,7 +65,7 @@ setInterval(() => {
   }
 }, 60_000);
 
-// ── Request logging ──────────────────────────────────────────
+// request logging
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -75,10 +75,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// ── Routes ───────────────────────────────────────────────────
 app.use('/', routes);
 
-// ── Global error handler ─────────────────────────────────────
+// Global error handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const status = err?.status || err?.statusCode || 500;
   const message = err?.message || 'Internal Gateway Error';

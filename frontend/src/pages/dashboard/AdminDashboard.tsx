@@ -246,7 +246,7 @@ export default function AdminDashboard() {
                 to="/dashboard/admin/users"
                 className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
               >
-                Open User Management
+                View All
                 <ArrowRight size={14} />
               </Link>
             }
@@ -667,11 +667,6 @@ export default function AdminDashboard() {
         </Card>
       )}
 
-      {section === 'overview' && (
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500">
-          <span className="font-semibold text-slate-700">Schema-aligned fields shown:</span> User ID, first/middle/last name, email, role, status, approvedById, approvedAt, createdAt, updatedAt, and full StudentProfile attributes.
-        </div>
-      )}
     </div>
   );
 }

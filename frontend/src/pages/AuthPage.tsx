@@ -15,6 +15,7 @@ import {
   UserService,
 } from '../services/user.service';
 import logo2 from '../assets/logo2.png';
+import heroBg from '../assets/hero_bg.jpg';
 
 type AuthMode = 'signin' | 'signup';
 type SignupStep = 1 | 2 | 3;
@@ -98,7 +99,7 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const { mode } = useParams<{ mode: string }>();
   const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn } = useUser();
-  const { refreshUser } = useLegacyAuth();
+  const { refreshUser, user: localSessionUser } = useLegacyAuth();
 
   const normalizedMode: AuthMode = mode === 'signin' || mode === 'signup' ? mode : 'signup';
   const [authMode, setAuthMode] = useState<AuthMode>(normalizedMode);
@@ -113,6 +114,7 @@ export default function AuthPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [onboardingSubmitted, setOnboardingSubmitted] = useState(false);
   const [isHydratingSignup, setIsHydratingSignup] = useState(false);
+  const [suspendedUser, setSuspendedUser] = useState<User | null>(null);
 
   useEffect(() => {
     setAuthMode(normalizedMode);
@@ -120,11 +122,18 @@ export default function AuthPage() {
     setAuthHint(null);
     setOnboardingSubmitted(false);
     setIsHydratingSignup(false);
+    setSuspendedUser(null);
 
     if (normalizedMode !== 'signup') {
       setSignupStep(1);
     }
   }, [normalizedMode]);
+
+  useEffect(() => {
+    if (localSessionUser?.status === 'SUSPENDED') {
+      setSuspendedUser(localSessionUser);
+    }
+  }, [localSessionUser]);
 
   useEffect(() => {
     if (!isClerkLoaded || !isSignedIn || !clerkUser || authMode !== 'signup') {
@@ -144,6 +153,11 @@ export default function AuthPage() {
 
         if (localUser?.status === 'APPROVED') {
           navigate('/dashboard', { replace: true });
+          return;
+        }
+
+        if (localUser?.status === 'SUSPENDED') {
+          setSuspendedUser(localUser);
           return;
         }
 
@@ -194,6 +208,11 @@ export default function AuthPage() {
 
         if (!localUser) {
           navigate('/auth/signup', { replace: true });
+          return;
+        }
+
+        if (localUser.status === 'SUSPENDED') {
+          setSuspendedUser(localUser);
           return;
         }
 
@@ -337,10 +356,46 @@ export default function AuthPage() {
 
   const step = authMode === 'signup' ? signupStep : 1;
   const isSignupClerkAuthStep = authMode === 'signup' && (signupStep === 1 || isHydratingSignup);
+  const authPageBackgroundStyle = {
+    backgroundImage: `url(${heroBg})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+
+  if (suspendedUser) {
+    return (
+      <div className="credence-font flex min-h-screen items-center justify-center px-4 py-8 text-slate-900 antialiased sm:px-6" style={authPageBackgroundStyle}>
+        <div className="w-full max-w-[640px] rounded-3xl border border-rose-200 bg-white/95 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.1)]">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-rose-700">
+              <Icon className="text-lg" name="gpp_bad" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900">Account Suspended</h2>
+          </div>
+
+          <p className="text-base leading-relaxed text-slate-700">
+            Your account has been suspended by an admin or registrar. If you think this is a mistake, contact the institution admin or go to the university registrar.
+          </p>
+          <p className="mt-3 text-sm text-slate-500">Account: {suspendedUser.email}</p>
+
+          <div className="mt-6">
+            <Link
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              to="/"
+            >
+              <Icon className="text-sm" name="arrow_back" />
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (authMode === 'signin') {
     return (
-      <div className="credence-font min-h-screen bg-[#f7f7f8] px-4 py-6 text-slate-900 antialiased sm:px-6">
+      <div className="credence-font min-h-screen px-4 py-6 text-slate-900 antialiased sm:px-6" style={authPageBackgroundStyle}>
         <div className="mx-auto grid w-full max-w-[1120px] items-center gap-7 py-2 md:grid-cols-2 md:gap-10 md:py-6">
           <div className="mx-auto w-full max-w-[440px] md:mx-0">
             <img alt="Credence logo" className="h-20 w-auto md:h-24" src={logo2} />
@@ -394,7 +449,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="credence-font min-h-screen bg-[#f7f7f8] px-4 py-8 text-slate-900 antialiased sm:px-6">
+    <div className="credence-font min-h-screen px-4 py-8 text-slate-900 antialiased sm:px-6" style={authPageBackgroundStyle}>
       <div className="mx-auto mb-8 flex w-full max-w-[960px] items-center justify-between">
         <Link className="flex items-center gap-3 text-slate-900" to="/">
           <img alt="Credence logo" className="h-8 w-auto" src={logo2} />
