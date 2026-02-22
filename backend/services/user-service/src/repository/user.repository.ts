@@ -16,11 +16,17 @@ const normalizeOptionalString = (value?: string | null): string | null => {
 };
 
 const toPrismaRole = (role?: UserRole): Role => {
-  if (!role) {
-    return Role.STUDENT;
+  switch (role) {
+    case 'ADMIN':
+      return Role.ADMIN;
+    case 'EMPLOYER':
+      return Role.EMPLOYER;
+    case 'INSTITUTION':
+      return Role.INSTITUTION;
+    case 'STUDENT':
+    default:
+      return Role.STUDENT;
   }
-
-  return Role[role];
 };
 
 const toPrismaStatus = (status: UserStatus): Status => Status[status];

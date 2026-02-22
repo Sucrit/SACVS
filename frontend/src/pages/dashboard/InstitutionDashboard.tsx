@@ -35,7 +35,7 @@ const extractAiScore = (request: CredentialRequest) => {
   return null;
 };
 
-export default function RegistrarDashboard() {
+export default function InstitutionDashboard() {
   const [requests, setRequests] = useState<CredentialRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
   const [requestsError, setRequestsError] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export default function RegistrarDashboard() {
       const data = await CredentialService.listRequests();
       setRequests(data);
     } catch (error) {
-      console.error('Failed to load registrar requests:', error);
+      console.error('Failed to load institution requests:', error);
       setRequests([]);
       setRequestsError('Unable to load verification requests from the backend.');
     } finally {
@@ -90,7 +90,7 @@ export default function RegistrarDashboard() {
       const updatedRequest = await CredentialService.updateRequestStatus(
         requestId,
         nextStatus,
-        action === 'REJECT' ? 'Rejected by registrar review.' : undefined,
+        action === 'REJECT' ? 'Rejected by institution review.' : undefined,
       );
 
       setRequests(previous =>

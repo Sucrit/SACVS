@@ -6,7 +6,7 @@ import studentsGraduateImage from '../assets/students-graduates.jpg';
 import logo2 from '../assets/logo2.png';
 
 const platformLinks = ['How it works', 'Blockchain', 'AI Security', 'Verification'];
-const audienceLinks = ['For Universities', 'For Students', 'For Registrar'];
+const audienceLinks = ['For Institutions', 'For Students', 'For Employers'];
 const companyLinks = ['About Us', 'Privacy Policy', 'Terms of Service', 'Contact Support'];
 
 const features: Array<{

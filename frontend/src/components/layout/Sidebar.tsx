@@ -5,12 +5,14 @@ import {
   ShieldCheck,
   LayoutDashboard, 
   History, 
-  Settings
+  Settings,
+  BriefcaseBusiness,
+  Building2
 } from 'lucide-react';
 import logo2 from '../../assets/logo2.png';
 
 interface SidebarProps {
-  role: 'STUDENT' | 'REGISTRAR' | 'ADMIN';
+  role: 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION';
 }
 
 export default function Sidebar({ role }: SidebarProps) {
@@ -21,11 +23,17 @@ export default function Sidebar({ role }: SidebarProps) {
       { to: '/dashboard/student/credentials', label: 'My Credentials', icon: ShieldCheck },
       { to: '/dashboard/student/profile', label: 'Profile', icon: Users },
     ],
-    REGISTRAR: [
-      { to: '/dashboard/registrar', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/dashboard/registrar/requests', label: 'Pending Requests', icon: FileText },
-      { to: '/dashboard/registrar/verify', label: 'Verify Documents', icon: ShieldCheck },
-      { to: '/dashboard/registrar/history', label: 'History', icon: History },
+    INSTITUTION: [
+      { to: '/dashboard/institution', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/dashboard/institution/requests', label: 'Pending Requests', icon: FileText },
+      { to: '/dashboard/institution/verify', label: 'Verify Documents', icon: ShieldCheck },
+      { to: '/dashboard/institution/history', label: 'History', icon: History },
+    ],
+    EMPLOYER: [
+      { to: '/dashboard/employer', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/dashboard/employer/requests', label: 'My Requests', icon: FileText },
+      { to: '/dashboard/employer/verifications', label: 'Verifications', icon: BriefcaseBusiness },
+      { to: '/dashboard/employer/partners', label: 'Institutions', icon: Building2 },
     ],
     ADMIN: [
       { to: '/dashboard/admin', label: 'Overview', icon: LayoutDashboard },

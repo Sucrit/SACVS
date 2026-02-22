@@ -162,7 +162,7 @@ export class UserController {
         return res.status(400).json({ error: 'Last name is required.' });
       }
 
-      if (userData.role && !['STUDENT', 'ADMIN', 'REGISTRAR'].includes(userData.role)) {
+      if (userData.role && !['STUDENT', 'ADMIN', 'EMPLOYER', 'INSTITUTION'].includes(userData.role)) {
         return res.status(400).json({ error: 'Invalid role provided.' });
       }
 

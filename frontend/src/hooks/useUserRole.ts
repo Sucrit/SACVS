@@ -1,6 +1,6 @@
 import { useLegacyAuth } from '../auth/auth-context';
 
-export type UserRole = 'STUDENT' | 'REGISTRAR' | 'ADMIN';
+export type UserRole = 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION';
 
 export const useUserRole = () => {
   const { user, isLoading } = useLegacyAuth();
@@ -11,7 +11,7 @@ export const useUserRole = () => {
   }
 
   const role = user.role;
-  const allowedRoles: UserRole[] = ['STUDENT', 'REGISTRAR', 'ADMIN'];
+  const allowedRoles: UserRole[] = ['STUDENT', 'ADMIN', 'EMPLOYER', 'INSTITUTION'];
 
   if (typeof role === 'string' && allowedRoles.includes(role as UserRole)) {
     return { role: role as UserRole, isLoaded };

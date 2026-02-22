@@ -1,6 +1,6 @@
 import { api } from '../api/client';
 
-export type UserRole = 'STUDENT' | 'REGISTRAR' | 'ADMIN';
+export type UserRole = 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION';
 export type UserStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 
 export interface StudentProfile {

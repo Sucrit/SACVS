@@ -356,7 +356,7 @@ export default function AuthPage() {
       await refreshUser();
 
       setOnboardingSubmitted(true);
-      setAuthHint('Your account creation request is now pending admin/registrar approval.');
+      setAuthHint('Your account creation request is now pending admin/institution approval.');
     } catch (error) {
       console.error('Failed to submit onboarding:', error);
       setAuthError('Unable to submit onboarding. Please review your inputs and try again.');
@@ -386,7 +386,7 @@ export default function AuthPage() {
           </div>
 
           <p className="text-base leading-relaxed text-slate-700">
-            Your account has been suspended by an admin or registrar. If you think this is a mistake, contact the institution admin or go to the university registrar.
+            Your account has been suspended by an admin or institution reviewer. If you think this is a mistake, contact the institution admin.
           </p>
           <p className="mt-3 text-sm text-slate-500">Account: {suspendedUser.email}</p>
 
@@ -810,7 +810,7 @@ export default function AuthPage() {
                 <p className="text-base font-semibold">Account creation request submitted.</p>
                 <p>
                   Your account is now <span className="font-semibold">PENDING</span> and must be approved by admin
-                  or registrar before dashboard access is enabled.
+                  or institution before dashboard access is enabled.
                 </p>
                 <div className="flex flex-wrap gap-3 pt-1">
                   <Link
@@ -846,7 +846,7 @@ export default function AuthPage() {
                     className="mt-1 h-4 w-4 rounded border-slate-300"
                   />
                   <span>
-                    I confirm these details are accurate and understand my account remains pending until admin and registrar approval.
+                    I confirm these details are accurate and understand my account remains pending until admin and institution approval.
                   </span>
                 </label>
 

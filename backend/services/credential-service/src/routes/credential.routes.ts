@@ -11,7 +11,7 @@ router.post(
   '/',
   requireAuth,
   requireApprovedAccount,
-  requireRoles('ADMIN', 'REGISTRAR'),
+  requireRoles('ADMIN', 'INSTITUTION'),
   credentialController.createCredential.bind(credentialController),
 );
 router.get('/:id', requireAuth, requireApprovedAccount, credentialController.getCredentialById.bind(credentialController));
@@ -19,7 +19,7 @@ router.put(
   '/:id/status',
   requireAuth,
   requireApprovedAccount,
-  requireRoles('ADMIN', 'REGISTRAR'),
+  requireRoles('ADMIN', 'INSTITUTION'),
   credentialController.updateCredentialStatus.bind(credentialController),
 );
 

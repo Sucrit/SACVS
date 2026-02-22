@@ -108,8 +108,6 @@ enum AuditAction {
   
   // System and configuration changes
   SETTINGS_CHANGED
-  ROLE_CHANGED
-  ACCESS_DENIED
   SECURITY_ALERT
 }
 
@@ -146,6 +144,8 @@ model User {
   email        String    @unique
   role         Role      @default(STUDENT)
   status       Status    @default(PENDING)
+  employerId   String?
+  institutionId String?
   approvedById String?
   approvedAt   DateTime?
   createdAt    DateTime  @default(now())
@@ -155,12 +155,17 @@ model User {
   studentCredentials Credential[]        @relation("StudentCredentials")
   issuedCredentials  Credential[]        @relation("IssuedCredentials")
   credentialRequests CredentialRequest[] @relation("StudentRequests")
-  processedRequests  CredentialRequest[] @relation("ProcessedByRegistrar")
+  requestedRequests  CredentialRequest[] @relation("RequesterRequests")
+  processedRequests  CredentialRequest[] @relation("ProcessedByInstitution")
+  employer           Employer?           @relation("EmployerUsers", fields: [employerId], references: [id])
+  institution        Institution?        @relation("InstitutionUsers", fields: [institutionId], references: [id])
   auditLogs          AuditLog[] 
   notifications      Notification[]
 
   @@index([role])
   @@index([status])
+  @@index([employerId])
+  @@index([institutionId])
 }
 
 
@@ -259,18 +264,18 @@ model CredentialRequest {
 
   status           CredentialRequestStatus @default(PENDING)
   processedById    String?
-  processedBy      User?                   @relation("ProcessedByRegistrar", fields: [processedById], references: [id])
+  processedBy      User?                   @relation("ProcessedByInstitution", fields: [processedById], references: [id])
   processedAt      DateTime?
   rejectionReason  String?
 
   requesterType    RequesterType @default(STUDENT)
   requesterId      String
-  requester        User         @relation(fields: [requesterId], references: [id])
+  requester        User         @relation("RequesterRequests", fields: [requesterId], references: [id])
 
   employerId       String?      // Employer initiating the request
   institutionId    String?      // Institution processing the request
-  employer         Employer?    @relation(fields: [employerId], references: [id])
-  institution      Institution? @relation(fields: [institutionId], references: [id])
+  employer         Employer?    @relation("EmployerCredentialRequests", fields: [employerId], references: [id])
+  institution      Institution? @relation("InstitutionCredentialRequests", fields: [institutionId], references: [id])
 
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
@@ -359,7 +364,8 @@ model Employer {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  users       User[]   @relation("EmployerUsers")
+  users       User[]              @relation("EmployerUsers")
+  credentialRequests CredentialRequest[] @relation("EmployerCredentialRequests")
 
   @@index([email])
 }
@@ -384,9 +390,8 @@ model Institution {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  users       User[]   @relation("InstitutionUsers")
-  studentCredentials    Credential[] @relation("IssuedCredentials")
-  credentialRequests    CredentialRequest[] @relation("ProcessedByRegistrar")
+  users       User[]              @relation("InstitutionUsers")
+  credentialRequests CredentialRequest[] @relation("InstitutionCredentialRequests")
 
   @@index([email])
 }

@@ -2,7 +2,8 @@ import { Routes, Route, BrowserRouter, Navigate } from 'react-router-dom';
 import type { ReactElement } from 'react';
 import DashboardLayout from './layouts/DashboardLayout';
 import StudentDashboard from './pages/dashboard/StudentDashboard';
-import RegistrarDashboard from './pages/dashboard/RegistrarDashboard';
+import InstitutionDashboard from './pages/dashboard/InstitutionDashboard';
+import EmployerDashboard from './pages/dashboard/EmployerDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
@@ -41,7 +42,8 @@ function App() {
           }
         >
           <Route path="student/*" element={<StudentDashboard />} />
-          <Route path="registrar/*" element={<RegistrarDashboard />} />
+          <Route path="institution/*" element={<InstitutionDashboard />} />
+          <Route path="employer/*" element={<EmployerDashboard />} />
           <Route path="admin/*" element={<AdminDashboard />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>

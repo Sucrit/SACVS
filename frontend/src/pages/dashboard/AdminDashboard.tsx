@@ -23,7 +23,7 @@ type AdminSection = 'overview' | 'users' | 'logs' | 'settings';
 type RoleFilter = UserRole | 'ALL';
 type StatusFilter = UserStatus | 'ALL';
 
-const ROLE_OPTIONS: RoleFilter[] = ['ALL', 'STUDENT', 'REGISTRAR', 'ADMIN'];
+const ROLE_OPTIONS: RoleFilter[] = ['ALL', 'STUDENT', 'EMPLOYER', 'INSTITUTION', 'ADMIN'];
 const STATUS_OPTIONS: StatusFilter[] = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'];
 const USER_STATUS_ACTIONS: UserStatus[] = ['APPROVED', 'REJECTED', 'SUSPENDED', 'PENDING'];
 
@@ -52,7 +52,8 @@ const getInitials = (user: User) => {
 
 const getRoleStyles = (role: UserRole) => {
   if (role === 'ADMIN') return 'border-slate-400 bg-slate-100 text-slate-800';
-  if (role === 'REGISTRAR') return 'border-cyan-200 bg-cyan-50 text-cyan-800';
+  if (role === 'INSTITUTION') return 'border-cyan-200 bg-cyan-50 text-cyan-800';
+  if (role === 'EMPLOYER') return 'border-violet-200 bg-violet-50 text-violet-800';
   return 'border-slate-200 bg-slate-50 text-slate-700';
 };
 
@@ -106,7 +107,8 @@ export default function AdminDashboard() {
   const roleDistribution = useMemo(() => {
     return {
       STUDENT: users.filter(user => user.role === 'STUDENT').length,
-      REGISTRAR: users.filter(user => user.role === 'REGISTRAR').length,
+      EMPLOYER: users.filter(user => user.role === 'EMPLOYER').length,
+      INSTITUTION: users.filter(user => user.role === 'INSTITUTION').length,
       ADMIN: users.filter(user => user.role === 'ADMIN').length,
     };
   }, [users]);

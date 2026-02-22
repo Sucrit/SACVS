@@ -12,7 +12,7 @@ router.put('/me/profile', requireAuth, userController.upsertMyProfile.bind(userC
 router.get(
   '/',
   requireAuth,
-  requireRoles('ADMIN', 'REGISTRAR'),
+  requireRoles('ADMIN', 'INSTITUTION'),
   userController.listUsers.bind(userController),
 );
 router.post(
@@ -24,13 +24,13 @@ router.post(
 router.get(
   '/:id',
   requireAuth,
-  requireRoles('ADMIN', 'REGISTRAR'),
+  requireRoles('ADMIN', 'INSTITUTION'),
   userController.getUserById.bind(userController),
 );
 router.put(
   '/:id/status',
   requireAuth,
-  requireRoles('ADMIN', 'REGISTRAR'),
+  requireRoles('ADMIN', 'INSTITUTION'),
   userController.updateUserStatus.bind(userController),
 );
 

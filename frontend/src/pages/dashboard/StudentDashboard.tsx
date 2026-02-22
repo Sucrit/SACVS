@@ -286,7 +286,7 @@ export default function StudentDashboard() {
 
         <div className="space-y-6">
           <Card title="New Credential Request">
-            <p className="mb-4 text-sm text-slate-600">Submit a request to the registrar for new credential issuance.</p>
+            <p className="mb-4 text-sm text-slate-600">Submit a request to your institution for new credential issuance.</p>
             <form className="space-y-3" onSubmit={handleRequestSubmit}>
               <select
                 value={requestForm.type}
