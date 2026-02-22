@@ -187,7 +187,7 @@ export default function LandingPage() {
                   <div className="relative z-10 order-1 p-8 md:order-2 md:p-12 lg:p-14">
                     <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-300">For Students</p>
                     <h3 className="mt-4 text-4xl font-black leading-tight text-white">
-                      Your degree.
+                      Your achievements.
                       <br />
                       In your pocket.
                     </h3>

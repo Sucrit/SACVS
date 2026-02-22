@@ -10,12 +10,13 @@ datasource db {
 
 
 
-// ─── Enums ───────────────────────────────────────────────────
+// Enums 
 
 enum Role {
   STUDENT
   ADMIN
-  REGISTRAR
+  EMPLOYER
+  INSTITUTION 
 }
 
 enum Status {
@@ -50,6 +51,12 @@ enum CredentialType {
   LICENSE
 }
 
+enum RequesterType {
+  STUDENT
+  EMPLOYER
+  INSTITUTION
+}
+
 enum DeliveryMethod {
   DIGITAL
   PHYSICAL
@@ -57,11 +64,15 @@ enum DeliveryMethod {
 }
 
 enum AuditAction {
+
+  // User actions
   USER_CREATED
   USER_APPROVED
   USER_REJECTED
   USER_SUSPENDED
   USER_DELETED
+  
+  // Credential actions
   CREDENTIAL_CREATED
   CREDENTIAL_ISSUED
   CREDENTIAL_VERIFIED
@@ -69,8 +80,33 @@ enum AuditAction {
   CREDENTIAL_REQUESTED
   CREDENTIAL_REQUEST_APPROVED
   CREDENTIAL_REQUEST_REJECTED
+  CREDENTIAL_REQUEST_PENDING 
+  CREDENTIAL_REQUEST_COMPLETED 
+  
+  // AI and Blockchain Validation Actions
   AI_VALIDATION_RUN
+  AI_VALIDATION_FAILED  
   BLOCKCHAIN_ANCHORED
+  BLOCKCHAIN_ANCHORING_FAILED  
+
+  // Role and permissions management
+  ROLE_CHANGED
+  ROLE_ASSIGNED  
+  ROLE_REMOVED   
+  USER_PERMISSIONS_UPDATED
+  
+  // Credential verification
+  CREDENTIAL_REQUEST_VERIFIED 
+  CREDENTIAL_VERIFIED_BY_AI 
+  CREDENTIAL_VERIFIED_BY_BLOCKCHAIN
+
+  // Security events
+  ACCESS_GRANTED 
+  ACCESS_DENIED  
+  SUSPICIOUS_ACTIVITY_DETECTED  
+  SECURITY_INCIDENT  
+  
+  // System and configuration changes
   SETTINGS_CHANGED
   ROLE_CHANGED
   ACCESS_DENIED
@@ -100,7 +136,7 @@ enum NotificationType {
 
 
 
-// ─── User & Profile ─────────────────────────────────────────
+// User & Profile 
 
 model User {
   id           String    @id @default(uuid())
@@ -128,10 +164,7 @@ model User {
 }
 
 
-
-
-
-
+// Student Profile 
 
 model StudentProfile {
   id            String   @id @default(uuid())
@@ -159,7 +192,7 @@ model StudentProfile {
 
 
 
-// ─── Credentials ─────────────────────────────────────────────
+// Credentials 
 
 model Credential {
   id          String           @id @default(uuid())
@@ -209,34 +242,44 @@ model Credential {
 
 
 
-// ─── Credential Requests ─────────────────────────────────────
+// Credential Requests 
 
 model CredentialRequest {
-  id           String      @id @default(uuid())
-  studentId    String
-  student      User        @relation("StudentRequests", fields: [studentId], references: [id])
-  credentialId String?
-  credential   Credential? @relation(fields: [credentialId], references: [id])
+  id               String      @id @default(uuid())
+  studentId        String
+  student          User        @relation("StudentRequests", fields: [studentId], references: [id])
+  credentialId     String?
+  credential       Credential? @relation(fields: [credentialId], references: [id])
 
-  type           CredentialType
-  title          String
-  description    String?
-  purpose        String?
-  deliveryMethod DeliveryMethod @default(DIGITAL)
+  type             CredentialType
+  title            String
+  description      String?
+  purpose          String?
+  deliveryMethod   DeliveryMethod @default(DIGITAL)
 
-  status          CredentialRequestStatus @default(PENDING)
-  processedById   String?
-  processedBy     User?                   @relation("ProcessedByRegistrar", fields: [processedById], references: [id])
-  processedAt     DateTime?
-  rejectionReason String?
-  notes           String?
+  status           CredentialRequestStatus @default(PENDING)
+  processedById    String?
+  processedBy      User?                   @relation("ProcessedByRegistrar", fields: [processedById], references: [id])
+  processedAt      DateTime?
+  rejectionReason  String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  requesterType    RequesterType @default(STUDENT)
+  requesterId      String
+  requester        User         @relation(fields: [requesterId], references: [id])
+
+  employerId       String?      // Employer initiating the request
+  institutionId    String?      // Institution processing the request
+  employer         Employer?    @relation(fields: [employerId], references: [id])
+  institution      Institution? @relation(fields: [institutionId], references: [id])
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   @@index([studentId])
   @@index([status])
   @@index([processedById])
+  @@index([employerId])       
+  @@index([institutionId])     
 }
 
 
@@ -246,7 +289,7 @@ model CredentialRequest {
 
 
 
-// ─── Audit Logging ───────────────────────────────────────────
+// Audit Logging 
 
 model AuditLog {
   id          String        @id @default(uuid())
@@ -276,7 +319,7 @@ model AuditLog {
 
 
 
-// ─── Notifications ───────────────────────────────────────────
+// Notifications 
 
 model Notification {
   id        String           @id @default(uuid())
@@ -292,4 +335,58 @@ model Notification {
   @@index([userId])
   @@index([read])
   @@index([createdAt])
+}
+
+
+
+
+
+
+
+
+
+
+// Employer
+
+model Employer {
+  id          String   @id @default(uuid())
+  companyName String
+  registrationNumber String
+  taxId       String
+  email       String   @unique
+  phoneNumber String
+  status      Status   @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]   @relation("EmployerUsers")
+
+  @@index([email])
+}
+
+
+
+
+
+
+
+
+
+// Institution
+model Institution {
+  id          String   @id @default(uuid())
+  name        String
+  accreditationNumber String
+  registrationNumber String
+  email       String   @unique
+  phoneNumber String
+  status      Status   @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]   @relation("InstitutionUsers")
+  studentCredentials    Credential[] @relation("IssuedCredentials")
+  credentialRequests    CredentialRequest[] @relation("ProcessedByRegistrar")
+
+  @@index([email])
 }

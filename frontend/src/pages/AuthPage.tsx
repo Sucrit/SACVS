@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, memo, useEffect, useMemo, useState } from 'react';
 import {
   SignIn,
   SignUp,
@@ -94,6 +94,17 @@ const signInClerkAppearance = {
     card: 'w-full max-w-[520px] border border-slate-200 shadow-none',
   },
 };
+
+const SignInBrand = memo(function SignInBrand() {
+  return (
+    <div className="mx-auto flex w-full max-w-[440px] flex-col items-center text-center">
+      <img alt="Credence logo" className="h-20 w-auto md:h-24" loading="eager" src={logo2} />
+      <p className="mt-5 text-xl leading-relaxed text-slate-600 md:text-2xl">
+        Access your credentials anywhere, and manage records with confidence.
+      </p>
+    </div>
+  );
+});
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -396,20 +407,49 @@ export default function AuthPage() {
   if (authMode === 'signin') {
     return (
       <div className="credence-font min-h-screen px-4 py-6 text-slate-900 antialiased sm:px-6" style={authPageBackgroundStyle}>
-        <div className="mx-auto grid w-full max-w-[1120px] items-center gap-7 py-2 md:grid-cols-2 md:gap-10 md:py-6">
-          <div className="mx-auto w-full max-w-[440px] md:mx-0">
-            <img alt="Credence logo" className="h-20 w-auto md:h-24" src={logo2} />
-            <p className="mt-5 text-xl leading-relaxed text-slate-600 md:text-2xl">
-              Access your credentials anywhere, and manage records with confidence.
-            </p>
+        <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-[1120px] items-center gap-7 py-2 md:grid-cols-[minmax(0,1fr)_500px] md:gap-10 md:py-6">
+          <div className="flex w-full justify-center md:h-full md:items-center">
+            <SignInBrand />
           </div>
 
-          <div className="mx-auto w-full max-w-[540px]">
+          <div className="mx-auto w-full max-w-[500px]">
             {!isClerkLoaded && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-700">
-                <div className="flex items-center gap-3">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
-                  <p className="font-medium">Loading authentication...</p>
+              <div className="mx-auto w-full max-w-[401px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_10px_25px_rgba(0,0,0,.25)]">
+                <div className="border-b border-slate-200 px-9 pb-5 pt-8">
+                  <div className="skeleton-shimmer mx-auto mb-2.5 h-5 w-40 rounded-md"></div>
+                  <div className="skeleton-shimmer skeleton-delay-1 mx-auto h-3.5 w-64 rounded-md"></div>
+
+                  <div className="mt-8 space-y-4">
+                    <div className="relative">
+                      <div className="skeleton-shimmer skeleton-delay-2 h-8 rounded-lg border border-slate-200"></div>
+                      <div className="skeleton-shimmer skeleton-delay-3 absolute -right-2 -top-2 h-4 w-15 rounded-full border border-slate-200"></div>
+                    </div>
+
+                    <div className="flex items-center gap-3 mb-7 mt-7">
+                      <div className="skeleton-shimmer h-px flex-1"></div>
+                      <div className="skeleton-shimmer skeleton-delay-1 h-3 w-3 rounded"></div>
+                      <div className="skeleton-shimmer h-px flex-1"></div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="skeleton-shimmer skeleton-delay-1 h-3.5 w-25 rounded"></div>
+                      <div className="skeleton-shimmer skeleton-delay-2 h-8 rounded-lg border border-slate-200"></div>
+                    </div>
+
+                    <div className="skeleton-shimmer-strong skeleton-delay-3 h-8 rounded-lg flex items-center justify-center space-x-2 mt-8 mb-3">
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
+                      <span className="text-sm font-medium">Loading...</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-b border-slate-200 bg-slate-50/70 px-7 py-4">
+                  <div className="skeleton-shimmer mx-auto h-3.5 w-52 rounded"></div>
+                </div>
+
+                <div className="bg-[repeating-linear-gradient(135deg,rgba(15,23,42,0.015)_0,rgba(15,23,42,0.015)_8px,transparent_8px,transparent_16px)] px-7 py-4">
+                  <div className="skeleton-shimmer mx-auto h-3.5 w-30 rounded mb-3"></div>
+                  <div className="skeleton-shimmer mx-auto h-3.5 w-34 rounded"></div>
                 </div>
               </div>
             )}
