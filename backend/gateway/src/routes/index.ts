@@ -29,7 +29,15 @@ router.use(
   createProxyMiddleware({
     target: ENV.CREDENTIAL_REQUEST_SERVICE_URL,
     changeOrigin: true,
-    pathRewrite: path => path.replace(/^\/credentials\/requests/, '/requests'),
+    pathRewrite: path => {
+      if (!path || path === '/') {
+        return '/requests';
+      }
+      if (path.startsWith('/credentials/requests')) {
+        return path.replace(/^\/credentials\/requests/, '/requests');
+      }
+      return `/requests${path}`;
+    },
     on: {
       error: (err, _req, res: any) => {
         console.error('[PROXY] Credential request service error:', err.message);

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Prisma } from '../../../../db/node_modules/@prisma/client';
 import {
   CreateCredentialRequestDto,
   ListCredentialRequestsQueryDto,
@@ -51,6 +52,9 @@ export class CredentialRequestController {
       if (error instanceof Error && error.message === 'INVALID_STATUS') {
         return res.status(400).json({ error: 'Invalid status query value.' });
       }
+      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
+        return res.status(404).json({ error: 'Authenticated user record was not found.' });
+      }
       if (error instanceof Error && error.message === 'INSTITUTION_CONTEXT_MISSING') {
         return res.status(403).json({ error: 'Institution context is missing for this account.' });
       }
@@ -87,8 +91,14 @@ export class CredentialRequestController {
       const created = await credentialRequestService.createCredentialRequest(userId, payload as CreateCredentialRequestDto);
       return res.status(201).json(created);
     } catch (error) {
+      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
+        return res.status(404).json({ error: 'Authenticated user record was not found.' });
+      }
       if (error instanceof Error && error.message === 'FORBIDDEN_ROLE') {
         return res.status(403).json({ error: 'This role cannot create credential requests.' });
+      }
+      if (error instanceof Error && error.message === 'TITLE_REQUIRED') {
+        return res.status(400).json({ error: 'Missing required field: title' });
       }
       if (error instanceof Error && error.message === 'STUDENT_ID_REQUIRED') {
         return res.status(400).json({ error: 'Missing required field: studentId' });
@@ -101,6 +111,15 @@ export class CredentialRequestController {
       }
       if (error instanceof Error && error.message === 'FOREIGN_KEY_CONSTRAINT') {
         return res.status(400).json({ error: 'One or more referenced records do not exist.' });
+      }
+      if (error instanceof Error && error.message === 'DATABASE_SCHEMA_MISMATCH') {
+        return res.status(500).json({ error: 'Database schema is out of sync with the service.' });
+      }
+      if (error instanceof Error && error.message === 'RELATED_RECORD_NOT_FOUND') {
+        return res.status(400).json({ error: 'One or more related records were not found.' });
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        return res.status(400).json({ error: `Database request failed (${error.code}).` });
       }
 
       console.error('Error creating credential request:', error);
@@ -123,6 +142,9 @@ export class CredentialRequestController {
       }
       return res.status(200).json(request);
     } catch (error) {
+      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
+        return res.status(404).json({ error: 'Authenticated user record was not found.' });
+      }
       if (error instanceof Error && error.message === 'FORBIDDEN_SCOPE') {
         return res.status(403).json({ error: 'Not allowed to access this credential request.' });
       }
@@ -152,6 +174,9 @@ export class CredentialRequestController {
       );
       return res.status(200).json(updated);
     } catch (error) {
+      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
+        return res.status(404).json({ error: 'Authenticated user record was not found.' });
+      }
       if (error instanceof Error && error.message === 'FORBIDDEN_ROLE') {
         return res.status(403).json({ error: 'Only institution or admin accounts can update request status.' });
       }

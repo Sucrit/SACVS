@@ -206,6 +206,12 @@ export class CredentialRequestService {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
         throw new Error('FOREIGN_KEY_CONSTRAINT');
       }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+        throw new Error('DATABASE_SCHEMA_MISMATCH');
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new Error('RELATED_RECORD_NOT_FOUND');
+      }
       throw error;
     }
   }

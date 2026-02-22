@@ -50,13 +50,31 @@ start_service() {
 
   (
     cd "$abs_path"
-    npm run db:generate --if-present 2>&1 | sed "s/^/[$name] /"
-    echo "[$name] starting (npm run dev)"
-    npm run dev 2>&1 | sed "s/^/[$name] /"
+    echo "[$name] starting (npm run --ignore-scripts dev)"
+    npm run --ignore-scripts dev 2>&1 | sed "s/^/[$name] /"
   ) &
 
   PIDS+=("$!")
 }
+
+generate_shared_prisma_client() {
+  local prisma_service_path="$ROOT_DIR/backend/services/user-service"
+  local prisma_client_path="$ROOT_DIR/backend/db/node_modules/.prisma/client"
+
+  if [[ ! -d "$prisma_service_path" ]]; then
+    echo "[bootstrap] Missing directory: backend/services/user-service"
+    exit 1
+  fi
+
+  echo "[bootstrap] Regenerating shared Prisma client once before starting services..."
+  rm -rf "$prisma_client_path"
+  (
+    cd "$prisma_service_path"
+    npm run db:generate 2>&1 | sed "s/^/[bootstrap] /"
+  )
+}
+
+generate_shared_prisma_client
 
 for entry in "${SERVICES[@]}"; do
   name="${entry%%:*}"

@@ -1,4 +1,5 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { isAxiosError } from 'axios';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import {
@@ -46,6 +47,39 @@ const getStatusLabel = (status: Credential['status']) => {
     default:
       return 'Credential pending';
   }
+};
+
+const getApiErrorMessage = (error: unknown): string | null => {
+  if (!isAxiosError(error)) {
+    if (error instanceof Error && error.message.trim().length > 0) {
+      return error.message;
+    }
+    return null;
+  }
+
+  if (typeof error.response?.data === 'string' && error.response.data.trim().length > 0) {
+    return error.response.data;
+  }
+
+  if (!error.response) {
+    return 'Network error: API gateway is unreachable. Make sure backend services are running.';
+  }
+
+  const responseData = error.response?.data as { error?: string; message?: string } | undefined;
+
+  if (typeof responseData?.error === 'string' && responseData.error.trim().length > 0) {
+    return responseData.error;
+  }
+
+  if (typeof responseData?.message === 'string' && responseData.message.trim().length > 0) {
+    return responseData.message;
+  }
+
+  if (typeof error.message === 'string' && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return null;
 };
 
 export default function StudentDashboard() {
@@ -130,7 +164,7 @@ export default function StudentDashboard() {
       void loadCredentials();
     } catch (error) {
       console.error('Failed to submit credential request:', error);
-      setRequestError('Unable to submit your request to the backend.');
+      setRequestError(getApiErrorMessage(error) || 'Unable to submit your request to the backend.');
     } finally {
       setIsSubmittingRequest(false);
     }
