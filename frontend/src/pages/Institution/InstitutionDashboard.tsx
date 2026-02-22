@@ -3,12 +3,69 @@ import { isAxiosError } from 'axios';
 import { Link, useLocation } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
-import { AlertCircle, Check, FileText, PauseCircle, RefreshCw, Upload, UserPlus, X } from 'lucide-react';
-import { CredentialRequest, CredentialService } from '../../services/credential.service';
-import { InstitutionStudentPayload, User, UserService, UserStatus } from '../../services/user.service';
+import {
+  AlertCircle,
+  Bell,
+  Check,
+  ClipboardCheck,
+  FileText,
+  History,
+  PauseCircle,
+  Pencil,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  Trash2,
+  Upload,
+  UserPlus,
+  X,
+} from 'lucide-react';
+import { CredentialRequest, CredentialRequestStatus, CredentialService } from '../../services/credential.service';
+import { InstitutionStudentPayload, StudentProfile, User, UserService, UserStatus } from '../../services/user.service';
 
 type StudentStatusFilter = UserStatus | 'ALL';
+type RequestStatusFilter = CredentialRequestStatus | 'ALL';
+type InstitutionSection = 'overview' | 'students' | 'requests' | 'verify' | 'history' | 'notifications';
+type ActivityType = 'STUDENT' | 'REQUEST' | 'SECURITY' | 'SYSTEM' | 'NOTIFICATION';
+type NotificationTarget = 'ALL' | 'APPROVED_ONLY' | 'SUSPENDED_ONLY';
 const STUDENT_STATUS_OPTIONS: UserStatus[] = ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'];
+const REQUEST_STATUS_OPTIONS: RequestStatusFilter[] = ['ALL', 'PENDING', 'APPROVED', 'COMPLETED', 'REJECTED', 'CANCELLED'];
+
+interface ActivityEvent {
+  id: string;
+  type: ActivityType;
+  title: string;
+  description: string;
+  createdAt: string;
+}
+
+interface OutboundNotification {
+  id: string;
+  target: NotificationTarget;
+  title: string;
+  message: string;
+  createdAt: string;
+}
+
+const getSection = (pathname: string): InstitutionSection => {
+  if (pathname.startsWith('/institution/students')) return 'students';
+  if (pathname.startsWith('/institution/requests')) return 'requests';
+  if (pathname.startsWith('/institution/verify')) return 'verify';
+  if (pathname.startsWith('/institution/history')) return 'history';
+  if (pathname.startsWith('/institution/notifications')) return 'notifications';
+  return 'overview';
+};
+
+const formatDateTime = (value: string | null | undefined) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString();
+};
+
+const getStudentFullName = (student: User) =>
+  [student.firstName, student.middleName, student.lastName].filter(Boolean).join(' ').trim();
 
 const formatDate = (value: string | null | undefined) => {
   if (!value) return '-';
@@ -103,12 +160,18 @@ const getApiErrorMessage = (error: unknown): string | null => {
 
 export default function InstitutionDashboard() {
   const location = useLocation();
-  const isStudentsPage = location.pathname.startsWith('/institution/students');
+  const section = getSection(location.pathname);
+  const isStudentsPage = section === 'students';
 
   const [requests, setRequests] = useState<CredentialRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
   const [requestsError, setRequestsError] = useState<string | null>(null);
+  const [requestsHint, setRequestsHint] = useState<string | null>(null);
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
+  const [requestSearch, setRequestSearch] = useState('');
+  const [requestStatusFilter, setRequestStatusFilter] = useState<RequestStatusFilter>('ALL');
+  const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
+  const [rejectionReasonByRequestId, setRejectionReasonByRequestId] = useState<Record<string, string>>({});
 
   const [students, setStudents] = useState<User[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
@@ -121,6 +184,35 @@ export default function InstitutionDashboard() {
   const [isBulkImporting, setIsBulkImporting] = useState(false);
   const [studentSearch, setStudentSearch] = useState('');
   const [studentStatusFilter, setStudentStatusFilter] = useState<StudentStatusFilter>('ALL');
+  const [studentDepartmentFilter, setStudentDepartmentFilter] = useState('ALL');
+  const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+  const [editStudentForm, setEditStudentForm] = useState({
+    email: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    studentNumber: '',
+    street: '',
+    barangay: '',
+    city: '',
+    province: '',
+    zipCode: '',
+    phone: '',
+    courseOfStudy: '',
+    yearLevel: '',
+    department: '',
+    status: 'PENDING' as UserStatus,
+  });
+  const [editStudentError, setEditStudentError] = useState<string | null>(null);
+  const [editStudentHint, setEditStudentHint] = useState<string | null>(null);
+
+  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([]);
+  const [outboundNotifications, setOutboundNotifications] = useState<OutboundNotification[]>([]);
+  const [notificationTarget, setNotificationTarget] = useState<NotificationTarget>('ALL');
+  const [notificationTitle, setNotificationTitle] = useState('');
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationError, setNotificationError] = useState<string | null>(null);
+  const [notificationHint, setNotificationHint] = useState<string | null>(null);
 
   const [studentForm, setStudentForm] = useState({
     email: '',
@@ -139,6 +231,27 @@ export default function InstitutionDashboard() {
     department: '',
     status: 'PENDING' as UserStatus,
   });
+
+  const createEvent = useCallback((type: ActivityType, title: string, description: string) => {
+    setActivityEvents(previous => [
+      {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        type,
+        title,
+        description,
+        createdAt: new Date().toISOString(),
+      },
+      ...previous,
+    ].slice(0, 100));
+  }, []);
+
+  const setRequestReason = (requestId: string, reason: string) => {
+    setRejectionReasonByRequestId(previous => ({ ...previous, [requestId]: reason }));
+  };
+
+  const setEditFormValue = (field: keyof typeof editStudentForm, value: string) => {
+    setEditStudentForm(previous => ({ ...previous, [field]: value }));
+  };
 
   const loadRequests = useCallback(async () => {
     setIsLoadingRequests(true);
@@ -171,25 +284,39 @@ export default function InstitutionDashboard() {
   useEffect(() => {
     void loadRequests();
     void loadStudents();
-  }, [loadRequests, loadStudents]);
+    createEvent('SYSTEM', 'Institution workspace initialized', 'Frontend capability views loaded.');
+  }, [createEvent, loadRequests, loadStudents]);
 
   const pendingCount = requests.filter(request => request.status === 'PENDING').length;
-  const processedTodayCount = requests.filter(request => request.status !== 'PENDING').length;
+  const processedTodayCount = requests.filter(request => request.status === 'APPROVED' || request.status === 'COMPLETED' || request.status === 'REJECTED').length;
   const newTodayCount = requests.length;
+  const approvedCount = requests.filter(request => request.status === 'APPROVED').length;
+  const completedCount = requests.filter(request => request.status === 'COMPLETED').length;
+  const rejectedCount = requests.filter(request => request.status === 'REJECTED').length;
   const studentCounts = useMemo(
     () => ({
       total: students.length,
       pending: students.filter(student => student.status === 'PENDING').length,
       approved: students.filter(student => student.status === 'APPROVED').length,
+      rejected: students.filter(student => student.status === 'REJECTED').length,
       suspended: students.filter(student => student.status === 'SUSPENDED').length,
     }),
     [students],
   );
 
+  const departmentOptions = useMemo(() => {
+    const values = new Set<string>();
+    students.forEach(student => {
+      if (student.profile?.department) values.add(student.profile.department);
+    });
+    return ['ALL', ...Array.from(values).sort((a, b) => a.localeCompare(b))];
+  }, [students]);
+
   const filteredStudents = useMemo(() => {
     const keyword = studentSearch.trim().toLowerCase();
     return students.filter(student => {
       if (studentStatusFilter !== 'ALL' && student.status !== studentStatusFilter) return false;
+      if (studentDepartmentFilter !== 'ALL' && student.profile?.department !== studentDepartmentFilter) return false;
       if (!keyword) return true;
       const searchable = [
         student.firstName,
@@ -197,10 +324,37 @@ export default function InstitutionDashboard() {
         student.lastName,
         student.email,
         student.profile?.studentNumber || '',
+        student.profile?.department || '',
       ].join(' ').toLowerCase();
       return searchable.includes(keyword);
     });
-  }, [studentSearch, studentStatusFilter, students]);
+  }, [studentDepartmentFilter, studentSearch, studentStatusFilter, students]);
+
+  const filteredRequests = useMemo(() => {
+    const keyword = requestSearch.trim().toLowerCase();
+    return requests.filter(request => {
+      if (requestStatusFilter !== 'ALL' && request.status !== requestStatusFilter) return false;
+      if (!keyword) return true;
+      const searchable = [
+        request.id,
+        request.studentId,
+        request.title,
+        request.type,
+        request.status,
+        request.rejectionReason || '',
+      ].join(' ').toLowerCase();
+      return searchable.includes(keyword);
+    });
+  }, [requestSearch, requestStatusFilter, requests]);
+
+  const duplicateStudentEmails = useMemo(() => {
+    const counts = new Map<string, number>();
+    students.forEach(student => {
+      const normalizedEmail = student.email.trim().toLowerCase();
+      counts.set(normalizedEmail, (counts.get(normalizedEmail) || 0) + 1);
+    });
+    return Array.from(counts.entries()).filter(([, count]) => count > 1);
+  }, [students]);
 
   const setFormValue = (field: keyof typeof studentForm, value: string) => {
     setStudentForm(previous => ({ ...previous, [field]: value }));
@@ -260,6 +414,7 @@ export default function InstitutionDashboard() {
       await UserService.createInstitutionStudent(payload);
       resetForm();
       setCreateStudentHint('Student account created successfully.');
+      createEvent('STUDENT', 'Student account created', `${payload.email} was added.`);
       await loadStudents();
     } catch (error) {
       console.error('Failed to create student:', error);
@@ -285,6 +440,7 @@ export default function InstitutionDashboard() {
 
       const result = await UserService.createInstitutionStudentsBulk({ students: parsed.students });
       setStudentsHint(`Bulk import complete: ${result.created} created, ${result.failed.length} failed.`);
+      createEvent('STUDENT', 'Bulk student import', `${result.created} created, ${result.failed.length} failed.`);
       await loadStudents();
     } catch (error) {
       console.error('Failed bulk importing students:', error);
@@ -302,6 +458,7 @@ export default function InstitutionDashboard() {
     try {
       const updated = await UserService.updateInstitutionStudentStatus(studentId, status);
       setStudents(previous => previous.map(student => (student.id === studentId ? { ...student, ...updated } : student)));
+      createEvent('STUDENT', 'Student status changed', `${updated.email} status changed to ${status}.`);
     } catch (error) {
       console.error('Failed updating student status:', error);
       setStudentsError('Unable to update student status.');
@@ -310,22 +467,196 @@ export default function InstitutionDashboard() {
     }
   };
 
-  const handleRequestAction = async (requestId: string, action: 'APPROVE' | 'REJECT') => {
+  const handleStartEditStudent = (student: User) => {
+    setEditingStudentId(student.id);
+    setEditStudentForm({
+      email: student.email,
+      firstName: student.firstName,
+      middleName: student.middleName || '',
+      lastName: student.lastName,
+      studentNumber: student.profile?.studentNumber || '',
+      street: student.profile?.street || '',
+      barangay: student.profile?.barangay || '',
+      city: student.profile?.city || '',
+      province: student.profile?.province || '',
+      zipCode: String(student.profile?.zipCode || ''),
+      phone: student.profile?.phone || '',
+      courseOfStudy: student.profile?.courseOfStudy || '',
+      yearLevel: student.profile?.yearLevel || '',
+      department: student.profile?.department || '',
+      status: student.status,
+    });
+    setEditStudentError(null);
+    setEditStudentHint(null);
+  };
+
+  const handleCancelEditStudent = () => {
+    setEditingStudentId(null);
+    setEditStudentError(null);
+    setEditStudentHint(null);
+  };
+
+  const handleSaveEditedStudent = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!editingStudentId) return;
+
+    const zipCode = Number(editStudentForm.zipCode);
+    if (!Number.isInteger(zipCode) || zipCode <= 0) {
+      setEditStudentError('Zip code must be a positive integer.');
+      return;
+    }
+
+    setStudents(previous => previous.map(student => {
+      if (student.id !== editingStudentId) return student;
+      const now = new Date().toISOString();
+      const currentProfile = student.profile;
+      const profile: StudentProfile = {
+        id: currentProfile?.id || `local-${student.id}`,
+        userId: student.id,
+        studentNumber: editStudentForm.studentNumber.trim(),
+        street: editStudentForm.street.trim(),
+        barangay: editStudentForm.barangay.trim(),
+        city: editStudentForm.city.trim(),
+        province: editStudentForm.province.trim(),
+        zipCode,
+        phone: editStudentForm.phone.trim(),
+        courseOfStudy: editStudentForm.courseOfStudy.trim(),
+        yearLevel: editStudentForm.yearLevel.trim(),
+        department: editStudentForm.department.trim(),
+        createdAt: currentProfile?.createdAt || now,
+        updatedAt: now,
+      };
+      return {
+        ...student,
+        firstName: editStudentForm.firstName.trim(),
+        middleName: editStudentForm.middleName.trim() || null,
+        lastName: editStudentForm.lastName.trim(),
+        email: editStudentForm.email.trim(),
+        status: editStudentForm.status,
+        profile,
+      };
+    }));
+
+    setEditStudentHint('Student profile updated in frontend state. Backend update endpoint will be connected next.');
+    const edited = students.find(student => student.id === editingStudentId);
+    if (edited) createEvent('STUDENT', 'Student profile updated', `${edited.email} updated from institution page.`);
+  };
+
+  const handleRemoveStudent = (student: User) => {
+    if (!window.confirm(`Remove ${student.email} from this roster view?`)) return;
+    setStudents(previous => previous.filter(entry => entry.id !== student.id));
+    setStudentsHint(`Removed ${student.email} in UI. Backend delete endpoint is not wired yet.`);
+    createEvent('SECURITY', 'Student removed locally', `${student.email} removed from frontend roster.`);
+  };
+
+  const updateRequestStatus = async (
+    requestId: string,
+    status: Exclude<CredentialRequestStatus, 'PENDING' | 'CANCELLED'>,
+    rejectionReason?: string,
+    notes?: string,
+  ) => {
     setUpdatingRequestId(requestId);
+    setRequestsError(null);
+    setRequestsHint(null);
     try {
       const updated = await CredentialService.updateRequestStatus(
         requestId,
-        action === 'APPROVE' ? 'APPROVED' : 'REJECTED',
-        action === 'REJECT' ? 'Rejected by institution review.' : undefined,
+        status,
+        rejectionReason,
+        notes,
       );
       setRequests(previous => previous.map(request => (request.id === requestId ? { ...request, ...updated } : request)));
+      return updated;
     } catch (error) {
-      console.error('Failed updating request status:', error);
-      setRequestsError('Unable to update request status.');
+      throw error;
     } finally {
       setUpdatingRequestId(null);
     }
   };
+
+  const handleRequestAction = async (requestId: string, action: 'APPROVE' | 'REJECT' | 'ISSUE') => {
+    try {
+      if (action === 'APPROVE') {
+        await updateRequestStatus(requestId, 'APPROVED');
+        setRequestsHint('Request approved.');
+        createEvent('REQUEST', 'Credential request approved', `Request ${requestId} approved.`);
+        return;
+      }
+
+      if (action === 'REJECT') {
+        const reason = rejectionReasonByRequestId[requestId]?.trim() || 'Rejected by institution review.';
+        await updateRequestStatus(requestId, 'REJECTED', reason);
+        setRequestsHint('Request rejected.');
+        createEvent('REQUEST', 'Credential request rejected', `Request ${requestId} rejected with reason: ${reason}`);
+        return;
+      }
+
+      await updateRequestStatus(requestId, 'COMPLETED', undefined, 'Credential issued by institution.');
+      setRequestsHint('Request marked as completed and credential issued.');
+      createEvent('REQUEST', 'Credential issued', `Request ${requestId} marked completed.`);
+    } catch (error) {
+      console.error('Failed updating request status:', error);
+      setRequestsError(getApiErrorMessage(error) || 'Unable to update request status.');
+    }
+  };
+
+  const handleBulkRequestAction = async (action: 'APPROVE' | 'REJECT' | 'ISSUE') => {
+    if (selectedRequestIds.length === 0) {
+      setRequestsError('Select at least one request for bulk action.');
+      return;
+    }
+
+    const results = await Promise.allSettled(
+      selectedRequestIds.map(async requestId => {
+        if (action === 'APPROVE') return updateRequestStatus(requestId, 'APPROVED');
+        if (action === 'REJECT') {
+          const reason = rejectionReasonByRequestId[requestId]?.trim() || 'Rejected during bulk review.';
+          return updateRequestStatus(requestId, 'REJECTED', reason);
+        }
+        return updateRequestStatus(requestId, 'COMPLETED', undefined, 'Credential issued in bulk processing.');
+      }),
+    );
+
+    const succeeded = results.filter(result => result.status === 'fulfilled').length;
+    const failed = results.length - succeeded;
+    setSelectedRequestIds([]);
+    setRequestsHint(`Bulk ${action.toLowerCase()} complete: ${succeeded} updated, ${failed} failed.`);
+    createEvent('REQUEST', 'Bulk request processing', `${action} applied to ${results.length} requests; ${succeeded} succeeded.`);
+  };
+
+  const handleNotificationSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setNotificationError(null);
+    setNotificationHint(null);
+
+    if (!notificationTitle.trim()) {
+      setNotificationError('Notification title is required.');
+      return;
+    }
+    if (!notificationMessage.trim()) {
+      setNotificationError('Notification message is required.');
+      return;
+    }
+
+    const entry: OutboundNotification = {
+      id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+      target: notificationTarget,
+      title: notificationTitle.trim(),
+      message: notificationMessage.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    setOutboundNotifications(previous => [entry, ...previous]);
+    setNotificationTitle('');
+    setNotificationMessage('');
+    setNotificationHint('Notification queued in frontend log. Backend delivery endpoint will be wired next.');
+    createEvent('NOTIFICATION', 'Notification queued', `${entry.target}: ${entry.title}`);
+  };
+
+  const isOverviewPage = section === 'overview';
+  const isRequestsPage = section === 'requests';
+  const isVerifyPage = section === 'verify';
+  const isHistoryPage = section === 'history';
+  const isNotificationsPage = section === 'notifications';
 
   return (
     <div className="space-y-6">
