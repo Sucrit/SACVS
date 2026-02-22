@@ -1,4 +1,4 @@
-import { PrismaClient, Credential, CredentialStatus } from '../../../../db/node_modules/@prisma/client';
+import { PrismaClient, Credential, CredentialStatus, Prisma } from '../../../../db/node_modules/@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { CreateCredentialDto } from '../dto/credential.dto';
 import { ENV } from '../config/env';
@@ -11,6 +11,19 @@ const prismaAdapter = new PrismaPg({ connectionString: ENV.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: prismaAdapter });
 
 export class CredentialRepository {
+  async listCredentials(
+    where: Prisma.CredentialWhereInput,
+    skip: number,
+    take: number,
+  ): Promise<Credential[]> {
+    return prisma.credential.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+    });
+  }
+
   // Create a new credential
   async createCredential(data: CreateCredentialDto): Promise<Credential> {
     return prisma.credential.create({

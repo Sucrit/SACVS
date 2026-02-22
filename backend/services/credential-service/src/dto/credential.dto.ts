@@ -6,7 +6,16 @@ export interface CreateCredentialDto {
   issuedById: string;
 }
 
+export interface ListCredentialsQueryDto {
+  studentId?: string;
+  status?: 'PENDING' | 'VERIFIED' | 'AI_REVIEW' | 'ISSUED' | 'REVOKED' | 'EXPIRED';
+  type?: 'TRANSCRIPT' | 'DIPLOMA' | 'CERTIFICATE' | 'DEGREE' | 'LICENSE';
+  page?: number;
+  pageSize?: number;
+  scope?: 'mine';
+}
+
 export interface UpdateCredentialStatusDto {
-  status: 'PENDING' | 'VERIFIED' | 'ISSUED' | 'REVOKED' | 'EXPIRED';
+  status: 'PENDING' | 'VERIFIED' | 'AI_REVIEW' | 'ISSUED' | 'REVOKED' | 'EXPIRED';
 }
   

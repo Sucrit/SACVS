@@ -7,6 +7,12 @@ const router = express.Router();
 const credentialController = new CredentialController();
 
 router.get('/health' , healthCheck);
+router.get(
+  '/',
+  requireAuth,
+  requireApprovedAccount,
+  credentialController.listCredentials.bind(credentialController),
+);
 router.post(
   '/',
   requireAuth,

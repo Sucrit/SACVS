@@ -98,7 +98,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Failed to load users:', error);
       setUsers([]);
-      setUsersError('Unable to load users from the backend.');
+      setUsersError('Unable to load users from the server.');
     } finally {
       setIsLoadingUsers(false);
     }

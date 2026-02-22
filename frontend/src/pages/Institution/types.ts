@@ -58,7 +58,7 @@ export const DEFAULT_STUDENT_FORM: StudentFormState = {
   courseOfStudy: '',
   yearLevel: '',
   department: '',
-  status: 'PENDING',
+  status: 'APPROVED',
 };
 
 

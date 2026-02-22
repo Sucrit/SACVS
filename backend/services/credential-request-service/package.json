@@ -1,7 +1,7 @@
 {
-  "name": "credential-service",
+  "name": "credential-request-service",
   "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
   "scripts": {
     "predev": "prisma generate",
     "dev": "nodemon",
@@ -9,13 +9,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate:dev": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "db:migrate:deploy": "prisma migrate deploy"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "@clerk/express": "^1.7.72",
     "@prisma/adapter-pg": "^7.4.0",

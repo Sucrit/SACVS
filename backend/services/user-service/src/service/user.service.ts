@@ -30,7 +30,30 @@ const normalizeErrorMessage = (error: unknown): string => {
   return 'Unknown error';
 };
 
+type WithApprover = { approvedById: string | null };
+
 export class UserService {
+  private async addApproverNames<T extends WithApprover>(
+    records: T[],
+  ): Promise<Array<T & { approverName: string | null }>> {
+    const approverIds = Array.from(
+      new Set(records.map(record => record.approvedById).filter((value): value is string => Boolean(value))),
+    );
+    const namesById = await userRepository.getUserDisplayNamesByIds(approverIds);
+
+    return records.map(record => ({
+      ...record,
+      approverName: record.approvedById ? namesById.get(record.approvedById) ?? null : null,
+    }));
+  }
+
+  private async addApproverName<T extends WithApprover>(
+    record: T,
+  ): Promise<T & { approverName: string | null }> {
+    const [enriched] = await this.addApproverNames([record]);
+    return enriched;
+  }
+
   private isClerkUserNotFoundError(error: unknown): boolean {
     if (error instanceof Error) {
       const message = error.message.toLowerCase();
@@ -76,6 +99,7 @@ export class UserService {
 
   private async createInstitutionStudentForContext(
     institutionId: string,
+    actorUserId: string,
     data: CreateInstitutionStudentDto,
   ) {
     const normalizedEmail = normalizeEmail(data.email);
@@ -95,10 +119,15 @@ export class UserService {
       });
       createdClerkUserId = clerkUser.id;
 
-      return await userRepository.createInstitutionStudentByClerkUserId(clerkUser.id, institutionId, {
-        ...data,
-        email: normalizedEmail,
-      });
+      return await userRepository.createInstitutionStudentByClerkUserId(
+        clerkUser.id,
+        institutionId,
+        {
+          ...data,
+          email: normalizedEmail,
+        },
+        actorUserId,
+      );
     } catch (error) {
       if (createdClerkUserId) {
         try {
@@ -117,7 +146,8 @@ export class UserService {
 
   async listInstitutionStudents(actorUserId: string) {
     const actor = await this.getInstitutionActorContext(actorUserId);
-    return userRepository.listInstitutionStudents(actor.institutionId);
+    const students = await userRepository.listInstitutionStudents(actor.institutionId);
+    return this.addApproverNames(students);
   }
 
   async createUser(data: CreateUserDto) {
@@ -126,7 +156,8 @@ export class UserService {
 
   async createInstitutionStudent(actorUserId: string, data: CreateInstitutionStudentDto) {
     const actor = await this.getInstitutionActorContext(actorUserId);
-    return this.createInstitutionStudentForContext(actor.institutionId, data);
+    const student = await this.createInstitutionStudentForContext(actor.institutionId, actor.id, data);
+    return this.addApproverName(student);
   }
 
   async createInstitutionStudentsBulk(
@@ -140,7 +171,7 @@ export class UserService {
     for (let index = 0; index < students.length; index += 1) {
       const student = students[index];
       try {
-        await this.createInstitutionStudentForContext(actor.institutionId, student);
+        await this.createInstitutionStudentForContext(actor.institutionId, actor.id, student);
         created += 1;
       } catch (error) {
         failed.push({
@@ -219,7 +250,7 @@ export class UserService {
       throw new Error('STUDENT_NOT_FOUND_OR_FORBIDDEN');
     }
 
-    return updated;
+    return this.addApproverName(updated);
   }
 
   async updateInstitutionStudent(
@@ -239,7 +270,7 @@ export class UserService {
       throw new Error('STUDENT_NOT_FOUND_OR_FORBIDDEN');
     }
 
-    return updated;
+    return this.addApproverName(updated);
   }
 
   async deleteInstitutionStudent(actorUserId: string, studentUserId: string) {

@@ -75,7 +75,7 @@ export default function StudentDashboard() {
     } catch (error) {
       console.error('Failed to load credentials:', error);
       setCredentials([]);
-      setCredentialsError('Unable to load credentials from the backend.');
+      setCredentialsError('Unable to load credentials from the server.');
     } finally {
       setIsLoadingCredentials(false);
     }

@@ -14,6 +14,7 @@ SERVICES=(
   "gateway:backend/gateway"
   "user-service:backend/services/user-service"
   "credential-service:backend/services/credential-service"
+  "credential-request-service:backend/services/credential-request-service"
 )
 
 PIDS=()

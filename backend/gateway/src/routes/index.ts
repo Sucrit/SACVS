@@ -5,10 +5,8 @@ import { healthCheckRouter } from '../controller/health.check';
 
 const router = Router();
 
-// ── Gateway health check ─────────────────────────────────────
 router.use('/health', healthCheckRouter);
 
-// ── User service proxy ───────────────────────────────────────
 router.use(
   '/users',
   createProxyMiddleware({
@@ -23,10 +21,26 @@ router.use(
         }
       },
     },
-  })
+  }),
 );
 
-// ── Credential service proxy ─────────────────────────────────
+router.use(
+  '/credentials/requests',
+  createProxyMiddleware({
+    target: ENV.CREDENTIAL_REQUEST_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: path => path.replace(/^\/credentials\/requests/, '/requests'),
+    on: {
+      error: (err, _req, res: any) => {
+        console.error('[PROXY] Credential request service error:', err.message);
+        if (!res.headersSent) {
+          res.status(502).json({ error: 'Credential request service unavailable' });
+        }
+      },
+    },
+  }),
+);
+
 router.use(
   '/credentials',
   createProxyMiddleware({
@@ -41,7 +55,7 @@ router.use(
         }
       },
     },
-  })
+  }),
 );
 
 export default router;

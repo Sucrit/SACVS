@@ -121,6 +121,37 @@ export class UserRepository {
     });
   }
 
+  async getUserDisplayNamesByIds(userIds: string[]): Promise<Map<string, string>> {
+    if (userIds.length === 0) {
+      return new Map();
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        id: { in: userIds },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+      },
+    });
+
+    const names = new Map<string, string>();
+    users.forEach(user => {
+      const displayName = [user.firstName, user.middleName, user.lastName]
+        .filter(value => typeof value === 'string' && value.trim().length > 0)
+        .join(' ')
+        .trim();
+      if (displayName.length > 0) {
+        names.set(user.id, displayName);
+      }
+    });
+
+    return names;
+  }
+
   async findByEmail(email: string): Promise<UserWithRelations | null> {
     const normalized = normalizeEmail(email);
     return prisma.user.findUnique({
@@ -147,6 +178,7 @@ export class UserRepository {
     clerkUserId: string,
     institutionId: string,
     data: CreateInstitutionStudentDto,
+    actorId?: string | null,
   ): Promise<UserWithRelations> {
     const normalizedEmail = normalizeEmail(data.email);
     const existingByEmail = await this.findByEmail(normalizedEmail);
@@ -155,6 +187,8 @@ export class UserRepository {
     }
 
     const status = toPrismaStatus(data.status ?? 'PENDING');
+    const approvedById = status === Status.APPROVED ? actorId ?? null : null;
+    const approvedAt = status === Status.APPROVED ? new Date() : null;
 
     return prisma.user.upsert({
       where: { id: clerkUserId },
@@ -168,6 +202,8 @@ export class UserRepository {
         status,
         institutionId,
         employerId: null,
+        approvedById,
+        approvedAt,
         profile: {
           create: {
             studentNumber: data.studentNumber.trim(),
@@ -192,8 +228,8 @@ export class UserRepository {
         status,
         institutionId,
         employerId: null,
-        approvedById: null,
-        approvedAt: null,
+        approvedById,
+        approvedAt,
         profile: {
           upsert: {
             create: {

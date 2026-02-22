@@ -93,7 +93,7 @@ export default function InstitutionDashboard() {
       setRequests(await CredentialService.listRequests());
     } catch (error) {
       setRequests([]);
-      setRequestsError('Unable to load verification requests from the backend.');
+      setRequestsError('Unable to load verification requests from the server.');
       console.error('Failed to load institution requests:', error);
     } finally {
       setIsLoadingRequests(false);
@@ -107,7 +107,7 @@ export default function InstitutionDashboard() {
       setStudents(await UserService.listInstitutionStudents());
     } catch (error) {
       setStudents([]);
-      setStudentsError('Unable to load students from the backend.');
+      setStudentsError('Unable to load students from the server.');
       console.error('Failed to load institution students:', error);
     } finally {
       setIsLoadingStudents(false);

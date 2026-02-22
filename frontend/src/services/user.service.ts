@@ -53,6 +53,7 @@ export interface User {
   employerId: string | null;
   institutionId: string | null;
   approvedById: string | null;
+  approverName?: string | null;
   approvedAt: string | null;
   createdAt: string;
   updatedAt: string;

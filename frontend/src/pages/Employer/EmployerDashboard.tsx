@@ -34,7 +34,7 @@ export default function EmployerDashboard() {
     } catch (error) {
       console.error('Failed to load employer requests:', error);
       setRequests([]);
-      setRequestsError('Unable to load employer request activity from the backend.');
+      setRequestsError('Unable to load employer request activity from the server.');
     } finally {
       setIsLoadingRequests(false);
     }
