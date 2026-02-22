@@ -1,23 +1,134 @@
 import { clerkClient } from '@clerk/express';
 import {
+  BulkCreateInstitutionStudentsResultDto,
+  CreateInstitutionStudentDto,
+  CompleteOrganizationOnboardingDto,
   CreateUserDto,
-  CompleteStudentOnboardingDto,
   UpdateUserStatusDto,
   UpsertStudentProfileDto,
+  UserStatus,
 } from '../dto/user.dto';
 import { UserRepository } from '../repository/user.repository';
 
 const userRepository = new UserRepository();
 
 const normalizeEmail = (value: string): string => value.trim().toLowerCase();
+const normalizeErrorMessage = (error: unknown): string => {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  if (typeof error === 'object' && error !== null) {
+    const maybeErrors = (error as { errors?: Array<{ message?: string }> }).errors;
+    const first = maybeErrors?.[0]?.message;
+    if (typeof first === 'string' && first.trim().length > 0) {
+      return first;
+    }
+  }
+
+  return 'Unknown error';
+};
 
 export class UserService {
+  private async getInstitutionActorContext(actorUserId: string): Promise<{
+    id: string;
+    institutionId: string;
+  }> {
+    const actor = await userRepository.getUserContextById(actorUserId);
+    if (!actor) {
+      throw new Error('ACTOR_NOT_FOUND');
+    }
+    if (actor.role !== 'INSTITUTION') {
+      throw new Error('FORBIDDEN_ROLE');
+    }
+    if (!actor.institutionId) {
+      throw new Error('INSTITUTION_CONTEXT_MISSING');
+    }
+
+    return {
+      id: actor.id,
+      institutionId: actor.institutionId,
+    };
+  }
+
+  private async createInstitutionStudentForContext(
+    institutionId: string,
+    data: CreateInstitutionStudentDto,
+  ) {
+    const normalizedEmail = normalizeEmail(data.email);
+    let createdClerkUserId: string | null = null;
+
+    try {
+      const clerkUser = await clerkClient.users.createUser({
+        emailAddress: [normalizedEmail],
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
+        skipPasswordRequirement: true,
+        skipPasswordChecks: true,
+        publicMetadata: {
+          role: 'STUDENT',
+          institutionId,
+        },
+      });
+      createdClerkUserId = clerkUser.id;
+
+      return await userRepository.createInstitutionStudentByClerkUserId(clerkUser.id, institutionId, {
+        ...data,
+        email: normalizedEmail,
+      });
+    } catch (error) {
+      if (createdClerkUserId) {
+        try {
+          await clerkClient.users.deleteUser(createdClerkUserId);
+        } catch (cleanupError) {
+          console.error('Failed to rollback Clerk user after DB failure:', cleanupError);
+        }
+      }
+      throw error;
+    }
+  }
+
   async listUsers() {
     return userRepository.listUsers();
   }
 
+  async listInstitutionStudents(actorUserId: string) {
+    const actor = await this.getInstitutionActorContext(actorUserId);
+    return userRepository.listInstitutionStudents(actor.institutionId);
+  }
+
   async createUser(data: CreateUserDto) {
     return userRepository.createUser(data);
+  }
+
+  async createInstitutionStudent(actorUserId: string, data: CreateInstitutionStudentDto) {
+    const actor = await this.getInstitutionActorContext(actorUserId);
+    return this.createInstitutionStudentForContext(actor.institutionId, data);
+  }
+
+  async createInstitutionStudentsBulk(
+    actorUserId: string,
+    students: CreateInstitutionStudentDto[],
+  ): Promise<BulkCreateInstitutionStudentsResultDto> {
+    const actor = await this.getInstitutionActorContext(actorUserId);
+    const failed: BulkCreateInstitutionStudentsResultDto['failed'] = [];
+    let created = 0;
+
+    for (let index = 0; index < students.length; index += 1) {
+      const student = students[index];
+      try {
+        await this.createInstitutionStudentForContext(actor.institutionId, student);
+        created += 1;
+      } catch (error) {
+        failed.push({
+          index,
+          email: student.email,
+          error: normalizeErrorMessage(error),
+        });
+      }
+    }
+
+    return { created, failed };
   }
 
   async getUserById(userId: string) {
@@ -32,7 +143,7 @@ export class UserService {
     return userRepository.upsertStudentProfileByUserId(userId, data);
   }
 
-  async completeStudentOnboarding(clerkUserId: string, data: CompleteStudentOnboardingDto) {
+  async completeOrganizationOnboarding(clerkUserId: string, data: CompleteOrganizationOnboardingDto) {
     const clerkUser = await clerkClient.users.getUser(clerkUserId);
     const primaryEmail = clerkUser.emailAddresses.find(
       entry => entry.id === clerkUser.primaryEmailAddressId,
@@ -44,24 +155,48 @@ export class UserService {
       throw new Error('CLERK_EMAIL_NOT_AVAILABLE');
     }
 
-    return userRepository.upsertStudentOnboardingByClerkUserId(clerkUserId, {
-      email: resolvedEmail,
+    return userRepository.upsertOrganizationOnboardingByClerkUserId(clerkUserId, {
+      userEmail: resolvedEmail,
       firstName: data.firstName.trim(),
       middleName: data.middleName?.trim() || null,
       lastName: data.lastName.trim(),
-      profile: {
-        studentNumber: data.studentNumber,
-        street: data.street,
-        barangay: data.barangay,
-        city: data.city,
-        province: data.province,
-        zipCode: data.zipCode,
-        phone: data.phone,
-        courseOfStudy: data.courseOfStudy,
-        yearLevel: data.yearLevel,
-        department: data.department,
-      },
+      role: data.role,
+      registrationNumber: data.registrationNumber.trim(),
+      organizationEmail: normalizeEmail(data.organizationEmail),
+      phoneNumber: data.phoneNumber.trim(),
+      employer: data.role === 'EMPLOYER'
+        ? {
+            companyName: data.companyName.trim(),
+            taxId: data.taxId.trim(),
+          }
+        : undefined,
+      institution: data.role === 'INSTITUTION'
+        ? {
+            name: data.name.trim(),
+            accreditationNumber: data.accreditationNumber.trim(),
+          }
+        : undefined,
     });
+  }
+
+  async updateInstitutionStudentStatus(
+    actorUserId: string,
+    studentUserId: string,
+    status: UserStatus,
+  ) {
+    const actor = await this.getInstitutionActorContext(actorUserId);
+    const updated = await userRepository.updateInstitutionStudentStatus(
+      actor.institutionId,
+      studentUserId,
+      status,
+      actorUserId,
+    );
+
+    if (!updated) {
+      throw new Error('STUDENT_NOT_FOUND_OR_FORBIDDEN');
+    }
+
+    return updated;
   }
 
   async updateUserStatus(userId: string, data: UpdateUserStatusDto, actorId?: string | null) {

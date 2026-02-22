@@ -6,13 +6,38 @@ const router = express.Router();
 const userController = new UserController();
 
 router.get('/me', requireAuth, userController.getCurrentUser.bind(userController));
-router.post('/me/onboarding', requireAuth, userController.completeStudentOnboarding.bind(userController));
+router.post('/me/onboarding', requireAuth, userController.completeOrganizationOnboarding.bind(userController));
+router.put('/me/onboarding', requireAuth, userController.completeOrganizationOnboarding.bind(userController));
 router.put('/me/profile', requireAuth, userController.upsertMyProfile.bind(userController));
+router.get(
+  '/me/institution/students',
+  requireAuth,
+  requireRoles('INSTITUTION'),
+  userController.listMyInstitutionStudents.bind(userController),
+);
+router.post(
+  '/me/institution/students',
+  requireAuth,
+  requireRoles('INSTITUTION'),
+  userController.createInstitutionStudent.bind(userController),
+);
+router.post(
+  '/me/institution/students/bulk',
+  requireAuth,
+  requireRoles('INSTITUTION'),
+  userController.createInstitutionStudentsBulk.bind(userController),
+);
+router.put(
+  '/me/institution/students/:id/status',
+  requireAuth,
+  requireRoles('INSTITUTION'),
+  userController.updateInstitutionStudentStatus.bind(userController),
+);
 
 router.get(
   '/',
   requireAuth,
-  requireRoles('ADMIN', 'INSTITUTION'),
+  requireRoles('ADMIN'),
   userController.listUsers.bind(userController),
 );
 router.post(
@@ -24,13 +49,13 @@ router.post(
 router.get(
   '/:id',
   requireAuth,
-  requireRoles('ADMIN', 'INSTITUTION'),
+  requireRoles('ADMIN'),
   userController.getUserById.bind(userController),
 );
 router.put(
   '/:id/status',
   requireAuth,
-  requireRoles('ADMIN', 'INSTITUTION'),
+  requireRoles('ADMIN'),
   userController.updateUserStatus.bind(userController),
 );
 

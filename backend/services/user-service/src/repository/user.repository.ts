@@ -1,12 +1,24 @@
 import { PrismaClient, Prisma, User, Status, Role } from '../../../../db/node_modules/@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { CreateUserDto, UpsertStudentProfileDto, UserRole, UserStatus } from '../dto/user.dto';
+import {
+  CreateInstitutionStudentDto,
+  CreateUserDto,
+  UpsertStudentProfileDto,
+  UserRole,
+  UserStatus,
+} from '../dto/user.dto';
 import { ENV } from '../config/env';
 
 const prismaAdapter = new PrismaPg({ connectionString: ENV.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: prismaAdapter });
 
-export type UserWithProfile = Prisma.UserGetPayload<{ include: { profile: true } }>;
+const userInclude = {
+  profile: true,
+  employer: true,
+  institution: true,
+};
+
+export type UserWithRelations = Prisma.UserGetPayload<{ include: typeof userInclude }>;
 
 const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 const normalizeOptionalString = (value?: string | null): string | null => {
@@ -32,22 +44,50 @@ const toPrismaRole = (role?: UserRole): Role => {
 const toPrismaStatus = (status: UserStatus): Status => Status[status];
 
 export class UserRepository {
-  async listUsers(): Promise<UserWithProfile[]> {
+  async getUserContextById(userId: string): Promise<{
+    id: string;
+    role: Role;
+    status: Status;
+    institutionId: string | null;
+  } | null> {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        role: true,
+        status: true,
+        institutionId: true,
+      },
+    });
+  }
+
+  async listUsers(): Promise<UserWithRelations[]> {
     return prisma.user.findMany({
-      include: { profile: true },
+      include: userInclude,
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findByEmail(email: string): Promise<UserWithProfile | null> {
-    const normalized = normalizeEmail(email);
-    return prisma.user.findUnique({
-      where: { email: normalized },
-      include: { profile: true },
+  async listInstitutionStudents(institutionId: string): Promise<UserWithRelations[]> {
+    return prisma.user.findMany({
+      where: {
+        role: Role.STUDENT,
+        institutionId,
+      },
+      include: userInclude,
+      orderBy: { createdAt: 'desc' },
     });
   }
 
-  async createUser(data: CreateUserDto): Promise<UserWithProfile> {
+  async findByEmail(email: string): Promise<UserWithRelations | null> {
+    const normalized = normalizeEmail(email);
+    return prisma.user.findUnique({
+      where: { email: normalized },
+      include: userInclude,
+    });
+  }
+
+  async createUser(data: CreateUserDto): Promise<UserWithRelations> {
     return prisma.user.create({
       data: {
         email: normalizeEmail(data.email),
@@ -57,7 +97,91 @@ export class UserRepository {
         role: toPrismaRole(data.role),
         status: Status.PENDING,
       },
-      include: { profile: true },
+      include: userInclude,
+    });
+  }
+
+  async createInstitutionStudentByClerkUserId(
+    clerkUserId: string,
+    institutionId: string,
+    data: CreateInstitutionStudentDto,
+  ): Promise<UserWithRelations> {
+    const normalizedEmail = normalizeEmail(data.email);
+    const existingByEmail = await this.findByEmail(normalizedEmail);
+    if (existingByEmail && existingByEmail.id !== clerkUserId) {
+      throw new Error('EMAIL_ALREADY_LINKED_TO_ANOTHER_ACCOUNT');
+    }
+
+    const status = toPrismaStatus(data.status ?? 'PENDING');
+
+    return prisma.user.upsert({
+      where: { id: clerkUserId },
+      create: {
+        id: clerkUserId,
+        email: normalizedEmail,
+        firstName: data.firstName.trim(),
+        middleName: normalizeOptionalString(data.middleName),
+        lastName: data.lastName.trim(),
+        role: Role.STUDENT,
+        status,
+        institutionId,
+        employerId: null,
+        profile: {
+          create: {
+            studentNumber: data.studentNumber.trim(),
+            street: data.street.trim(),
+            barangay: data.barangay.trim(),
+            city: data.city.trim(),
+            province: data.province.trim(),
+            zipCode: data.zipCode,
+            phone: data.phone.trim(),
+            courseOfStudy: data.courseOfStudy.trim(),
+            yearLevel: data.yearLevel.trim(),
+            department: data.department.trim(),
+          },
+        },
+      },
+      update: {
+        email: normalizedEmail,
+        firstName: data.firstName.trim(),
+        middleName: normalizeOptionalString(data.middleName),
+        lastName: data.lastName.trim(),
+        role: Role.STUDENT,
+        status,
+        institutionId,
+        employerId: null,
+        approvedById: null,
+        approvedAt: null,
+        profile: {
+          upsert: {
+            create: {
+              studentNumber: data.studentNumber.trim(),
+              street: data.street.trim(),
+              barangay: data.barangay.trim(),
+              city: data.city.trim(),
+              province: data.province.trim(),
+              zipCode: data.zipCode,
+              phone: data.phone.trim(),
+              courseOfStudy: data.courseOfStudy.trim(),
+              yearLevel: data.yearLevel.trim(),
+              department: data.department.trim(),
+            },
+            update: {
+              studentNumber: data.studentNumber.trim(),
+              street: data.street.trim(),
+              barangay: data.barangay.trim(),
+              city: data.city.trim(),
+              province: data.province.trim(),
+              zipCode: data.zipCode,
+              phone: data.phone.trim(),
+              courseOfStudy: data.courseOfStudy.trim(),
+              yearLevel: data.yearLevel.trim(),
+              department: data.department.trim(),
+            },
+          },
+        },
+      },
+      include: userInclude,
     });
   }
 
@@ -70,7 +194,7 @@ export class UserRepository {
       lastName: string;
       profile: UpsertStudentProfileDto;
     },
-  ): Promise<UserWithProfile> {
+  ): Promise<UserWithRelations> {
     const normalizedEmail = normalizeEmail(data.email);
     const existingByEmail = await this.findByEmail(normalizedEmail);
     if (existingByEmail && existingByEmail.id !== clerkUserId) {
@@ -137,18 +261,152 @@ export class UserRepository {
           },
         },
       },
-      include: { profile: true },
+      include: userInclude,
     });
   }
 
-  async getUserById(userId: string): Promise<UserWithProfile | null> {
+  async upsertOrganizationOnboardingByClerkUserId(
+    clerkUserId: string,
+    data: {
+      userEmail: string;
+      firstName: string;
+      middleName?: string | null;
+      lastName: string;
+      role: 'EMPLOYER' | 'INSTITUTION';
+      registrationNumber: string;
+      organizationEmail: string;
+      phoneNumber: string;
+      employer?: {
+        companyName: string;
+        taxId: string;
+      };
+      institution?: {
+        name: string;
+        accreditationNumber: string;
+      };
+    },
+  ): Promise<UserWithRelations> {
+    const normalizedUserEmail = normalizeEmail(data.userEmail);
+    const existingByEmail = await this.findByEmail(normalizedUserEmail);
+    if (existingByEmail && existingByEmail.id !== clerkUserId) {
+      throw new Error('EMAIL_ALREADY_LINKED_TO_ANOTHER_ACCOUNT');
+    }
+
+    const normalizedOrgEmail = normalizeEmail(data.organizationEmail);
+
+    return prisma.$transaction(async tx => {
+      if (data.role === 'EMPLOYER') {
+        if (!data.employer) {
+          throw new Error('EMPLOYER_PAYLOAD_MISSING');
+        }
+
+        const employer = await tx.employer.upsert({
+          where: { email: normalizedOrgEmail },
+          create: {
+            companyName: data.employer.companyName,
+            registrationNumber: data.registrationNumber,
+            taxId: data.employer.taxId,
+            email: normalizedOrgEmail,
+            phoneNumber: data.phoneNumber,
+          },
+          update: {
+            companyName: data.employer.companyName,
+            registrationNumber: data.registrationNumber,
+            taxId: data.employer.taxId,
+            email: normalizedOrgEmail,
+            phoneNumber: data.phoneNumber,
+          },
+        });
+
+        return tx.user.upsert({
+          where: { id: clerkUserId },
+          create: {
+            id: clerkUserId,
+            email: normalizedUserEmail,
+            firstName: data.firstName,
+            middleName: normalizeOptionalString(data.middleName),
+            lastName: data.lastName,
+            role: Role.EMPLOYER,
+            status: Status.PENDING,
+            employerId: employer.id,
+            institutionId: null,
+          },
+          update: {
+            email: normalizedUserEmail,
+            firstName: data.firstName,
+            middleName: normalizeOptionalString(data.middleName),
+            lastName: data.lastName,
+            role: Role.EMPLOYER,
+            status: Status.PENDING,
+            approvedById: null,
+            approvedAt: null,
+            employerId: employer.id,
+            institutionId: null,
+          },
+          include: userInclude,
+        });
+      }
+
+      if (!data.institution) {
+        throw new Error('INSTITUTION_PAYLOAD_MISSING');
+      }
+
+      const institution = await tx.institution.upsert({
+        where: { email: normalizedOrgEmail },
+        create: {
+          name: data.institution.name,
+          accreditationNumber: data.institution.accreditationNumber,
+          registrationNumber: data.registrationNumber,
+          email: normalizedOrgEmail,
+          phoneNumber: data.phoneNumber,
+        },
+        update: {
+          name: data.institution.name,
+          accreditationNumber: data.institution.accreditationNumber,
+          registrationNumber: data.registrationNumber,
+          email: normalizedOrgEmail,
+          phoneNumber: data.phoneNumber,
+        },
+      });
+
+      return tx.user.upsert({
+        where: { id: clerkUserId },
+        create: {
+          id: clerkUserId,
+          email: normalizedUserEmail,
+          firstName: data.firstName,
+          middleName: normalizeOptionalString(data.middleName),
+          lastName: data.lastName,
+          role: Role.INSTITUTION,
+          status: Status.PENDING,
+          employerId: null,
+          institutionId: institution.id,
+        },
+        update: {
+          email: normalizedUserEmail,
+          firstName: data.firstName,
+          middleName: normalizeOptionalString(data.middleName),
+          lastName: data.lastName,
+          role: Role.INSTITUTION,
+          status: Status.PENDING,
+          approvedById: null,
+          approvedAt: null,
+          employerId: null,
+          institutionId: institution.id,
+        },
+        include: userInclude,
+      });
+    });
+  }
+
+  async getUserById(userId: string): Promise<UserWithRelations | null> {
     return prisma.user.findUnique({
       where: { id: userId },
-      include: { profile: true },
+      include: userInclude,
     });
   }
 
-  async upsertStudentProfileByUserId(userId: string, data: UpsertStudentProfileDto): Promise<UserWithProfile> {
+  async upsertStudentProfileByUserId(userId: string, data: UpsertStudentProfileDto): Promise<UserWithRelations> {
     return prisma.user.update({
       where: { id: userId },
       data: {
@@ -181,7 +439,7 @@ export class UserRepository {
           },
         },
       },
-      include: { profile: true },
+      include: userInclude,
     });
   }
 
@@ -196,6 +454,38 @@ export class UserRepository {
         approvedById: status === 'APPROVED' ? normalizedActorId : null,
         approvedAt,
       },
+    });
+  }
+
+  async updateInstitutionStudentStatus(
+    institutionId: string,
+    studentUserId: string,
+    status: UserStatus,
+    actorId?: string | null,
+  ): Promise<UserWithRelations | null> {
+    const target = await prisma.user.findFirst({
+      where: {
+        id: studentUserId,
+        role: Role.STUDENT,
+        institutionId,
+      },
+      select: { id: true },
+    });
+
+    if (!target) {
+      return null;
+    }
+
+    const approvedAt = status === 'APPROVED' ? new Date() : null;
+
+    return prisma.user.update({
+      where: { id: studentUserId },
+      data: {
+        status: toPrismaStatus(status),
+        approvedById: status === 'APPROVED' ? actorId ?? null : null,
+        approvedAt,
+      },
+      include: userInclude,
     });
   }
 }

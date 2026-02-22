@@ -20,10 +20,12 @@ if (!ENV.CORS_ORIGIN) {
   app.use(cors());
 } else {
   const allowed = ENV.CORS_ORIGIN.split(',').map(s => s.trim()).filter(Boolean);
+  const loopbackRegex = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
   const corsOptions = {
     origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
       if (!origin) return cb(null, true);
       if (allowed.includes(origin)) return cb(null, true);
+      if (ENV.NODE_ENV === 'development' && loopbackRegex.test(origin)) return cb(null, true);
       cb(new Error('Not allowed by CORS'));
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',

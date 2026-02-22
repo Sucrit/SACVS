@@ -25,6 +25,7 @@ export default function Sidebar({ role }: SidebarProps) {
     ],
     INSTITUTION: [
       { to: '/dashboard/institution', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/dashboard/institution/students', label: 'Students', icon: Users },
       { to: '/dashboard/institution/requests', label: 'Pending Requests', icon: FileText },
       { to: '/dashboard/institution/verify', label: 'Verify Documents', icon: ShieldCheck },
       { to: '/dashboard/institution/history', label: 'History', icon: History },

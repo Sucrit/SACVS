@@ -134,7 +134,7 @@ enum NotificationType {
 
 
 
-// User & Profile 
+// User
 
 model User {
   id           String    @id @default(uuid())
@@ -167,6 +167,8 @@ model User {
   @@index([employerId])
   @@index([institutionId])
 }
+
+
 
 
 // Student Profile 
@@ -360,7 +362,6 @@ model Employer {
   taxId       String
   email       String   @unique
   phoneNumber String
-  status      Status   @default(PENDING)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -379,6 +380,7 @@ model Employer {
 
 
 // Institution
+
 model Institution {
   id          String   @id @default(uuid())
   name        String
@@ -386,7 +388,6 @@ model Institution {
   registrationNumber String
   email       String   @unique
   phoneNumber String
-  status      Status   @default(PENDING)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

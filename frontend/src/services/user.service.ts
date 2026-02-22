@@ -20,6 +20,28 @@ export interface StudentProfile {
   updatedAt: string;
 }
 
+export interface EmployerProfile {
+  id: string;
+  companyName: string;
+  registrationNumber: string;
+  taxId: string;
+  email: string;
+  phoneNumber: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InstitutionProfile {
+  id: string;
+  name: string;
+  accreditationNumber: string;
+  registrationNumber: string;
+  email: string;
+  phoneNumber: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface User {
   id: string;
   firstName: string;
@@ -28,11 +50,15 @@ export interface User {
   email: string;
   role: UserRole;
   status: UserStatus;
+  employerId: string | null;
+  institutionId: string | null;
   approvedById: string | null;
   approvedAt: string | null;
   createdAt: string;
   updatedAt: string;
   profile?: StudentProfile | null;
+  employer?: EmployerProfile | null;
+  institution?: InstitutionProfile | null;
 }
 
 export interface CreateUserPayload {
@@ -62,6 +88,34 @@ export interface CompleteStudentOnboardingPayload extends UpsertStudentProfilePa
   lastName: string;
 }
 
+export type OrganizationRole = 'EMPLOYER' | 'INSTITUTION';
+
+interface CompleteOrganizationOnboardingBasePayload {
+  role: OrganizationRole;
+  firstName: string;
+  middleName?: string | null;
+  lastName: string;
+  registrationNumber: string;
+  organizationEmail: string;
+  phoneNumber: string;
+}
+
+export interface CompleteEmployerOnboardingPayload extends CompleteOrganizationOnboardingBasePayload {
+  role: 'EMPLOYER';
+  companyName: string;
+  taxId: string;
+}
+
+export interface CompleteInstitutionOnboardingPayload extends CompleteOrganizationOnboardingBasePayload {
+  role: 'INSTITUTION';
+  name: string;
+  accreditationNumber: string;
+}
+
+export type CompleteOrganizationOnboardingPayload =
+  | CompleteEmployerOnboardingPayload
+  | CompleteInstitutionOnboardingPayload;
+
 export interface UserListQuery {
   role?: UserRole;
   status?: UserStatus;
@@ -70,13 +124,34 @@ export interface UserListQuery {
   pageSize?: number;
 }
 
+export interface InstitutionStudentPayload extends UpsertStudentProfilePayload {
+  email: string;
+  firstName: string;
+  middleName?: string | null;
+  lastName: string;
+  status?: UserStatus;
+}
+
+export interface InstitutionStudentBulkPayload {
+  students: InstitutionStudentPayload[];
+}
+
+export interface InstitutionStudentBulkResult {
+  created: number;
+  failed: Array<{
+    index: number;
+    email: string;
+    error: string;
+  }>;
+}
+
 export const UserService = {
   getMe: async () => {
     const response = await api.get<User>('/users/me');
     return response.data;
   },
 
-  completeStudentOnboarding: async (data: CompleteStudentOnboardingPayload) => {
+  completeOrganizationOnboarding: async (data: CompleteOrganizationOnboardingPayload) => {
     const response = await api.post<User>('/users/me/onboarding', data);
     return response.data;
   },
@@ -103,6 +178,26 @@ export const UserService = {
 
   updateStatus: async (id: string, status: UserStatus) => {
     const response = await api.put<User>(`/users/${id}/status`, { status });
+    return response.data;
+  },
+
+  listInstitutionStudents: async () => {
+    const response = await api.get<User[]>('/users/me/institution/students');
+    return response.data;
+  },
+
+  createInstitutionStudent: async (data: InstitutionStudentPayload) => {
+    const response = await api.post<User>('/users/me/institution/students', data);
+    return response.data;
+  },
+
+  createInstitutionStudentsBulk: async (data: InstitutionStudentBulkPayload) => {
+    const response = await api.post<InstitutionStudentBulkResult>('/users/me/institution/students/bulk', data);
+    return response.data;
+  },
+
+  updateInstitutionStudentStatus: async (id: string, status: UserStatus) => {
+    const response = await api.put<User>(`/users/me/institution/students/${id}/status`, { status });
     return response.data;
   },
 };

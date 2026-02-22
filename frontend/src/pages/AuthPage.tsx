@@ -1,4 +1,4 @@
-import { FormEvent, memo, useEffect, useMemo, useState } from 'react';
+import { FormEvent, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   SignIn,
   SignUp,
@@ -6,11 +6,12 @@ import {
   SignedOut,
   useUser,
 } from '@clerk/clerk-react';
+import { isAxiosError } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useLegacyAuth } from '../auth/auth-context';
 import {
-  CompleteStudentOnboardingPayload,
-  UpsertStudentProfilePayload,
+  CompleteOrganizationOnboardingPayload,
+  OrganizationRole,
   User,
   UserService,
 } from '../services/user.service';
@@ -18,60 +19,7 @@ import logo2 from '../assets/logo2.png';
 import heroBg from '../assets/hero_bg.jpg';
 
 type AuthMode = 'signin' | 'signup';
-type SignupStep = 1 | 2 | 3;
-
-const initialProfileForm: UpsertStudentProfilePayload = {
-  studentNumber: '',
-  street: '',
-  barangay: '',
-  city: '',
-  province: '',
-  zipCode: 0,
-  phone: '',
-  courseOfStudy: '',
-  yearLevel: '',
-  department: '',
-};
-
-const departmentOptions = [
-  'Computer Science & AI',
-  'Information Technology',
-  'Electrical Engineering',
-  'Business Administration',
-  'Mathematics',
-  'Physics',
-];
-
-const courseOptions = [
-  'BS Computer Science',
-  'BS Information Technology',
-  'BS Information Systems',
-  'BS Computer Engineering',
-  'BS Cybersecurity',
-  'BS Data Science',
-];
-
-const yearLevelOptions = [
-  '1st Year',
-  '2nd Year',
-  '3rd Year',
-  '4th Year',
-  '5th Year',
-  'Postgraduate',
-];
-
-const mapProfileToForm = (user: User): UpsertStudentProfilePayload => ({
-  studentNumber: user.profile?.studentNumber ?? '',
-  street: user.profile?.street ?? '',
-  barangay: user.profile?.barangay ?? '',
-  city: user.profile?.city ?? '',
-  province: user.profile?.province ?? '',
-  zipCode: user.profile?.zipCode ?? 0,
-  phone: user.profile?.phone ?? '',
-  courseOfStudy: user.profile?.courseOfStudy ?? '',
-  yearLevel: user.profile?.yearLevel ?? '',
-  department: user.profile?.department ?? '',
-});
+const SIGNUP_ROLE_STORAGE_KEY = 'sacvs.signup.role';
 
 function Icon({ name, className = '' }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
@@ -106,6 +54,37 @@ const SignInBrand = memo(function SignInBrand() {
   );
 });
 
+const getApiErrorMessage = (error: unknown): string | null => {
+  if (!isAxiosError(error)) {
+    if (error instanceof Error && error.message.trim().length > 0) {
+      return error.message;
+    }
+    return null;
+  }
+
+  if (typeof error.response?.data === 'string' && error.response.data.trim().length > 0) {
+    return error.response.data;
+  }
+
+  const responseData = error.response?.data as
+    | { error?: string; message?: string }
+    | undefined;
+
+  if (typeof responseData?.error === 'string' && responseData.error.trim().length > 0) {
+    return responseData.error;
+  }
+
+  if (typeof responseData?.message === 'string' && responseData.message.trim().length > 0) {
+    return responseData.message;
+  }
+
+  if (typeof error.message === 'string' && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  return null;
+};
+
 export default function AuthPage() {
   const navigate = useNavigate();
   const { mode } = useParams<{ mode: string }>();
@@ -114,11 +93,16 @@ export default function AuthPage() {
 
   const normalizedMode: AuthMode = mode === 'signin' || mode === 'signup' ? mode : 'signup';
   const [authMode, setAuthMode] = useState<AuthMode>(normalizedMode);
-  const [signupStep, setSignupStep] = useState<SignupStep>(1);
+  const [selectedRole, setSelectedRole] = useState<OrganizationRole | null>(null);
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [profileForm, setProfileForm] = useState<UpsertStudentProfilePayload>(initialProfileForm);
+  const [organizationName, setOrganizationName] = useState('');
+  const [registrationNumber, setRegistrationNumber] = useState('');
+  const [accreditationNumber, setAccreditationNumber] = useState('');
+  const [taxId, setTaxId] = useState('');
+  const [organizationEmail, setOrganizationEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [confirmVerification, setConfirmVerification] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authHint, setAuthHint] = useState<string | null>(null);
@@ -127,6 +111,21 @@ export default function AuthPage() {
   const [isHydratingSignup, setIsHydratingSignup] = useState(false);
   const [suspendedUser, setSuspendedUser] = useState<User | null>(null);
 
+  const setAndPersistRole = useCallback((role: OrganizationRole | null) => {
+    setSelectedRole(role);
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (role) {
+      window.sessionStorage.setItem(SIGNUP_ROLE_STORAGE_KEY, role);
+      return;
+    }
+
+    window.sessionStorage.removeItem(SIGNUP_ROLE_STORAGE_KEY);
+  }, []);
+
   useEffect(() => {
     setAuthMode(normalizedMode);
     setAuthError(null);
@@ -134,9 +133,19 @@ export default function AuthPage() {
     setOnboardingSubmitted(false);
     setIsHydratingSignup(false);
     setSuspendedUser(null);
+    setConfirmVerification(false);
+
+    if (normalizedMode === 'signup' && typeof window !== 'undefined') {
+      const persistedRole = window.sessionStorage.getItem(SIGNUP_ROLE_STORAGE_KEY);
+      if (persistedRole === 'EMPLOYER' || persistedRole === 'INSTITUTION') {
+        setSelectedRole(persistedRole);
+      } else {
+        setSelectedRole(null);
+      }
+    }
 
     if (normalizedMode !== 'signup') {
-      setSignupStep(1);
+      setSelectedRole(null);
     }
   }, [normalizedMode]);
 
@@ -145,6 +154,18 @@ export default function AuthPage() {
       setSuspendedUser(localSessionUser);
     }
   }, [localSessionUser]);
+
+  const currentEmail = useMemo(() => {
+    if (!clerkUser) {
+      return '';
+    }
+
+    return (
+      clerkUser.emailAddresses.find(entry => entry.id === clerkUser.primaryEmailAddressId)?.emailAddress ??
+      clerkUser.emailAddresses[0]?.emailAddress ??
+      ''
+    );
+  }, [clerkUser]);
 
   useEffect(() => {
     if (!isClerkLoaded || !isSignedIn || !clerkUser || authMode !== 'signup') {
@@ -173,21 +194,44 @@ export default function AuthPage() {
         }
 
         if (localUser) {
-          setFirstName(localUser.firstName || clerkUser.firstName || '');
-          setMiddleName(localUser.middleName || '');
-          setLastName(localUser.lastName || clerkUser.lastName || '');
-          setProfileForm(mapProfileToForm(localUser));
-          setSignupStep(2);
+          if (localUser.role === 'EMPLOYER' || localUser.role === 'INSTITUTION') {
+            setAndPersistRole(localUser.role);
+            setFirstName(localUser.firstName || clerkUser.firstName || '');
+            setMiddleName(localUser.middleName || '');
+            setLastName(localUser.lastName || clerkUser.lastName || '');
+            setRegistrationNumber(
+              localUser.role === 'EMPLOYER'
+                ? localUser.employer?.registrationNumber || ''
+                : localUser.institution?.registrationNumber || '',
+            );
+            setOrganizationName(
+              localUser.role === 'EMPLOYER'
+                ? localUser.employer?.companyName || ''
+                : localUser.institution?.name || '',
+            );
+            setAccreditationNumber(localUser.institution?.accreditationNumber || '');
+            setTaxId(localUser.employer?.taxId || '');
+            setOrganizationEmail(
+              localUser.role === 'EMPLOYER'
+                ? localUser.employer?.email || currentEmail
+                : localUser.institution?.email || currentEmail,
+            );
+            setPhoneNumber(
+              localUser.role === 'EMPLOYER'
+                ? localUser.employer?.phoneNumber || ''
+                : localUser.institution?.phoneNumber || '',
+            );
+            setAuthHint(null);
+            return;
+          }
 
+          setAuthError('Self-signup is restricted to Institution and Employer accounts.');
           return;
         }
 
         setFirstName(clerkUser.firstName ?? '');
         setMiddleName('');
         setLastName(clerkUser.lastName ?? '');
-        setProfileForm(initialProfileForm);
-        setSignupStep(2);
-        setAuthHint(null);
       } catch (error) {
         console.error('Failed to hydrate signup data:', error);
         if (!isCancelled) {
@@ -205,7 +249,7 @@ export default function AuthPage() {
     return () => {
       isCancelled = true;
     };
-  }, [authMode, clerkUser, isClerkLoaded, isSignedIn, navigate, refreshUser]);
+  }, [authMode, clerkUser, currentEmail, isClerkLoaded, isSignedIn, navigate, refreshUser, setAndPersistRole]);
 
   useEffect(() => {
     if (!isClerkLoaded || !isSignedIn || authMode !== 'signin') {
@@ -243,19 +287,17 @@ export default function AuthPage() {
     void syncAndRoute();
   }, [authMode, isClerkLoaded, isSignedIn, navigate, refreshUser]);
 
-  const currentEmail = useMemo(() => {
-    if (!clerkUser) {
-      return '';
+  useEffect(() => {
+    if (!organizationEmail && currentEmail) {
+      setOrganizationEmail(currentEmail);
+    }
+  }, [currentEmail, organizationEmail]);
+
+  const validateOrganizationOnboarding = () => {
+    if (!selectedRole) {
+      return 'Choose your account type to continue.';
     }
 
-    return (
-      clerkUser.emailAddresses.find(entry => entry.id === clerkUser.primaryEmailAddressId)?.emailAddress ??
-      clerkUser.emailAddresses[0]?.emailAddress ??
-      ''
-    );
-  }, [clerkUser]);
-
-  const validateStepTwo = () => {
     if (!firstName.trim()) {
       return 'First name is required.';
     }
@@ -264,51 +306,31 @@ export default function AuthPage() {
       return 'Last name is required.';
     }
 
-    const payload = {
-      ...profileForm,
-      studentNumber: profileForm.studentNumber.trim(),
-      street: profileForm.street.trim(),
-      barangay: profileForm.barangay.trim(),
-      city: profileForm.city.trim(),
-      province: profileForm.province.trim(),
-      phone: profileForm.phone.trim(),
-      courseOfStudy: profileForm.courseOfStudy.trim(),
-      yearLevel: profileForm.yearLevel.trim(),
-      department: profileForm.department.trim(),
-      zipCode: Number(profileForm.zipCode),
-    };
+    if (!organizationName.trim()) {
+      return selectedRole === 'EMPLOYER' ? 'Company name is required.' : 'Institution name is required.';
+    }
 
-    const hasMissingProfile =
-      payload.studentNumber.length === 0 ||
-      payload.street.length === 0 ||
-      payload.barangay.length === 0 ||
-      payload.city.length === 0 ||
-      payload.province.length === 0 ||
-      !Number.isInteger(payload.zipCode) ||
-      payload.zipCode <= 0 ||
-      payload.phone.length === 0 ||
-      payload.courseOfStudy.length === 0 ||
-      payload.yearLevel.length === 0 ||
-      payload.department.length === 0;
+    if (!registrationNumber.trim()) {
+      return 'Registration number is required.';
+    }
 
-    if (hasMissingProfile) {
-      return 'Complete all required profile fields.';
+    if (!organizationEmail.trim()) {
+      return 'Organization email is required.';
+    }
+
+    if (!phoneNumber.trim()) {
+      return 'Phone number is required.';
+    }
+
+    if (selectedRole === 'EMPLOYER' && !taxId.trim()) {
+      return 'Tax ID is required for employer accounts.';
+    }
+
+    if (selectedRole === 'INSTITUTION' && !accreditationNumber.trim()) {
+      return 'Accreditation number is required for institution accounts.';
     }
 
     return null;
-  };
-
-  const handleStepTwoContinue = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setAuthError(null);
-
-    const validationError = validateStepTwo();
-    if (validationError) {
-      setAuthError(validationError);
-      return;
-    }
-
-    setSignupStep(3);
   };
 
   const handleFinalizeOnboarding = async (event: FormEvent<HTMLFormElement>) => {
@@ -316,57 +338,72 @@ export default function AuthPage() {
     setAuthError(null);
     setAuthHint(null);
 
+    const validationError = validateOrganizationOnboarding();
+    if (validationError) {
+      setAuthError(validationError);
+      return;
+    }
+
     if (!confirmVerification) {
       setAuthError('Confirm your details before submitting.');
       return;
     }
 
-    const validationError = validateStepTwo();
-    if (validationError) {
-      setAuthError(validationError);
-      setSignupStep(2);
+    if (!isSignedIn) {
+      setAuthError('Authentication session expired. Please authenticate again.');
       return;
     }
 
-    if (!isSignedIn) {
-      setAuthError('Authentication session expired. Please authenticate again.');
-      setSignupStep(1);
+    if (!selectedRole) {
+      setAuthError('Choose your account type to continue.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const payload: CompleteStudentOnboardingPayload = {
-        firstName: firstName.trim(),
-        middleName: middleName.trim() || null,
-        lastName: lastName.trim(),
-        studentNumber: profileForm.studentNumber.trim(),
-        street: profileForm.street.trim(),
-        barangay: profileForm.barangay.trim(),
-        city: profileForm.city.trim(),
-        province: profileForm.province.trim(),
-        zipCode: Number(profileForm.zipCode),
-        phone: profileForm.phone.trim(),
-        courseOfStudy: profileForm.courseOfStudy.trim(),
-        yearLevel: profileForm.yearLevel.trim(),
-        department: profileForm.department.trim(),
-      };
+      const payload: CompleteOrganizationOnboardingPayload =
+        selectedRole === 'EMPLOYER'
+          ? {
+              role: 'EMPLOYER',
+              firstName: firstName.trim(),
+              middleName: middleName.trim() || null,
+              lastName: lastName.trim(),
+              companyName: organizationName.trim(),
+              registrationNumber: registrationNumber.trim(),
+              taxId: taxId.trim(),
+              organizationEmail: organizationEmail.trim(),
+              phoneNumber: phoneNumber.trim(),
+            }
+          : {
+              role: 'INSTITUTION',
+              firstName: firstName.trim(),
+              middleName: middleName.trim() || null,
+              lastName: lastName.trim(),
+              name: organizationName.trim(),
+              accreditationNumber: accreditationNumber.trim(),
+              registrationNumber: registrationNumber.trim(),
+              organizationEmail: organizationEmail.trim(),
+              phoneNumber: phoneNumber.trim(),
+            };
 
-      await UserService.completeStudentOnboarding(payload);
+      await UserService.completeOrganizationOnboarding(payload);
       await refreshUser();
 
       setOnboardingSubmitted(true);
-      setAuthHint('Your account creation request is now pending admin/institution approval.');
+      setAuthHint('Your account creation request is now pending admin approval.');
     } catch (error) {
       console.error('Failed to submit onboarding:', error);
-      setAuthError('Unable to submit onboarding. Please review your inputs and try again.');
+      setAuthError(getApiErrorMessage(error) || 'Unable to submit onboarding. Please review your inputs and try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const step = authMode === 'signup' ? signupStep : 1;
-  const isSignupClerkAuthStep = authMode === 'signup' && (signupStep === 1 || isHydratingSignup);
+  const currentStep = !selectedRole ? 1 : isSignedIn ? 3 : 2;
+  const isRoleStep = !selectedRole;
+  const isAuthStep = !!selectedRole && !isSignedIn;
+  const isProfileStep = !!selectedRole && isSignedIn;
+  const roleDisplay = selectedRole === 'EMPLOYER' ? 'Employer' : 'Institution';
   const authPageBackgroundStyle = {
     backgroundImage: `url(${heroBg})`,
     backgroundSize: 'cover',
@@ -494,13 +531,25 @@ export default function AuthPage() {
         <Link className="flex items-center gap-3 text-slate-900" to="/">
           <img alt="Credence logo" className="h-8 w-auto" src={logo2} />
         </Link>
-        <Link
-          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-          to="/"
-        >
-          <Icon className="text-sm" name="arrow_back" />
-          Back to Home
-        </Link>
+        <div className="flex items-center gap-2">
+          {selectedRole && (
+            <button
+              type="button"
+              onClick={() => setAndPersistRole(null)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              <Icon className="text-sm" name="arrow_back" />
+              Back to Role
+            </button>
+          )}
+          <Link
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            to="/"
+          >
+            <Icon className="text-sm" name="arrow_back" />
+            Back to Home
+          </Link>
+        </div>
       </div>
 
       <div className="mx-auto mb-5 w-full max-w-[560px]">
@@ -508,39 +557,39 @@ export default function AuthPage() {
           <div className="flex flex-col items-center gap-2">
             <div
               className={`flex size-8 items-center justify-center rounded-full border text-xs font-semibold ${
-                step >= 1 ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-400'
+                currentStep >= 1 ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-400'
               }`}
             >
-              {step > 1 ? <Icon className="text-sm" name="check" /> : 1}
+              {currentStep > 1 ? <Icon className="text-sm" name="check" /> : 1}
             </div>
-            <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${step >= 1 ? 'text-slate-900' : 'text-slate-400'}`}>
+            <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${currentStep >= 1 ? 'text-slate-900' : 'text-slate-400'}`}>
+              Role
+            </span>
+          </div>
+          <div className={`h-px flex-1 ${currentStep >= 2 ? 'bg-slate-400' : 'bg-slate-200'}`}></div>
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className={`flex size-8 items-center justify-center rounded-full border text-xs font-semibold ${
+                currentStep >= 2 ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-400'
+              }`}
+            >
+              {currentStep > 2 ? <Icon className="text-sm" name="check" /> : 2}
+            </div>
+            <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${currentStep >= 2 ? 'text-slate-900' : 'text-slate-400'}`}>
               Account
             </span>
           </div>
-          <div className={`h-px flex-1 ${step >= 2 ? 'bg-slate-400' : 'bg-slate-200'}`}></div>
+          <div className={`h-px flex-1 ${currentStep >= 3 ? 'bg-slate-400' : 'bg-slate-200'}`}></div>
           <div className="flex flex-col items-center gap-2">
             <div
               className={`flex size-8 items-center justify-center rounded-full border text-xs font-semibold ${
-                step >= 2 ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-400'
-              }`}
-            >
-              {step > 2 ? <Icon className="text-sm" name="check" /> : 2}
-            </div>
-            <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${step >= 2 ? 'text-slate-900' : 'text-slate-400'}`}>
-              Profile
-            </span>
-          </div>
-          <div className={`h-px flex-1 ${step >= 3 ? 'bg-slate-400' : 'bg-slate-200'}`}></div>
-          <div className="flex flex-col items-center gap-2">
-            <div
-              className={`flex size-8 items-center justify-center rounded-full border text-xs font-semibold ${
-                step >= 3 ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-400'
+                currentStep >= 3 ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300 bg-white text-slate-400'
               }`}
             >
               3
             </div>
-            <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${step >= 3 ? 'text-slate-900' : 'text-slate-400'}`}>
-              Verify
+            <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${currentStep >= 3 ? 'text-slate-900' : 'text-slate-400'}`}>
+              Details
             </span>
           </div>
         </div>
@@ -548,12 +597,12 @@ export default function AuthPage() {
 
       <div
         className={
-          isSignupClerkAuthStep
+          isAuthStep
             ? 'mx-auto w-full max-w-[520px]'
             : 'mx-auto w-full max-w-[760px] rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12)] md:p-8'
         }
       >
-        {isSignupClerkAuthStep && !isClerkLoaded && (
+        {isAuthStep && !isClerkLoaded && (
           <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-700">
             <div className="flex items-center gap-3">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
@@ -562,16 +611,51 @@ export default function AuthPage() {
           </div>
         )}
 
-        {isClerkLoaded && authMode === 'signup' && isHydratingSignup && (
+        {isProfileStep && isHydratingSignup && (
           <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-700">
             <div className="flex items-center gap-3">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
-              <p className="font-medium">Loading your previously submitted student profile...</p>
+              <p className="font-medium">Loading your onboarding details...</p>
             </div>
           </div>
         )}
 
-        {isClerkLoaded && authMode === 'signup' && signupStep === 1 && !isHydratingSignup && (
+        {isRoleStep && (
+          <div className="space-y-6">
+            <div className="space-y-1 text-center">
+              <h3 className="text-2xl font-bold tracking-tight text-slate-900">Choose Your Account Type</h3>
+              <p className="text-sm text-slate-500">Self-signup is available only for Institution and Employer accounts.</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setAndPersistRole('INSTITUTION')}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left transition hover:border-slate-400 hover:bg-white"
+              >
+                <div className="mb-3 inline-flex rounded-full bg-slate-900/5 p-2 text-slate-700">
+                  <Icon className="text-lg" name="apartment" />
+                </div>
+                <p className="text-base font-semibold text-slate-900">Institution</p>
+                <p className="mt-1 text-sm text-slate-600">For schools and academic institutions issuing and validating records.</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAndPersistRole('EMPLOYER')}
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left transition hover:border-slate-400 hover:bg-white"
+              >
+                <div className="mb-3 inline-flex rounded-full bg-slate-900/5 p-2 text-slate-700">
+                  <Icon className="text-lg" name="business_center" />
+                </div>
+                <p className="text-base font-semibold text-slate-900">Employer</p>
+                <p className="mt-1 text-sm text-slate-600">For companies requesting and tracking applicant credential verification.</p>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isAuthStep && isClerkLoaded && !isHydratingSignup && (
           <div className="space-y-4">
             <SignedOut>
               <div className="flex justify-center">
@@ -590,219 +674,19 @@ export default function AuthPage() {
               <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-700">
                 <div className="flex items-center gap-3">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-900 border-t-transparent"></div>
-                  <p className="font-medium">Authentication complete. Proceeding to Step 2...</p>
+                  <p className="font-medium">Authentication complete. Loading organization onboarding form...</p>
                 </div>
               </div>
             </SignedIn>
           </div>
         )}
 
-        {authMode === 'signup' && signupStep === 2 && (
-          <form className="space-y-6" onSubmit={handleStepTwoContinue}>
-            <div className="space-y-1 text-center">
-              <h3 className="text-2xl font-bold tracking-tight text-slate-900">Complete Your Student Profile</h3>
-              <p className="text-sm text-slate-500">Fill in all required details before verification.</p>
-              {currentEmail && <p className="text-xs text-slate-500">Authenticated email: {currentEmail}</p>}
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-600">First Name</label>
-                <input
-                  required
-                  value={firstName}
-                  onChange={event => setFirstName(event.target.value)}
-                  placeholder="First Name"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-600">Middle Name</label>
-                <input
-                  value={middleName}
-                  onChange={event => setMiddleName(event.target.value)}
-                  placeholder="Middle Name (Optional)"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-600">Last Name</label>
-                <input
-                  required
-                  value={lastName}
-                  onChange={event => setLastName(event.target.value)}
-                  placeholder="Last Name"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-600">Student Number</label>
-              <input
-                required
-                value={profileForm.studentNumber}
-                onChange={event => setProfileForm(prev => ({ ...prev, studentNumber: event.target.value }))}
-                placeholder="e.g. 03-2226-123456"
-                className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-600">Phone Number</label>
-                <input
-                  required
-                  value={profileForm.phone}
-                  onChange={event => setProfileForm(prev => ({ ...prev, phone: event.target.value }))}
-                  placeholder="+63 912 345 6789"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-600">Department</label>
-                <select
-                  required
-                  value={profileForm.department}
-                  onChange={event => setProfileForm(prev => ({ ...prev, department: event.target.value }))}
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                >
-                  <option value="">Select Department</option>
-                  {departmentOptions.map(option => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-600">Course of Study</label>
-                <select
-                  required
-                  value={profileForm.courseOfStudy}
-                  onChange={event => setProfileForm(prev => ({ ...prev, courseOfStudy: event.target.value }))}
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                >
-                  <option value="">Select Course of Study</option>
-                  {courseOptions.map(option => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-600">Year Level</label>
-                <select
-                  required
-                  value={profileForm.yearLevel}
-                  onChange={event => setProfileForm(prev => ({ ...prev, yearLevel: event.target.value }))}
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                >
-                  <option value="">Select Year Level</option>
-                  {yearLevelOptions.map(option => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-600">Street</label>
-                <input
-                  required
-                  value={profileForm.street}
-                  onChange={event => setProfileForm(prev => ({ ...prev, street: event.target.value }))}
-                  placeholder="Street"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-600">Barangay</label>
-                <input
-                  required
-                  value={profileForm.barangay}
-                  onChange={event => setProfileForm(prev => ({ ...prev, barangay: event.target.value }))}
-                  placeholder="Barangay"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-600">City</label>
-                <input
-                  required
-                  value={profileForm.city}
-                  onChange={event => setProfileForm(prev => ({ ...prev, city: event.target.value }))}
-                  placeholder="City"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-600">Province</label>
-                <input
-                  required
-                  value={profileForm.province}
-                  onChange={event => setProfileForm(prev => ({ ...prev, province: event.target.value }))}
-                  placeholder="Province"
-                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-600">Zip Code</label>
-              <input
-                required
-                type="number"
-                min={1}
-                value={profileForm.zipCode || ''}
-                onChange={event =>
-                  setProfileForm(prev => ({
-                    ...prev,
-                    zipCode: Number.isNaN(event.target.valueAsNumber) ? 0 : event.target.valueAsNumber,
-                  }))
-                }
-                placeholder="Zip Code"
-                className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-              />
-            </div>
-
-            {authError && <p className="text-sm text-rose-700">{authError}</p>}
-            {authHint && <p className="text-sm text-slate-600">{authHint}</p>}
-
-            <div className="flex flex-col items-center gap-3 border-t border-slate-100 pt-4 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => setSignupStep(1)}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 sm:w-auto"
-              >
-                <Icon className="text-base" name="arrow_back" />
-                Back
-              </button>
-              <button
-                type="submit"
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-black"
-              >
-                Continue to Verify
-                <Icon className="text-base" name="arrow_forward" />
-              </button>
-            </div>
-          </form>
-        )}
-
-        {authMode === 'signup' && signupStep === 3 && (
+        {isProfileStep && !isHydratingSignup && (
           <form className="space-y-6" onSubmit={handleFinalizeOnboarding}>
             <div className="space-y-1 text-center">
-              <h3 className="text-2xl font-bold tracking-tight text-slate-900">Verify and Submit</h3>
-              <p className="text-sm text-slate-500">
-                Final check before creating your pending account request.
-              </p>
+              <h3 className="text-2xl font-bold tracking-tight text-slate-900">Complete {roleDisplay} Profile</h3>
+              <p className="text-sm text-slate-500">Provide required details that match your organization record.</p>
+              {currentEmail && <p className="text-xs text-slate-500">Authenticated email: {currentEmail}</p>}
             </div>
 
             {onboardingSubmitted ? (
@@ -810,7 +694,7 @@ export default function AuthPage() {
                 <p className="text-base font-semibold">Account creation request submitted.</p>
                 <p>
                   Your account is now <span className="font-semibold">PENDING</span> and must be approved by admin
-                  or institution before dashboard access is enabled.
+                  before dashboard access is enabled.
                 </p>
                 <div className="flex flex-wrap gap-3 pt-1">
                   <Link
@@ -823,19 +707,112 @@ export default function AuthPage() {
               </div>
             ) : (
               <>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                  <p>
-                    <span className="font-semibold">Name:</span> {firstName} {middleName} {lastName}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Email:</span> {currentEmail || 'No email found'}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Student Number:</span> {profileForm.studentNumber}
-                  </p>
-                  <p>
-                    <span className="font-semibold">Course/Year:</span> {profileForm.courseOfStudy} / {profileForm.yearLevel}
-                  </p>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-600">First Name</label>
+                    <input
+                      required
+                      value={firstName}
+                      onChange={event => setFirstName(event.target.value)}
+                      placeholder="First Name"
+                      className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-600">Middle Name</label>
+                    <input
+                      value={middleName}
+                      onChange={event => setMiddleName(event.target.value)}
+                      placeholder="Middle Name (Optional)"
+                      className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-600">Last Name</label>
+                    <input
+                      required
+                      value={lastName}
+                      onChange={event => setLastName(event.target.value)}
+                      placeholder="Last Name"
+                      className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-600">
+                      {selectedRole === 'EMPLOYER' ? 'Company Name' : 'Institution Name'}
+                    </label>
+                    <input
+                      required
+                      value={organizationName}
+                      onChange={event => setOrganizationName(event.target.value)}
+                      placeholder={selectedRole === 'EMPLOYER' ? 'Company Name' : 'Institution Name'}
+                      className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-600">Registration Number</label>
+                    <input
+                      required
+                      value={registrationNumber}
+                      onChange={event => setRegistrationNumber(event.target.value)}
+                      placeholder="Registration Number"
+                      className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {selectedRole === 'EMPLOYER' ? (
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-600">Tax ID</label>
+                      <input
+                        required
+                        value={taxId}
+                        onChange={event => setTaxId(event.target.value)}
+                        placeholder="Tax ID"
+                        className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-slate-600">Accreditation Number</label>
+                      <input
+                        required
+                        value={accreditationNumber}
+                        onChange={event => setAccreditationNumber(event.target.value)}
+                        placeholder="Accreditation Number"
+                        className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-600">Phone Number</label>
+                    <input
+                      required
+                      value={phoneNumber}
+                      onChange={event => setPhoneNumber(event.target.value)}
+                      placeholder="Phone Number"
+                      className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-600">
+                    {selectedRole === 'EMPLOYER' ? 'Company Email' : 'Institution Email'}
+                  </label>
+                  <input
+                    required
+                    type="email"
+                    value={organizationEmail}
+                    onChange={event => setOrganizationEmail(event.target.value)}
+                    placeholder={selectedRole === 'EMPLOYER' ? 'Company Email' : 'Institution Email'}
+                    className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
+                  />
                 </div>
 
                 <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
@@ -845,9 +822,7 @@ export default function AuthPage() {
                     onChange={event => setConfirmVerification(event.target.checked)}
                     className="mt-1 h-4 w-4 rounded border-slate-300"
                   />
-                  <span>
-                    I confirm these details are accurate and understand my account remains pending until admin and institution approval.
-                  </span>
+                  <span>I confirm these details are accurate and understand my account remains pending until admin approval.</span>
                 </label>
 
                 {authError && <p className="text-sm text-rose-700">{authError}</p>}
@@ -856,11 +831,11 @@ export default function AuthPage() {
                 <div className="flex flex-col items-center gap-3 border-t border-slate-100 pt-4 sm:flex-row">
                   <button
                     type="button"
-                    onClick={() => setSignupStep(2)}
+                    onClick={() => setAndPersistRole(null)}
                     className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 sm:w-auto"
                   >
                     <Icon className="text-base" name="arrow_back" />
-                    Back
+                    Change Role
                   </button>
                   <button
                     type="submit"
@@ -876,7 +851,7 @@ export default function AuthPage() {
           </form>
         )}
 
-        {authError && isSignupClerkAuthStep && <p className="mt-4 text-sm text-rose-700">{authError}</p>}
+        {authError && (isRoleStep || isAuthStep) && <p className="mt-4 text-sm text-rose-700">{authError}</p>}
       </div>
     </div>
   );
