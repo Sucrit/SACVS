@@ -104,6 +104,23 @@ export class UserRepository {
     });
   }
 
+  async getInstitutionStudentIdentity(
+    institutionId: string,
+    studentUserId: string,
+  ): Promise<{ id: string; email: string } | null> {
+    return prisma.user.findFirst({
+      where: {
+        id: studentUserId,
+        role: Role.STUDENT,
+        institutionId,
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+  }
+
   async findByEmail(email: string): Promise<UserWithRelations | null> {
     const normalized = normalizeEmail(email);
     return prisma.user.findUnique({
@@ -528,6 +545,118 @@ export class UserRepository {
         approvedAt,
       },
       include: userInclude,
+    });
+  }
+
+  async updateInstitutionStudent(
+    institutionId: string,
+    studentUserId: string,
+    data: CreateInstitutionStudentDto,
+    actorId?: string | null,
+  ): Promise<UserWithRelations | null> {
+    const target = await this.getInstitutionStudentIdentity(institutionId, studentUserId);
+    if (!target) {
+      return null;
+    }
+
+    const normalizedEmail = normalizeEmail(data.email);
+    const existingByEmail = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true },
+    });
+    if (existingByEmail && existingByEmail.id !== studentUserId) {
+      throw new Error('EMAIL_ALREADY_LINKED_TO_ANOTHER_ACCOUNT');
+    }
+
+    const status = toPrismaStatus(data.status ?? 'PENDING');
+    const approvedAt = status === Status.APPROVED ? new Date() : null;
+
+    return prisma.user.update({
+      where: { id: studentUserId },
+      data: {
+        email: normalizedEmail,
+        firstName: data.firstName.trim(),
+        middleName: normalizeOptionalString(data.middleName),
+        lastName: data.lastName.trim(),
+        role: Role.STUDENT,
+        status,
+        institutionId,
+        employerId: null,
+        approvedById: status === Status.APPROVED ? actorId ?? null : null,
+        approvedAt,
+        profile: {
+          upsert: {
+            create: {
+              studentNumber: data.studentNumber.trim(),
+              street: data.street.trim(),
+              barangay: data.barangay.trim(),
+              city: data.city.trim(),
+              province: data.province.trim(),
+              zipCode: data.zipCode,
+              phone: data.phone.trim(),
+              courseOfStudy: data.courseOfStudy.trim(),
+              yearLevel: data.yearLevel.trim(),
+              department: data.department.trim(),
+            },
+            update: {
+              studentNumber: data.studentNumber.trim(),
+              street: data.street.trim(),
+              barangay: data.barangay.trim(),
+              city: data.city.trim(),
+              province: data.province.trim(),
+              zipCode: data.zipCode,
+              phone: data.phone.trim(),
+              courseOfStudy: data.courseOfStudy.trim(),
+              yearLevel: data.yearLevel.trim(),
+              department: data.department.trim(),
+            },
+          },
+        },
+      },
+      include: userInclude,
+    });
+  }
+
+  async deleteInstitutionStudentAccount(
+    institutionId: string,
+    studentUserId: string,
+  ): Promise<{ id: string; email: string } | null> {
+    const target = await this.getInstitutionStudentIdentity(institutionId, studentUserId);
+    if (!target) {
+      return null;
+    }
+
+    return prisma.$transaction(async tx => {
+      await tx.credentialRequest.deleteMany({
+        where: {
+          OR: [
+            { studentId: studentUserId },
+            { requesterId: studentUserId },
+            { processedById: studentUserId },
+          ],
+        },
+      });
+
+      await tx.credential.deleteMany({
+        where: {
+          OR: [
+            { studentId: studentUserId },
+            { issuedById: studentUserId },
+          ],
+        },
+      });
+
+      await tx.auditLog.deleteMany({
+        where: { actorId: studentUserId },
+      });
+
+      return tx.user.delete({
+        where: { id: studentUserId },
+        select: {
+          id: true,
+          email: true,
+        },
+      });
     });
   }
 }

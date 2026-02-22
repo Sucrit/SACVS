@@ -531,6 +531,74 @@ export class UserController {
     }
   }
 
+  async updateInstitutionStudent(req: Request, res: Response): Promise<Response> {
+    const actorId = getAuthUserId(req);
+    if (!actorId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const { data, error } = this.validateInstitutionStudentPayload(req.body);
+    if (error || !data) {
+      return res.status(400).json({ error: error ?? 'Invalid payload.' });
+    }
+
+    try {
+      const updated = await userService.updateInstitutionStudent(actorId, studentId, data);
+      return res.status(200).json(updated);
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        (err.message === 'FORBIDDEN_ROLE' || err.message === 'INSTITUTION_CONTEXT_MISSING')
+      ) {
+        return res.status(403).json({ error: 'Only institution accounts can update students.' });
+      }
+      if (err instanceof Error && err.message === 'STUDENT_NOT_FOUND_OR_FORBIDDEN') {
+        return res.status(404).json({ error: 'Student not found for this institution.' });
+      }
+      if (this.isStudentEmailAlreadyExistsError(err)) {
+        return res.status(409).json({ error: 'Student email already exists.' });
+      }
+
+      console.error('Error updating institution student:', err);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async deleteInstitutionStudent(req: Request, res: Response): Promise<Response> {
+    const actorId = getAuthUserId(req);
+    if (!actorId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const studentId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+    try {
+      const deleted = await userService.deleteInstitutionStudent(actorId, studentId);
+      return res.status(200).json({
+        id: deleted.id,
+        email: deleted.email,
+        message: 'Student account deleted from database and Clerk.',
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message === 'FORBIDDEN_ROLE' || error.message === 'INSTITUTION_CONTEXT_MISSING')
+      ) {
+        return res.status(403).json({ error: 'Only institution accounts can delete students.' });
+      }
+      if (error instanceof Error && error.message === 'STUDENT_NOT_FOUND_OR_FORBIDDEN') {
+        return res.status(404).json({ error: 'Student not found for this institution.' });
+      }
+      if (error instanceof Error && error.message === 'CLERK_DELETE_FAILED') {
+        return res.status(502).json({ error: 'Failed to delete student account from Clerk.' });
+      }
+
+      console.error('Error deleting institution student:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
   async getUserById(req: Request, res: Response): Promise<Response> {
     const userId: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     try {

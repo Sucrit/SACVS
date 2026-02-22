@@ -1,0 +1,205 @@
+import { ChangeEvent, FormEvent } from 'react';
+import { Check, PauseCircle, Pencil, RefreshCw, Search, Trash2, Upload, UserPlus, X } from 'lucide-react';
+import Card from '../../../components/common/Card';
+import Badge from '../../../components/common/Badge';
+import { User, UserStatus } from '../../../services/user.service';
+import { StudentFormState, StudentStatusFilter, STUDENT_STATUS_OPTIONS } from '../types';
+import { getStudentFullName } from '../utils';
+
+interface InstitutionStudentsSectionProps {
+  studentCounts: {
+    total: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+    suspended: number;
+  };
+  studentForm: StudentFormState;
+  isSubmittingStudent: boolean;
+  isBulkImporting: boolean;
+  onSetStudentFormValue: (field: keyof StudentFormState, value: string) => void;
+  onCreateStudent: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  onBulkCsvUpload: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  students: User[];
+  isLoadingStudents: boolean;
+  studentSearch: string;
+  studentStatusFilter: StudentStatusFilter;
+  studentDepartmentFilter: string;
+  departmentOptions: string[];
+  onStudentSearchChange: (value: string) => void;
+  onStudentStatusFilterChange: (value: StudentStatusFilter) => void;
+  onStudentDepartmentFilterChange: (value: string) => void;
+  onRefreshStudents: () => void;
+  updatingStudentId: string | null;
+  onStartEditStudent: (student: User) => void;
+  onStudentStatusUpdate: (studentId: string, status: UserStatus) => Promise<void>;
+  onRemoveStudent: (student: User) => Promise<void>;
+  editingStudentId: string | null;
+  editStudentForm: StudentFormState;
+  onSetEditStudentFormValue: (field: keyof StudentFormState, value: string) => void;
+  onSaveEditedStudent: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  onCancelEditStudent: () => void;
+}
+
+export default function InstitutionStudentsSection({
+  studentCounts,
+  studentForm,
+  isSubmittingStudent,
+  isBulkImporting,
+  onSetStudentFormValue,
+  onCreateStudent,
+  onBulkCsvUpload,
+  students,
+  isLoadingStudents,
+  studentSearch,
+  studentStatusFilter,
+  studentDepartmentFilter,
+  departmentOptions,
+  onStudentSearchChange,
+  onStudentStatusFilterChange,
+  onStudentDepartmentFilterChange,
+  onRefreshStudents,
+  updatingStudentId,
+  onStartEditStudent,
+  onStudentStatusUpdate,
+  onRemoveStudent,
+  editingStudentId,
+  editStudentForm,
+  onSetEditStudentFormValue,
+  onSaveEditedStudent,
+  onCancelEditStudent,
+}: InstitutionStudentsSectionProps) {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <Card title="Total Students" className="border-slate-900 bg-slate-900 text-white">
+          <p className="text-3xl font-bold text-white">{studentCounts.total}</p>
+          <p className="mt-1 text-xs uppercase tracking-[0.1em] text-slate-300">Institution roster</p>
+        </Card>
+        <Card title="Pending"><p className="text-3xl font-bold text-amber-700">{studentCounts.pending}</p></Card>
+        <Card title="Approved"><p className="text-3xl font-bold text-emerald-700">{studentCounts.approved}</p></Card>
+        <Card title="Restricted"><p className="text-3xl font-bold text-orange-700">{studentCounts.suspended + studentCounts.rejected}</p></Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <Card title="Add Student Account">
+          <form className="space-y-3" onSubmit={onCreateStudent}>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <input required value={studentForm.firstName} onChange={event => onSetStudentFormValue('firstName', event.target.value)} placeholder="First name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input value={studentForm.middleName} onChange={event => onSetStudentFormValue('middleName', event.target.value)} placeholder="Middle name (optional)" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={studentForm.lastName} onChange={event => onSetStudentFormValue('lastName', event.target.value)} placeholder="Last name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required type="email" value={studentForm.email} onChange={event => onSetStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={studentForm.studentNumber} onChange={event => onSetStudentFormValue('studentNumber', event.target.value)} placeholder="Student number" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={studentForm.phone} onChange={event => onSetStudentFormValue('phone', event.target.value)} placeholder="Phone" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={studentForm.street} onChange={event => onSetStudentFormValue('street', event.target.value)} placeholder="Street" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={studentForm.barangay} onChange={event => onSetStudentFormValue('barangay', event.target.value)} placeholder="Barangay" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={studentForm.city} onChange={event => onSetStudentFormValue('city', event.target.value)} placeholder="City" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={studentForm.province} onChange={event => onSetStudentFormValue('province', event.target.value)} placeholder="Province" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={studentForm.zipCode} onChange={event => onSetStudentFormValue('zipCode', event.target.value)} placeholder="Zip code" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <select value={studentForm.status} onChange={event => onSetStudentFormValue('status', event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none">
+                {STUDENT_STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
+              </select>
+              <input required value={studentForm.courseOfStudy} onChange={event => onSetStudentFormValue('courseOfStudy', event.target.value)} placeholder="Course of study" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={studentForm.yearLevel} onChange={event => onSetStudentFormValue('yearLevel', event.target.value)} placeholder="Year level" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={studentForm.department} onChange={event => onSetStudentFormValue('department', event.target.value)} placeholder="Department" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+            </div>
+            <button type="submit" disabled={isSubmittingStudent} className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-black disabled:opacity-60">
+              <UserPlus size={14} />
+              {isSubmittingStudent ? 'Creating...' : 'Create Student'}
+            </button>
+          </form>
+        </Card>
+
+        <Card title="Bulk Import (CSV)">
+          <p className="text-sm text-slate-600">
+            Use headers:
+            <span className="mt-2 block rounded-lg bg-slate-50 p-2 text-xs text-slate-700">
+              email,firstName,middleName,lastName,studentNumber,street,barangay,city,province,zipCode,phone,courseOfStudy,yearLevel,department,status
+            </span>
+          </p>
+          <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+            <Upload size={14} />
+            {isBulkImporting ? 'Importing...' : 'Upload CSV'}
+            <input type="file" accept=".csv,text/csv" onChange={event => { void onBulkCsvUpload(event); }} className="hidden" />
+          </label>
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs uppercase tracking-[0.1em] text-slate-500">Student Status Summary</p>
+            <p className="mt-2 text-sm text-slate-700">Pending: {studentCounts.pending} | Approved: {studentCounts.approved} | Rejected: {studentCounts.rejected} | Suspended: {studentCounts.suspended}</p>
+          </div>
+        </Card>
+      </div>
+
+      <Card title="Institution Students" action={<button onClick={onRefreshStudents} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"><RefreshCw size={14} />Refresh</button>}>
+        <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-4">
+          <div className="md:col-span-2 relative">
+            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input value={studentSearch} onChange={event => onStudentSearchChange(event.target.value)} placeholder="Search name, email, student #, department..." className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none" />
+          </div>
+          <select value={studentStatusFilter} onChange={event => onStudentStatusFilterChange(event.target.value as StudentStatusFilter)} className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none">
+            <option value="ALL">All statuses</option>
+            {STUDENT_STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
+          </select>
+          <select value={studentDepartmentFilter} onChange={event => onStudentDepartmentFilterChange(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none">
+            {departmentOptions.map(option => <option key={option} value={option}>{option === 'ALL' ? 'All departments' : option}</option>)}
+          </select>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+              <tr><th className="px-4 py-3">Student</th><th className="px-4 py-3">Student #</th><th className="px-4 py-3">Department</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Actions</th></tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {isLoadingStudents && <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">Loading students...</td></tr>}
+              {!isLoadingStudents && students.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">No students found.</td></tr>}
+              {!isLoadingStudents && students.map(student => (
+                <tr key={student.id} className="hover:bg-slate-50/70">
+                  <td className="px-4 py-3"><p className="font-semibold text-slate-900">{getStudentFullName(student)}</p><p className="mt-1 text-xs text-slate-500">{student.email}</p></td>
+                  <td className="px-4 py-3 text-sm text-slate-700">{student.profile?.studentNumber || '-'}</td>
+                  <td className="px-4 py-3 text-sm text-slate-700">{student.profile?.department || '-'}</td>
+                  <td className="px-4 py-3"><Badge status={student.status} /></td>
+                  <td className="px-4 py-3 text-right"><div className="inline-flex gap-2">
+                    <button onClick={() => onStartEditStudent(student)} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-700 hover:bg-slate-100" title="Edit student profile"><Pencil size={14} /></button>
+                    <button disabled={updatingStudentId === student.id} onClick={() => void onStudentStatusUpdate(student.id, 'APPROVED')} className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50" title="Approve"><Check size={14} /></button>
+                    <button disabled={updatingStudentId === student.id} onClick={() => void onStudentStatusUpdate(student.id, 'SUSPENDED')} className="rounded-lg border border-orange-200 bg-orange-50 p-2 text-orange-700 hover:bg-orange-100 disabled:opacity-50" title="Deactivate"><PauseCircle size={14} /></button>
+                    <button onClick={() => void onRemoveStudent(student)} className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-700 hover:bg-rose-100" title="Delete student account"><Trash2 size={14} /></button>
+                  </div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {editingStudentId && (
+        <Card title="Edit Student Profile">
+          <form className="space-y-3" onSubmit={onSaveEditedStudent}>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <input required value={editStudentForm.firstName} onChange={event => onSetEditStudentFormValue('firstName', event.target.value)} placeholder="First name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input value={editStudentForm.middleName} onChange={event => onSetEditStudentFormValue('middleName', event.target.value)} placeholder="Middle name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={editStudentForm.lastName} onChange={event => onSetEditStudentFormValue('lastName', event.target.value)} placeholder="Last name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={editStudentForm.studentNumber} onChange={event => onSetEditStudentFormValue('studentNumber', event.target.value)} placeholder="Student number" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={editStudentForm.courseOfStudy} onChange={event => onSetEditStudentFormValue('courseOfStudy', event.target.value)} placeholder="Course of study" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={editStudentForm.yearLevel} onChange={event => onSetEditStudentFormValue('yearLevel', event.target.value)} placeholder="Year level" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={editStudentForm.department} onChange={event => onSetEditStudentFormValue('department', event.target.value)} placeholder="Department" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={editStudentForm.phone} onChange={event => onSetEditStudentFormValue('phone', event.target.value)} placeholder="Phone" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required type="email" value={editStudentForm.email} onChange={event => onSetEditStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={editStudentForm.street} onChange={event => onSetEditStudentFormValue('street', event.target.value)} placeholder="Street" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={editStudentForm.barangay} onChange={event => onSetEditStudentFormValue('barangay', event.target.value)} placeholder="Barangay" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={editStudentForm.city} onChange={event => onSetEditStudentFormValue('city', event.target.value)} placeholder="City" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={editStudentForm.province} onChange={event => onSetEditStudentFormValue('province', event.target.value)} placeholder="Province" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <input required value={editStudentForm.zipCode} onChange={event => onSetEditStudentFormValue('zipCode', event.target.value)} placeholder="Zip code" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <select value={editStudentForm.status} onChange={event => onSetEditStudentFormValue('status', event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none">
+                {STUDENT_STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
+              </select>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-black"><Check size={14} />Save Changes</button>
+              <button type="button" onClick={onCancelEditStudent} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100"><X size={14} />Cancel</button>
+            </div>
+          </form>
+        </Card>
+      )}
+    </div>
+  );
+}

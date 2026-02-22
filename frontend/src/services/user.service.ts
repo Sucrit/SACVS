@@ -149,6 +149,12 @@ export interface InstitutionStudentBulkResult {
   }>;
 }
 
+export interface DeleteInstitutionStudentResult {
+  id: string;
+  email: string;
+  message: string;
+}
+
 export const UserService = {
   getMe: async () => {
     const response = await api.get<User>('/users/me');
@@ -207,6 +213,16 @@ export const UserService = {
 
   updateInstitutionStudentStatus: async (id: string, status: UserStatus) => {
     const response = await api.put<User>(`/users/me/institution/students/${id}/status`, { status });
+    return response.data;
+  },
+
+  updateInstitutionStudent: async (id: string, data: InstitutionStudentPayload) => {
+    const response = await api.put<User>(`/users/me/institution/students/${id}`, data);
+    return response.data;
+  },
+
+  deleteInstitutionStudent: async (id: string) => {
+    const response = await api.delete<DeleteInstitutionStudentResult>(`/users/me/institution/students/${id}`);
     return response.data;
   },
 };

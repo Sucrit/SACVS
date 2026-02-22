@@ -31,6 +31,28 @@ const normalizeErrorMessage = (error: unknown): string => {
 };
 
 export class UserService {
+  private isClerkUserNotFoundError(error: unknown): boolean {
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase();
+      if (message.includes('not found') || message.includes('resource_not_found')) {
+        return true;
+      }
+    }
+
+    if (typeof error === 'object' && error !== null) {
+      const maybeErrors = (error as { errors?: Array<{ code?: string; message?: string }> }).errors;
+      if (Array.isArray(maybeErrors)) {
+        return maybeErrors.some(item => {
+          const code = (item.code ?? '').toLowerCase();
+          const message = (item.message ?? '').toLowerCase();
+          return code.includes('not_found') || message.includes('not found');
+        });
+      }
+    }
+
+    return false;
+  }
+
   private async getInstitutionActorContext(actorUserId: string): Promise<{
     id: string;
     institutionId: string;
@@ -198,6 +220,49 @@ export class UserService {
     }
 
     return updated;
+  }
+
+  async updateInstitutionStudent(
+    actorUserId: string,
+    studentUserId: string,
+    data: CreateInstitutionStudentDto,
+  ) {
+    const actor = await this.getInstitutionActorContext(actorUserId);
+    const updated = await userRepository.updateInstitutionStudent(
+      actor.institutionId,
+      studentUserId,
+      data,
+      actorUserId,
+    );
+
+    if (!updated) {
+      throw new Error('STUDENT_NOT_FOUND_OR_FORBIDDEN');
+    }
+
+    return updated;
+  }
+
+  async deleteInstitutionStudent(actorUserId: string, studentUserId: string) {
+    const actor = await this.getInstitutionActorContext(actorUserId);
+    const target = await userRepository.getInstitutionStudentIdentity(actor.institutionId, studentUserId);
+    if (!target) {
+      throw new Error('STUDENT_NOT_FOUND_OR_FORBIDDEN');
+    }
+
+    try {
+      await clerkClient.users.deleteUser(studentUserId);
+    } catch (error) {
+      if (!this.isClerkUserNotFoundError(error)) {
+        throw new Error('CLERK_DELETE_FAILED');
+      }
+    }
+
+    const deleted = await userRepository.deleteInstitutionStudentAccount(actor.institutionId, studentUserId);
+    if (!deleted) {
+      throw new Error('STUDENT_NOT_FOUND_OR_FORBIDDEN');
+    }
+
+    return deleted;
   }
 
   async updateUserStatus(userId: string, data: UpdateUserStatusDto, actorId?: string | null) {

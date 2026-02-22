@@ -7,7 +7,8 @@ import {
   History, 
   Settings,
   BriefcaseBusiness,
-  Building2
+  Building2,
+  Bell
 } from 'lucide-react';
 import logo2 from '../../assets/logo2.png';
 
@@ -26,9 +27,10 @@ export default function Sidebar({ role }: SidebarProps) {
     INSTITUTION: [
       { to: '/institution', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/institution/students', label: 'Students', icon: Users },
-      { to: '/institution/requests', label: 'Credentials', icon: FileText },
-      { to: '/institution/verify', label: 'Verify Documents', icon: ShieldCheck },
-      { to: '/institution/history', label: 'History', icon: History },
+      { to: '/institution/requests', label: 'Requests', icon: FileText },
+      { to: '/institution/verify', label: 'Verify & Issue', icon: ShieldCheck },
+      { to: '/institution/history', label: 'Audit Logs', icon: History },
+      { to: '/institution/notifications', label: 'Notifications', icon: Bell },
     ],
     EMPLOYER: [
       { to: '/employer', label: 'Dashboard', icon: LayoutDashboard },

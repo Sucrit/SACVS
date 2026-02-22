@@ -28,6 +28,18 @@ router.post(
   userController.createInstitutionStudentsBulk.bind(userController),
 );
 router.put(
+  '/me/institution/students/:id',
+  requireAuth,
+  requireRoles('INSTITUTION'),
+  userController.updateInstitutionStudent.bind(userController),
+);
+router.delete(
+  '/me/institution/students/:id',
+  requireAuth,
+  requireRoles('INSTITUTION'),
+  userController.deleteInstitutionStudent.bind(userController),
+);
+router.put(
   '/me/institution/students/:id/status',
   requireAuth,
   requireRoles('INSTITUTION'),

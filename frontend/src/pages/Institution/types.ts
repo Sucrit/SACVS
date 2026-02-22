@@ -1,5 +1,5 @@
-import { CredentialRequest, CredentialRequestStatus } from '../../services/credential.service';
-import { InstitutionStudentPayload, User, UserStatus } from '../../services/user.service';
+import { CredentialRequestStatus } from '../../services/credential.service';
+import { UserStatus } from '../../services/user.service';
 
 export type InstitutionSection = 'overview' | 'students' | 'requests' | 'verify' | 'history' | 'notifications';
 export type StudentStatusFilter = UserStatus | 'ALL';
@@ -23,27 +23,22 @@ export interface OutboundNotification {
   createdAt: string;
 }
 
-export interface StudentFormState extends InstitutionStudentPayload {
+export interface StudentFormState {
+  email: string;
+  firstName: string;
   middleName: string;
+  lastName: string;
+  studentNumber: string;
+  street: string;
+  barangay: string;
+  city: string;
+  province: string;
   zipCode: string;
-}
-
-export interface InstitutionDashboardData {
-  requests: CredentialRequest[];
-  students: User[];
-  pendingCount: number;
-  approvedCount: number;
-  completedCount: number;
-  rejectedCount: number;
-  processedCount: number;
-  duplicateStudentEmails: string[];
-  studentCounts: {
-    total: number;
-    pending: number;
-    approved: number;
-    rejected: number;
-    suspended: number;
-  };
+  phone: string;
+  courseOfStudy: string;
+  yearLevel: string;
+  department: string;
+  status: UserStatus;
 }
 
 export const STUDENT_STATUS_OPTIONS: UserStatus[] = ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'];
@@ -65,3 +60,6 @@ export const DEFAULT_STUDENT_FORM: StudentFormState = {
   department: '',
   status: 'PENDING',
 };
+
+
+
