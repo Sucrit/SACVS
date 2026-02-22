@@ -12,6 +12,7 @@ import { useLegacyAuth } from '../auth/auth-context';
 import {
   CompleteOrganizationOnboardingPayload,
   OrganizationRole,
+  UserRole,
   User,
   UserService,
 } from '../services/user.service';
@@ -20,6 +21,13 @@ import heroBg from '../assets/hero_bg.jpg';
 
 type AuthMode = 'signin' | 'signup';
 const SIGNUP_ROLE_STORAGE_KEY = 'sacvs.signup.role';
+
+const ROLE_HOME_ROUTES: Record<UserRole, string> = {
+  STUDENT: '/student',
+  ADMIN: '/admin',
+  EMPLOYER: '/employer',
+  INSTITUTION: '/institution',
+};
 
 function Icon({ name, className = '' }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
@@ -111,6 +119,8 @@ export default function AuthPage() {
   const [isHydratingSignup, setIsHydratingSignup] = useState(false);
   const [suspendedUser, setSuspendedUser] = useState<User | null>(null);
 
+  const getRoleHomeRoute = useCallback((role: UserRole) => ROLE_HOME_ROUTES[role], []);
+
   const setAndPersistRole = useCallback((role: OrganizationRole | null) => {
     setSelectedRole(role);
 
@@ -184,7 +194,7 @@ export default function AuthPage() {
         }
 
         if (localUser?.status === 'APPROVED') {
-          navigate('/dashboard', { replace: true });
+          navigate(getRoleHomeRoute(localUser.role), { replace: true });
           return;
         }
 
@@ -249,7 +259,7 @@ export default function AuthPage() {
     return () => {
       isCancelled = true;
     };
-  }, [authMode, clerkUser, currentEmail, isClerkLoaded, isSignedIn, navigate, refreshUser, setAndPersistRole]);
+  }, [authMode, clerkUser, currentEmail, getRoleHomeRoute, isClerkLoaded, isSignedIn, navigate, refreshUser, setAndPersistRole]);
 
   useEffect(() => {
     if (!isClerkLoaded || !isSignedIn || authMode !== 'signin') {
@@ -272,7 +282,7 @@ export default function AuthPage() {
         }
 
         if (localUser.status === 'APPROVED') {
-          navigate('/dashboard', { replace: true });
+          navigate(getRoleHomeRoute(localUser.role), { replace: true });
           return;
         }
 
@@ -285,7 +295,7 @@ export default function AuthPage() {
     };
 
     void syncAndRoute();
-  }, [authMode, isClerkLoaded, isSignedIn, navigate, refreshUser]);
+  }, [authMode, getRoleHomeRoute, isClerkLoaded, isSignedIn, navigate, refreshUser]);
 
   useEffect(() => {
     if (!organizationEmail && currentEmail) {

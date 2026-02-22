@@ -5,12 +5,10 @@ import Badge from '../../components/common/Badge';
 import {
   AlertCircle,
   ArrowRight,
-  CircleUserRound,
   Clock3,
   Database,
   ListFilter,
   Mail,
-  MapPin,
   RefreshCw,
   Search,
   Server,
@@ -26,6 +24,7 @@ type StatusFilter = UserStatus | 'ALL';
 const ROLE_OPTIONS: RoleFilter[] = ['ALL', 'STUDENT', 'EMPLOYER', 'INSTITUTION', 'ADMIN'];
 const STATUS_OPTIONS: StatusFilter[] = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'];
 const USER_STATUS_ACTIONS: UserStatus[] = ['APPROVED', 'REJECTED', 'SUSPENDED', 'PENDING'];
+const USER_ROLE_ACTIONS: UserRole[] = ['STUDENT', 'EMPLOYER', 'INSTITUTION', 'ADMIN'];
 
 const formatDateTime = (value: string | null | undefined) => {
   if (!value) return '-';
@@ -57,10 +56,20 @@ const getRoleStyles = (role: UserRole) => {
   return 'border-slate-200 bg-slate-50 text-slate-700';
 };
 
+const getLinkedOrganizationLabel = (user: User) => {
+  if (user.role === 'INSTITUTION') {
+    return user.institution?.name || '-';
+  }
+  if (user.role === 'EMPLOYER') {
+    return user.employer?.companyName || '-';
+  }
+  return '-';
+};
+
 const getSection = (pathname: string): AdminSection => {
-  if (pathname.includes('/dashboard/admin/users')) return 'users';
-  if (pathname.includes('/dashboard/admin/logs')) return 'logs';
-  if (pathname.includes('/dashboard/admin/settings')) return 'settings';
+  if (pathname.includes('/admin/users')) return 'users';
+  if (pathname.includes('/admin/logs')) return 'logs';
+  if (pathname.includes('/admin/settings')) return 'settings';
   return 'overview';
 };
 
@@ -72,6 +81,7 @@ export default function AdminDashboard() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
+  const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
@@ -102,7 +112,7 @@ export default function AdminDashboard() {
   const approvedUsers = users.filter(user => user.status === 'APPROVED').length;
   const pendingUsers = users.filter(user => user.status === 'PENDING').length;
   const suspendedUsers = users.filter(user => user.status === 'SUSPENDED').length;
-  const profiledStudents = users.filter(user => user.role === 'STUDENT' && user.profile).length;
+  const studentAccounts = users.filter(user => user.role === 'STUDENT').length;
 
   const roleDistribution = useMemo(() => {
     return {
@@ -143,10 +153,10 @@ export default function AdminDashboard() {
         user.firstName,
         user.middleName || '',
         user.lastName,
-        user.profile?.studentNumber || '',
-        user.profile?.department || '',
-        user.profile?.courseOfStudy || '',
-        user.profile?.phone || '',
+        user.role,
+        user.status,
+        user.employer?.companyName || '',
+        user.institution?.name || '',
       ]
         .join(' ')
         .toLowerCase();
@@ -195,6 +205,21 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  const handleRoleUpdate = useCallback(async (userId: string, role: UserRole) => {
+    setIsUpdatingRole(userId);
+    setUsersError(null);
+
+    try {
+      const updated = await UserService.updateRole(userId, role);
+      setUsers(previous => previous.map(user => (user.id === userId ? { ...user, ...updated } : user)));
+    } catch (error) {
+      console.error('Failed to update user role:', error);
+      setUsersError('Unable to update user role at this time.');
+    } finally {
+      setIsUpdatingRole(null);
+    }
+  }, []);
+
   const renderOverview = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
@@ -228,11 +253,11 @@ export default function AdminDashboard() {
           </div>
         </Card>
 
-        <Card title="Student Profiles">
+        <Card title="Student Accounts">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-3xl font-bold text-slate-900">{profiledStudents}</p>
-              <p className="mt-1 text-xs uppercase tracking-[0.1em] text-slate-500">With profile data</p>
+              <p className="text-3xl font-bold text-slate-900">{studentAccounts}</p>
+              <p className="mt-1 text-xs uppercase tracking-[0.1em] text-slate-500">Role-level count</p>
             </div>
             <Database size={22} className="text-slate-700" />
           </div>
@@ -245,7 +270,7 @@ export default function AdminDashboard() {
             title="Recent User Registrations"
             action={
               <Link
-                to="/dashboard/admin/users"
+                to="/admin/users"
                 className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
               >
                 View All
@@ -359,7 +384,7 @@ export default function AdminDashboard() {
               <input
                 value={search}
                 onChange={event => setSearch(event.target.value)}
-                placeholder="Name, email, student number, department..."
+                placeholder="Name, email, role, organization..."
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-400"
               />
             </div>
@@ -412,8 +437,8 @@ export default function AdminDashboard() {
                     <th className="px-5 py-3">User</th>
                     <th className="px-5 py-3">Role</th>
                     <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3">Student Number</th>
-                    <th className="px-5 py-3">Department</th>
+                    <th className="px-5 py-3">Organization</th>
+                    <th className="px-5 py-3">Created</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
@@ -460,8 +485,8 @@ export default function AdminDashboard() {
                           <td className="px-5 py-4">
                             <Badge status={user.status} />
                           </td>
-                          <td className="px-5 py-4 text-sm text-slate-600">{user.profile?.studentNumber || '-'}</td>
-                          <td className="px-5 py-4 text-sm text-slate-600">{user.profile?.department || '-'}</td>
+                          <td className="px-5 py-4 text-sm text-slate-600">{getLinkedOrganizationLabel(user)}</td>
+                          <td className="px-5 py-4 text-sm text-slate-600">{formatDate(user.createdAt)}</td>
                         </tr>
                       );
                     })}
@@ -473,7 +498,7 @@ export default function AdminDashboard() {
 
         <div className="xl:col-span-2">
           <Card title="Selected User Details">
-            {!selectedUser && <p className="text-sm text-slate-500">Select a user to view complete profile details.</p>}
+            {!selectedUser && <p className="text-sm text-slate-500">Select a user to view account details.</p>}
 
             {selectedUser && (
               <div className="space-y-5">
@@ -496,6 +521,10 @@ export default function AdminDashboard() {
                       <p className="mt-1 font-semibold text-slate-700">{selectedUser.role}</p>
                     </div>
                     <div>
+                      <p className="uppercase tracking-[0.1em] text-slate-500">Organization</p>
+                      <p className="mt-1 font-semibold text-slate-700">{getLinkedOrganizationLabel(selectedUser)}</p>
+                    </div>
+                    <div>
                       <p className="uppercase tracking-[0.1em] text-slate-500">Created</p>
                       <p className="mt-1 font-semibold text-slate-700">{formatDateTime(selectedUser.createdAt)}</p>
                     </div>
@@ -511,6 +540,26 @@ export default function AdminDashboard() {
                       <p className="uppercase tracking-[0.1em] text-slate-500">Approved By ID</p>
                       <p className="mt-1 break-all font-semibold text-slate-700">{selectedUser.approvedById || '-'}</p>
                     </div>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Role Actions</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {USER_ROLE_ACTIONS.map(nextRole => (
+                      <button
+                        key={nextRole}
+                        disabled={isUpdatingRole === selectedUser.id || selectedUser.role === nextRole}
+                        onClick={() => void handleRoleUpdate(selectedUser.id, nextRole)}
+                        className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                          selectedUser.role === nextRole
+                            ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+                            : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        {isUpdatingRole === selectedUser.id && selectedUser.role !== nextRole ? 'Updating...' : nextRole}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -534,50 +583,8 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center gap-2">
-                    <CircleUserRound size={15} className="text-slate-600" />
-                    <p className="text-sm font-semibold text-slate-800">Student Profile</p>
-                  </div>
-
-                  {!selectedUser.profile && (
-                    <p className="text-sm text-slate-500">No student profile was submitted for this account.</p>
-                  )}
-
-                  {selectedUser.profile && (
-                    <div className="space-y-2 text-sm text-slate-700">
-                      <p>
-                        <span className="font-semibold text-slate-800">Student Number:</span> {selectedUser.profile.studentNumber}
-                      </p>
-                      <p>
-                        <span className="font-semibold text-slate-800">Department:</span> {selectedUser.profile.department}
-                      </p>
-                      <p>
-                        <span className="font-semibold text-slate-800">Course of Study:</span> {selectedUser.profile.courseOfStudy}
-                      </p>
-                      <p>
-                        <span className="font-semibold text-slate-800">Year Level:</span> {selectedUser.profile.yearLevel}
-                      </p>
-                      <p>
-                        <span className="font-semibold text-slate-800">Phone:</span> {selectedUser.profile.phone}
-                      </p>
-                      <p>
-                        <span className="font-semibold text-slate-800">Address:</span>{' '}
-                        {[
-                          selectedUser.profile.street,
-                          selectedUser.profile.barangay,
-                          selectedUser.profile.city,
-                          selectedUser.profile.province,
-                          selectedUser.profile.zipCode,
-                        ]
-                          .filter(Boolean)
-                          .join(', ')}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Profile updated: {formatDateTime(selectedUser.profile.updatedAt)}
-                      </p>
-                    </div>
-                  )}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                  Privacy guardrail: student profile data is hidden from admin-level tools by default.
                 </div>
               </div>
             )}
@@ -588,10 +595,10 @@ export default function AdminDashboard() {
   );
 
   const renderLogsPlaceholder = () => (
-    <Card title="System Logs">
+    <Card title="System Logs & Reports">
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
         <p className="text-sm text-slate-700">
-          TODO: Audit/system logs page
+          Audit logs and operational reports are available here for compliance and traceability.
         </p>
       </div>
     </Card>
@@ -634,8 +641,7 @@ export default function AdminDashboard() {
                       {user.email}
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <MapPin size={12} />
-                      {user.profile?.department || 'No department'}
+                      {user.role}
                     </span>
                   </div>
                 </div>

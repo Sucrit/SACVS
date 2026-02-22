@@ -4,6 +4,7 @@ import {
   CreateInstitutionStudentDto,
   CompleteOrganizationOnboardingDto,
   CreateUserDto,
+  UpdateUserRoleDto,
   UpdateUserStatusDto,
   UpsertStudentProfileDto,
   UserStatus,
@@ -89,7 +90,7 @@ export class UserService {
   }
 
   async listUsers() {
-    return userRepository.listUsers();
+    return userRepository.listUsersForAdmin();
   }
 
   async listInstitutionStudents(actorUserId: string) {
@@ -132,7 +133,7 @@ export class UserService {
   }
 
   async getUserById(userId: string) {
-    return userRepository.getUserById(userId);
+    return userRepository.getUserByIdForAdmin(userId);
   }
 
   async getCurrentUser(userId: string) {
@@ -201,5 +202,9 @@ export class UserService {
 
   async updateUserStatus(userId: string, data: UpdateUserStatusDto, actorId?: string | null) {
     return userRepository.updateUserStatus(userId, data.status, actorId);
+  }
+
+  async updateUserRole(userId: string, data: UpdateUserRoleDto) {
+    return userRepository.updateUserRole(userId, data.role);
   }
 }

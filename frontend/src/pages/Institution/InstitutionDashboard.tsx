@@ -103,7 +103,7 @@ const getApiErrorMessage = (error: unknown): string | null => {
 
 export default function InstitutionDashboard() {
   const location = useLocation();
-  const isStudentsPage = location.pathname.startsWith('/dashboard/institution/students');
+  const isStudentsPage = location.pathname.startsWith('/institution/students');
 
   const [requests, setRequests] = useState<CredentialRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
@@ -472,7 +472,7 @@ export default function InstitutionDashboard() {
           title="Student Records"
           action={
             <Link
-              to="/dashboard/institution/students"
+              to="/institution/students"
               className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
             >
               Open Student Management

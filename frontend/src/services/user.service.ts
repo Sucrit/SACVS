@@ -124,6 +124,10 @@ export interface UserListQuery {
   pageSize?: number;
 }
 
+export interface UpdateUserRolePayload {
+  role: UserRole;
+}
+
 export interface InstitutionStudentPayload extends UpsertStudentProfilePayload {
   email: string;
   firstName: string;
@@ -178,6 +182,11 @@ export const UserService = {
 
   updateStatus: async (id: string, status: UserStatus) => {
     const response = await api.put<User>(`/users/${id}/status`, { status });
+    return response.data;
+  },
+
+  updateRole: async (id: string, role: UserRole) => {
+    const response = await api.put<User>(`/users/${id}/role`, { role } as UpdateUserRolePayload);
     return response.data;
   },
 

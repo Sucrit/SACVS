@@ -15,6 +15,10 @@ export interface UpdateUserStatusDto {
   status: UserStatus;
 }
 
+export interface UpdateUserRoleDto {
+  role: UserRole;
+}
+
 export interface CreateInstitutionStudentDto extends UpsertStudentProfileDto {
   email: string;
   firstName: string;

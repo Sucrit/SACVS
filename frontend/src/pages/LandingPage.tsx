@@ -2,6 +2,7 @@ import { Bot, Globe2, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLegacyAuth } from '../auth/auth-context';
+import { UserRole } from '../services/user.service';
 import studentsGraduateImage from '../assets/students-graduates.jpg';
 import logo2 from '../assets/logo2.png';
 
@@ -40,6 +41,12 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
 
 export default function LandingPage() {
   const { user, isSessionAuthenticated, logout } = useLegacyAuth();
+  const roleRoutes: Record<UserRole, string> = {
+    STUDENT: '/student',
+    ADMIN: '/admin',
+    EMPLOYER: '/employer',
+    INSTITUTION: '/institution',
+  };
 
   const isApprovedSession = isSessionAuthenticated && !!user && user.status === 'APPROVED';
   const shouldContinueOnboarding = isSessionAuthenticated && !isApprovedSession;
@@ -85,7 +92,7 @@ export default function LandingPage() {
                 {isApprovedSession ? (
                   <Link
                     className="flex h-9 items-center justify-center rounded-full border border-slate-200 px-4 text-sm font-medium text-slate-700 transition-all hover:bg-slate-100"
-                    to="/dashboard"
+                    to={roleRoutes[user.role]}
                   >
                     Dashboard
                   </Link>

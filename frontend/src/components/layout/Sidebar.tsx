@@ -18,29 +18,30 @@ interface SidebarProps {
 export default function Sidebar({ role }: SidebarProps) {
   const links = {
     STUDENT: [
-      { to: '/dashboard/student', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/dashboard/student/requests', label: 'My Requests', icon: FileText },
-      { to: '/dashboard/student/credentials', label: 'My Credentials', icon: ShieldCheck },
-      { to: '/dashboard/student/profile', label: 'Profile', icon: Users },
+      { to: '/student', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/student/requests', label: 'My Requests', icon: FileText },
+      { to: '/student/credentials', label: 'My Credentials', icon: ShieldCheck },
+      { to: '/student/profile', label: 'Profile', icon: Users },
     ],
     INSTITUTION: [
-      { to: '/dashboard/institution', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/dashboard/institution/students', label: 'Students', icon: Users },
-      { to: '/dashboard/institution/requests', label: 'Pending Requests', icon: FileText },
-      { to: '/dashboard/institution/verify', label: 'Verify Documents', icon: ShieldCheck },
-      { to: '/dashboard/institution/history', label: 'History', icon: History },
+      { to: '/institution', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/institution/students', label: 'Students', icon: Users },
+      { to: '/institution/requests', label: 'Pending Requests', icon: FileText },
+      { to: '/institution/verify', label: 'Verify Documents', icon: ShieldCheck },
+      { to: '/institution/history', label: 'History', icon: History },
     ],
     EMPLOYER: [
-      { to: '/dashboard/employer', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/dashboard/employer/requests', label: 'My Requests', icon: FileText },
-      { to: '/dashboard/employer/verifications', label: 'Verifications', icon: BriefcaseBusiness },
-      { to: '/dashboard/employer/partners', label: 'Institutions', icon: Building2 },
+      { to: '/employer', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/employer/requests', label: 'My Requests', icon: FileText },
+      { to: '/employer/verifications', label: 'Verifications', icon: BriefcaseBusiness },
+      { to: '/employer/partners', label: 'Institutions', icon: Building2 },
     ],
     ADMIN: [
-      { to: '/dashboard/admin', label: 'Overview', icon: LayoutDashboard },
-      { to: '/dashboard/admin/users', label: 'User Management', icon: Users },
-      { to: '/dashboard/admin/logs', label: 'System Logs', icon: FileText },
-      { to: '/dashboard/admin/settings', label: 'Settings', icon: Settings },
+      { to: '/admin', label: 'Home', icon: LayoutDashboard },
+      { to: '/admin/users', label: 'User Management', icon: Users },
+      { to: '/admin/logs', label: 'Audit Logs', icon: FileText },
+      { to: '/admin/notifications', label: 'Notifications', icon: FileText },
+      { to: '/admin/settings', label: 'Settings', icon: Settings },
     ]
   };
 
@@ -57,7 +58,7 @@ export default function Sidebar({ role }: SidebarProps) {
           <NavLink
             key={link.to}
             to={link.to}
-            end={link.to === `/dashboard/${role.toLowerCase()}`}
+            end={link.to === `/${role.toLowerCase()}`}
             className={({ isActive }) =>
               `group relative flex items-center justify-between overflow-hidden rounded-xl px-3 py-2.5 transition-all duration-200 ${
                 isActive 

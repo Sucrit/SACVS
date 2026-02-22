@@ -18,7 +18,25 @@ const userInclude = {
   institution: true,
 };
 
+const adminUserInclude = {
+  employer: {
+    select: {
+      id: true,
+      companyName: true,
+      email: true,
+    },
+  },
+  institution: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+};
+
 export type UserWithRelations = Prisma.UserGetPayload<{ include: typeof userInclude }>;
+export type AdminUserWithRelations = Prisma.UserGetPayload<{ include: typeof adminUserInclude }>;
 
 const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 const normalizeOptionalString = (value?: string | null): string | null => {
@@ -64,6 +82,13 @@ export class UserRepository {
   async listUsers(): Promise<UserWithRelations[]> {
     return prisma.user.findMany({
       include: userInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async listUsersForAdmin(): Promise<AdminUserWithRelations[]> {
+    return prisma.user.findMany({
+      include: adminUserInclude,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -406,6 +431,13 @@ export class UserRepository {
     });
   }
 
+  async getUserByIdForAdmin(userId: string): Promise<AdminUserWithRelations | null> {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      include: adminUserInclude,
+    });
+  }
+
   async upsertStudentProfileByUserId(userId: string, data: UpsertStudentProfileDto): Promise<UserWithRelations> {
     return prisma.user.update({
       where: { id: userId },
@@ -454,6 +486,16 @@ export class UserRepository {
         approvedById: status === 'APPROVED' ? normalizedActorId : null,
         approvedAt,
       },
+    });
+  }
+
+  async updateUserRole(userId: string, role: UserRole): Promise<AdminUserWithRelations> {
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        role: toPrismaRole(role),
+      },
+      include: adminUserInclude,
     });
   }
 

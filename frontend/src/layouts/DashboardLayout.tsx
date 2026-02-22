@@ -27,10 +27,10 @@ export default function DashboardLayout() {
 
   const role = user.role as UserRole;
   const roleRoutes: Record<UserRole, string> = {
-    STUDENT: '/dashboard/student',
-    ADMIN: '/dashboard/admin',
-    EMPLOYER: '/dashboard/employer',
-    INSTITUTION: '/dashboard/institution',
+    STUDENT: '/student',
+    ADMIN: '/admin',
+    EMPLOYER: '/employer',
+    INSTITUTION: '/institution',
   };
 
   const expectedRoutePrefix = roleRoutes[role];
@@ -38,10 +38,6 @@ export default function DashboardLayout() {
 
   if (!expectedRoutePrefix) {
     return <Navigate to="/unauthorized" replace />;
-  }
-
-  if (path === '/dashboard') {
-    return <Navigate to={expectedRoutePrefix} replace />;
   }
 
   if (!path.startsWith(expectedRoutePrefix)) {

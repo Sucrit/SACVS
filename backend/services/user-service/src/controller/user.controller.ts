@@ -5,6 +5,7 @@ import {
   CreateInstitutionStudentDto,
   CompleteOrganizationOnboardingDto,
   CreateUserDto,
+  UpdateUserRoleDto,
   UpdateUserStatusDto,
   UpsertStudentProfileDto,
   UserStatus,
@@ -558,6 +559,23 @@ export class UserController {
       return res.status(200).json(updatedUser);
     } catch (error) {
       console.error('Error updating user status:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async updateUserRole(req: Request, res: Response): Promise<Response> {
+    const userId: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const { role }: UpdateUserRoleDto = req.body;
+    const validRoles = ['STUDENT', 'ADMIN', 'EMPLOYER', 'INSTITUTION'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ error: 'Invalid role value.' });
+    }
+
+    try {
+      const updatedUser = await userService.updateUserRole(userId, { role });
+      return res.status(200).json(updatedUser);
+    } catch (error) {
+      console.error('Error updating user role:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }

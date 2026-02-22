@@ -58,5 +58,11 @@ router.put(
   requireRoles('ADMIN'),
   userController.updateUserStatus.bind(userController),
 );
+router.put(
+  '/:id/role',
+  requireAuth,
+  requireRoles('ADMIN'),
+  userController.updateUserRole.bind(userController),
+);
 
 export default router;
