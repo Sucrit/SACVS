@@ -139,50 +139,51 @@ export class CredentialController {
 
   private parseUpdateStatusPayload(rawBody: unknown): Partial<UpdateCredentialStatusDto> {
     const body = (rawBody ?? {}) as Record<string, unknown>;
-    const status = this.normalizeString(body.status);
+    const payload: Partial<UpdateCredentialStatusDto> = {};
 
-    return {
-      status: status as UpdateCredentialStatusDto['status'],
-      description: this.normalizeString(body.description),
-      filename: this.normalizeString(body.filename),
-      mimeType: this.normalizeString(body.mimeType),
-      storageKey: this.normalizeString(body.storageKey),
-      fileHash: this.normalizeString(body.fileHash),
-      metadata: this.normalizeJson(body.metadata, 'INVALID_METADATA_JSON'),
-      aiStatus: this.normalizeString(body.aiStatus),
-      aiScore: this.normalizeNumber(body.aiScore, 'INVALID_AI_SCORE'),
-      aiReport: this.normalizeJson(body.aiReport, 'INVALID_AI_REPORT_JSON'),
-      aiValidatedAt: this.normalizeString(body.aiValidatedAt),
-      chain: this.normalizeString(body.chain),
-      txHash: this.normalizeString(body.txHash),
-      blockNumber: this.normalizeNumber(body.blockNumber, 'INVALID_BLOCK_NUMBER'),
-      anchoredAt: this.normalizeString(body.anchoredAt),
-      issuedDate: this.normalizeString(body.issuedDate),
-      expiryDate: this.normalizeString(body.expiryDate),
-    };
+    if ('status' in body) payload.status = this.normalizeString(body.status) as UpdateCredentialStatusDto['status'];
+    if ('description' in body) payload.description = this.normalizeString(body.description);
+    if ('filename' in body) payload.filename = this.normalizeString(body.filename);
+    if ('mimeType' in body) payload.mimeType = this.normalizeString(body.mimeType);
+    if ('storageKey' in body) payload.storageKey = this.normalizeString(body.storageKey);
+    if ('fileHash' in body) payload.fileHash = this.normalizeString(body.fileHash);
+    if ('metadata' in body) payload.metadata = this.normalizeJson(body.metadata, 'INVALID_METADATA_JSON');
+    if ('aiStatus' in body) payload.aiStatus = this.normalizeString(body.aiStatus);
+    if ('aiScore' in body) payload.aiScore = this.normalizeNumber(body.aiScore, 'INVALID_AI_SCORE');
+    if ('aiReport' in body) payload.aiReport = this.normalizeJson(body.aiReport, 'INVALID_AI_REPORT_JSON');
+    if ('aiValidatedAt' in body) payload.aiValidatedAt = this.normalizeString(body.aiValidatedAt);
+    if ('chain' in body) payload.chain = this.normalizeString(body.chain);
+    if ('txHash' in body) payload.txHash = this.normalizeString(body.txHash);
+    if ('blockNumber' in body) payload.blockNumber = this.normalizeNumber(body.blockNumber, 'INVALID_BLOCK_NUMBER');
+    if ('anchoredAt' in body) payload.anchoredAt = this.normalizeString(body.anchoredAt);
+    if ('issuedDate' in body) payload.issuedDate = this.normalizeString(body.issuedDate);
+    if ('expiryDate' in body) payload.expiryDate = this.normalizeString(body.expiryDate);
+
+    return payload;
   }
 
   private parseIssuePayload(rawBody: unknown): Partial<IssueCredentialDto> {
     const body = (rawBody ?? {}) as Record<string, unknown>;
+    const payload: Partial<IssueCredentialDto> = {};
 
-    return {
-      description: this.normalizeString(body.description),
-      filename: this.normalizeString(body.filename),
-      mimeType: this.normalizeString(body.mimeType),
-      storageKey: this.normalizeString(body.storageKey),
-      fileHash: this.normalizeString(body.fileHash),
-      metadata: this.normalizeJson(body.metadata, 'INVALID_METADATA_JSON'),
-      aiStatus: this.normalizeString(body.aiStatus),
-      aiScore: this.normalizeNumber(body.aiScore, 'INVALID_AI_SCORE'),
-      aiReport: this.normalizeJson(body.aiReport, 'INVALID_AI_REPORT_JSON'),
-      aiValidatedAt: this.normalizeString(body.aiValidatedAt),
-      chain: this.normalizeString(body.chain),
-      txHash: this.normalizeString(body.txHash),
-      blockNumber: this.normalizeNumber(body.blockNumber, 'INVALID_BLOCK_NUMBER'),
-      anchoredAt: this.normalizeString(body.anchoredAt),
-      issuedDate: this.normalizeString(body.issuedDate),
-      expiryDate: this.normalizeString(body.expiryDate),
-    };
+    if ('description' in body) payload.description = this.normalizeString(body.description);
+    if ('filename' in body) payload.filename = this.normalizeString(body.filename);
+    if ('mimeType' in body) payload.mimeType = this.normalizeString(body.mimeType);
+    if ('storageKey' in body) payload.storageKey = this.normalizeString(body.storageKey);
+    if ('fileHash' in body) payload.fileHash = this.normalizeString(body.fileHash);
+    if ('metadata' in body) payload.metadata = this.normalizeJson(body.metadata, 'INVALID_METADATA_JSON');
+    if ('aiStatus' in body) payload.aiStatus = this.normalizeString(body.aiStatus);
+    if ('aiScore' in body) payload.aiScore = this.normalizeNumber(body.aiScore, 'INVALID_AI_SCORE');
+    if ('aiReport' in body) payload.aiReport = this.normalizeJson(body.aiReport, 'INVALID_AI_REPORT_JSON');
+    if ('aiValidatedAt' in body) payload.aiValidatedAt = this.normalizeString(body.aiValidatedAt);
+    if ('chain' in body) payload.chain = this.normalizeString(body.chain);
+    if ('txHash' in body) payload.txHash = this.normalizeString(body.txHash);
+    if ('blockNumber' in body) payload.blockNumber = this.normalizeNumber(body.blockNumber, 'INVALID_BLOCK_NUMBER');
+    if ('anchoredAt' in body) payload.anchoredAt = this.normalizeString(body.anchoredAt);
+    if ('issuedDate' in body) payload.issuedDate = this.normalizeString(body.issuedDate);
+    if ('expiryDate' in body) payload.expiryDate = this.normalizeString(body.expiryDate);
+
+    return payload;
   }
 
   private mapError(error: unknown, res: Response): Response | null {

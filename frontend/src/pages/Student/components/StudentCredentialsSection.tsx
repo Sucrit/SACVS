@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Download, Eye, Plus, Search } from 'lucide-react';
+import { FileText, Plus, Search } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import { Credential, CredentialType } from '../../../services/credential.service';
-import { formatDate, getCredentialFileUrl } from '../utils';
+import { getCredentialFileUrl } from '../utils';
 
 type CredentialTypeFilter = 'ALL' | CredentialType;
 
@@ -17,12 +17,22 @@ interface StudentCredentialsSectionProps {
 
 const typeFilters: CredentialTypeFilter[] = ['ALL', 'TRANSCRIPT', 'DIPLOMA', 'CERTIFICATE', 'DEGREE', 'LICENSE'];
 
-const cardAccentByType: Record<CredentialType, string> = {
-  TRANSCRIPT: 'from-sky-500 via-sky-400 to-sky-500',
-  DIPLOMA: 'from-amber-500 via-amber-400 to-amber-500',
-  CERTIFICATE: 'from-violet-500 via-violet-400 to-violet-500',
-  DEGREE: 'from-emerald-500 via-emerald-400 to-emerald-500',
-  LICENSE: 'from-rose-500 via-rose-400 to-rose-500',
+const paperTextureStyle = {
+  backgroundColor: '#ffffff',
+  backgroundImage:
+    "url(\"data:image/svg+xml,%3Csvg width='90' height='90' viewBox='0 0 90 90' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%230f172a' fill-opacity='0.04'%3E%3Ccircle cx='10' cy='10' r='1.3'/%3E%3Ccircle cx='45' cy='25' r='1.3'/%3E%3Ccircle cx='75' cy='52' r='1.3'/%3E%3Ccircle cx='20' cy='70' r='1.3'/%3E%3C/g%3E%3C/svg%3E\")",
+};
+
+const isImageFile = (credential: Credential) => {
+  if (credential.mimeType?.startsWith('image/')) return true;
+  const source = `${credential.filename || ''} ${credential.storageKey || ''}`.toLowerCase();
+  return /\.(png|jpe?g|webp|gif|bmp|svg)$/.test(source);
+};
+
+const isPdfFile = (credential: Credential) => {
+  if (credential.mimeType === 'application/pdf') return true;
+  const source = `${credential.filename || ''} ${credential.storageKey || ''}`.toLowerCase();
+  return /\.pdf$/.test(source);
 };
 
 export default function StudentCredentialsSection({
@@ -115,70 +125,44 @@ export default function StudentCredentialsSection({
         )}
 
         {!isLoadingCredentials && filteredCredentials.length > 0 && (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredCredentials.map(credential => {
               const fileUrl = getCredentialFileUrl(credential.storageKey);
               const isSelected = credential.id === selectedCredentialId;
+              const showImagePreview = Boolean(fileUrl) && isImageFile(credential);
+              const showPdfPreview = Boolean(fileUrl) && isPdfFile(credential);
 
               return (
                 <article
                   key={credential.id}
                   onClick={() => onSelectCredential(credential.id)}
-                  className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${isSelected ? 'border-slate-900 ring-1 ring-slate-900' : 'border-slate-200'}`}
+                  className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${isSelected ? 'border-slate-900 ring-1 ring-slate-900' : 'border-slate-200'}`}
                 >
-                  <div className={`h-1.5 w-full bg-gradient-to-r ${cardAccentByType[credential.type]}`}></div>
-
-                  <div className="flex flex-1 flex-col p-4">
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <h3 className="line-clamp-2 text-base font-semibold text-slate-900">{credential.title}</h3>
-                      <Badge status={credential.status} />
+                  <div className="flex flex-1 flex-col p-3" style={paperTextureStyle}>
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <Badge status={credential.status} className="!px-2 !py-0.5 !text-[9px]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400">{credential.type}</p>
                     </div>
 
-                    <p className="text-xs text-slate-500">{credential.type}</p>
-                    <p className="mt-2 line-clamp-2 text-xs text-slate-500">{credential.description || 'No description provided.'}</p>
-
-                    <div className="mt-4 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
-                      <div>
-                        <p className="uppercase tracking-[0.08em] text-slate-400">Issued</p>
-                        <p className="mt-1 text-slate-700">{formatDate(credential.issuedDate || credential.createdAt)}</p>
-                      </div>
-                      <div>
-                        <p className="uppercase tracking-[0.08em] text-slate-400">Expires</p>
-                        <p className="mt-1 text-slate-700">{formatDate(credential.expiryDate)}</p>
-                      </div>
+                    <div className="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                      {showImagePreview ? (
+                        <img
+                          src={fileUrl as string}
+                          alt={credential.title}
+                          className="h-36 w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500">
+                          <FileText size={24} />
+                          <p className="text-xs font-medium">{showPdfPreview ? 'PDF Document' : 'No Preview Available'}</p>
+                        </div>
+                      )}
                     </div>
+
+                    <h3 className="line-clamp-2 text-center text-xl font-semibold leading-tight text-slate-900">{credential.title}</h3>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/80 px-4 py-3">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
-                      {credential.fileHash ? 'File Attached' : 'No File'}
-                    </span>
-                    {fileUrl ? (
-                      <div className="inline-flex items-center gap-2">
-                        <button
-                          onClick={event => {
-                            event.stopPropagation();
-                            window.open(fileUrl, '_blank', 'noopener,noreferrer');
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
-                        >
-                          <Eye size={12} />
-                          View
-                        </button>
-                        <a
-                          href={fileUrl}
-                          download={credential.filename || `${credential.title}.pdf`}
-                          onClick={event => event.stopPropagation()}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 hover:bg-slate-100"
-                        >
-                          <Download size={12} />
-                          Download
-                        </a>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-500">Pending upload</span>
-                    )}
-                  </div>
                 </article>
               );
             })}
