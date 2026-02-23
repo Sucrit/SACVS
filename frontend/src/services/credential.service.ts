@@ -57,7 +57,20 @@ export interface CreateCredentialPayload {
   title: string;
   type: CredentialType;
   description?: string;
-  issuedById: string;
+  issuedById?: string;
+  status?: CredentialStatus;
+  issuedDate?: string;
+  expiryDate?: string;
+  metadata?: Record<string, unknown> | null;
+  file?: File;
+}
+
+export interface IssueCredentialPayload {
+  description?: string;
+  issuedDate?: string;
+  expiryDate?: string;
+  metadata?: Record<string, unknown> | null;
+  file?: File;
 }
 
 export interface CredentialListQuery {
@@ -85,6 +98,30 @@ export interface CredentialRequestListQuery {
   pageSize?: number;
 }
 
+const toMultipartPayload = (data: CreateCredentialPayload | IssueCredentialPayload) => {
+  const formData = new FormData();
+
+  Object.entries(data as Record<string, unknown>).forEach(([key, value]) => {
+    if (typeof value === 'undefined' || value === null) {
+      return;
+    }
+
+    if (value instanceof File) {
+      formData.append(key, value);
+      return;
+    }
+
+    if (typeof value === 'object') {
+      formData.append(key, JSON.stringify(value));
+      return;
+    }
+
+    formData.append(key, String(value));
+  });
+
+  return formData;
+};
+
 export const CredentialService = {
   list: async (query: CredentialListQuery = {}) => {
     const response = await api.get<Credential[]>('/credentials', { params: query });
@@ -102,12 +139,27 @@ export const CredentialService = {
   },
 
   create: async (data: CreateCredentialPayload) => {
-    const response = await api.post<Credential>('/credentials', data);
+    const hasFile = data.file instanceof File;
+    const response = await api.post<Credential>(
+      '/credentials',
+      hasFile ? toMultipartPayload(data) : data,
+      hasFile ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined,
+    );
     return response.data;
   },
 
   updateStatus: async (id: string, status: CredentialStatus) => {
     const response = await api.put<Credential>(`/credentials/${id}/status`, { status });
+    return response.data;
+  },
+
+  issue: async (id: string, data: IssueCredentialPayload = {}) => {
+    const hasFile = data.file instanceof File;
+    const response = await api.put<Credential>(
+      `/credentials/${id}/issue`,
+      hasFile ? toMultipartPayload(data) : data,
+      hasFile ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined,
+    );
     return response.data;
   },
 

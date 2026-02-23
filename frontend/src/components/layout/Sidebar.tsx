@@ -19,16 +19,16 @@ interface SidebarProps {
 export default function Sidebar({ role }: SidebarProps) {
   const links = {
     STUDENT: [
-      { to: '/student', label: 'Dashboard', icon: LayoutDashboard },
-      { to: '/student/requests', label: 'My Requests', icon: FileText },
-      { to: '/student/credentials', label: 'My Credentials', icon: ShieldCheck },
+      { to: '/student', label: 'Home', icon: LayoutDashboard },
+      { to: '/student/requests', label: 'Requests', icon: FileText },
+      { to: '/student/credentials', label: 'Credentials', icon: ShieldCheck },
       { to: '/student/profile', label: 'Profile', icon: Users },
     ],
     INSTITUTION: [
       { to: '/institution', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/institution/students', label: 'Students', icon: Users },
       { to: '/institution/requests', label: 'Requests', icon: FileText },
-      { to: '/institution/verify', label: 'Verify & Issue', icon: ShieldCheck },
+      { to: '/institution/issue', label: 'Issue Credentials', icon: ShieldCheck },
       { to: '/institution/history', label: 'Audit Logs', icon: History },
       { to: '/institution/notifications', label: 'Notifications', icon: Bell },
     ],

@@ -12,6 +12,8 @@ export interface AuthenticatedRequest extends Request {
     sub: string;
     role?: UserRole;
     status?: UserStatus;
+    institutionId?: string | null;
+    employerId?: string | null;
   };
 }
 
@@ -35,13 +37,20 @@ export const requireAuth = async (
 
     const localUser = await prisma.user.findUnique({
       where: { id: clerkAuth.userId },
-      select: { role: true, status: true },
+      select: {
+        role: true,
+        status: true,
+        institutionId: true,
+        employerId: true,
+      },
     });
 
     (req as AuthenticatedRequest).auth = {
       sub: clerkAuth.userId,
       role: localUser?.role as UserRole | undefined,
       status: localUser?.status as UserStatus | undefined,
+      institutionId: localUser?.institutionId,
+      employerId: localUser?.employerId,
     };
 
     return next();

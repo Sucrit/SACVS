@@ -35,6 +35,7 @@ export default function DashboardLayout() {
 
   const expectedRoutePrefix = roleRoutes[role];
   const path = location.pathname;
+  const headerTitle = role === 'STUDENT' ? 'Home' : `${role.toLowerCase()} Dashboard`;
 
   if (!expectedRoutePrefix) {
     return <Navigate to="/unauthorized" replace />;
@@ -54,7 +55,7 @@ export default function DashboardLayout() {
         <header className="sticky top-0 z-40 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/90 px-8 backdrop-blur-md">
           <div className="flex flex-col">
             <div className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Academic Verification System</div>
-            <h1 className="text-xl font-semibold capitalize text-slate-900">{role.toLowerCase()} Dashboard</h1>
+            <h1 className="text-xl font-semibold capitalize text-slate-900">{headerTitle}</h1>
           </div>
 
           <div className="flex items-center gap-6">

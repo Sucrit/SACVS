@@ -12,12 +12,14 @@ interface InstitutionRequestsSectionProps {
   requestStatusFilter: RequestStatusFilter;
   selectedRequestIds: string[];
   rejectionReasonByRequestId: Record<string, string>;
+  issueFileByRequestId: Record<string, File | null>;
   updatingRequestId: string | null;
   onRefresh: () => void;
   onSearchChange: (value: string) => void;
   onFilterChange: (value: RequestStatusFilter) => void;
   onToggleRequest: (requestId: string) => void;
   onReasonChange: (requestId: string, reason: string) => void;
+  onIssueFileChange: (requestId: string, file: File | null) => void;
   onRequestAction: (requestId: string, action: 'APPROVE' | 'REJECT' | 'ISSUE') => Promise<void>;
   onBulkAction: (action: 'APPROVE' | 'REJECT' | 'ISSUE') => Promise<void>;
 }
@@ -29,12 +31,14 @@ export default function InstitutionRequestsSection({
   requestStatusFilter,
   selectedRequestIds,
   rejectionReasonByRequestId,
+  issueFileByRequestId,
   updatingRequestId,
   onRefresh,
   onSearchChange,
   onFilterChange,
   onToggleRequest,
   onReasonChange,
+  onIssueFileChange,
   onRequestAction,
   onBulkAction,
 }: InstitutionRequestsSectionProps) {
@@ -144,7 +148,25 @@ export default function InstitutionRequestsSection({
                         <button disabled={updatingRequestId === request.id} onClick={() => void onRequestAction(request.id, 'REJECT')} className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-700 hover:bg-rose-100 disabled:opacity-50" title="Reject"><X size={16} /></button>
                       </div>
                     ) : request.status === 'APPROVED' ? (
-                      <button disabled={updatingRequestId === request.id} onClick={() => void onRequestAction(request.id, 'ISSUE')} className="rounded-lg border border-cyan-200 bg-cyan-50 p-2 text-cyan-700 hover:bg-cyan-100 disabled:opacity-50" title="Issue"><ClipboardCheck size={16} /></button>
+                      <div className="inline-flex items-center justify-end gap-2">
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100">
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+                            className="hidden"
+                            onChange={event => onIssueFileChange(request.id, event.target.files?.[0] ?? null)}
+                          />
+                          {issueFileByRequestId[request.id]?.name ? 'Change File' : 'Attach File'}
+                        </label>
+                        <button
+                          disabled={updatingRequestId === request.id || (!request.credentialId && !issueFileByRequestId[request.id])}
+                          onClick={() => void onRequestAction(request.id, 'ISSUE')}
+                          className="rounded-lg border border-cyan-200 bg-cyan-50 p-2 text-cyan-700 hover:bg-cyan-100 disabled:opacity-50"
+                          title={!request.credentialId && !issueFileByRequestId[request.id] ? 'Attach a file to issue this credential.' : 'Issue'}
+                        >
+                          <ClipboardCheck size={16} />
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-xs text-slate-500">Completed</span>
                     )}

@@ -1,6 +1,12 @@
-import { PrismaClient, Credential, CredentialStatus, Prisma } from '../../../../db/node_modules/@prisma/client';
+import {
+  CredentialStatus,
+  Credential,
+  Prisma,
+  PrismaClient,
+  Role,
+  Status,
+} from '../../../../db/node_modules/@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { CreateCredentialDto } from '../dto/credential.dto';
 import { ENV } from '../config/env';
 
 if (!ENV.DATABASE_URL) {
@@ -11,6 +17,23 @@ const prismaAdapter = new PrismaPg({ connectionString: ENV.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: prismaAdapter });
 
 export class CredentialRepository {
+  async getStudentContextById(studentId: string): Promise<{
+    id: string;
+    role: Role;
+    status: Status;
+    institutionId: string | null;
+  } | null> {
+    return prisma.user.findUnique({
+      where: { id: studentId },
+      select: {
+        id: true,
+        role: true,
+        status: true,
+        institutionId: true,
+      },
+    });
+  }
+
   async listCredentials(
     where: Prisma.CredentialWhereInput,
     skip: number,
@@ -24,30 +47,52 @@ export class CredentialRepository {
     });
   }
 
-  // Create a new credential
-  async createCredential(data: CreateCredentialDto): Promise<Credential> {
+  async createCredential(data: Prisma.CredentialUncheckedCreateInput): Promise<Credential> {
     return prisma.credential.create({
-      data: {
-        ...data,
-        status: CredentialStatus.PENDING,  
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+      data,
     });
   }
 
-  // Get a credential by ID
   async getCredentialById(credentialId: string): Promise<Credential | null> {
     return prisma.credential.findUnique({
       where: { id: credentialId },
     });
   }
 
-  // Update the status of a credential
-  async updateCredentialStatus(credentialId: string, status: string): Promise<Credential> {
+  async getCredentialScopeById(credentialId: string): Promise<{
+    id: string;
+    status: CredentialStatus;
+    issuedById: string;
+    studentId: string;
+    issuedDate: Date | null;
+    student: {
+      institutionId: string | null;
+    };
+  } | null> {
+    return prisma.credential.findUnique({
+      where: { id: credentialId },
+      select: {
+        id: true,
+        status: true,
+        issuedById: true,
+        studentId: true,
+        issuedDate: true,
+        student: {
+          select: {
+            institutionId: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateCredential(
+    credentialId: string,
+    data: Prisma.CredentialUncheckedUpdateInput,
+  ): Promise<Credential> {
     return prisma.credential.update({
       where: { id: credentialId },
-      data: { status: CredentialStatus[status as keyof typeof CredentialStatus], updatedAt: new Date() },
+      data,
     });
   }
 }

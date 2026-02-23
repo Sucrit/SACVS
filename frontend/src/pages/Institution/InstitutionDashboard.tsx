@@ -1,11 +1,18 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { CredentialRequest, CredentialRequestStatus, CredentialService } from '../../services/credential.service';
+import {
+  Credential,
+  CredentialRequest,
+  CredentialRequestStatus,
+  CredentialService,
+  CredentialStatus,
+  CredentialType,
+} from '../../services/credential.service';
 import { InstitutionStudentPayload, User, UserService, UserStatus } from '../../services/user.service';
 import InstitutionOverviewSection from './components/InstitutionOverviewSection';
 import InstitutionStudentsSection from './components/InstitutionStudentsSection';
 import InstitutionRequestsSection from './components/InstitutionRequestsSection';
-import InstitutionVerifySection from './components/InstitutionVerifySection';
+import InstitutionIssueSection from './components/InstitutionIssueSection';
 import InstitutionHistorySection from './components/InstitutionHistorySection';
 import InstitutionNotificationsSection from './components/InstitutionNotificationsSection';
 import {
@@ -55,6 +62,9 @@ export default function InstitutionDashboard() {
   const [requestStatusFilter, setRequestStatusFilter] = useState<RequestStatusFilter>('ALL');
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
   const [rejectionReasonByRequestId, setRejectionReasonByRequestId] = useState<Record<string, string>>({});
+  const [issueFileByRequestId, setIssueFileByRequestId] = useState<Record<string, File | null>>({});
+  const [credentials, setCredentials] = useState<Credential[]>([]);
+  const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
 
   const [students, setStudents] = useState<User[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
@@ -114,15 +124,28 @@ export default function InstitutionDashboard() {
     }
   }, []);
 
+  const loadCredentials = useCallback(async () => {
+    setIsLoadingCredentials(true);
+    try {
+      const data = await CredentialService.list();
+      setCredentials(data);
+    } catch (error) {
+      setCredentials([]);
+      setRequestsError('Unable to load student credentials from the server.');
+      console.error('Failed to load institution credentials:', error);
+    } finally {
+      setIsLoadingCredentials(false);
+    }
+  }, []);
+
   useEffect(() => {
     void loadRequests();
     void loadStudents();
+    void loadCredentials();
     createEvent('SYSTEM', 'Institution workspace initialized', 'Institution frontend sections loaded.');
-  }, [createEvent, loadRequests, loadStudents]);
+  }, [createEvent, loadRequests, loadStudents, loadCredentials]);
 
   const pendingCount = requests.filter(request => request.status === 'PENDING').length;
-  const approvedCount = requests.filter(request => request.status === 'APPROVED').length;
-  const completedCount = requests.filter(request => request.status === 'COMPLETED').length;
   const rejectedCount = requests.filter(request => request.status === 'REJECTED').length;
   const processedCount = requests.filter(request => request.status === 'APPROVED' || request.status === 'COMPLETED' || request.status === 'REJECTED').length;
 
@@ -361,6 +384,59 @@ export default function InstitutionDashboard() {
     }
   };
 
+  const issueCredentialForRequest = async (request: CredentialRequest) => {
+    let credentialId = request.credentialId;
+    const selectedFile = issueFileByRequestId[request.id] ?? undefined;
+    let uploadFileDuringIssue = selectedFile;
+    const requestMetadata = {
+      source: 'CREDENTIAL_REQUEST',
+      requestId: request.id,
+      deliveryMethod: request.deliveryMethod,
+      purpose: request.purpose,
+    };
+
+    if (!credentialId) {
+      const created = await CredentialService.create({
+        studentId: request.studentId,
+        title: request.title,
+        type: request.type,
+        description: request.description || undefined,
+        status: 'VERIFIED',
+        metadata: requestMetadata,
+        file: selectedFile,
+      });
+      credentialId = created.id;
+      if (selectedFile) {
+        uploadFileDuringIssue = undefined;
+      }
+    }
+
+    await CredentialService.issue(credentialId, {
+      description: request.description || undefined,
+      issuedDate: new Date().toISOString(),
+      metadata: requestMetadata,
+      file: uploadFileDuringIssue,
+    });
+
+    await updateRequestStatus(
+      request.id,
+      'COMPLETED',
+      undefined,
+      `Credential issued by institution. Credential ID: ${credentialId}.`,
+    );
+
+    setRequests(previous =>
+      previous.map(entry => (entry.id === request.id ? { ...entry, credentialId } : entry)),
+    );
+    setIssueFileByRequestId(previous => {
+      const next = { ...previous };
+      delete next[request.id];
+      return next;
+    });
+
+    return credentialId;
+  };
+
   const handleRequestAction = async (requestId: string, action: 'APPROVE' | 'REJECT' | 'ISSUE') => {
     try {
       if (action === 'APPROVE') {
@@ -377,12 +453,22 @@ export default function InstitutionDashboard() {
         return;
       }
 
-      await updateRequestStatus(requestId, 'COMPLETED', undefined, 'Credential issued by institution.');
-      setRequestsHint('Request marked as completed and credential issued.');
-      createEvent('REQUEST', 'Credential issued', `Request ${requestId} marked completed.`);
+      const request = requests.find(entry => entry.id === requestId);
+      if (!request) {
+        throw new Error('Credential request not found.');
+      }
+
+      const issuedCredentialId = await issueCredentialForRequest(request);
+      setRequestsHint('Credential issued and request marked as completed.');
+      createEvent(
+        'REQUEST',
+        'Credential issued',
+        `Request ${requestId} completed with credential ${issuedCredentialId}.`,
+      );
+      await loadCredentials();
     } catch (error) {
-      setRequestsError(getApiErrorMessage(error) || 'Unable to update request status.');
-      console.error('Failed updating request status:', error);
+      setRequestsError(getApiErrorMessage(error) || 'Unable to issue credential.');
+      console.error('Failed handling request action:', error);
     }
   };
 
@@ -399,7 +485,11 @@ export default function InstitutionDashboard() {
           const reason = rejectionReasonByRequestId[requestId]?.trim() || 'Rejected during bulk review.';
           return updateRequestStatus(requestId, 'REJECTED', reason);
         }
-        return updateRequestStatus(requestId, 'COMPLETED', undefined, 'Credential issued in bulk processing.');
+        const request = requests.find(entry => entry.id === requestId);
+        if (!request) {
+          throw new Error(`Credential request ${requestId} not found.`);
+        }
+        return issueCredentialForRequest(request);
       }),
     );
 
@@ -408,6 +498,76 @@ export default function InstitutionDashboard() {
     setSelectedRequestIds([]);
     setRequestsHint(`Bulk ${action.toLowerCase()} complete: ${succeeded} updated, ${failed} failed.`);
     createEvent('REQUEST', 'Bulk request processing', `${action} applied to ${results.length} requests; ${succeeded} succeeded.`);
+    await loadCredentials();
+  };
+
+  const handleDirectIssueCredential = async (payload: {
+    studentId: string;
+    type: CredentialType;
+    title: string;
+    description?: string;
+    file: File;
+  }) => {
+    setRequestsError(null);
+    setRequestsHint(null);
+
+    const created = await CredentialService.create({
+      studentId: payload.studentId,
+      type: payload.type,
+      title: payload.title,
+      description: payload.description,
+      status: 'VERIFIED',
+      file: payload.file,
+      metadata: {
+        source: 'INSTITUTION_DIRECT_ISSUE',
+      },
+    });
+
+    const issued = await CredentialService.issue(created.id, {
+      issuedDate: new Date().toISOString(),
+      description: payload.description,
+    });
+
+    setRequestsHint('Credential issued successfully.');
+    createEvent(
+      'REQUEST',
+      'Credential issued directly',
+      `Credential ${issued.id} issued to student ${payload.studentId}.`,
+    );
+
+    await loadCredentials();
+    return issued;
+  };
+
+  const handleCredentialStatusUpdate = async (credentialId: string, status: CredentialStatus) => {
+    setRequestsError(null);
+    setRequestsHint(null);
+    try {
+      const updated = await CredentialService.updateStatus(credentialId, status);
+      setCredentials(previous => previous.map(item => (item.id === credentialId ? updated : item)));
+      setRequestsHint(`Credential status updated to ${status}.`);
+      createEvent('REQUEST', 'Credential updated', `Credential ${credentialId} updated to ${status}.`);
+    } catch (error) {
+      setRequestsError(getApiErrorMessage(error) || 'Unable to update credential.');
+      throw error;
+    }
+  };
+
+  const handleCredentialReissue = async (credentialId: string, file?: File) => {
+    setRequestsError(null);
+    setRequestsHint(null);
+    try {
+      const issued = await CredentialService.issue(credentialId, {
+        issuedDate: new Date().toISOString(),
+        file,
+      });
+      setCredentials(previous => previous.map(item => (item.id === credentialId ? issued : item)));
+      setRequestsHint('Credential re-issued successfully.');
+      createEvent('REQUEST', 'Credential re-issued', `Credential ${credentialId} re-issued.`);
+    } catch (error) {
+      setRequestsError(getApiErrorMessage(error) || 'Unable to re-issue credential.');
+      throw error;
+    }
   };
 
   const handleNotificationSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -440,7 +600,7 @@ export default function InstitutionDashboard() {
 
   return (
     <div className="space-y-6">
-      {(requestsError || requestsHint) && (section === 'requests' || section === 'verify') && (
+      {(requestsError || requestsHint) && (section === 'requests' || section === 'issue') && (
         <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${requestsError ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
           {requestsError || requestsHint}
         </div>
@@ -514,18 +674,33 @@ export default function InstitutionDashboard() {
           onReasonChange={(requestId: string, reason: string) => {
             setRejectionReasonByRequestId(previous => ({ ...previous, [requestId]: reason }));
           }}
+          issueFileByRequestId={issueFileByRequestId}
+          onIssueFileChange={(requestId: string, file: File | null) => {
+            setIssueFileByRequestId(previous => ({ ...previous, [requestId]: file }));
+          }}
           onRequestAction={handleRequestAction}
           onBulkAction={handleBulkRequestAction}
         />
       )}
 
-      {section === 'verify' && (
-        <InstitutionVerifySection
-          pendingCount={pendingCount}
-          approvedCount={approvedCount}
-          completedCount={completedCount}
+      {section === 'issue' && (
+        <InstitutionIssueSection
+          students={students}
+          credentials={credentials}
+          isLoadingCredentials={isLoadingCredentials}
           requests={requests}
           isLoadingRequests={isLoadingRequests}
+          onRefresh={() => {
+            void loadRequests();
+            void loadCredentials();
+          }}
+          onDirectIssue={handleDirectIssueCredential}
+          onCredentialStatusUpdate={handleCredentialStatusUpdate}
+          onCredentialReissue={handleCredentialReissue}
+          issueFileByRequestId={issueFileByRequestId}
+          onIssueFileChange={(requestId: string, file: File | null) => {
+            setIssueFileByRequestId(previous => ({ ...previous, [requestId]: file }));
+          }}
           onRequestAction={handleRequestAction}
         />
       )}
