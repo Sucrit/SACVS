@@ -5,6 +5,51 @@ import Sidebar from '../components/layout/Sidebar';
 import { UserRole } from '../services/user.service';
 import { useLegacyAuth } from '../auth/auth-context';
 
+const PAGE_TITLES: Record<UserRole, Array<{ to: string; label: string }>> = {
+  STUDENT: [
+    { to: '/student/requests', label: 'Requests' },
+    { to: '/student/credentials', label: 'Credentials' },
+    { to: '/student/profile', label: 'Profile' },
+    { to: '/student', label: 'Home' },
+  ],
+  INSTITUTION: [
+    { to: '/institution/students', label: 'Students' },
+    { to: '/institution/requests', label: 'Requests' },
+    { to: '/institution/issue', label: 'Issue Credentials' },
+    { to: '/institution/history', label: 'Audit Logs' },
+    { to: '/institution/notifications', label: 'Notifications' },
+    { to: '/institution', label: 'Dashboard' },
+  ],
+  EMPLOYER: [
+    { to: '/employer/requests', label: 'My Requests' },
+    { to: '/employer/verifications', label: 'Verifications' },
+    { to: '/employer/partners', label: 'Institutions' },
+    { to: '/employer', label: 'Dashboard' },
+  ],
+  ADMIN: [
+    { to: '/admin/users', label: 'User Management' },
+    { to: '/admin/logs', label: 'Audit Logs' },
+    { to: '/admin/notifications', label: 'Notifications' },
+    { to: '/admin/settings', label: 'Settings' },
+    { to: '/admin', label: 'Home' },
+  ],
+};
+
+const resolvePageTitle = (role: UserRole, path: string) => {
+  const matches = PAGE_TITLES[role] || [];
+  const matched = matches.find(item => path === item.to || path.startsWith(`${item.to}/`));
+  if (matched) {
+    return matched.label;
+  }
+
+  return path
+    .split('/')
+    .filter(Boolean)
+    .pop()
+    ?.replace(/[-_]/g, ' ')
+    .replace(/\b\w/g, char => char.toUpperCase()) || 'Dashboard';
+};
+
 export default function DashboardLayout() {
   const location = useLocation();
   const { user, isLoading } = useLegacyAuth();
@@ -35,7 +80,9 @@ export default function DashboardLayout() {
 
   const expectedRoutePrefix = roleRoutes[role];
   const path = location.pathname;
-  const headerTitle = role === 'STUDENT' ? 'Home' : `${role.toLowerCase()} Dashboard`;
+  const headerTitle = resolvePageTitle(role, path);
+  const welcomeName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+  const welcomeText = `Welcome, ${welcomeName}`;
 
   if (!expectedRoutePrefix) {
     return <Navigate to="/unauthorized" replace />;
@@ -54,8 +101,8 @@ export default function DashboardLayout() {
 
         <header className="sticky top-0 z-40 flex h-20 items-center justify-between border-b border-slate-200/80 bg-white/90 px-8 backdrop-blur-md">
           <div className="flex flex-col">
-            <div className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Academic Verification System</div>
-            <h1 className="text-xl font-semibold capitalize text-slate-900">{headerTitle}</h1>
+            <div className="mb-0.5 text-sm font-medium text-slate-500">{welcomeText}</div>
+            <h1 className="text-xl font-semibold text-slate-900">{headerTitle}</h1>
           </div>
 
           <div className="flex items-center gap-6">

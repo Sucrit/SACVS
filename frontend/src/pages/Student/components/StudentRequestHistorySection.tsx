@@ -13,7 +13,7 @@ export default function StudentRequestHistorySection({
   isLoadingRequests,
 }: StudentRequestHistorySectionProps) {
   return (
-    <Card title="My Request History">
+    <Card>
       <div className="overflow-hidden rounded-xl border border-slate-200">
         <table className="min-w-full text-left">
           <thead className="bg-slate-50">
@@ -59,4 +59,3 @@ export default function StudentRequestHistorySection({
     </Card>
   );
 }
-

@@ -1,7 +1,9 @@
 import React from 'react';
 import { twMerge } from 'tailwind-merge';
 
-export default function Card({ title, children, className, action }: { title: string; children: React.ReactNode; className?: string; action?: React.ReactNode }) {
+export default function Card({ title, children, className, action }: { title?: string; children: React.ReactNode; className?: string; action?: React.ReactNode }) {
+  const hasHeader = Boolean((title && title.trim().length > 0) || action);
+
   return (
     <div
       className={twMerge(
@@ -9,10 +11,12 @@ export default function Card({ title, children, className, action }: { title: st
         className,
       )}
     >
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
-        {action && <div>{action}</div>}
-      </div>
+      {hasHeader && (
+        <div className="mb-5 flex items-center justify-between gap-4">
+          {title ? <h3 className="text-lg font-semibold text-slate-900">{title}</h3> : <div></div>}
+          {action && <div>{action}</div>}
+        </div>
+      )}
       {children}
     </div>
   );

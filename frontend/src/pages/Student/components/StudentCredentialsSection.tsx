@@ -1,7 +1,6 @@
-import { useMemo, useState } from 'react';
-import { FileText, Plus, Search } from 'lucide-react';
+import { MouseEvent, useMemo, useState } from 'react';
+import { Download, FileText, MoreHorizontal, Plus, Search, Share2 } from 'lucide-react';
 import Card from '../../../components/common/Card';
-import Badge from '../../../components/common/Badge';
 import { Credential, CredentialType } from '../../../services/credential.service';
 import { getCredentialFileUrl } from '../utils';
 
@@ -12,6 +11,7 @@ interface StudentCredentialsSectionProps {
   isLoadingCredentials: boolean;
   selectedCredentialId: string | null;
   onSelectCredential: (credentialId: string) => void;
+  onOpenDetails: (credentialId: string) => void;
   onRefresh: () => void;
 }
 
@@ -40,10 +40,28 @@ export default function StudentCredentialsSection({
   isLoadingCredentials,
   selectedCredentialId,
   onSelectCredential,
+  onOpenDetails,
   onRefresh,
 }: StudentCredentialsSectionProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<CredentialTypeFilter>('ALL');
+
+  const handleShare = async (url: string | null, event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (!url) return;
+
+    try {
+      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        await navigator.share({ url });
+        return;
+      }
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+      }
+    } catch {
+      // Ignore share/copy errors in unsupported contexts.
+    }
+  };
 
   const filteredCredentials = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
@@ -69,18 +87,7 @@ export default function StudentCredentialsSection({
   }, [credentials, searchTerm, typeFilter]);
 
   return (
-    <Card
-      title="My Credentials"
-      action={
-        <button
-          onClick={onRefresh}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-        >
-          <Plus size={14} />
-          Reload
-        </button>
-      }
-    >
+    <Card>
       <div className="space-y-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-xs">
@@ -93,7 +100,7 @@ export default function StudentCredentialsSection({
               className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none focus:border-slate-300"
             />
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {typeFilters.map(filter => {
               const isActive = filter === typeFilter;
               return (
@@ -106,6 +113,13 @@ export default function StudentCredentialsSection({
                 </button>
               );
             })}
+            <button
+              onClick={onRefresh}
+              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              <Plus size={14} />
+              Reload
+            </button>
           </div>
         </div>
 
@@ -140,16 +154,64 @@ export default function StudentCredentialsSection({
                 >
                   <div className="flex flex-1 flex-col p-3" style={paperTextureStyle}>
                     <div className="mb-3 flex items-center justify-between gap-2">
-                      <Badge status={credential.status} className="!px-2 !py-0.5 !text-[9px]" />
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400">{credential.type}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400">
+                        {credential.type}
+                      </p>
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={event => {
+                            event.stopPropagation();
+                            onSelectCredential(credential.id);
+                            onOpenDetails(credential.id);
+                          }}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                          title="More"
+                          aria-label="More"
+                        >
+                          <MoreHorizontal size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={event => void handleShare(fileUrl, event)}
+                          disabled={!fileUrl}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                          title="Share"
+                          aria-label="Share"
+                        >
+                          <Share2 size={14} />
+                        </button>
+                        {fileUrl ? (
+                          <a
+                            href={fileUrl}
+                            download={credential.filename || `${credential.title}.pdf`}
+                            onClick={event => event.stopPropagation()}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                            title="Download"
+                            aria-label="Download"
+                          >
+                            <Download size={14} />
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            className="inline-flex h-7 w-7 cursor-not-allowed items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 opacity-40"
+                            title="Download"
+                            aria-label="Download"
+                          >
+                            <Download size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                    <div className="mb-3 overflow-hidden rounded-xl bg-slate-50">
                       {showImagePreview ? (
                         <img
                           src={fileUrl as string}
                           alt={credential.title}
-                          className="h-36 w-full object-cover"
+                          className="h-36 w-full bg-white object-contain"
                           loading="lazy"
                         />
                       ) : (

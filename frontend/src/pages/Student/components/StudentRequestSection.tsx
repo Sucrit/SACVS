@@ -32,7 +32,7 @@ export default function StudentRequestSection({
   onDeliveryMethodChange,
 }: StudentRequestSectionProps) {
   return (
-    <Card title="New Credential Request">
+    <Card>
       <p className="mb-4 text-sm text-slate-600">Submit a request to your institution for new credential issuance.</p>
       <form className="space-y-3" onSubmit={event => void onSubmit(event)}>
         <select
@@ -90,4 +90,3 @@ export default function StudentRequestSection({
     </Card>
   );
 }
-

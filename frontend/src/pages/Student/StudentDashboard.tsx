@@ -9,11 +9,13 @@ import {
   CredentialType,
   DeliveryMethod,
 } from '../../services/credential.service';
+import { User, UserService } from '../../services/user.service';
 import StudentCredentialsSection from './components/StudentCredentialsSection';
 import StudentCredentialDetailsSection from './components/StudentCredentialDetailsSection';
 import StudentRequestSection from './components/StudentRequestSection';
 import StudentEmptyStateSection from './components/StudentEmptyStateSection';
 import StudentRequestHistorySection from './components/StudentRequestHistorySection';
+import StudentProfileSection from './components/StudentProfileSection';
 import { getApiErrorMessage, getStudentSection } from './utils';
 
 export default function StudentDashboard() {
@@ -21,9 +23,11 @@ export default function StudentDashboard() {
   const section = getStudentSection(location.pathname);
   const shouldLoadCredentials = section === 'credentials';
   const shouldLoadRequests = section === 'requests';
+  const shouldLoadProfile = section === 'profile';
 
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [selectedCredentialId, setSelectedCredentialId] = useState<string | null>(null);
+  const [isCredentialModalOpen, setIsCredentialModalOpen] = useState(false);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
   const [credentialsError, setCredentialsError] = useState<string | null>(null);
 
@@ -33,6 +37,9 @@ export default function StudentDashboard() {
   const [requests, setRequests] = useState<CredentialRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
   const [requestsError, setRequestsError] = useState<string | null>(null);
+  const [studentProfileUser, setStudentProfileUser] = useState<User | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [requestForm, setRequestForm] = useState<CreateCredentialRequestPayload>({
     type: 'TRANSCRIPT',
     title: '',
@@ -91,6 +98,21 @@ export default function StudentDashboard() {
     }
   }, []);
 
+  const loadProfile = useCallback(async () => {
+    setIsLoadingProfile(true);
+    setProfileError(null);
+    try {
+      const me = await UserService.getMe();
+      setStudentProfileUser(me);
+    } catch (error) {
+      console.error('Failed to load student profile:', error);
+      setStudentProfileUser(null);
+      setProfileError('Unable to load profile information from the server.');
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (shouldLoadCredentials) {
       void loadCredentials();
@@ -98,7 +120,10 @@ export default function StudentDashboard() {
     if (shouldLoadRequests) {
       void loadRequests();
     }
-  }, [loadCredentials, loadRequests, shouldLoadCredentials, shouldLoadRequests]);
+    if (shouldLoadProfile) {
+      void loadProfile();
+    }
+  }, [loadCredentials, loadProfile, loadRequests, shouldLoadCredentials, shouldLoadProfile, shouldLoadRequests]);
 
   useEffect(() => {
     if (!shouldLoadCredentials && !shouldLoadRequests) {
@@ -119,6 +144,7 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     if (!shouldLoadCredentials) {
+      setIsCredentialModalOpen(false);
       return;
     }
 
@@ -189,33 +215,41 @@ export default function StudentDashboard() {
           {credentialsError || requestsError}
         </div>
       )}
+      {profileError && section === 'profile' && (
+        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <AlertCircle size={16} />
+          {profileError}
+        </div>
+      )}
 
       {section === 'credentials' && (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="xl:col-span-2">
-            {isCredentialsEmptyPage ? (
-              <StudentEmptyStateSection
-                title="No Credentials Yet"
-                description="This page starts empty. Credentials issued by your institution will appear here."
-                icon={<ShieldCheck size={28} />}
-              />
-            ) : (
-              <StudentCredentialsSection
-                credentials={credentials}
-                isLoadingCredentials={isLoadingCredentials}
-                selectedCredentialId={selectedCredentialId}
-                onSelectCredential={setSelectedCredentialId}
-                onRefresh={() => void loadCredentials()}
-              />
-            )}
-          </div>
-
-          {!isCredentialsEmptyPage && (
-            <div className="space-y-6">
-              <StudentCredentialDetailsSection selectedCredential={selectedCredential} />
-            </div>
+        <>
+          {isCredentialsEmptyPage ? (
+            <StudentEmptyStateSection
+              title="No Credentials Yet"
+              description="This page starts empty. Credentials issued by your institution will appear here."
+              icon={<ShieldCheck size={28} />}
+            />
+          ) : (
+            <StudentCredentialsSection
+              credentials={credentials}
+              isLoadingCredentials={isLoadingCredentials}
+              selectedCredentialId={selectedCredentialId}
+              onSelectCredential={setSelectedCredentialId}
+              onOpenDetails={(credentialId: string) => {
+                setSelectedCredentialId(credentialId);
+                setIsCredentialModalOpen(true);
+              }}
+              onRefresh={() => void loadCredentials()}
+            />
           )}
-        </div>
+
+          <StudentCredentialDetailsSection
+            selectedCredential={selectedCredential}
+            isOpen={isCredentialModalOpen}
+            onClose={() => setIsCredentialModalOpen(false)}
+          />
+        </>
       )}
 
       {section === 'requests' && (
@@ -254,10 +288,10 @@ export default function StudentDashboard() {
       )}
 
       {section === 'profile' && (
-        <StudentEmptyStateSection
-          title="Profile"
-          description="Student profile page is empty for now."
-          icon={<ShieldCheck size={28} />}
+        <StudentProfileSection
+          user={studentProfileUser}
+          isLoading={isLoadingProfile}
+          onRefresh={() => void loadProfile()}
         />
       )}
     </div>
