@@ -20,6 +20,10 @@ export interface UserContext {
   id: string;
   role: Role;
   status: Status;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  email: string;
   institutionId: string | null;
   employerId: string | null;
 }
@@ -45,8 +49,25 @@ export class CredentialRequestRepository {
         id: true,
         role: true,
         status: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        email: true,
         institutionId: true,
         employerId: true,
+      },
+    });
+  }
+
+  async listInstitutionNotificationRecipients(institutionId: string): Promise<Array<{ id: string }>> {
+    return prisma.user.findMany({
+      where: {
+        institutionId,
+        role: Role.INSTITUTION,
+        status: Status.APPROVED,
+      },
+      select: {
+        id: true,
       },
     });
   }

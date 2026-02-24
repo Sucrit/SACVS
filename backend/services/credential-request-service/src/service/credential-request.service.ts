@@ -2,6 +2,7 @@ import {
   CredentialRequest as PrismaCredentialRequest,
   CredentialRequestStatus,
   DeliveryMethod,
+  NotificationType,
   Prisma,
   RequesterType,
   Role,
@@ -16,6 +17,7 @@ import {
   CredentialRequestRepository,
   UserContext,
 } from '../repository/credential-request.repository';
+import { notificationClient } from '../client/notification.client';
 
 const credentialRequestRepository = new CredentialRequestRepository();
 
@@ -52,6 +54,140 @@ const toCredentialRequestResponse = (
 });
 
 export class CredentialRequestService {
+  private formatEnumLabel(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, char => char.toUpperCase());
+  }
+
+  private formatFullName(user: Pick<UserContext, 'firstName' | 'middleName' | 'lastName'>): string {
+    return [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ');
+  }
+
+  private async notifyInstitutionAboutStudentRequest(
+    institutionId: string,
+    actor: UserContext,
+    request: PrismaCredentialRequest,
+  ): Promise<void> {
+    try {
+      const recipients = await credentialRequestRepository.listInstitutionNotificationRecipients(
+        institutionId,
+      );
+      if (recipients.length === 0) {
+        return;
+      }
+
+      const studentName = this.formatFullName(actor);
+      const requestType = request.type.toLowerCase();
+      const title = 'New student credential request';
+      const message = `${studentName} (${actor.email}) submitted a ${requestType} request: "${request.title}".`;
+
+      await Promise.allSettled(
+        recipients.map(recipient =>
+          notificationClient.createSystemNotification({
+            userId: recipient.id,
+            type: NotificationType.CREDENTIAL_REQUEST_UPDATE,
+            title,
+            message,
+            metadata: {
+              event: 'STUDENT_REQUEST_CREATED',
+              requestId: request.id,
+              requestType: request.type,
+              studentId: actor.id,
+              studentName,
+              studentEmail: actor.email,
+              institutionId,
+            },
+          }),
+        ),
+      );
+    } catch (error) {
+      console.error('Failed to notify institution about student credential request:', error);
+    }
+  }
+
+  private buildStudentStatusNotification(
+    status: CredentialRequestStatus,
+    request: PrismaCredentialRequest,
+    actor: UserContext,
+    rejectionReason?: string | null,
+  ): { title: string; message: string } | null {
+    const actorName = this.formatFullName(actor) || actor.email;
+    const requestType = this.formatEnumLabel(request.type);
+
+    switch (status) {
+      case CredentialRequestStatus.APPROVED:
+        return {
+          title: 'Credential request approved',
+          message: `Your ${requestType} request "${request.title}" was approved by ${actorName}.`,
+        };
+      case CredentialRequestStatus.REJECTED:
+        return {
+          title: 'Credential request rejected',
+          message: rejectionReason
+            ? `Your ${requestType} request "${request.title}" was rejected by ${actorName}. Reason: ${rejectionReason}`
+            : `Your ${requestType} request "${request.title}" was rejected by ${actorName}.`,
+        };
+      case CredentialRequestStatus.COMPLETED:
+        return {
+          title: 'Credential request completed',
+          message: `Your ${requestType} request "${request.title}" has been completed by ${actorName}.`,
+        };
+      case CredentialRequestStatus.CANCELLED:
+        return {
+          title: 'Credential request cancelled',
+          message: `Your ${requestType} request "${request.title}" was cancelled by ${actorName}.`,
+        };
+      default:
+        return null;
+    }
+  }
+
+  private async notifyStudentAboutRequestStatusUpdate(
+    request: PrismaCredentialRequest,
+    previousStatus: CredentialRequestStatus,
+    actor: UserContext,
+  ): Promise<void> {
+    if (request.status === previousStatus) {
+      return;
+    }
+
+    const content = this.buildStudentStatusNotification(
+      request.status,
+      request,
+      actor,
+      request.rejectionReason,
+    );
+    if (!content) {
+      return;
+    }
+
+    try {
+      await notificationClient.createSystemNotification({
+        userId: request.studentId,
+        type: NotificationType.CREDENTIAL_REQUEST_UPDATE,
+        title: content.title,
+        message: content.message,
+        metadata: {
+          event: 'REQUEST_STATUS_UPDATED',
+          requestId: request.id,
+          previousStatus,
+          nextStatus: request.status,
+          requestType: request.type,
+          requestTitle: request.title,
+          processedById: actor.id,
+          processedByName: this.formatFullName(actor),
+          processedByEmail: actor.email,
+          credentialId: request.credentialId,
+          rejectionReason: request.rejectionReason,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to notify student about credential request status update:', error);
+    }
+  }
+
   private isInstitutionScopedRole(role: Role): boolean {
     return role === Role.INSTITUTION;
   }
@@ -209,6 +345,10 @@ export class CredentialRequestService {
         institutionId,
       });
 
+      if (actor.role === Role.STUDENT && institutionId) {
+        void this.notifyInstitutionAboutStudentRequest(institutionId, actor, created);
+      }
+
       return toCredentialRequestResponse(created);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
@@ -343,6 +483,10 @@ export class CredentialRequestService {
           ? { credentialId: providedCredentialId }
           : {}),
     });
+
+    if (actor.role === Role.ADMIN || this.isInstitutionScopedRole(actor.role)) {
+      void this.notifyStudentAboutRequestStatusUpdate(updated, target.status, actor);
+    }
 
     return toCredentialRequestResponse(updated);
   }

@@ -60,9 +60,31 @@ export default function StudentNotificationsSection({
   const unreadCount = notifications.filter(item => !item.read).length;
 
   return (
-    <Card
-      title="Notifications"
-      action={
+    <Card>
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:max-w-xl">
+          <div className="relative w-full">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={event => setSearchTerm(event.target.value)}
+              placeholder="Search notifications..."
+              className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none focus:border-slate-300"
+            />
+          </div>
+          <select
+            value={readFilter}
+            onChange={event => setReadFilter(event.target.value as ReadFilter)}
+            className="h-10 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-slate-300 sm:w-[140px]"
+            aria-label="Filter notifications by read state"
+          >
+            <option value="ALL">All</option>
+            <option value="UNREAD">Unread</option>
+            <option value="READ">Read</option>
+          </select>
+        </div>
+
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -82,30 +104,6 @@ export default function StudentNotificationsSection({
             {isMarkingAllRead ? 'Marking...' : 'Mark all read'}
           </button>
         </div>
-      }
-    >
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative w-full lg:max-w-md">
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={event => setSearchTerm(event.target.value)}
-            placeholder="Search notifications..."
-            className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none focus:border-slate-300"
-          />
-        </div>
-
-        <select
-          value={readFilter}
-          onChange={event => setReadFilter(event.target.value as ReadFilter)}
-          className="h-10 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-slate-300"
-          aria-label="Filter notifications by read state"
-        >
-          <option value="ALL">All</option>
-          <option value="UNREAD">Unread</option>
-          <option value="READ">Read</option>
-        </select>
       </div>
 
       {isLoading && (
@@ -175,4 +173,3 @@ export default function StudentNotificationsSection({
     </Card>
   );
 }
-

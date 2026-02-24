@@ -137,6 +137,30 @@ export class CredentialService {
     }
   }
 
+  private async emitStatusChangedNotification(payload: {
+    userId: string;
+    credentialId: string;
+    credentialType: string;
+    credentialTitle: string;
+    issuerDisplayName: string;
+    previousStatus: CredentialStatus;
+    nextStatus: CredentialStatus;
+  }): Promise<void> {
+    try {
+      await notificationClient.sendCredentialStatusChangedNotification({
+        userId: payload.userId,
+        credentialId: payload.credentialId,
+        credentialType: payload.credentialType,
+        credentialTitle: payload.credentialTitle,
+        issuerDisplayName: payload.issuerDisplayName,
+        previousStatus: payload.previousStatus,
+        nextStatus: payload.nextStatus,
+      });
+    } catch (error) {
+      console.error('Failed to send credential status notification:', error);
+    }
+  }
+
   private buildListWhere(
     actor: CredentialActor,
     query: ListCredentialsQueryDto,
@@ -394,6 +418,20 @@ export class CredentialService {
         credentialTitle: updated.title,
         issuerDisplayName,
         isReissue,
+      });
+      return updated;
+    }
+
+    if (currentStatus !== nextStatus) {
+      const issuerDisplayName = this.formatIssuerDisplayName(updated.issuedBy, scope.issuedById);
+      void this.emitStatusChangedNotification({
+        userId: scope.studentId,
+        credentialId: updated.id,
+        credentialType: scope.type,
+        credentialTitle: updated.title,
+        issuerDisplayName,
+        previousStatus: currentStatus,
+        nextStatus,
       });
     }
 
