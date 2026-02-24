@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { AlertCircle, FileText, House, ShieldCheck } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { AlertCircle, ShieldCheck } from 'lucide-react';
 import {
   Credential,
   CredentialRequest,
@@ -9,6 +9,7 @@ import {
   CredentialType,
   DeliveryMethod,
 } from '../../services/credential.service';
+import { AppNotification, NotificationService } from '../../services/notification.service';
 import { User, UserService } from '../../services/user.service';
 import StudentCredentialsSection from './components/StudentCredentialsSection';
 import StudentCredentialDetailsSection from './components/StudentCredentialDetailsSection';
@@ -16,13 +17,16 @@ import StudentRequestSection from './components/StudentRequestSection';
 import StudentEmptyStateSection from './components/StudentEmptyStateSection';
 import StudentRequestHistorySection from './components/StudentRequestHistorySection';
 import StudentProfileSection from './components/StudentProfileSection';
+import StudentNotificationsSection from './components/StudentNotificationsSection';
 import { getApiErrorMessage, getStudentSection } from './utils';
 
 export default function StudentDashboard() {
   const location = useLocation();
+  const navigate = useNavigate();
   const section = getStudentSection(location.pathname);
   const shouldLoadCredentials = section === 'credentials';
   const shouldLoadRequests = section === 'requests';
+  const shouldLoadNotifications = section === 'notifications';
   const shouldLoadProfile = section === 'profile';
 
   const [credentials, setCredentials] = useState<Credential[]>([]);
@@ -32,11 +36,17 @@ export default function StudentDashboard() {
   const [credentialsError, setCredentialsError] = useState<string | null>(null);
 
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+  const [cancelingRequestId, setCancelingRequestId] = useState<string | null>(null);
+  const [animatedRequestIds, setAnimatedRequestIds] = useState<string[]>([]);
   const [requestError, setRequestError] = useState<string | null>(null);
-  const [requestSuccess, setRequestSuccess] = useState<string | null>(null);
-  const [requests, setRequests] = useState<CredentialRequest[]>([]);
+  const [requests, setRequests] = useState<Array<CredentialRequest & { _uiKey?: string }>>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
   const [requestsError, setRequestsError] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
+  const [notificationsError, setNotificationsError] = useState<string | null>(null);
+  const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
+  const [markingNotificationId, setMarkingNotificationId] = useState<string | null>(null);
   const [studentProfileUser, setStudentProfileUser] = useState<User | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -47,6 +57,18 @@ export default function StudentDashboard() {
     purpose: '',
     deliveryMethod: 'DIGITAL',
   });
+
+  const sortRequestsByNewest = (
+    items: Array<CredentialRequest & { _uiKey?: string }>,
+  ): Array<CredentialRequest & { _uiKey?: string }> =>
+    [...items].sort((a, b) => {
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0;
+      if (Number.isNaN(aTime)) return 1;
+      if (Number.isNaN(bTime)) return -1;
+      return bTime - aTime;
+    });
 
   const loadCredentials = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!silent) {
@@ -81,7 +103,7 @@ export default function StudentDashboard() {
 
     try {
       const data = await CredentialService.listRequests();
-      setRequests(data);
+      setRequests(sortRequestsByNewest(data.map(item => ({ ...item, _uiKey: item.id }))));
       if (!silent) {
         setRequestsError(null);
       }
@@ -113,6 +135,31 @@ export default function StudentDashboard() {
     }
   }, []);
 
+  const loadNotifications = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) {
+      setIsLoadingNotifications(true);
+      setNotificationsError(null);
+    }
+
+    try {
+      const data = await NotificationService.list({ page: 1, pageSize: 100 });
+      setNotifications(data.items);
+      if (!silent) {
+        setNotificationsError(null);
+      }
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+      if (!silent) {
+        setNotifications([]);
+        setNotificationsError(getApiErrorMessage(error) || 'Unable to load notifications from the server.');
+      }
+    } finally {
+      if (!silent) {
+        setIsLoadingNotifications(false);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (shouldLoadCredentials) {
       void loadCredentials();
@@ -120,13 +167,16 @@ export default function StudentDashboard() {
     if (shouldLoadRequests) {
       void loadRequests();
     }
+    if (shouldLoadNotifications) {
+      void loadNotifications();
+    }
     if (shouldLoadProfile) {
       void loadProfile();
     }
-  }, [loadCredentials, loadProfile, loadRequests, shouldLoadCredentials, shouldLoadProfile, shouldLoadRequests]);
+  }, [loadCredentials, loadNotifications, loadProfile, loadRequests, shouldLoadCredentials, shouldLoadNotifications, shouldLoadProfile, shouldLoadRequests]);
 
   useEffect(() => {
-    if (!shouldLoadCredentials && !shouldLoadRequests) {
+    if (!shouldLoadCredentials && !shouldLoadRequests && !shouldLoadNotifications) {
       return undefined;
     }
 
@@ -137,10 +187,13 @@ export default function StudentDashboard() {
       if (shouldLoadRequests) {
         void loadRequests({ silent: true });
       }
+      if (shouldLoadNotifications) {
+        void loadNotifications({ silent: true });
+      }
     }, 15000);
 
     return () => window.clearInterval(timer);
-  }, [loadCredentials, loadRequests, shouldLoadCredentials, shouldLoadRequests]);
+  }, [loadCredentials, loadNotifications, loadRequests, shouldLoadCredentials, shouldLoadNotifications, shouldLoadRequests]);
 
   useEffect(() => {
     if (!shouldLoadCredentials) {
@@ -158,21 +211,47 @@ export default function StudentDashboard() {
     }
   }, [credentials, selectedCredentialId, shouldLoadCredentials]);
 
+  useEffect(() => {
+    if (!shouldLoadCredentials) {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const requestedCredentialId = params.get('credentialId');
+    if (!requestedCredentialId || isLoadingCredentials) {
+      return;
+    }
+
+    const credentialExists = credentials.some(credential => credential.id === requestedCredentialId);
+    if (credentialExists) {
+      setSelectedCredentialId(requestedCredentialId);
+      setIsCredentialModalOpen(true);
+    }
+
+    params.delete('credentialId');
+    const nextSearch = params.toString();
+    navigate(
+      {
+        pathname: '/student/credentials',
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true },
+    );
+  }, [credentials, isLoadingCredentials, location.search, navigate, shouldLoadCredentials]);
+
   const selectedCredential = useMemo(
     () => credentials.find(credential => credential.id === selectedCredentialId) ?? null,
     [credentials, selectedCredentialId],
   );
   const isCredentialsEmptyPage = section === 'credentials' && !isLoadingCredentials && credentials.length === 0;
-  const isRequestsEmptyPage = section === 'requests' && !isLoadingRequests && requests.length === 0;
 
-  const handleRequestSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleRequestSubmit = async (event: FormEvent<HTMLFormElement>): Promise<boolean> => {
     event.preventDefault();
     setRequestError(null);
-    setRequestSuccess(null);
     setIsSubmittingRequest(true);
 
     try {
-      await CredentialService.createRequest({
+      const created = await CredentialService.createRequest({
         type: requestForm.type,
         title: requestForm.title.trim(),
         description: requestForm.description?.trim() || undefined,
@@ -180,7 +259,18 @@ export default function StudentDashboard() {
         deliveryMethod: requestForm.deliveryMethod,
       });
 
-      setRequestSuccess('Credential request submitted successfully.');
+      if (shouldLoadRequests) {
+        setRequests(previous =>
+          sortRequestsByNewest([
+            { ...created, _uiKey: created.id },
+            ...previous.filter(request => request.id !== created.id),
+          ]),
+        );
+        setAnimatedRequestIds(previous =>
+          previous.includes(created.id) ? previous : [created.id, ...previous],
+        );
+      }
+
       setRequestForm({
         type: 'TRANSCRIPT',
         title: '',
@@ -188,31 +278,120 @@ export default function StudentDashboard() {
         purpose: '',
         deliveryMethod: 'DIGITAL',
       });
-      if (shouldLoadRequests) {
-        void loadRequests();
-      }
+
+      window.setTimeout(() => {
+        setAnimatedRequestIds(previous => previous.filter(id => id !== created.id));
+      }, 900);
+
+      return true;
     } catch (error) {
       console.error('Failed to submit credential request:', error);
       setRequestError(getApiErrorMessage(error) || 'Unable to submit your request to the backend.');
+      return false;
     } finally {
       setIsSubmittingRequest(false);
     }
   };
 
+  const handleCancelRequest = async (requestId: string): Promise<void> => {
+    setRequestsError(null);
+    setCancelingRequestId(requestId);
+
+    const previousRequest = requests.find(request => request.id === requestId) || null;
+    if (previousRequest) {
+      const nowIso = new Date().toISOString();
+      setRequests(previous =>
+        sortRequestsByNewest(
+          previous.map(request =>
+            request.id === requestId
+              ? {
+                  ...request,
+                  status: 'CANCELLED',
+                  updatedAt: nowIso,
+                }
+              : request,
+          ),
+        ),
+      );
+      setAnimatedRequestIds(previous =>
+        previous.includes(requestId) ? previous : [requestId, ...previous],
+      );
+    }
+
+    try {
+      const updated = await CredentialService.updateRequestStatus(requestId, 'CANCELLED');
+      setRequests(previous =>
+        sortRequestsByNewest(
+          previous.map(request =>
+            request.id === requestId
+              ? {
+                  ...updated,
+                  _uiKey: request._uiKey || updated.id,
+                }
+              : request,
+          ),
+        ),
+      );
+      window.setTimeout(() => {
+        setAnimatedRequestIds(previous => previous.filter(id => id !== requestId));
+      }, 900);
+    } catch (error) {
+      console.error('Failed to cancel credential request:', error);
+      if (previousRequest) {
+        setRequests(previous =>
+          sortRequestsByNewest(
+            previous.map(request => (request.id === requestId ? previousRequest : request)),
+          ),
+        );
+      }
+      setAnimatedRequestIds(previous => previous.filter(id => id !== requestId));
+      setRequestsError(getApiErrorMessage(error) || 'Unable to cancel request right now.');
+    } finally {
+      setCancelingRequestId(null);
+    }
+  };
+
+  const handleViewIssuedCredential = (credentialId: string) => {
+    navigate(`/student/credentials?credentialId=${encodeURIComponent(credentialId)}`);
+  };
+
+  const handleMarkNotificationRead = async (notificationId: string) => {
+    setMarkingNotificationId(notificationId);
+    setNotificationsError(null);
+    try {
+      const updated = await NotificationService.markRead(notificationId, true);
+      setNotifications(previous =>
+        previous.map(item => (item.id === notificationId ? updated : item)),
+      );
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+      setNotificationsError(getApiErrorMessage(error) || 'Unable to update notification state.');
+    } finally {
+      setMarkingNotificationId(null);
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    setIsMarkingAllNotificationsRead(true);
+    setNotificationsError(null);
+    try {
+      await NotificationService.markAllRead();
+      setNotifications(previous => previous.map(item => ({ ...item, read: true })));
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      setNotificationsError(getApiErrorMessage(error) || 'Unable to mark all notifications as read.');
+    } finally {
+      setIsMarkingAllNotificationsRead(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {section === 'overview' && (
-        <StudentEmptyStateSection
-          title="Home"
-          description="Student home is empty for now."
-          icon={<House size={28} />}
-        />
-      )}
-
-      {(credentialsError || requestsError) && (section === 'credentials' || section === 'requests') && (
+      {(credentialsError || requestsError || notificationsError) &&
+        (section === 'credentials' || section === 'requests' || section === 'notifications') && (
         <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           <AlertCircle size={16} />
-          {credentialsError || requestsError}
+          {credentialsError || requestsError || notificationsError}
         </div>
       )}
       {profileError && section === 'profile' && (
@@ -227,7 +406,7 @@ export default function StudentDashboard() {
           {isCredentialsEmptyPage ? (
             <StudentEmptyStateSection
               title="No Credentials Yet"
-              description="This page starts empty. Credentials issued by your institution will appear here."
+              description="Credentials issued by your institution will appear here."
               icon={<ShieldCheck size={28} />}
             />
           ) : (
@@ -253,28 +432,19 @@ export default function StudentDashboard() {
       )}
 
       {section === 'requests' && (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          <div className="xl:col-span-2">
-            {isRequestsEmptyPage ? (
-              <StudentEmptyStateSection
-                title="No Requests Yet"
-                description="This page starts empty. Submit your first credential request below."
-                icon={<FileText size={28} />}
-              />
-            ) : (
-              <StudentRequestHistorySection
-                requests={requests}
-                isLoadingRequests={isLoadingRequests}
-              />
-            )}
-          </div>
-
-          <div className="space-y-6">
+        <StudentRequestHistorySection
+          requests={requests}
+          isLoadingRequests={isLoadingRequests}
+          onRefresh={() => void loadRequests()}
+          onViewIssuedCredential={handleViewIssuedCredential}
+          onCancelRequest={(requestId: string) => void handleCancelRequest(requestId)}
+          cancelingRequestId={cancelingRequestId}
+          animatedRequestIds={animatedRequestIds}
+          requestAction={
             <StudentRequestSection
               requestForm={requestForm}
               isSubmittingRequest={isSubmittingRequest}
               requestError={requestError}
-              requestSuccess={requestSuccess}
               onSubmit={handleRequestSubmit}
               onTypeChange={(value: CredentialType) => setRequestForm(previous => ({ ...previous, type: value }))}
               onTitleChange={(value: string) => setRequestForm(previous => ({ ...previous, title: value }))}
@@ -282,9 +452,22 @@ export default function StudentDashboard() {
               onDeliveryMethodChange={(value: DeliveryMethod) =>
                 setRequestForm(previous => ({ ...previous, deliveryMethod: value }))
               }
+              buttonClassName="inline-flex h-10 items-center justify-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
             />
-          </div>
-        </div>
+          }
+        />
+      )}
+
+      {section === 'notifications' && (
+        <StudentNotificationsSection
+          notifications={notifications}
+          isLoading={isLoadingNotifications}
+          onRefresh={() => void loadNotifications()}
+          onMarkAllRead={() => void handleMarkAllNotificationsRead()}
+          onMarkRead={(id: string) => void handleMarkNotificationRead(id)}
+          markingNotificationId={markingNotificationId}
+          isMarkingAllRead={isMarkingAllNotificationsRead}
+        />
       )}
 
       {section === 'profile' && (

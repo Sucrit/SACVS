@@ -52,6 +52,10 @@ const toCredentialRequestResponse = (
 });
 
 export class CredentialRequestService {
+  private isInstitutionScopedRole(role: Role): boolean {
+    return role === Role.INSTITUTION;
+  }
+
   private ensureCanCreateForRole(actor: UserContext): void {
     if (!['STUDENT', 'EMPLOYER', 'INSTITUTION'].includes(actor.role)) {
       throw new Error('FORBIDDEN_ROLE');
@@ -97,21 +101,25 @@ export class CredentialRequestService {
       };
     }
 
-    if (!actor.institutionId) {
-      throw new Error('INSTITUTION_CONTEXT_MISSING');
+    if (this.isInstitutionScopedRole(actor.role)) {
+      if (!actor.institutionId) {
+        throw new Error('INSTITUTION_CONTEXT_MISSING');
+      }
+
+      return {
+        AND: [
+          where,
+          {
+            OR: [
+              { institutionId: actor.institutionId },
+              { student: { institutionId: actor.institutionId } },
+            ],
+          },
+        ],
+      };
     }
 
-    return {
-      AND: [
-        where,
-        {
-          OR: [
-            { institutionId: actor.institutionId },
-            { student: { institutionId: actor.institutionId } },
-          ],
-        },
-      ],
-    };
+    throw new Error('FORBIDDEN_ROLE');
   }
 
   async listCredentialRequests(
@@ -170,7 +178,7 @@ export class CredentialRequestService {
       if (!employerId) {
         throw new Error('EMPLOYER_CONTEXT_MISSING');
       }
-    } else if (actor.role === Role.INSTITUTION) {
+    } else if (this.isInstitutionScopedRole(actor.role)) {
       if (!studentId) {
         throw new Error('STUDENT_ID_REQUIRED');
       }
@@ -255,16 +263,45 @@ export class CredentialRequestService {
     if (!actor) {
       throw new Error('ACTOR_NOT_FOUND');
     }
-    if (actor.role !== Role.ADMIN && actor.role !== Role.INSTITUTION) {
-      throw new Error('FORBIDDEN_ROLE');
-    }
 
     const target = await credentialRequestRepository.getCredentialRequestScopeById(requestId);
     if (!target) {
       throw new Error('REQUEST_NOT_FOUND');
     }
 
-    if (actor.role === Role.INSTITUTION) {
+    const status = data.status as CredentialRequestStatus;
+    const providedCredentialId = parseOptionalString(data.credentialId);
+    if (status === CredentialRequestStatus.PENDING) {
+      throw new Error('INVALID_STATUS_TRANSITION');
+    }
+
+    if (actor.role === Role.STUDENT) {
+      const canAccess = target.studentId === actor.id || target.requesterId === actor.id;
+      if (!canAccess) {
+        throw new Error('FORBIDDEN_SCOPE');
+      }
+      if (status !== CredentialRequestStatus.CANCELLED) {
+        throw new Error('FORBIDDEN_STATUS_FOR_ROLE');
+      }
+      if (target.status !== CredentialRequestStatus.PENDING) {
+        throw new Error('CANNOT_CANCEL_NON_PENDING');
+      }
+
+      const updatedByStudent = await credentialRequestRepository.updateCredentialRequestStatus(requestId, {
+        status,
+        processedById: null,
+        processedAt: null,
+        rejectionReason: null,
+      });
+
+      return toCredentialRequestResponse(updatedByStudent);
+    }
+
+    if (actor.role !== Role.ADMIN && !this.isInstitutionScopedRole(actor.role)) {
+      throw new Error('FORBIDDEN_ROLE');
+    }
+
+    if (this.isInstitutionScopedRole(actor.role)) {
       if (!actor.institutionId) {
         throw new Error('INSTITUTION_CONTEXT_MISSING');
       }
@@ -274,12 +311,16 @@ export class CredentialRequestService {
       }
     }
 
-    const status = data.status as CredentialRequestStatus;
-    if (status === CredentialRequestStatus.PENDING) {
-      throw new Error('INVALID_STATUS_TRANSITION');
-    }
     if (status === CredentialRequestStatus.REJECTED && !parseOptionalString(data.rejectionReason)) {
       throw new Error('REJECTION_REASON_REQUIRED');
+    }
+
+    const completionCredentialId =
+      status === CredentialRequestStatus.COMPLETED
+        ? providedCredentialId ?? target.credentialId
+        : null;
+    if (status === CredentialRequestStatus.COMPLETED && !completionCredentialId) {
+      throw new Error('CREDENTIAL_ID_REQUIRED_FOR_COMPLETION');
     }
 
     const processedStatuses = new Set<CredentialRequestStatus>([
@@ -296,6 +337,11 @@ export class CredentialRequestService {
       rejectionReason: status === CredentialRequestStatus.REJECTED
         ? parseOptionalString(data.rejectionReason)
         : null,
+      ...(status === CredentialRequestStatus.COMPLETED
+        ? { credentialId: completionCredentialId }
+        : Object.prototype.hasOwnProperty.call(data, 'credentialId')
+          ? { credentialId: providedCredentialId }
+          : {}),
     });
 
     return toCredentialRequestResponse(updated);

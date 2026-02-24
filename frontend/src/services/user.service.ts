@@ -226,4 +226,5 @@ export const UserService = {
     const response = await api.delete<DeleteInstitutionStudentResult>(`/users/me/institution/students/${id}`);
     return response.data;
   },
+
 };

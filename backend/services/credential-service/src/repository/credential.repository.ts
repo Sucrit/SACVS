@@ -1,6 +1,6 @@
 import {
+  CredentialType,
   CredentialStatus,
-  Credential,
   Prisma,
   PrismaClient,
   Role,
@@ -15,6 +15,22 @@ if (!ENV.DATABASE_URL) {
 
 const prismaAdapter = new PrismaPg({ connectionString: ENV.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: prismaAdapter });
+
+const credentialWithIssuerInclude = {
+  issuedBy: {
+    select: {
+      id: true,
+      firstName: true,
+      middleName: true,
+      lastName: true,
+      email: true,
+    },
+  },
+} satisfies Prisma.CredentialInclude;
+
+type CredentialWithIssuer = Prisma.CredentialGetPayload<{
+  include: typeof credentialWithIssuerInclude;
+}>;
 
 export class CredentialRepository {
   async getStudentContextById(studentId: string): Promise<{
@@ -38,29 +54,34 @@ export class CredentialRepository {
     where: Prisma.CredentialWhereInput,
     skip: number,
     take: number,
-  ): Promise<Credential[]> {
+  ): Promise<CredentialWithIssuer[]> {
     return prisma.credential.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       skip,
       take,
+      include: credentialWithIssuerInclude,
     });
   }
 
-  async createCredential(data: Prisma.CredentialUncheckedCreateInput): Promise<Credential> {
+  async createCredential(data: Prisma.CredentialUncheckedCreateInput): Promise<CredentialWithIssuer> {
     return prisma.credential.create({
       data,
+      include: credentialWithIssuerInclude,
     });
   }
 
-  async getCredentialById(credentialId: string): Promise<Credential | null> {
+  async getCredentialById(credentialId: string): Promise<CredentialWithIssuer | null> {
     return prisma.credential.findUnique({
       where: { id: credentialId },
+      include: credentialWithIssuerInclude,
     });
   }
 
   async getCredentialScopeById(credentialId: string): Promise<{
     id: string;
+    title: string;
+    type: CredentialType;
     status: CredentialStatus;
     issuedById: string;
     studentId: string;
@@ -73,6 +94,8 @@ export class CredentialRepository {
       where: { id: credentialId },
       select: {
         id: true,
+        title: true,
+        type: true,
         status: true,
         issuedById: true,
         studentId: true,
@@ -89,10 +112,11 @@ export class CredentialRepository {
   async updateCredential(
     credentialId: string,
     data: Prisma.CredentialUncheckedUpdateInput,
-  ): Promise<Credential> {
+  ): Promise<CredentialWithIssuer> {
     return prisma.credential.update({
       where: { id: credentialId },
       data,
+      include: credentialWithIssuerInclude,
     });
   }
 }

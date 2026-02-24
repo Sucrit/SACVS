@@ -38,7 +38,7 @@ router.patch(
   '/requests/:id/status',
   requireAuth,
   requireApprovedAccount,
-  requireRoles('ADMIN', 'INSTITUTION'),
+  requireRoles('ADMIN', 'INSTITUTION', 'STUDENT'),
   credentialRequestController.updateCredentialRequestStatus.bind(credentialRequestController),
 );
 

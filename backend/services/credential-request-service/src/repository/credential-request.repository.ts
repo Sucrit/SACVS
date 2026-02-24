@@ -1,5 +1,6 @@
 import {
   CredentialRequest,
+  CredentialRequestStatus,
   Prisma,
   PrismaClient,
   Role,
@@ -26,7 +27,9 @@ export interface UserContext {
 export interface CredentialRequestScope {
   id: string;
   studentId: string;
+  credentialId: string | null;
   requesterId: string;
+  status: CredentialRequestStatus;
   institutionId: string | null;
   employerId: string | null;
   student: {
@@ -81,7 +84,9 @@ export class CredentialRequestRepository {
       select: {
         id: true,
         studentId: true,
+        credentialId: true,
         requesterId: true,
+        status: true,
         institutionId: true,
         employerId: true,
         student: {

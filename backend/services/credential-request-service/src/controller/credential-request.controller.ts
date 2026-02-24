@@ -165,6 +165,14 @@ export class CredentialRequestController {
     if (!payload?.status || !VALID_UPDATE_STATUSES.includes(payload.status)) {
       return res.status(400).json({ error: 'Invalid status value.' });
     }
+    if (
+      Object.prototype.hasOwnProperty.call(payload, 'credentialId') &&
+      payload.credentialId !== undefined &&
+      payload.credentialId !== null &&
+      typeof payload.credentialId !== 'string'
+    ) {
+      return res.status(400).json({ error: 'Invalid credentialId value.' });
+    }
 
     try {
       const updated = await credentialRequestService.updateCredentialRequestStatus(
@@ -178,7 +186,13 @@ export class CredentialRequestController {
         return res.status(404).json({ error: 'Authenticated user record was not found.' });
       }
       if (error instanceof Error && error.message === 'FORBIDDEN_ROLE') {
-        return res.status(403).json({ error: 'Only institution or admin accounts can update request status.' });
+        return res.status(403).json({ error: 'This account is not allowed to update request status.' });
+      }
+      if (error instanceof Error && error.message === 'FORBIDDEN_STATUS_FOR_ROLE') {
+        return res.status(403).json({ error: 'Student accounts can only cancel requests.' });
+      }
+      if (error instanceof Error && error.message === 'CANNOT_CANCEL_NON_PENDING') {
+        return res.status(400).json({ error: 'Only pending requests can be cancelled.' });
       }
       if (error instanceof Error && error.message === 'INSTITUTION_CONTEXT_MISSING') {
         return res.status(403).json({ error: 'Institution context is missing for this account.' });
@@ -192,8 +206,14 @@ export class CredentialRequestController {
       if (error instanceof Error && error.message === 'REJECTION_REASON_REQUIRED') {
         return res.status(400).json({ error: 'Rejection reason is required for rejected requests.' });
       }
+      if (error instanceof Error && error.message === 'CREDENTIAL_ID_REQUIRED_FOR_COMPLETION') {
+        return res.status(400).json({ error: 'A credential must be linked before completing this request.' });
+      }
       if (error instanceof Error && error.message === 'INVALID_STATUS_TRANSITION') {
         return res.status(400).json({ error: 'Invalid status transition.' });
+      }
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        return res.status(400).json({ error: 'One or more referenced records do not exist.' });
       }
 
       console.error('Error updating credential request status:', error);

@@ -26,6 +26,7 @@ export interface UpdateCredentialRequestStatusDto {
   status: Exclude<CredentialRequestStatus, 'PENDING'>;
   rejectionReason?: string;
   notes?: string;
+  credentialId?: string;
 }
 
 export interface CredentialRequestResponseDto {

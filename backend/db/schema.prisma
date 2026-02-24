@@ -16,7 +16,7 @@ enum Role {
   STUDENT
   ADMIN
   EMPLOYER
-  INSTITUTION 
+  INSTITUTION
 }
 
 enum Status {
@@ -71,7 +71,7 @@ enum AuditAction {
   USER_REJECTED
   USER_SUSPENDED
   USER_DELETED
-  
+
   // Credential actions
   CREDENTIAL_CREATED
   CREDENTIAL_ISSUED
@@ -80,32 +80,32 @@ enum AuditAction {
   CREDENTIAL_REQUESTED
   CREDENTIAL_REQUEST_APPROVED
   CREDENTIAL_REQUEST_REJECTED
-  CREDENTIAL_REQUEST_PENDING 
-  CREDENTIAL_REQUEST_COMPLETED 
-  
+  CREDENTIAL_REQUEST_PENDING
+  CREDENTIAL_REQUEST_COMPLETED
+
   // AI and Blockchain Validation Actions
   AI_VALIDATION_RUN
-  AI_VALIDATION_FAILED  
+  AI_VALIDATION_FAILED
   BLOCKCHAIN_ANCHORED
-  BLOCKCHAIN_ANCHORING_FAILED  
+  BLOCKCHAIN_ANCHORING_FAILED
 
   // Role and permissions management
   ROLE_CHANGED
-  ROLE_ASSIGNED  
-  ROLE_REMOVED   
+  ROLE_ASSIGNED
+  ROLE_REMOVED
   USER_PERMISSIONS_UPDATED
-  
+
   // Credential verification
-  CREDENTIAL_REQUEST_VERIFIED 
-  CREDENTIAL_VERIFIED_BY_AI 
+  CREDENTIAL_REQUEST_VERIFIED
+  CREDENTIAL_VERIFIED_BY_AI
   CREDENTIAL_VERIFIED_BY_BLOCKCHAIN
 
   // Security events
-  ACCESS_GRANTED 
-  ACCESS_DENIED  
-  SUSPICIOUS_ACTIVITY_DETECTED  
-  SECURITY_INCIDENT  
-  
+  ACCESS_GRANTED
+  ACCESS_DENIED
+  SUSPICIOUS_ACTIVITY_DETECTED
+  SECURITY_INCIDENT
+
   // System and configuration changes
   SETTINGS_CHANGED
   SECURITY_ALERT
@@ -137,19 +137,19 @@ enum NotificationType {
 // User
 
 model User {
-  id           String    @id @default(uuid())
-  firstName    String
-  middleName   String?
-  lastName     String
-  email        String    @unique
-  role         Role      @default(STUDENT)
-  status       Status    @default(PENDING)
-  employerId   String?
+  id            String    @id @default(uuid())
+  firstName     String
+  middleName    String?
+  lastName      String
+  email         String    @unique
+  role          Role      @default(STUDENT)
+  status        Status    @default(PENDING)
+  employerId    String?
   institutionId String?
-  approvedById String?
-  approvedAt   DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  approvedById  String?
+  approvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   profile            StudentProfile?
   studentCredentials Credential[]        @relation("StudentCredentials")
@@ -159,7 +159,7 @@ model User {
   processedRequests  CredentialRequest[] @relation("ProcessedByInstitution")
   employer           Employer?           @relation("EmployerUsers", fields: [employerId], references: [id])
   institution        Institution?        @relation("InstitutionUsers", fields: [institutionId], references: [id])
-  auditLogs          AuditLog[] 
+  auditLogs          AuditLog[]
   notifications      Notification[]
 
   @@index([role])
@@ -252,41 +252,41 @@ model Credential {
 // Credential Requests 
 
 model CredentialRequest {
-  id               String      @id @default(uuid())
-  studentId        String
-  student          User        @relation("StudentRequests", fields: [studentId], references: [id])
-  credentialId     String?
-  credential       Credential? @relation(fields: [credentialId], references: [id])
+  id           String      @id @default(uuid())
+  studentId    String
+  student      User        @relation("StudentRequests", fields: [studentId], references: [id])
+  credentialId String?
+  credential   Credential? @relation(fields: [credentialId], references: [id])
 
-  type             CredentialType
-  title            String
-  description      String?
-  purpose          String?
-  deliveryMethod   DeliveryMethod @default(DIGITAL)
+  type           CredentialType
+  title          String
+  description    String?
+  purpose        String?
+  deliveryMethod DeliveryMethod @default(DIGITAL)
 
-  status           CredentialRequestStatus @default(PENDING)
-  processedById    String?
-  processedBy      User?                   @relation("ProcessedByInstitution", fields: [processedById], references: [id])
-  processedAt      DateTime?
-  rejectionReason  String?
+  status          CredentialRequestStatus @default(PENDING)
+  processedById   String?
+  processedBy     User?                   @relation("ProcessedByInstitution", fields: [processedById], references: [id])
+  processedAt     DateTime?
+  rejectionReason String?
 
-  requesterType    RequesterType @default(STUDENT)
-  requesterId      String
-  requester        User         @relation("RequesterRequests", fields: [requesterId], references: [id])
+  requesterType RequesterType @default(STUDENT)
+  requesterId   String
+  requester     User          @relation("RequesterRequests", fields: [requesterId], references: [id])
 
-  employerId       String?      // Employer initiating the request
-  institutionId    String?      // Institution processing the request
-  employer         Employer?    @relation("EmployerCredentialRequests", fields: [employerId], references: [id])
-  institution      Institution? @relation("InstitutionCredentialRequests", fields: [institutionId], references: [id])
+  employerId    String? // Employer initiating the request
+  institutionId String? // Institution processing the request
+  employer      Employer?    @relation("EmployerCredentialRequests", fields: [employerId], references: [id])
+  institution   Institution? @relation("InstitutionCredentialRequests", fields: [institutionId], references: [id])
 
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([studentId])
   @@index([status])
   @@index([processedById])
-  @@index([employerId])       
-  @@index([institutionId])     
+  @@index([employerId])
+  @@index([institutionId])
 }
 
 
@@ -356,16 +356,16 @@ model Notification {
 // Employer
 
 model Employer {
-  id          String   @id @default(uuid())
-  companyName String
+  id                 String   @id @default(uuid())
+  companyName        String
   registrationNumber String
-  taxId       String
-  email       String   @unique
-  phoneNumber String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  taxId              String
+  email              String   @unique
+  phoneNumber        String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  users       User[]              @relation("EmployerUsers")
+  users              User[]              @relation("EmployerUsers")
   credentialRequests CredentialRequest[] @relation("EmployerCredentialRequests")
 
   @@index([email])
@@ -382,16 +382,16 @@ model Employer {
 // Institution
 
 model Institution {
-  id          String   @id @default(uuid())
-  name        String
+  id                  String   @id @default(uuid())
+  name                String
   accreditationNumber String
-  registrationNumber String
-  email       String   @unique
-  phoneNumber String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  registrationNumber  String
+  email               String   @unique
+  phoneNumber         String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  users       User[]              @relation("InstitutionUsers")
+  users              User[]              @relation("InstitutionUsers")
   credentialRequests CredentialRequest[] @relation("InstitutionCredentialRequests")
 
   @@index([email])

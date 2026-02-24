@@ -66,4 +66,21 @@ router.use(
   }),
 );
 
+router.use(
+  '/notifications',
+  createProxyMiddleware({
+    target: ENV.NOTIFICATION_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: path => (path.startsWith('/notifications') ? path : `/notifications${path}`),
+    on: {
+      error: (err, _req, res: any) => {
+        console.error('[PROXY] Notification service error:', err.message);
+        if (!res.headersSent) {
+          res.status(502).json({ error: 'Notification service unavailable' });
+        }
+      },
+    },
+  }),
+);
+
 export default router;

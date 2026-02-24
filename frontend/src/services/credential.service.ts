@@ -30,6 +30,13 @@ export interface Credential {
   expiryDate: string | null;
   createdAt: string;
   updatedAt: string;
+  issuedBy?: {
+    id: string;
+    firstName: string;
+    middleName: string | null;
+    lastName: string;
+    email: string;
+  } | null;
 }
 
 export interface CredentialRequest {
@@ -175,14 +182,16 @@ export const CredentialService = {
 
   updateRequestStatus: async (
     requestId: string,
-    status: Exclude<CredentialRequestStatus, 'PENDING' | 'CANCELLED'>,
+    status: Exclude<CredentialRequestStatus, 'PENDING'>,
     rejectionReason?: string,
     notes?: string,
+    credentialId?: string,
   ) => {
     const response = await api.patch<CredentialRequest>(`/credentials/requests/${requestId}/status`, {
       status,
       rejectionReason,
       notes,
+      credentialId,
     });
     return response.data;
   },

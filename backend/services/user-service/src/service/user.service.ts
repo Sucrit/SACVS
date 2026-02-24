@@ -97,6 +97,27 @@ export class UserService {
     };
   }
 
+  private async getInstitutionOwnerContext(actorUserId: string): Promise<{
+    id: string;
+    institutionId: string;
+  }> {
+    const actor = await userRepository.getUserContextById(actorUserId);
+    if (!actor) {
+      throw new Error('ACTOR_NOT_FOUND');
+    }
+    if (actor.role !== 'INSTITUTION') {
+      throw new Error('FORBIDDEN_ROLE');
+    }
+    if (!actor.institutionId) {
+      throw new Error('INSTITUTION_CONTEXT_MISSING');
+    }
+
+    return {
+      id: actor.id,
+      institutionId: actor.institutionId,
+    };
+  }
+
   private async createInstitutionStudentForContext(
     institutionId: string,
     actorUserId: string,

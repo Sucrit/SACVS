@@ -8,8 +8,12 @@ import {
   CredentialStatus,
   CredentialType,
 } from '../../services/credential.service';
-import { InstitutionStudentPayload, User, UserService, UserStatus } from '../../services/user.service';
-import InstitutionOverviewSection from './components/InstitutionOverviewSection';
+import {
+  InstitutionStudentPayload,
+  User,
+  UserService,
+  UserStatus,
+} from '../../services/user.service';
 import InstitutionStudentsSection from './components/InstitutionStudentsSection';
 import InstitutionRequestsSection from './components/InstitutionRequestsSection';
 import InstitutionIssueSection from './components/InstitutionIssueSection';
@@ -147,7 +151,6 @@ export default function InstitutionDashboard() {
 
   const pendingCount = requests.filter(request => request.status === 'PENDING').length;
   const rejectedCount = requests.filter(request => request.status === 'REJECTED').length;
-  const processedCount = requests.filter(request => request.status === 'APPROVED' || request.status === 'COMPLETED' || request.status === 'REJECTED').length;
 
   const studentCounts = useMemo(
     () => ({
@@ -187,14 +190,28 @@ export default function InstitutionDashboard() {
   }, [studentDepartmentFilter, studentSearch, studentStatusFilter, students]);
 
   const filteredRequests = useMemo(() => {
+    const studentById = new Map(students.map(student => [student.id, student] as const));
     const keyword = requestSearch.trim().toLowerCase();
     return requests.filter(request => {
       if (requestStatusFilter !== 'ALL' && request.status !== requestStatusFilter) return false;
       if (!keyword) return true;
-      const searchable = [request.id, request.studentId, request.title, request.type, request.status, request.rejectionReason || ''].join(' ').toLowerCase();
+      const student = studentById.get(request.studentId);
+      const studentName = student
+        ? [student.firstName, student.middleName, student.lastName].filter(Boolean).join(' ')
+        : '';
+      const studentNumber = student?.profile?.studentNumber || '';
+      const searchable = [
+        request.id,
+        request.title,
+        request.type,
+        request.status,
+        request.rejectionReason || '',
+        studentName,
+        studentNumber,
+      ].join(' ').toLowerCase();
       return searchable.includes(keyword);
     });
-  }, [requestSearch, requestStatusFilter, requests]);
+  }, [requestSearch, requestStatusFilter, requests, students]);
 
   const duplicateStudentEmails = useMemo(() => {
     const counts = new Map<string, number>();
@@ -371,12 +388,19 @@ export default function InstitutionDashboard() {
     status: Exclude<CredentialRequestStatus, 'PENDING' | 'CANCELLED'>,
     rejectionReason?: string,
     notes?: string,
+    credentialId?: string,
   ) => {
     setUpdatingRequestId(requestId);
     setRequestsError(null);
     setRequestsHint(null);
     try {
-      const updated = await CredentialService.updateRequestStatus(requestId, status, rejectionReason, notes);
+      const updated = await CredentialService.updateRequestStatus(
+        requestId,
+        status,
+        rejectionReason,
+        notes,
+        credentialId,
+      );
       setRequests(previous => previous.map(request => (request.id === requestId ? { ...request, ...updated } : request)));
       return updated;
     } finally {
@@ -423,6 +447,7 @@ export default function InstitutionDashboard() {
       'COMPLETED',
       undefined,
       `Credential issued by institution. Credential ID: ${credentialId}.`,
+      credentialId,
     );
 
     setRequests(previous =>
@@ -616,18 +641,8 @@ export default function InstitutionDashboard() {
         </div>
       )}
 
-      {section === 'overview' && (
-        <InstitutionOverviewSection
-          pendingCount={pendingCount}
-          processedCount={processedCount}
-          studentCount={studentCounts.total}
-          duplicateEmailCount={duplicateStudentEmails.length}
-        />
-      )}
-
       {section === 'students' && (
         <InstitutionStudentsSection
-          studentCounts={studentCounts}
           studentForm={studentForm}
           isSubmittingStudent={isSubmittingStudent}
           isBulkImporting={isBulkImporting}
@@ -659,6 +674,7 @@ export default function InstitutionDashboard() {
       {section === 'requests' && (
         <InstitutionRequestsSection
           requests={filteredRequests}
+          students={students}
           isLoadingRequests={isLoadingRequests}
           requestSearch={requestSearch}
           requestStatusFilter={requestStatusFilter}

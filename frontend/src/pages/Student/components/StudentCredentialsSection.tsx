@@ -5,6 +5,7 @@ import { Credential, CredentialType } from '../../../services/credential.service
 import { getCredentialFileUrl } from '../utils';
 
 type CredentialTypeFilter = 'ALL' | CredentialType;
+type DateRangeFilter = 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH';
 
 interface StudentCredentialsSectionProps {
   credentials: Credential[];
@@ -16,6 +17,12 @@ interface StudentCredentialsSectionProps {
 }
 
 const typeFilters: CredentialTypeFilter[] = ['ALL', 'TRANSCRIPT', 'DIPLOMA', 'CERTIFICATE', 'DEGREE', 'LICENSE'];
+const dateRangeFilters: Array<{ value: DateRangeFilter; label: string }> = [
+  { value: 'ALL', label: 'All time' },
+  { value: 'TODAY', label: 'Today' },
+  { value: 'THIS_WEEK', label: 'This week' },
+  { value: 'THIS_MONTH', label: 'This month' },
+];
 
 const paperTextureStyle = {
   backgroundColor: '#ffffff',
@@ -45,6 +52,38 @@ export default function StudentCredentialsSection({
 }: StudentCredentialsSectionProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<CredentialTypeFilter>('ALL');
+  const [dateFilter, setDateFilter] = useState<DateRangeFilter>('ALL');
+
+  const matchesDateRange = (value: string | null | undefined, range: DateRangeFilter) => {
+    if (range === 'ALL') return true;
+    if (!value) return false;
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return false;
+
+    const now = new Date();
+
+    if (range === 'TODAY') {
+      return (
+        date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth() &&
+        date.getDate() === now.getDate()
+      );
+    }
+
+    if (range === 'THIS_WEEK') {
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const day = startOfToday.getDay();
+      const diffToMonday = (day + 6) % 7;
+      const startOfWeek = new Date(startOfToday);
+      startOfWeek.setDate(startOfToday.getDate() - diffToMonday);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7);
+      return date >= startOfWeek && date < endOfWeek;
+    }
+
+    return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+  };
 
   const handleShare = async (url: string | null, event: MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -69,6 +108,9 @@ export default function StudentCredentialsSection({
       if (typeFilter !== 'ALL' && credential.type !== typeFilter) {
         return false;
       }
+      if (!matchesDateRange(credential.issuedDate || credential.createdAt, dateFilter)) {
+        return false;
+      }
       if (!keyword) {
         return true;
       }
@@ -84,7 +126,7 @@ export default function StudentCredentialsSection({
 
       return searchable.includes(keyword);
     });
-  }, [credentials, searchTerm, typeFilter]);
+  }, [credentials, dateFilter, searchTerm, typeFilter]);
 
   return (
     <Card>
@@ -101,18 +143,33 @@ export default function StudentCredentialsSection({
             />
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {typeFilters.map(filter => {
-              const isActive = filter === typeFilter;
-              return (
-                <button
-                  key={filter}
-                  onClick={() => setTypeFilter(filter)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${isActive ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}
-                >
-                  {filter === 'ALL' ? 'All' : filter}
-                </button>
-              );
-            })}
+            <select
+              value={typeFilter}
+              onChange={event => setTypeFilter(event.target.value as CredentialTypeFilter)}
+              className="h-10 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-slate-300"
+              aria-label="Filter credentials by type"
+            >
+              <option value="ALL">All types</option>
+              {typeFilters
+                .filter(filter => filter !== 'ALL')
+                .map(filter => (
+                  <option key={filter} value={filter}>
+                    {filter}
+                  </option>
+                ))}
+            </select>
+            <select
+              value={dateFilter}
+              onChange={event => setDateFilter(event.target.value as DateRangeFilter)}
+              className="h-10 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-slate-300"
+              aria-label="Filter credentials by date"
+            >
+              {dateRangeFilters.map(filter => (
+                <option key={filter.value} value={filter.value}>
+                  {filter.label}
+                </option>
+              ))}
+            </select>
             <button
               onClick={onRefresh}
               className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"

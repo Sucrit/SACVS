@@ -9,14 +9,24 @@ export const formatDate = (value: string | null | undefined) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleDateString();
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
 };
 
 export const formatDateTime = (value: string | null | undefined) => {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString();
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date);
 };
 
 export const shortenHash = (value: string | null | undefined) => {
@@ -91,6 +101,7 @@ export const getApiErrorMessage = (error: unknown): string | null => {
 export const getStudentSection = (pathname: string): StudentSection => {
   if (pathname.startsWith('/student/requests')) return 'requests';
   if (pathname.startsWith('/student/credentials')) return 'credentials';
+  if (pathname.startsWith('/student/notifications')) return 'notifications';
   if (pathname.startsWith('/student/profile')) return 'profile';
   return 'overview';
 };

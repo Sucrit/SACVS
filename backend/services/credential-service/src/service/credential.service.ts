@@ -10,6 +10,7 @@ import {
   ListCredentialsQueryDto,
   UpdateCredentialStatusDto,
 } from '../dto/credential.dto';
+import { notificationClient } from '../client/notification.client';
 
 const credentialRepository = new CredentialRepository();
 
@@ -52,9 +53,23 @@ export interface CredentialActor {
   employerId?: string | null;
 }
 
+interface UpdateCredentialStatusOptions {
+  notifyIssued?: boolean;
+}
+
 export class CredentialService {
-  private ensureCanManageCredentials(actor: CredentialActor): void {
+  private isInstitutionScopedRole(role?: `${Role}`): boolean {
+    return role === Role.INSTITUTION;
+  }
+
+  private ensureCanCreateCredentials(actor: CredentialActor): void {
     if (actor.role !== Role.ADMIN && actor.role !== Role.INSTITUTION) {
+      throw new Error('FORBIDDEN_ROLE');
+    }
+  }
+
+  private ensureCanManageCredentials(actor: CredentialActor): void {
+    if (actor.role !== Role.ADMIN && !this.isInstitutionScopedRole(actor.role)) {
       throw new Error('FORBIDDEN_ROLE');
     }
   }
@@ -70,7 +85,7 @@ export class CredentialService {
     if (actor.role === Role.ADMIN) return true;
     if (actor.role === Role.STUDENT) return credentialScope.studentId === actor.userId;
 
-    if (actor.role === Role.INSTITUTION) {
+    if (this.isInstitutionScopedRole(actor.role)) {
       if (!actor.institutionId) {
         throw new Error('INSTITUTION_CONTEXT_MISSING');
       }
@@ -87,6 +102,39 @@ export class CredentialService {
   private isValidTransition(current: CredentialStatus, next: CredentialStatus): boolean {
     if (current === next) return true;
     return VALID_TRANSITIONS[current].includes(next);
+  }
+
+  private formatIssuerDisplayName(
+    issuer: {
+      firstName: string;
+      middleName: string | null;
+      lastName: string;
+      email: string;
+    } | null | undefined,
+    fallbackIssuerId: string,
+  ): string {
+    if (!issuer) return fallbackIssuerId;
+    const fullName = [issuer.firstName, issuer.middleName, issuer.lastName]
+      .filter(part => typeof part === 'string' && part.trim().length > 0)
+      .join(' ')
+      .trim();
+    if (fullName.length === 0) return issuer.email;
+    return `${fullName} (${issuer.email})`;
+  }
+
+  private async emitIssuedNotification(payload: {
+    userId: string;
+    credentialId: string;
+    credentialType: string;
+    credentialTitle: string;
+    issuerDisplayName: string;
+    isReissue: boolean;
+  }): Promise<void> {
+    try {
+      await notificationClient.sendCredentialIssuedNotification(payload);
+    } catch (error) {
+      console.error('Failed to send credential issued notification:', error);
+    }
   }
 
   private buildListWhere(
@@ -112,7 +160,7 @@ export class CredentialService {
       if (actor.role === Role.STUDENT) {
         return { ...where, studentId: actor.userId };
       }
-      if (actor.role === Role.INSTITUTION || actor.role === Role.ADMIN) {
+      if (this.isInstitutionScopedRole(actor.role) || actor.role === Role.ADMIN) {
         return { ...where, issuedById: actor.userId };
       }
       return { ...where, id: NO_RESULTS_SCOPE };
@@ -126,7 +174,7 @@ export class CredentialService {
       return { ...where, studentId: actor.userId };
     }
 
-    if (actor.role === Role.INSTITUTION) {
+    if (this.isInstitutionScopedRole(actor.role)) {
       if (!actor.institutionId) {
         throw new Error('INSTITUTION_CONTEXT_MISSING');
       }
@@ -157,7 +205,7 @@ export class CredentialService {
   }
 
   async createCredential(actor: CredentialActor, data: CreateCredentialDto) {
-    this.ensureCanManageCredentials(actor);
+    this.ensureCanCreateCredentials(actor);
 
     const title = parseOptionalString(data.title);
     if (!title) {
@@ -173,7 +221,7 @@ export class CredentialService {
       throw new Error('TARGET_NOT_STUDENT');
     }
 
-    if (actor.role === Role.INSTITUTION) {
+    if (this.isInstitutionScopedRole(actor.role)) {
       if (!actor.institutionId) {
         throw new Error('INSTITUTION_CONTEXT_MISSING');
       }
@@ -185,7 +233,7 @@ export class CredentialService {
     const payloadIssuerId = parseOptionalString(data.issuedById);
     const issuedById = actor.role === Role.ADMIN ? payloadIssuerId ?? actor.userId : actor.userId;
 
-    if (actor.role === Role.INSTITUTION && payloadIssuerId && payloadIssuerId !== actor.userId) {
+    if (this.isInstitutionScopedRole(actor.role) && payloadIssuerId && payloadIssuerId !== actor.userId) {
       throw new Error('FORBIDDEN_ISSUER_OVERRIDE');
     }
 
@@ -250,6 +298,7 @@ export class CredentialService {
     actor: CredentialActor,
     credentialId: string,
     statusData: UpdateCredentialStatusDto,
+    options?: UpdateCredentialStatusOptions,
   ) {
     this.ensureCanManageCredentials(actor);
 
@@ -332,7 +381,23 @@ export class CredentialService {
       updateData.issuedDate = new Date();
     }
 
-    return credentialRepository.updateCredential(credentialId, updateData);
+    const updated = await credentialRepository.updateCredential(credentialId, updateData);
+
+    if (options?.notifyIssued && nextStatus === CredentialStatus.ISSUED) {
+      const isReissue = currentStatus === CredentialStatus.ISSUED;
+      const issuerDisplayName = this.formatIssuerDisplayName(updated.issuedBy, scope.issuedById);
+
+      void this.emitIssuedNotification({
+        userId: scope.studentId,
+        credentialId: updated.id,
+        credentialType: scope.type,
+        credentialTitle: updated.title,
+        issuerDisplayName,
+        isReissue,
+      });
+    }
+
+    return updated;
   }
 
   async issueCredential(actor: CredentialActor, credentialId: string, data: IssueCredentialDto) {
@@ -341,6 +406,8 @@ export class CredentialService {
       status: 'ISSUED',
     };
 
-    return this.updateCredentialStatus(actor, credentialId, statusData);
+    return this.updateCredentialStatus(actor, credentialId, statusData, {
+      notifyIssued: true,
+    });
   }
 }

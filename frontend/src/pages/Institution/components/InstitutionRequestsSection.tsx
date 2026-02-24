@@ -2,11 +2,13 @@ import { Check, ClipboardCheck, FileText, RefreshCw, Search, X } from 'lucide-re
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import { CredentialRequest } from '../../../services/credential.service';
+import { User } from '../../../services/user.service';
 import { REQUEST_STATUS_OPTIONS, RequestStatusFilter } from '../types';
 import { formatDate } from '../utils';
 
 interface InstitutionRequestsSectionProps {
   requests: CredentialRequest[];
+  students: User[];
   isLoadingRequests: boolean;
   requestSearch: string;
   requestStatusFilter: RequestStatusFilter;
@@ -26,6 +28,7 @@ interface InstitutionRequestsSectionProps {
 
 export default function InstitutionRequestsSection({
   requests,
+  students,
   isLoadingRequests,
   requestSearch,
   requestStatusFilter,
@@ -42,6 +45,10 @@ export default function InstitutionRequestsSection({
   onRequestAction,
   onBulkAction,
 }: InstitutionRequestsSectionProps) {
+  const studentById = new Map(
+    students.map(student => [student.id, student] as const),
+  );
+
   return (
     <div className="space-y-6">
       <Card
@@ -124,7 +131,20 @@ export default function InstitutionRequestsSection({
                       className="h-4 w-4 rounded border-slate-300"
                     />
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-700">{request.studentId}</td>
+                  <td className="px-4 py-3 text-sm text-slate-700">
+                    {(() => {
+                      const student = studentById.get(request.studentId);
+                      if (!student) {
+                        return 'Student record unavailable';
+                      }
+
+                      const fullName = [student.firstName, student.middleName, student.lastName]
+                        .filter(Boolean)
+                        .join(' ');
+                      const studentNumber = student.profile?.studentNumber || 'No student number';
+                      return `${fullName} (${studentNumber})`;
+                    })()}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
                       <FileText size={14} />

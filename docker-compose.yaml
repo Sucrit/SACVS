@@ -53,6 +53,22 @@ services:
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY:-}
       - CLERK_ADMIN_SECRET_KEY=${CLERK_ADMIN_SECRET_KEY:-}
 
+  notification-service:
+    build: ./backend/services/notification-service
+    ports:
+      - "5300:5300"
+    volumes:
+      - ./backend/services/notification-service:/app
+      - ./backend/prisma:/prisma
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:admin@host.docker.internal:5432/sacvs_db?schema=public
+      - PRISMA_SCHEMA_PATH=/prisma/schema.prisma
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY:-}
+      - CLERK_ADMIN_SECRET_KEY=${CLERK_ADMIN_SECRET_KEY:-}
+      - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN:-}
+
   gateway:
     build: ./backend/gateway
     ports:
@@ -65,6 +81,7 @@ services:
       - USER_SERVICE_URL=http://user-service:5000
       - CREDENTIALS_SERVICE_URL=http://credential-service:5100
       - CREDENTIAL_REQUEST_SERVICE_URL=http://credential-request-service:5200
+      - NOTIFICATION_SERVICE_URL=http://notification-service:5300
       - RATE_LIMIT_MAX=200
 
   frontend:

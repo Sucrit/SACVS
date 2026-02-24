@@ -7,13 +7,6 @@ import { StudentFormState, StudentStatusFilter, STUDENT_STATUS_OPTIONS } from '.
 import { getStudentFullName } from '../utils';
 
 interface InstitutionStudentsSectionProps {
-  studentCounts: {
-    total: number;
-    pending: number;
-    approved: number;
-    rejected: number;
-    suspended: number;
-  };
   studentForm: StudentFormState;
   isSubmittingStudent: boolean;
   isBulkImporting: boolean;
@@ -49,7 +42,6 @@ const formatDateTime = (value: string | null): string => {
 };
 
 export default function InstitutionStudentsSection({
-  studentCounts,
   studentForm,
   isSubmittingStudent,
   isBulkImporting,
@@ -110,16 +102,6 @@ export default function InstitutionStudentsSection({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <Card title="Total Students" className="border-slate-900 bg-slate-900 text-white">
-          <p className="text-3xl font-bold text-white">{studentCounts.total}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.1em] text-slate-300">Institution Members</p>
-        </Card>
-        <Card title="Pending"><p className="text-3xl font-bold text-amber-700">{studentCounts.pending}</p></Card>
-        <Card title="Approved"><p className="text-3xl font-bold text-emerald-700">{studentCounts.approved}</p></Card>
-        <Card title="Suspended"><p className="text-3xl font-bold text-orange-700">{studentCounts.suspended + studentCounts.rejected}</p></Card>
-      </div>
-
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"

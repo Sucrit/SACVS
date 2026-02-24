@@ -82,12 +82,14 @@ export default function StudentCredentialDetailsSection({
           {selectedCredentialFileUrl && (
             <div className="space-y-3">
               {selectedCredentialHasImage ? (
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                  <img
-                    src={selectedCredentialFileUrl}
-                    alt={selectedCredential.title}
-                    className="h-64 w-full object-contain"
-                  />
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-2">
+                  <div className="flex min-h-[280px] max-h-[65vh] items-center justify-center overflow-hidden rounded-lg bg-white">
+                    <img
+                      src={selectedCredentialFileUrl}
+                      alt={selectedCredential.title}
+                      className="block h-auto max-h-[60vh] w-auto max-w-full object-contain"
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-center text-xs text-slate-600">

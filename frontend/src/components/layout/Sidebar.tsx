@@ -8,7 +8,7 @@ import {
   Settings,
   BriefcaseBusiness,
   Building2,
-  Bell
+  Bell,
 } from 'lucide-react';
 import logo2 from '../../assets/logo2.png';
 
@@ -22,6 +22,7 @@ export default function Sidebar({ role }: SidebarProps) {
       { to: '/student', label: 'Home', icon: LayoutDashboard },
       { to: '/student/requests', label: 'Requests', icon: FileText },
       { to: '/student/credentials', label: 'Credentials', icon: ShieldCheck },
+      { to: '/student/notifications', label: 'Notifications', icon: Bell },
       { to: '/student/profile', label: 'Profile', icon: Users },
     ],
     INSTITUTION: [
@@ -50,9 +51,12 @@ export default function Sidebar({ role }: SidebarProps) {
   const roleLinks = links[role] || links['STUDENT'];
 
   return (
-    <aside className="fixed left-0 top-0 z-50 flex h-screen w-56 flex-col overflow-hidden border-r border-slate-200 bg-white">
-      <div className="border-b border-slate-200 p-4">
+    <aside className="fixed left-0 top-0 z-50 flex h-screen w-56 flex-col overflow-hidden bg-[#f7f7f8]">
+      <div className="p-4 pb-3">
         <img alt="Credence logo" className="h-8 w-auto" src={logo2} />
+      </div>
+      <div className="flex justify-center py-1">
+        <div className="h-px w-48 rounded-full bg-slate-300/70" />
       </div>
 
       <nav className="mt-3 flex-1 space-y-1.5 px-2.5">
@@ -62,10 +66,10 @@ export default function Sidebar({ role }: SidebarProps) {
             to={link.to}
             end={link.to === `/${role.toLowerCase()}`}
             className={({ isActive }) =>
-              `group relative flex items-center justify-between overflow-hidden rounded-xl px-3 py-2.5 transition-all duration-200 ${
+              `group relative flex items-center justify-between overflow-hidden rounded-xl px-3 py-2.5 outline-none transition-all duration-200 focus:outline-none focus-visible:outline-none focus-visible:ring-0 ${
                 isActive 
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:bg-white/80 hover:text-slate-900'
               }`
             }
           >
