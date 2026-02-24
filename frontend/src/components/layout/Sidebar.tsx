@@ -73,10 +73,12 @@ export default function Sidebar({ role }: SidebarProps) {
               }`
             }
           >
-            <div className="relative z-10 flex items-center gap-3">
-              <link.icon size={18} />
-              <span className="text-[15px] font-medium tracking-wide">{link.label}</span>
-            </div>
+            {() => (
+              <div className="relative z-10 flex items-center gap-3">
+                <link.icon size={18} />
+                <span className="text-[15px] font-medium tracking-wide">{link.label}</span>
+              </div>
+            )}
           </NavLink>
         ))}
       </nav>
