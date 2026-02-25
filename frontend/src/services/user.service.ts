@@ -13,7 +13,7 @@ export interface StudentProfile {
   city: string;
   province: string;
   zipCode: number;
-  phone: string;
+  phone: string | null;
   courseOfStudy: string;
   yearLevel: string;
   department: string;
@@ -82,7 +82,7 @@ export interface UpsertStudentProfilePayload {
   city: string;
   province: string;
   zipCode: number;
-  phone: string;
+  phone?: string | null;
   courseOfStudy: string;
   yearLevel: string;
   department: string;

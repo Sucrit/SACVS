@@ -190,7 +190,7 @@ model StudentProfile {
   city                 String
   province             String
   zipCode              Int
-  phone                String
+  phone                String?
   courseOfStudy        String
   yearLevel            String
   department           String

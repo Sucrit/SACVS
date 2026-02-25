@@ -20,6 +20,7 @@ interface StudentProfileSectionProps {
   isLoading: boolean;
   onRefresh: () => void;
   onSavePersonalInfo: (payload: {
+    phone?: string | null;
     birthday?: string | null;
     sex?: StudentSex | null;
     guardianFullName?: string | null;
@@ -62,6 +63,7 @@ export default function StudentProfileSection({
   onSavePersonalInfo,
   isSavingPersonalInfo,
 }: StudentProfileSectionProps) {
+  const [phone, setPhone] = useState('');
   const [birthday, setBirthday] = useState('');
   const [sex, setSex] = useState<StudentSex | ''>('');
   const [guardianFullName, setGuardianFullName] = useState('');
@@ -71,6 +73,7 @@ export default function StudentProfileSection({
 
   useEffect(() => {
     if (!user?.profile) {
+      setPhone('');
       setBirthday('');
       setSex('');
       setGuardianFullName('');
@@ -78,6 +81,7 @@ export default function StudentProfileSection({
       return;
     }
 
+    setPhone(user.profile.phone ?? '');
     setBirthday(user.profile.birthday ? user.profile.birthday.slice(0, 10) : '');
     setSex(user.profile.sex ?? '');
     setGuardianFullName(user.profile.guardianFullName ?? '');
@@ -127,6 +131,7 @@ export default function StudentProfileSection({
 
     try {
       await onSavePersonalInfo({
+        phone: phone.trim() ? phone.trim() : null,
         birthday: birthday.trim() ? birthday.trim() : null,
         sex: sex || null,
         guardianFullName: guardianFullName.trim() ? guardianFullName.trim() : null,
@@ -271,6 +276,20 @@ export default function StudentProfileSection({
       <Card title="Personal & Guardian Information" className="rounded-3xl">
         <form className="space-y-4" onSubmit={handleSavePersonalInfo}>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <label className="space-y-1">
+              <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <Phone size={14} />
+                Contact Number
+              </span>
+              <input
+                type="text"
+                value={phone}
+                onChange={event => setPhone(event.target.value)}
+                placeholder="Enter contact number"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+              />
+            </label>
+
             <label className="space-y-1">
               <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
                 <CalendarDays size={14} />

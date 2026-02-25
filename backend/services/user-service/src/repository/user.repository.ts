@@ -75,7 +75,7 @@ const INSTITUTION_MANAGED_PROFILE_DEFAULTS = {
   city: '',
   province: '',
   zipCode: 0,
-  phone: '',
+  phone: null,
 } as const;
 
 const buildStudentProfileWriteData = (
@@ -87,7 +87,7 @@ const buildStudentProfileWriteData = (
   city: data.city.trim(),
   province: data.province.trim(),
   zipCode: data.zipCode,
-  phone: data.phone.trim(),
+  phone: normalizeOptionalProfileString(data.phone),
   courseOfStudy: data.courseOfStudy.trim(),
   yearLevel: data.yearLevel.trim(),
   department: data.department.trim(),

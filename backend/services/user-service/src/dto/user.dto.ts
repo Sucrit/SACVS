@@ -52,7 +52,7 @@ export interface UpsertStudentProfileDto {
   city: string;
   province: string;
   zipCode: number;
-  phone: string;
+  phone?: string | null;
   courseOfStudy: string;
   yearLevel: string;
   department: string;

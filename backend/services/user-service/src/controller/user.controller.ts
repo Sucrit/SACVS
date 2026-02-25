@@ -328,7 +328,6 @@ export class UserController {
       'barangay',
       'city',
       'province',
-      'phone',
       'courseOfStudy',
       'yearLevel',
       'department',
@@ -381,10 +380,22 @@ export class UserController {
       return res.status(400).json({ error: 'Invalid guardianRelationship value.' });
     }
 
+    if (
+      typeof profileData.phone !== 'undefined' &&
+      profileData.phone !== null &&
+      typeof profileData.phone !== 'string'
+    ) {
+      return res.status(400).json({ error: 'Invalid phone value.' });
+    }
+
     try {
       const updatedUser = await userService.upsertStudentProfileByUserId(userId, {
         ...profileData,
         zipCode: parsedZipCode,
+        phone:
+          typeof profileData.phone === 'string'
+            ? profileData.phone.trim()
+            : profileData.phone,
         birthday: normalizedBirthday,
         guardianFullName:
           typeof profileData.guardianFullName === 'string'

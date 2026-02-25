@@ -445,6 +445,7 @@ export default function StudentDashboard() {
   };
 
   const handleSaveStudentPersonalInfo = async (payload: {
+    phone?: string | null;
     birthday?: string | null;
     sex?: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY' | null;
     guardianFullName?: string | null;
@@ -465,7 +466,7 @@ export default function StudentDashboard() {
         city: profile.city,
         province: profile.province,
         zipCode: profile.zipCode,
-        phone: profile.phone,
+        phone: payload.phone ?? profile.phone,
         courseOfStudy: profile.courseOfStudy,
         yearLevel: profile.yearLevel,
         department: profile.department,

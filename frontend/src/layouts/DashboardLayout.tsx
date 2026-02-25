@@ -373,13 +373,11 @@ export default function DashboardLayout() {
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-slate-900 selection:text-white">
       <div className="relative flex min-h-screen flex-1 flex-col">
-        <div className="bg-slate-50 border-b border-slate-300">
-          <div className="flex h-12 items-center justify-between px-4 sm:h-[52px] sm:px-6 lg:h-[52px] lg:px-8">
+        <div className="bg-slate-50 border-b border-slate-200">
+          <div className="flex h-12 items-center justify-between pl-2 pr-4 sm:h-[52px] sm:pl-4 sm:pr-6 lg:h-[52px] lg:pl-5 lg:pr-8">
             <div className="flex items-center gap-2 sm:gap-2.5">
-              <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 sm:h-9 sm:w-9">
-                <img src={logoCompact} alt="Credence logo" className="block h-[18px] w-[18px] object-contain sm:h-5 sm:w-5" />
-              </div>
-              <div className="h-6 w-px bg-slate-300 sm:h-7" />
+              <img src={logoCompact} alt="Credence logo" className="block h-6 w-6 object-contain sm:h-7 sm:w-7" />
+              <div className="h-6 w-px bg-slate-200 sm:h-7" />
               <p className="text-sm font-medium text-slate-500 sm:text-base">{welcomeText}</p>
             </div>
 
@@ -626,7 +624,7 @@ export default function DashboardLayout() {
               ))}
             </nav>
           </div>
-          <div className="pointer-events-none h-px bg-slate-300/70" />
+          <div className="pointer-events-none h-px bg-slate-200" />
         </div>
 
         <main className="flex-1 bg-white p-8">
