@@ -29,9 +29,8 @@ import credentialsIcon from '../assets/credentials.svg';
 
 const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string }>> = {
   STUDENT: [
-    { to: '/student', label: 'Home' },
+    { to: '/student/credentials', label: 'My Credential' },
     { to: '/student/requests', label: 'Requests' },
-    { to: '/student/credentials', label: 'Credentials' },
     { to: '/student/profile', label: 'Profile' },
   ],
   INSTITUTION: [
@@ -246,7 +245,7 @@ export default function DashboardLayout() {
     const credentialId = parseNotificationMetadataString(notification.metadata, 'credentialId');
     if (credentialId) {
       if (role === 'STUDENT') {
-        return `/student/credentials?credentialId=${encodeURIComponent(credentialId)}`;
+        return `/student/credentials/${encodeURIComponent(credentialId)}`;
       }
       if (role === 'INSTITUTION') {
         return `/institution/issue?credentialId=${encodeURIComponent(credentialId)}`;

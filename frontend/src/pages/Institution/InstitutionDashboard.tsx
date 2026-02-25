@@ -238,7 +238,7 @@ export default function InstitutionDashboard() {
       courseOfStudy: studentForm.courseOfStudy.trim(),
       yearLevel: studentForm.yearLevel.trim(),
       department: studentForm.department.trim(),
-      status: studentForm.status,
+      status: 'APPROVED',
     };
 
     setIsSubmittingStudent(true);

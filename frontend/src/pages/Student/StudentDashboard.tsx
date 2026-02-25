@@ -18,8 +18,7 @@ import StudentEmptyStateSection from './components/StudentEmptyStateSection';
 import StudentRequestHistorySection from './components/StudentRequestHistorySection';
 import StudentProfileSection from './components/StudentProfileSection';
 import StudentNotificationsSection from './components/StudentNotificationsSection';
-import StudentHomeSection from './components/StudentHomeSection';
-import { getApiErrorMessage, getStudentSection } from './utils';
+import { getApiErrorMessage, getStudentCredentialDetailId, getStudentSection } from './utils';
 import { useLegacyAuth } from '../../auth/auth-context';
 
 export default function StudentDashboard() {
@@ -27,15 +26,14 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
   const { user: sessionUser } = useLegacyAuth();
   const section = getStudentSection(location.pathname);
-  const shouldLoadOverviewData = section === 'overview';
-  const shouldLoadCredentials = section === 'credentials' || shouldLoadOverviewData;
-  const shouldLoadRequests = section === 'requests' || shouldLoadOverviewData;
-  const shouldLoadNotifications = section === 'notifications' || shouldLoadOverviewData;
-  const shouldLoadProfile = section === 'profile' || shouldLoadOverviewData;
+  const credentialDetailId = getStudentCredentialDetailId(location.pathname);
+  const shouldLoadCredentials = section === 'credentials';
+  const shouldLoadRequests = section === 'requests';
+  const shouldLoadNotifications = section === 'notifications';
+  const shouldLoadProfile = section === 'profile';
 
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [selectedCredentialId, setSelectedCredentialId] = useState<string | null>(null);
-  const [isCredentialModalOpen, setIsCredentialModalOpen] = useState(false);
   const [requestDetailsFromQueryId, setRequestDetailsFromQueryId] = useState<string | null>(null);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
   const [credentialsError, setCredentialsError] = useState<string | null>(null);
@@ -167,6 +165,12 @@ export default function StudentDashboard() {
   }, []);
 
   useEffect(() => {
+    if (section === 'overview') {
+      navigate('/student/credentials', { replace: true });
+    }
+  }, [navigate, section]);
+
+  useEffect(() => {
     if (shouldLoadCredentials) {
       void loadCredentials();
     }
@@ -202,48 +206,22 @@ export default function StudentDashboard() {
   }, [loadCredentials, loadNotifications, loadRequests, shouldLoadCredentials, shouldLoadNotifications, shouldLoadRequests]);
 
   useEffect(() => {
-    if (!shouldLoadCredentials) {
-      setIsCredentialModalOpen(false);
-      return;
-    }
+    if (!shouldLoadCredentials) return;
 
     if (credentials.length === 0) {
       setSelectedCredentialId(null);
       return;
     }
 
+    if (credentialDetailId) {
+      setSelectedCredentialId(credentialDetailId);
+      return;
+    }
+
     if (!selectedCredentialId || !credentials.some(credential => credential.id === selectedCredentialId)) {
       setSelectedCredentialId(credentials[0].id);
     }
-  }, [credentials, selectedCredentialId, shouldLoadCredentials]);
-
-  useEffect(() => {
-    if (section !== 'credentials') {
-      return;
-    }
-
-    const params = new URLSearchParams(location.search);
-    const requestedCredentialId = params.get('credentialId');
-    if (!requestedCredentialId || isLoadingCredentials) {
-      return;
-    }
-
-    const credentialExists = credentials.some(credential => credential.id === requestedCredentialId);
-    if (credentialExists) {
-      setSelectedCredentialId(requestedCredentialId);
-      setIsCredentialModalOpen(true);
-    }
-
-    params.delete('credentialId');
-    const nextSearch = params.toString();
-    navigate(
-      {
-        pathname: '/student/credentials',
-        search: nextSearch ? `?${nextSearch}` : '',
-      },
-      { replace: true },
-    );
-  }, [credentials, isLoadingCredentials, location.search, navigate, section]);
+  }, [credentialDetailId, credentials, selectedCredentialId, shouldLoadCredentials]);
 
   useEffect(() => {
     if (section !== 'requests') {
@@ -273,8 +251,8 @@ export default function StudentDashboard() {
   }, [isLoadingRequests, location.search, navigate, requests, section]);
 
   const selectedCredential = useMemo(
-    () => credentials.find(credential => credential.id === selectedCredentialId) ?? null,
-    [credentials, selectedCredentialId],
+    () => credentials.find(credential => credential.id === (credentialDetailId || selectedCredentialId)) ?? null,
+    [credentialDetailId, credentials, selectedCredentialId],
   );
   const institutionName = useMemo(
     () =>
@@ -284,9 +262,6 @@ export default function StudentDashboard() {
     [sessionUser?.institution?.institutionName, studentProfileUser?.institution?.institutionName],
   );
   const isCredentialsEmptyPage = section === 'credentials' && !isLoadingCredentials && credentials.length === 0;
-  const isHomeLoading =
-    shouldLoadOverviewData &&
-    (isLoadingCredentials || isLoadingRequests || isLoadingNotifications || isLoadingProfile);
 
   const renderRequestAction = (buttonClassName?: string) => (
     <StudentRequestSection
@@ -411,7 +386,7 @@ export default function StudentDashboard() {
   };
 
   const handleViewIssuedCredential = (credentialId: string) => {
-    navigate(`/student/credentials?credentialId=${encodeURIComponent(credentialId)}`);
+    navigate(`/student/credentials/${encodeURIComponent(credentialId)}`);
   };
 
   const handleMarkNotificationRead = async (notificationId: string) => {
@@ -512,25 +487,23 @@ export default function StudentDashboard() {
               description="Credentials issued by your institution will appear here."
               icon={<ShieldCheck size={28} />}
             />
+          ) : credentialDetailId ? (
+            <StudentCredentialDetailsSection
+              selectedCredential={selectedCredential}
+              onBack={() => navigate('/student/credentials')}
+            />
           ) : (
             <StudentCredentialsSection
               credentials={credentials}
               isLoadingCredentials={isLoadingCredentials}
               selectedCredentialId={selectedCredentialId}
               onSelectCredential={setSelectedCredentialId}
-              onOpenDetails={(credentialId: string) => {
-                setSelectedCredentialId(credentialId);
-                setIsCredentialModalOpen(true);
-              }}
+              onOpenDetails={(credentialId: string) =>
+                navigate(`/student/credentials/${encodeURIComponent(credentialId)}`)
+              }
               onRefresh={() => void loadCredentials()}
             />
           )}
-
-          <StudentCredentialDetailsSection
-            selectedCredential={selectedCredential}
-            isOpen={isCredentialModalOpen}
-            onClose={() => setIsCredentialModalOpen(false)}
-          />
         </>
       )}
 
@@ -549,29 +522,6 @@ export default function StudentDashboard() {
         />
       )}
 
-      {section === 'overview' && (
-        <StudentHomeSection
-          requests={requests}
-          notifications={notifications}
-          institutionName={institutionName}
-          user={studentProfileUser}
-          isLoading={isHomeLoading}
-          requestAction={renderRequestAction('inline-flex h-10 items-center justify-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100')}
-          cancelingRequestId={cancelingRequestId}
-          onCancelRequest={(requestId: string) => void handleCancelRequest(requestId)}
-          onOpenCredential={(credentialId: string) =>
-            navigate(`/student/credentials?credentialId=${encodeURIComponent(credentialId)}`)
-          }
-          onOpenRequest={(requestId: string) =>
-            navigate(`/student/requests?requestId=${encodeURIComponent(requestId)}`)
-          }
-          onOpenRequestsPage={() => navigate('/student/requests')}
-          onOpenCredentialsPage={() => navigate('/student/credentials')}
-          onOpenNotificationsPage={() => navigate('/student/notifications')}
-          onOpenProfilePage={() => navigate('/student/profile')}
-        />
-      )}
-
       {section === 'notifications' && (
         <StudentNotificationsSection
           notifications={notifications}
@@ -580,7 +530,7 @@ export default function StudentDashboard() {
           onMarkAllRead={() => void handleMarkAllNotificationsRead()}
           onMarkRead={(id: string) => void handleMarkNotificationRead(id)}
           onOpenCredential={(credentialId: string) =>
-            navigate(`/student/credentials?credentialId=${encodeURIComponent(credentialId)}`)
+            navigate(`/student/credentials/${encodeURIComponent(credentialId)}`)
           }
           onOpenRequest={(requestId: string) =>
             navigate(`/student/requests?requestId=${encodeURIComponent(requestId)}`)

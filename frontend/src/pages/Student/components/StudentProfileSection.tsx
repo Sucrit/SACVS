@@ -15,6 +15,8 @@ import {
 import Card from '../../../components/common/Card';
 import { StudentSex, User } from '../../../services/user.service';
 
+const PH_PHONE_REGEX = /^\+63\d{10}$/;
+
 interface StudentProfileSectionProps {
   user: User | null;
   isLoading: boolean;
@@ -129,9 +131,15 @@ export default function StudentProfileSection({
     setSaveError(null);
     setSaveHint(null);
 
+    const trimmedPhone = phone.trim();
+    if (trimmedPhone.length > 0 && !PH_PHONE_REGEX.test(trimmedPhone)) {
+      setSaveError('Invalid phone format. Use +63 followed by 10 digits (e.g. +639123456789).');
+      return;
+    }
+
     try {
       await onSavePersonalInfo({
-        phone: phone.trim() ? phone.trim() : null,
+        phone: trimmedPhone ? trimmedPhone : null,
         birthday: birthday.trim() ? birthday.trim() : null,
         sex: sex || null,
         guardianFullName: guardianFullName.trim() ? guardianFullName.trim() : null,
@@ -285,7 +293,7 @@ export default function StudentProfileSection({
                 type="text"
                 value={phone}
                 onChange={event => setPhone(event.target.value)}
-                placeholder="Enter contact number"
+                placeholder="+639123456789"
                 className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
               />
             </label>

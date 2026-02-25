@@ -262,9 +262,9 @@ export class UserRepository {
       throw new Error('EMAIL_ALREADY_LINKED_TO_ANOTHER_ACCOUNT');
     }
 
-    const status = toPrismaStatus(data.status ?? 'PENDING');
-    const approvedById = status === Status.APPROVED ? actorId ?? null : null;
-    const approvedAt = status === Status.APPROVED ? new Date() : null;
+    const status = Status.APPROVED;
+    const approvedById = actorId ?? null;
+    const approvedAt = new Date();
 
     return prisma.user.upsert({
       where: { id: clerkUserId },

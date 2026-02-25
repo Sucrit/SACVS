@@ -14,6 +14,7 @@ interface StudentCredentialsSectionProps {
   onSelectCredential: (credentialId: string) => void;
   onOpenDetails: (credentialId: string) => void;
   onRefresh: () => void;
+  heading?: string;
 }
 
 const typeFilters: CredentialTypeFilter[] = ['ALL', 'TRANSCRIPT', 'DIPLOMA', 'CERTIFICATE', 'DEGREE', 'LICENSE'];
@@ -49,6 +50,7 @@ export default function StudentCredentialsSection({
   onSelectCredential,
   onOpenDetails,
   onRefresh,
+  heading,
 }: StudentCredentialsSectionProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<CredentialTypeFilter>('ALL');
@@ -131,6 +133,7 @@ export default function StudentCredentialsSection({
   return (
     <Card>
       <div className="space-y-5">
+        {heading && <h2 className="text-2xl font-semibold text-slate-900">{heading}</h2>}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-xs">
             <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />

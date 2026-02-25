@@ -105,3 +105,13 @@ export const getStudentSection = (pathname: string): StudentSection => {
   if (pathname.startsWith('/student/profile')) return 'profile';
   return 'overview';
 };
+
+export const getStudentCredentialDetailId = (pathname: string): string | null => {
+  const match = pathname.match(/^\/student\/credentials\/([^/]+)/);
+  if (!match || !match[1]) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
+};

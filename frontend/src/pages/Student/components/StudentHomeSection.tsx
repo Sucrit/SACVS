@@ -1,25 +1,25 @@
 import { ReactNode, useMemo } from 'react';
 import {
   AlertTriangle,
-  Bell,
   CheckCircle2,
   Clock3,
-  FilePlus2,
+  Download,
   GraduationCap,
   ShieldCheck,
-  UserCircle2,
+  Share2,
 } from 'lucide-react';
 import Badge from '../../../components/common/Badge';
 import Card from '../../../components/common/Card';
-import { CredentialRequest } from '../../../services/credential.service';
+import { Credential, CredentialRequest } from '../../../services/credential.service';
 import {
   AppNotification,
   getNotificationDisplayMessage,
 } from '../../../services/notification.service';
 import { User } from '../../../services/user.service';
-import { formatDate, formatDateTime } from '../utils';
+import { formatDate, formatDateTime, getCredentialFileUrl } from '../utils';
 
 interface StudentHomeSectionProps {
+  credentials: Credential[];
   requests: Array<CredentialRequest & { _uiKey?: string }>;
   notifications: AppNotification[];
   institutionName?: string | null;
@@ -30,13 +30,11 @@ interface StudentHomeSectionProps {
   onCancelRequest?: (requestId: string) => void;
   onOpenCredential: (credentialId: string) => void;
   onOpenRequest: (requestId: string) => void;
-  onOpenRequestsPage: () => void;
-  onOpenCredentialsPage: () => void;
   onOpenNotificationsPage: () => void;
   onOpenProfilePage: () => void;
 }
 
-type EventItem = {
+type RecentUpdateItem = {
   id: string;
   title: string;
   message: string;
@@ -51,7 +49,7 @@ const parseMetadataString = (
 ): string | null => {
   if (!metadata) return null;
   const value = metadata[key];
-  return typeof value === 'string' && value.trim().length > 0 ? value : null;
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 };
 
 const sortByNewest = <T extends { createdAt: string }>(items: T[]) =>
@@ -70,7 +68,25 @@ const isProfileFieldPresent = (value: unknown): boolean => {
   return Boolean(value);
 };
 
+const formatCredentialTypeLabel = (value: string | null | undefined) => {
+  if (!value) return '-';
+  return value
+    .toLowerCase()
+    .split('_')
+    .map(part => (part ? `${part[0].toUpperCase()}${part.slice(1)}` : part))
+    .join(' ');
+};
+
+const copyText = async (value: string) => {
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    // Ignore clipboard failures silently for non-secure contexts.
+  }
+};
+
 export default function StudentHomeSection({
+  credentials,
   requests,
   notifications,
   institutionName,
@@ -81,46 +97,81 @@ export default function StudentHomeSection({
   onCancelRequest,
   onOpenCredential,
   onOpenRequest,
-  onOpenRequestsPage,
-  onOpenCredentialsPage,
   onOpenNotificationsPage,
   onOpenProfilePage,
 }: StudentHomeSectionProps) {
-  const recentEvents = useMemo<EventItem[]>(() => {
-    const items = notifications
-      .filter(notification => {
-        if (notification.type === 'CREDENTIAL_ISSUED') return true;
-        if (notification.type === 'CREDENTIAL_REVOKED') return true;
-        if (notification.type === 'CREDENTIAL_REQUEST_UPDATE') {
-          const nextStatus = parseMetadataString(notification.metadata, 'nextStatus');
-          return nextStatus === 'APPROVED' || nextStatus === 'REJECTED';
-        }
-        return false;
-      })
-      .map(notification => {
-        const requestId = parseMetadataString(notification.metadata, 'requestId');
-        const credentialId = parseMetadataString(notification.metadata, 'credentialId');
-        const target: EventItem['target'] = credentialId
-          ? 'credential'
-          : requestId
-            ? 'request'
-            : 'notifications';
-        const targetId = credentialId || requestId || undefined;
+  const mostRecentCredential = useMemo(() => {
+    if (credentials.length === 0) return null;
 
-        return {
-          id: notification.id,
-          title: notification.title,
-          message: getNotificationDisplayMessage(notification, {
-            institutionNameFallback: institutionName,
-          }),
-          createdAt: notification.createdAt,
-          target,
-          targetId,
-        };
-      });
+    const toTimestamp = (value: string | null | undefined) => {
+      if (!value) return 0;
+      const time = new Date(value).getTime();
+      return Number.isNaN(time) ? 0 : time;
+    };
 
-    return sortByNewest(items).slice(0, 6);
-  }, [notifications]);
+    return [...credentials].sort((a, b) => {
+      const aTime = toTimestamp(a.issuedDate || a.createdAt);
+      const bTime = toTimestamp(b.issuedDate || b.createdAt);
+      return bTime - aTime;
+    })[0];
+  }, [credentials]);
+
+  const latestCredentialFileUrl = useMemo(
+    () => getCredentialFileUrl(mostRecentCredential?.storageKey ?? null),
+    [mostRecentCredential?.storageKey],
+  );
+
+  const summaryCounts = useMemo(() => {
+    const pendingRequests = requests.filter(request => request.status === 'PENDING').length;
+    const needsAction = requests.filter(
+      request => request.status === 'REJECTED' || request.status === 'CANCELLED',
+    ).length;
+    const unreadNotifications = notifications.filter(notification => !notification.read).length;
+
+    const readyCredentials = notifications.filter(notification => {
+      if (notification.read) return false;
+      if (notification.type !== 'CREDENTIAL_ISSUED') return false;
+      const event = parseMetadataString(notification.metadata, 'event');
+      return !event || event === 'ISSUED' || event === 'REISSUED';
+    }).length;
+
+    return { pendingRequests, readyCredentials, unreadNotifications, needsAction };
+  }, [notifications, requests]);
+
+  const recentUpdates = useMemo<RecentUpdateItem[]>(() => {
+    return sortByNewest(
+      notifications
+        .filter(notification => {
+          if (notification.type === 'CREDENTIAL_ISSUED') return true;
+          if (notification.type === 'CREDENTIAL_REVOKED') return true;
+          if (notification.type === 'CREDENTIAL_REQUEST_UPDATE') {
+            const nextStatus = parseMetadataString(notification.metadata, 'nextStatus');
+            return nextStatus === 'APPROVED' || nextStatus === 'REJECTED';
+          }
+          return false;
+        })
+        .map(notification => {
+          const requestId = parseMetadataString(notification.metadata, 'requestId');
+          const credentialId = parseMetadataString(notification.metadata, 'credentialId');
+          const target: RecentUpdateItem['target'] = credentialId
+            ? 'credential'
+            : requestId
+              ? 'request'
+              : 'notifications';
+
+          return {
+            id: notification.id,
+            title: notification.title,
+            message: getNotificationDisplayMessage(notification, {
+              institutionNameFallback: institutionName,
+            }),
+            createdAt: notification.createdAt,
+            target,
+            targetId: credentialId || requestId || undefined,
+          };
+        }),
+    ).slice(0, 3);
+  }, [institutionName, notifications]);
 
   const activeRequests = useMemo(
     () =>
@@ -132,31 +183,33 @@ export default function StudentHomeSection({
             request.status === 'REJECTED' ||
             request.status === 'CANCELLED',
         ),
-      ).slice(0, 5),
+      ).slice(0, 3),
     [requests],
   );
 
-  const attentionMessages = useMemo(() => {
+  const actionNeededMessages = useMemo(() => {
     const messages: string[] = [];
 
     if (requests.some(request => request.status === 'REJECTED')) {
-      messages.push('Your request was rejected: add details and resubmit.');
+      messages.push('Your request was rejected. Update details and submit a new request.');
     }
 
     if (
       requests.some(
         request =>
           (request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') &&
-          (request.status === 'PENDING' || request.status === 'APPROVED' || request.status === 'COMPLETED'),
+          (request.status === 'PENDING' ||
+            request.status === 'APPROVED' ||
+            request.status === 'COMPLETED'),
       )
     ) {
       messages.push(
-        'You have a physical-delivery request: claim your credential at your university or institution registrar office.',
+        'Physical delivery selected. Claim credentials at your university or institution registrar office.',
       );
     }
 
     if (!isProfileFieldPresent(user?.profile?.phone)) {
-      messages.push('Profile missing phone number.');
+      messages.push('Add your phone number to complete your profile details.');
     }
 
     return messages.slice(0, 3);
@@ -182,6 +235,7 @@ export default function StudentHomeSection({
       user?.profile?.province,
       user?.profile?.zipCode,
     ];
+
     const filled = fields.filter(isProfileFieldPresent).length;
     const total = fields.length;
     const percentage = total > 0 ? Math.round((filled / total) * 100) : 0;
@@ -191,36 +245,63 @@ export default function StudentHomeSection({
     user?.firstName,
     user?.lastName,
     user?.profile?.barangay,
+    user?.profile?.birthday,
     user?.profile?.city,
     user?.profile?.courseOfStudy,
     user?.profile?.department,
-    user?.profile?.birthday,
-    user?.profile?.sex,
     user?.profile?.guardianFullName,
     user?.profile?.guardianRelationship,
     user?.profile?.phone,
     user?.profile?.province,
+    user?.profile?.sex,
     user?.profile?.street,
     user?.profile?.studentNumber,
     user?.profile?.yearLevel,
     user?.profile?.zipCode,
   ]);
 
-  const handleEventClick = (eventItem: EventItem) => {
-    if (eventItem.target === 'credential' && eventItem.targetId) {
-      onOpenCredential(eventItem.targetId);
+  const handleRecentUpdateClick = (item: RecentUpdateItem) => {
+    if (item.target === 'credential' && item.targetId) {
+      onOpenCredential(item.targetId);
       return;
     }
-    if (eventItem.target === 'request' && eventItem.targetId) {
-      onOpenRequest(eventItem.targetId);
+    if (item.target === 'request' && item.targetId) {
+      onOpenRequest(item.targetId);
       return;
     }
     onOpenNotificationsPage();
   };
 
+  const handleShareLatestCredential = async () => {
+    if (!mostRecentCredential || !latestCredentialFileUrl) return;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: mostRecentCredential.title,
+          text: `Credential: ${mostRecentCredential.title}`,
+          url: latestCredentialFileUrl,
+        });
+        return;
+      } catch {
+        // Fall through to clipboard for unsupported/cancelled share dialogs.
+      }
+    }
+
+    await copyText(latestCredentialFileUrl);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div
+              key={`summary-skeleton-${idx}`}
+              className="h-24 animate-pulse rounded-2xl border border-slate-200 bg-slate-100"
+            />
+          ))}
+        </div>
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <div className="h-72 animate-pulse rounded-2xl border border-slate-200 bg-slate-100 xl:col-span-2" />
           <div className="h-72 animate-pulse rounded-2xl border border-slate-200 bg-slate-100" />
@@ -231,67 +312,82 @@ export default function StudentHomeSection({
 
   return (
     <div className="space-y-6">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <article className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Pending Requests</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-900">{summaryCounts.pendingRequests}</p>
+        </article>
+        <article className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Ready Credentials</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-900">{summaryCounts.readyCredentials}</p>
+        </article>
+        <article className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Unread Notifications</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-900">{summaryCounts.unreadNotifications}</p>
+        </article>
+        <article className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Needs Action</p>
+          <p className="mt-2 text-3xl font-semibold text-slate-900">{summaryCounts.needsAction}</p>
+        </article>
+      </section>
+
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Card title="What’s New" className="xl:col-span-2">
-          {recentEvents.length === 0 && (
+        <Card title="Most Recent Credential" className="xl:col-span-2">
+          {!mostRecentCredential && (
             <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
-              No recent events yet.
+              No credentials yet.
             </div>
           )}
 
-          {recentEvents.length > 0 && (
-            <div className="space-y-2">
-              {recentEvents.map(eventItem => (
+          {mostRecentCredential && (
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={() => onOpenCredential(mostRecentCredential.id)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:bg-slate-50"
+              >
+                <p className="line-clamp-1 text-sm font-semibold text-slate-900">{mostRecentCredential.title}</p>
+                <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                  <span>{formatCredentialTypeLabel(mostRecentCredential.type)}</span>
+                  <span className="text-slate-300">|</span>
+                  <span>{formatDateTime(mostRecentCredential.issuedDate || mostRecentCredential.createdAt)}</span>
+                </div>
+                <p className="mt-1.5 text-xs font-medium text-slate-700">
+                  Status: {mostRecentCredential.status}
+                </p>
+              </button>
+
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  key={eventItem.id}
                   type="button"
-                  onClick={() => handleEventClick(eventItem)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:bg-slate-50"
+                  onClick={() => onOpenCredential(mostRecentCredential.id)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                 >
-                  <p className="text-sm font-semibold text-slate-900">{eventItem.title}</p>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-600">{eventItem.message}</p>
-                  <p className="mt-1.5 text-xs text-slate-500">{formatDateTime(eventItem.createdAt)}</p>
+                  <ShieldCheck size={13} />
+                  Open Credential
                 </button>
-              ))}
+                {latestCredentialFileUrl && (
+                  <a
+                    href={latestCredentialFileUrl}
+                    download={mostRecentCredential.filename || `${mostRecentCredential.title}.pdf`}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Download size={13} />
+                    Download
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => void handleShareLatestCredential()}
+                  disabled={!latestCredentialFileUrl}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Share2 size={13} />
+                  Share
+                </button>
+              </div>
             </div>
           )}
-        </Card>
-
-        <Card title="Quick Actions">
-          <div className="grid grid-cols-1 gap-2">
-            <button
-              type="button"
-              onClick={onOpenRequestsPage}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              <FilePlus2 size={15} />
-              New Credential Request
-            </button>
-            <button
-              type="button"
-              onClick={onOpenCredentialsPage}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              <ShieldCheck size={15} />
-              Go to My Credentials
-            </button>
-            <button
-              type="button"
-              onClick={onOpenNotificationsPage}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              <Bell size={15} />
-              Go to Notifications
-            </button>
-            <button
-              type="button"
-              onClick={onOpenProfilePage}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              <UserCircle2 size={15} />
-              Update Profile
-            </button>
-          </div>
         </Card>
       </section>
 
@@ -306,10 +402,7 @@ export default function StudentHomeSection({
           {activeRequests.length > 0 && (
             <div className="space-y-2">
               {activeRequests.map(request => (
-                <article
-                  key={request.id}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-3"
-                >
+                <article key={request.id} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="line-clamp-1 text-sm font-semibold text-slate-900">{request.title}</p>
@@ -349,18 +442,10 @@ export default function StudentHomeSection({
         </Card>
 
         <div className="space-y-6">
-          <Card title="Attention">
-            {attentionMessages.length === 0 && (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
-                <p className="flex items-center gap-2">
-                  <CheckCircle2 size={16} />
-                  No urgent actions right now.
-                </p>
-              </div>
-            )}
-            {attentionMessages.length > 0 && (
+          {actionNeededMessages.length > 0 && (
+            <Card title="Action Needed">
               <div className="space-y-2">
-                {attentionMessages.map(message => (
+                {actionNeededMessages.map(message => (
                   <div
                     key={message}
                     className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800"
@@ -370,6 +455,30 @@ export default function StudentHomeSection({
                       <span>{message}</span>
                     </p>
                   </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          <Card title="Recent Updates (Since Last Login)">
+            {recentUpdates.length === 0 && (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                No recent updates.
+              </div>
+            )}
+            {recentUpdates.length > 0 && (
+              <div className="space-y-2">
+                {recentUpdates.map(update => (
+                  <button
+                    key={update.id}
+                    type="button"
+                    onClick={() => handleRecentUpdateClick(update)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left hover:bg-slate-50"
+                  >
+                    <p className="line-clamp-1 text-sm font-semibold text-slate-900">{update.title}</p>
+                    <p className="mt-1 line-clamp-2 text-xs text-slate-600">{update.message}</p>
+                    <p className="mt-1.5 text-xs text-slate-500">{formatDateTime(update.createdAt)}</p>
+                  </button>
                 ))}
               </div>
             )}
@@ -389,14 +498,23 @@ export default function StudentHomeSection({
                   style={{ width: `${profileCompleteness.percentage}%` }}
                 />
               </div>
-              <button
-                type="button"
-                onClick={onOpenProfilePage}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                <GraduationCap size={15} />
-                Complete Profile
-              </button>
+              {profileCompleteness.percentage >= 100 ? (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-700">
+                  <p className="flex items-center gap-2">
+                    <CheckCircle2 size={16} />
+                    Profile is complete.
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onOpenProfilePage}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  <GraduationCap size={15} />
+                  Complete Profile
+                </button>
+              )}
             </div>
           </Card>
         </div>

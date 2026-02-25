@@ -1,6 +1,6 @@
 import { isAxiosError } from 'axios';
-import { InstitutionStudentPayload, User, UserStatus } from '../../services/user.service';
-import { InstitutionSection, STUDENT_STATUS_OPTIONS } from './types';
+import { InstitutionStudentPayload, User } from '../../services/user.service';
+import { InstitutionSection } from './types';
 
 export const getInstitutionSection = (pathname: string): InstitutionSection => {
   if (pathname.startsWith('/institution/students')) return 'students';
@@ -55,8 +55,6 @@ export const parseCsvStudents = (rawCsv: string): { students: InstitutionStudent
     const row = splitCsvLine(lines[i]);
     const pick = (name: string) => row[index(name)] ?? '';
 
-    const statusRaw = pick('status').toUpperCase();
-    const status = STUDENT_STATUS_OPTIONS.includes(statusRaw as UserStatus) ? (statusRaw as UserStatus) : 'PENDING';
     students.push({
       email: pick('email'),
       firstName: pick('firstname'),
@@ -66,7 +64,7 @@ export const parseCsvStudents = (rawCsv: string): { students: InstitutionStudent
       courseOfStudy: pick('courseofstudy'),
       yearLevel: pick('yearlevel'),
       department: pick('department'),
-      status,
+      status: 'APPROVED',
     });
   }
 

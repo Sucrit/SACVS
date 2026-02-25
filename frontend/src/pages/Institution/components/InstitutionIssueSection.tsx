@@ -324,7 +324,7 @@ export default function InstitutionIssueSection({
               {!isLoadingCredentials && institutionCredentials.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-500">
-                    No credentials found for this institution.
+                    No credentials found for your institution.
                   </td>
                 </tr>
               )}

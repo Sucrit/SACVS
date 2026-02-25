@@ -14,6 +14,7 @@ import {
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 const userService = new UserService();
+const PH_PHONE_REGEX = /^\+63\d{10}$/;
 
 const getAuthUserId = (req: Request): string | null => {
   const authReq = req as AuthenticatedRequest;
@@ -21,6 +22,10 @@ const getAuthUserId = (req: Request): string | null => {
 };
 
 export class UserController {
+  private isValidPhilippinePhoneNumber(value: string): boolean {
+    return PH_PHONE_REGEX.test(value.trim());
+  }
+
   private isStudentEmailAlreadyExistsError(error: unknown): boolean {
     if (error instanceof Error) {
       const message = error.message.toLowerCase();
@@ -94,18 +99,14 @@ export class UserController {
       return { data: null, error: `Missing required field: ${missingField}` };
     }
 
-    const validStatuses: UserStatus[] = ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'];
-    if (data.status && !validStatuses.includes(data.status)) {
-      return { data: null, error: 'Invalid status value.' };
-    }
-
     return {
       data: {
         email: data.email!.trim(),
         firstName: data.firstName!.trim(),
         middleName: typeof data.middleName === 'string' ? data.middleName.trim() || null : null,
         lastName: data.lastName!.trim(),
-        status: data.status ?? 'PENDING',
+        // Institution-managed student creation is always approved by default.
+        status: 'APPROVED',
         studentNumber: data.studentNumber!.trim(),
         courseOfStudy: data.courseOfStudy!.trim(),
         yearLevel: data.yearLevel!.trim(),
@@ -240,6 +241,12 @@ export class UserController {
 
     if (missingCommonField) {
       return res.status(400).json({ error: `Missing required field: ${missingCommonField}` });
+    }
+
+    if (!this.isValidPhilippinePhoneNumber(data.phoneNumber)) {
+      return res.status(400).json({
+        error: 'Invalid phoneNumber format. Use +63 followed by 10 digits (e.g. +639123456789).',
+      });
     }
 
     if (data.role === 'EMPLOYER') {
@@ -386,6 +393,16 @@ export class UserController {
       typeof profileData.phone !== 'string'
     ) {
       return res.status(400).json({ error: 'Invalid phone value.' });
+    }
+
+    if (
+      typeof profileData.phone === 'string' &&
+      profileData.phone.trim().length > 0 &&
+      !this.isValidPhilippinePhoneNumber(profileData.phone)
+    ) {
+      return res.status(400).json({
+        error: 'Invalid phone format. Use +63 followed by 10 digits (e.g. +639123456789).',
+      });
     }
 
     try {

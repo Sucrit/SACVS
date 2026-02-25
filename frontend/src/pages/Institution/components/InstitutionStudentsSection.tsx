@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useLayoutEffect, useRef, useState } from 'react';
+import { ChangeEvent, FormEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, PauseCircle, Pencil, RefreshCw, Search, Trash2, Upload, UserPlus, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
@@ -41,6 +41,67 @@ const formatDateTime = (value: string | null): string => {
   return date.toLocaleString();
 };
 
+const PHINMA_DEPARTMENT_COURSE_MAP: Record<string, string[]> = {
+  'College of Engineering and Architecture (CEA)': [
+    'Bachelor of Science in Civil Engineering',
+    'Bachelor of Science in Architecture',
+    'Bachelor of Science in Electronics Communication Engineering',
+    'Bachelor of Science in Computer Engineering',
+    'Bachelor of Science in Electrical Engineering',
+    'Certificate in Building Technology',
+  ],
+  'College of Information Technology Education (CITE)': [
+    'Bachelor of Science in Information Technology',
+    'Associate in Computer Technology',
+  ],
+  'College of Allied Health Sciences (CAHS)': [
+    'Bachelor of Science in Nursing',
+    'Bachelor of Science in Medical Laboratory Science',
+    'Bachelor of Science in Physical Therapy',
+    'Diploma in Midwifery',
+    'Diploma in Caregiving',
+  ],
+  'College of Management and Accountancy (CMA)': [
+    'Bachelor of Science in Business Administration (Financial Management)',
+    'Bachelor of Science in Business Administration (Marketing Management)',
+    'Bachelor of Science in Accountancy',
+    'Bachelor of Science in Accounting Technology',
+    'Bachelor of Science in Hotel and Restaurant Management',
+    'Bachelor of Science in Tourism Management',
+  ],
+  'College of Education and Liberal Arts (CELA)': [
+    'Bachelor of Elementary Education',
+    'Bachelor of Secondary Education (English)',
+    'Bachelor of Secondary Education (Mathematics)',
+    'Bachelor of Secondary Education (Biology)',
+    'Bachelor of Secondary Education (Filipino)',
+    'Bachelor of Arts in Mass Communication',
+    'Bachelor of Arts in Political Science',
+  ],
+  'College of Social Sciences (CSS)': [
+    'Bachelor of Arts in Political Science',
+    'Bachelor of Arts in Mass Communication',
+  ],
+  'College of Criminal Justice Education (CCJE)': [
+    'Bachelor of Science in Criminology',
+  ],
+};
+
+const OTHER_PHINMA_PROGRAMS = [
+  'Bachelor of Laws',
+];
+
+const DEFAULT_YEAR_LEVEL_OPTIONS = [
+  '1st Year',
+  '2nd Year',
+  '3rd Year',
+  '4th Year',
+  '5th Year',
+  'Graduate',
+];
+
+const DEFAULT_DEPARTMENT_OPTIONS = Object.keys(PHINMA_DEPARTMENT_COURSE_MAP);
+
 export default function InstitutionStudentsSection({
   studentForm,
   isSubmittingStudent,
@@ -71,8 +132,6 @@ export default function InstitutionStudentsSection({
   const [activePanel, setActivePanel] = useState<'add' | 'bulk' | null>(null);
   const addPanelContentRef = useRef<HTMLDivElement | null>(null);
   const [addPanelHeight, setAddPanelHeight] = useState(0);
-  const getStatusOptionLabel = (status: UserStatus): string =>
-    status === 'APPROVED' ? 'APPROVED' : status;
 
   useLayoutEffect(() => {
     const contentNode = addPanelContentRef.current;
@@ -99,6 +158,87 @@ export default function InstitutionStudentsSection({
     if (!addPanelContentRef.current) return;
     setAddPanelHeight(addPanelContentRef.current.scrollHeight);
   }, [activePanel]);
+
+  const addFormCourseOptions = useMemo(() => {
+    const values = new Set<string>();
+    const selectedDepartment = studentForm.department.trim();
+
+    if (selectedDepartment && PHINMA_DEPARTMENT_COURSE_MAP[selectedDepartment]) {
+      PHINMA_DEPARTMENT_COURSE_MAP[selectedDepartment].forEach(course => values.add(course));
+    } else {
+      Object.values(PHINMA_DEPARTMENT_COURSE_MAP)
+        .flat()
+        .forEach(course => values.add(course));
+    }
+
+    OTHER_PHINMA_PROGRAMS.forEach(course => values.add(course));
+
+    students.forEach(student => {
+      const department = student.profile?.department?.trim();
+      const course = student.profile?.courseOfStudy?.trim();
+      if (!course) return;
+      if (!selectedDepartment || department === selectedDepartment) {
+        values.add(course);
+      }
+    });
+
+    if (studentForm.courseOfStudy.trim()) {
+      values.add(studentForm.courseOfStudy.trim());
+    }
+
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [studentForm.courseOfStudy, studentForm.department, students]);
+
+  const editFormCourseOptions = useMemo(() => {
+    const values = new Set<string>();
+    const selectedDepartment = editStudentForm.department.trim();
+
+    if (selectedDepartment && PHINMA_DEPARTMENT_COURSE_MAP[selectedDepartment]) {
+      PHINMA_DEPARTMENT_COURSE_MAP[selectedDepartment].forEach(course => values.add(course));
+    } else {
+      Object.values(PHINMA_DEPARTMENT_COURSE_MAP)
+        .flat()
+        .forEach(course => values.add(course));
+    }
+
+    OTHER_PHINMA_PROGRAMS.forEach(course => values.add(course));
+
+    students.forEach(student => {
+      const department = student.profile?.department?.trim();
+      const course = student.profile?.courseOfStudy?.trim();
+      if (!course) return;
+      if (!selectedDepartment || department === selectedDepartment) {
+        values.add(course);
+      }
+    });
+
+    if (editStudentForm.courseOfStudy.trim()) {
+      values.add(editStudentForm.courseOfStudy.trim());
+    }
+
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [editStudentForm.courseOfStudy, editStudentForm.department, students]);
+
+  const addFormYearLevelOptions = useMemo(() => {
+    const values = new Set(DEFAULT_YEAR_LEVEL_OPTIONS);
+    students.forEach(student => {
+      const value = student.profile?.yearLevel?.trim();
+      if (value) values.add(value);
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [students]);
+
+  const addFormDepartmentOptions = useMemo(() => {
+    const values = new Set(DEFAULT_DEPARTMENT_OPTIONS);
+    departmentOptions
+      .filter(option => option !== 'ALL')
+      .forEach(option => values.add(option));
+    students.forEach(student => {
+      const value = student.profile?.department?.trim();
+      if (value) values.add(value);
+    });
+    return Array.from(values).sort((a, b) => a.localeCompare(b));
+  }, [departmentOptions, students]);
 
   return (
     <div className="space-y-4">
@@ -145,25 +285,99 @@ export default function InstitutionStudentsSection({
                   <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:col-span-2 xl:col-span-3">
                     Personal Info
                   </p>
-                  <input required value={studentForm.firstName} onChange={event => onSetStudentFormValue('firstName', event.target.value)} placeholder="First name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                  <input value={studentForm.middleName} onChange={event => onSetStudentFormValue('middleName', event.target.value)} placeholder="Middle name (optional)" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                  <input required value={studentForm.lastName} onChange={event => onSetStudentFormValue('lastName', event.target.value)} placeholder="Last name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                  <input required type="email" value={studentForm.email} onChange={event => onSetStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+                  <label className="space-y-1.5">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                      First name <span className="text-rose-500">*</span>
+                    </span>
+                    <input required value={studentForm.firstName} onChange={event => onSetStudentFormValue('firstName', event.target.value)} placeholder="First name" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                      Middle name
+                    </span>
+                    <input value={studentForm.middleName} onChange={event => onSetStudentFormValue('middleName', event.target.value)} placeholder="Middle name (optional)" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                      Last name <span className="text-rose-500">*</span>
+                    </span>
+                    <input required value={studentForm.lastName} onChange={event => onSetStudentFormValue('lastName', event.target.value)} placeholder="Last name" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                      Email <span className="text-rose-500">*</span>
+                    </span>
+                    <input required type="email" value={studentForm.email} onChange={event => onSetStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+                  </label>
 
                   <p className="pt-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:col-span-2 xl:col-span-3">
                     Student Record
                   </p>
-                  <input required value={studentForm.studentNumber} onChange={event => onSetStudentFormValue('studentNumber', event.target.value)} placeholder="Student number" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                  <select value={studentForm.status} onChange={event => onSetStudentFormValue('status', event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none">
-                    {STUDENT_STATUS_OPTIONS.map(status => <option key={status} value={status}>{getStatusOptionLabel(status)}</option>)}
-                  </select>
+                  <label className="space-y-1.5">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                      Student number <span className="text-rose-500">*</span>
+                    </span>
+                    <input required value={studentForm.studentNumber} onChange={event => onSetStudentFormValue('studentNumber', event.target.value)} placeholder="Student number" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+                  </label>
 
                   <p className="pt-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:col-span-2 xl:col-span-3">
                     Academic Info
                   </p>
-                  <input required value={studentForm.courseOfStudy} onChange={event => onSetStudentFormValue('courseOfStudy', event.target.value)} placeholder="Course of study" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                  <input required value={studentForm.yearLevel} onChange={event => onSetStudentFormValue('yearLevel', event.target.value)} placeholder="Year level" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                  <input required value={studentForm.department} onChange={event => onSetStudentFormValue('department', event.target.value)} placeholder="Department" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+                  <label className="space-y-1.5">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                      Course of study <span className="text-rose-500">*</span>
+                    </span>
+              <select
+                required
+                value={studentForm.courseOfStudy}
+                onChange={event => onSetStudentFormValue('courseOfStudy', event.target.value)}
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    >
+                      <option value="" disabled>Select course of study</option>
+                      {addFormCourseOptions.map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                      Year level <span className="text-rose-500">*</span>
+                    </span>
+                    <select
+                      required
+                      value={studentForm.yearLevel}
+                      onChange={event => onSetStudentFormValue('yearLevel', event.target.value)}
+                      className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    >
+                      <option value="" disabled>Select year level</option>
+                      {addFormYearLevelOptions.map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                      Department <span className="text-rose-500">*</span>
+                    </span>
+              <select
+                required
+                value={studentForm.department}
+                onChange={event => {
+                  const nextDepartment = event.target.value;
+                  onSetStudentFormValue('department', nextDepartment);
+                  const allowedCourses = new Set(PHINMA_DEPARTMENT_COURSE_MAP[nextDepartment] ?? []);
+                  if (studentForm.courseOfStudy && !allowedCourses.has(studentForm.courseOfStudy)) {
+                    onSetStudentFormValue('courseOfStudy', '');
+                  }
+                }}
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+              >
+                <option value="" disabled>Select department</option>
+                {addFormDepartmentOptions.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
                 <button type="submit" disabled={isSubmittingStudent} className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-black disabled:opacity-60">
                   <UserPlus size={14} />
@@ -183,7 +397,7 @@ export default function InstitutionStudentsSection({
             <p className="text-sm text-slate-600">
               Use headers:
               <span className="mt-2 block max-w-full break-all rounded-lg bg-slate-50 p-2 text-xs text-slate-700">
-                email,firstName,middleName,lastName,studentNumber,courseOfStudy,yearLevel,department,status
+                email,firstName,middleName,lastName,studentNumber,courseOfStudy,yearLevel,department
               </span>
             </p>
             <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
@@ -249,9 +463,46 @@ export default function InstitutionStudentsSection({
               <input value={editStudentForm.middleName} onChange={event => onSetEditStudentFormValue('middleName', event.target.value)} placeholder="Middle name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
               <input required value={editStudentForm.lastName} onChange={event => onSetEditStudentFormValue('lastName', event.target.value)} placeholder="Last name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
               <input required value={editStudentForm.studentNumber} onChange={event => onSetEditStudentFormValue('studentNumber', event.target.value)} placeholder="Student number" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-              <input required value={editStudentForm.courseOfStudy} onChange={event => onSetEditStudentFormValue('courseOfStudy', event.target.value)} placeholder="Course of study" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-              <input required value={editStudentForm.yearLevel} onChange={event => onSetEditStudentFormValue('yearLevel', event.target.value)} placeholder="Year level" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-              <input required value={editStudentForm.department} onChange={event => onSetEditStudentFormValue('department', event.target.value)} placeholder="Department" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+              <select
+                required
+                value={editStudentForm.courseOfStudy}
+                onChange={event => onSetEditStudentFormValue('courseOfStudy', event.target.value)}
+                className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+              >
+                <option value="" disabled>Select course of study</option>
+                {editFormCourseOptions.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              <select
+                required
+                value={editStudentForm.yearLevel}
+                onChange={event => onSetEditStudentFormValue('yearLevel', event.target.value)}
+                className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+              >
+                <option value="" disabled>Select year level</option>
+                {addFormYearLevelOptions.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+              <select
+                required
+                value={editStudentForm.department}
+                onChange={event => {
+                  const nextDepartment = event.target.value;
+                  onSetEditStudentFormValue('department', nextDepartment);
+                  const allowedCourses = new Set(PHINMA_DEPARTMENT_COURSE_MAP[nextDepartment] ?? []);
+                  if (editStudentForm.courseOfStudy && !allowedCourses.has(editStudentForm.courseOfStudy)) {
+                    onSetEditStudentFormValue('courseOfStudy', '');
+                  }
+                }}
+                className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+              >
+                <option value="" disabled>Select department</option>
+                {addFormDepartmentOptions.map(option => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
               <input required type="email" value={editStudentForm.email} onChange={event => onSetEditStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
               <select value={editStudentForm.status} onChange={event => onSetEditStudentFormValue('status', event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none">
                 {STUDENT_STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
