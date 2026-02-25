@@ -217,7 +217,7 @@ export default function AuthPage() {
             setOrganizationName(
               localUser.role === 'EMPLOYER'
                 ? localUser.employer?.companyName || ''
-                : localUser.institution?.name || '',
+                : localUser.institution?.institutionName || '',
             );
             setAccreditationNumber(localUser.institution?.accreditationNumber || '');
             setTaxId(localUser.employer?.taxId || '');
@@ -389,7 +389,7 @@ export default function AuthPage() {
               firstName: firstName.trim(),
               middleName: middleName.trim() || null,
               lastName: lastName.trim(),
-              name: organizationName.trim(),
+              institutionName: organizationName.trim(),
               accreditationNumber: accreditationNumber.trim(),
               registrationNumber: registrationNumber.trim(),
               organizationEmail: organizationEmail.trim(),

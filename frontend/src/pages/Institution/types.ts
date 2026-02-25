@@ -29,12 +29,6 @@ export interface StudentFormState {
   middleName: string;
   lastName: string;
   studentNumber: string;
-  street: string;
-  barangay: string;
-  city: string;
-  province: string;
-  zipCode: string;
-  phone: string;
   courseOfStudy: string;
   yearLevel: string;
   department: string;
@@ -49,12 +43,6 @@ export const DEFAULT_STUDENT_FORM: StudentFormState = {
   middleName: '',
   lastName: '',
   studentNumber: '',
-  street: '',
-  barangay: '',
-  city: '',
-  province: '',
-  zipCode: '',
-  phone: '',
   courseOfStudy: '',
   yearLevel: '',
   department: '',

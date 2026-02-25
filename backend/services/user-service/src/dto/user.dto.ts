@@ -2,6 +2,7 @@ export type UserRole = 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION';
 export type UserStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 export type OrganizationRole = 'EMPLOYER' | 'INSTITUTION';
 export type InstitutionManagedStudentStatus = UserStatus;
+export type StudentSex = 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
 
 export interface CreateUserDto {
   email: string;
@@ -19,11 +20,15 @@ export interface UpdateUserRoleDto {
   role: UserRole;
 }
 
-export interface CreateInstitutionStudentDto extends UpsertStudentProfileDto {
+export interface CreateInstitutionStudentDto {
   email: string;
   firstName: string;
   middleName?: string | null;
   lastName: string;
+  studentNumber: string;
+  courseOfStudy: string;
+  yearLevel: string;
+  department: string;
   status?: InstitutionManagedStudentStatus;
 }
 
@@ -51,6 +56,10 @@ export interface UpsertStudentProfileDto {
   courseOfStudy: string;
   yearLevel: string;
   department: string;
+  birthday?: string | null;
+  sex?: StudentSex | null;
+  guardianFullName?: string | null;
+  guardianRelationship?: string | null;
 }
 
 export interface CompleteStudentOnboardingDto extends UpsertStudentProfileDto {
@@ -76,7 +85,7 @@ export interface CompleteEmployerOnboardingDto extends CompleteOrganizationOnboa
 
 export interface CompleteInstitutionOnboardingDto extends CompleteOrganizationOnboardingBaseDto {
   role: 'INSTITUTION';
-  name: string;
+  institutionName: string;
   accreditationNumber: string;
 }
 

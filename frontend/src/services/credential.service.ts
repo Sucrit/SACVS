@@ -36,6 +36,9 @@ export interface Credential {
     middleName: string | null;
     lastName: string;
     email: string;
+    institution?: {
+      institutionName: string;
+    } | null;
   } | null;
 }
 

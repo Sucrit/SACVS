@@ -56,12 +56,6 @@ export default function InstitutionHistorySection({
             </div>
           </div>
         </Card>
-
-        <Card title="Audit Endpoint Note">
-          <p className="text-sm text-slate-600">
-            This timeline is currently frontend-generated. It will be connected to backend audit logs in the next step.
-          </p>
-        </Card>
       </div>
     </div>
   );

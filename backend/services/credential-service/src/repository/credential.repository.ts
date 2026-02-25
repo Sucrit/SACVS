@@ -24,6 +24,11 @@ const credentialWithIssuerInclude = {
       middleName: true,
       lastName: true,
       email: true,
+      institution: {
+        select: {
+          institutionName: true,
+        },
+      },
     },
   },
 } satisfies Prisma.CredentialInclude;

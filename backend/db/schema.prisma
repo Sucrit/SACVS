@@ -63,6 +63,13 @@ enum DeliveryMethod {
   BOTH
 }
 
+enum Sex {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
 enum AuditAction {
 
   // User actions
@@ -174,21 +181,25 @@ model User {
 // Student Profile 
 
 model StudentProfile {
-  id            String   @id @default(uuid())
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  studentNumber String   @unique
-  street        String
-  barangay      String
-  city          String
-  province      String
-  zipCode       Int
-  phone         String
-  courseOfStudy String
-  yearLevel     String
-  department    String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  studentNumber        String   @unique
+  street               String
+  barangay             String
+  city                 String
+  province             String
+  zipCode              Int
+  phone                String
+  courseOfStudy        String
+  yearLevel            String
+  department           String
+  birthday             DateTime?
+  sex                  Sex?
+  guardianFullName     String?
+  guardianRelationship String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@index([studentNumber])
 }
@@ -383,7 +394,7 @@ model Employer {
 
 model Institution {
   id                  String   @id @default(uuid())
-  name                String
+  institutionName                String
   accreditationNumber String
   registrationNumber  String
   email               String   @unique

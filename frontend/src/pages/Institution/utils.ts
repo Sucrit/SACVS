@@ -43,8 +43,7 @@ export const parseCsvStudents = (rawCsv: string): { students: InstitutionStudent
   const header = splitCsvLine(lines[0]).map(value => value.toLowerCase());
   const index = (name: string) => header.indexOf(name.toLowerCase());
   const required = [
-    'email', 'firstname', 'lastname', 'studentnumber', 'street', 'barangay', 'city',
-    'province', 'zipcode', 'phone', 'courseofstudy', 'yearlevel', 'department',
+    'email', 'firstname', 'lastname', 'studentnumber', 'courseofstudy', 'yearlevel', 'department',
   ];
   const missing = required.filter(name => index(name) === -1);
   if (missing.length > 0) {
@@ -55,10 +54,6 @@ export const parseCsvStudents = (rawCsv: string): { students: InstitutionStudent
   for (let i = 1; i < lines.length; i += 1) {
     const row = splitCsvLine(lines[i]);
     const pick = (name: string) => row[index(name)] ?? '';
-    const zip = Number(pick('zipcode'));
-    if (!Number.isInteger(zip) || zip <= 0) {
-      return { students: [], error: `Invalid zipCode at row ${i + 1}` };
-    }
 
     const statusRaw = pick('status').toUpperCase();
     const status = STUDENT_STATUS_OPTIONS.includes(statusRaw as UserStatus) ? (statusRaw as UserStatus) : 'PENDING';
@@ -68,12 +63,6 @@ export const parseCsvStudents = (rawCsv: string): { students: InstitutionStudent
       middleName: pick('middlename') || null,
       lastName: pick('lastname'),
       studentNumber: pick('studentnumber'),
-      street: pick('street'),
-      barangay: pick('barangay'),
-      city: pick('city'),
-      province: pick('province'),
-      zipCode: zip,
-      phone: pick('phone'),
       courseOfStudy: pick('courseofstudy'),
       yearLevel: pick('yearlevel'),
       department: pick('department'),

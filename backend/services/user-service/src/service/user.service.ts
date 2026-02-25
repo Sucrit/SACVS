@@ -247,7 +247,7 @@ export class UserService {
         : undefined,
       institution: data.role === 'INSTITUTION'
         ? {
-            name: data.name.trim(),
+            institutionName: data.institutionName.trim(),
             accreditationNumber: data.accreditationNumber.trim(),
           }
         : undefined,

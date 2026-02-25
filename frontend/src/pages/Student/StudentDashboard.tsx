@@ -18,20 +18,25 @@ import StudentEmptyStateSection from './components/StudentEmptyStateSection';
 import StudentRequestHistorySection from './components/StudentRequestHistorySection';
 import StudentProfileSection from './components/StudentProfileSection';
 import StudentNotificationsSection from './components/StudentNotificationsSection';
+import StudentHomeSection from './components/StudentHomeSection';
 import { getApiErrorMessage, getStudentSection } from './utils';
+import { useLegacyAuth } from '../../auth/auth-context';
 
 export default function StudentDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user: sessionUser } = useLegacyAuth();
   const section = getStudentSection(location.pathname);
-  const shouldLoadCredentials = section === 'credentials';
-  const shouldLoadRequests = section === 'requests';
-  const shouldLoadNotifications = section === 'notifications';
-  const shouldLoadProfile = section === 'profile';
+  const shouldLoadOverviewData = section === 'overview';
+  const shouldLoadCredentials = section === 'credentials' || shouldLoadOverviewData;
+  const shouldLoadRequests = section === 'requests' || shouldLoadOverviewData;
+  const shouldLoadNotifications = section === 'notifications' || shouldLoadOverviewData;
+  const shouldLoadProfile = section === 'profile' || shouldLoadOverviewData;
 
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [selectedCredentialId, setSelectedCredentialId] = useState<string | null>(null);
   const [isCredentialModalOpen, setIsCredentialModalOpen] = useState(false);
+  const [requestDetailsFromQueryId, setRequestDetailsFromQueryId] = useState<string | null>(null);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
   const [credentialsError, setCredentialsError] = useState<string | null>(null);
 
@@ -49,6 +54,7 @@ export default function StudentDashboard() {
   const [markingNotificationId, setMarkingNotificationId] = useState<string | null>(null);
   const [studentProfileUser, setStudentProfileUser] = useState<User | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isSavingProfilePersonalInfo, setIsSavingProfilePersonalInfo] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [requestForm, setRequestForm] = useState<CreateCredentialRequestPayload>({
     type: 'TRANSCRIPT',
@@ -212,7 +218,7 @@ export default function StudentDashboard() {
   }, [credentials, selectedCredentialId, shouldLoadCredentials]);
 
   useEffect(() => {
-    if (!shouldLoadCredentials) {
+    if (section !== 'credentials') {
       return;
     }
 
@@ -237,13 +243,66 @@ export default function StudentDashboard() {
       },
       { replace: true },
     );
-  }, [credentials, isLoadingCredentials, location.search, navigate, shouldLoadCredentials]);
+  }, [credentials, isLoadingCredentials, location.search, navigate, section]);
+
+  useEffect(() => {
+    if (section !== 'requests') {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const requestId = params.get('requestId');
+    if (!requestId || isLoadingRequests) {
+      return;
+    }
+
+    const requestExists = requests.some(request => request.id === requestId);
+    if (requestExists) {
+      setRequestDetailsFromQueryId(requestId);
+    }
+
+    params.delete('requestId');
+    const nextSearch = params.toString();
+    navigate(
+      {
+        pathname: '/student/requests',
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true },
+    );
+  }, [isLoadingRequests, location.search, navigate, requests, section]);
 
   const selectedCredential = useMemo(
     () => credentials.find(credential => credential.id === selectedCredentialId) ?? null,
     [credentials, selectedCredentialId],
   );
+  const institutionName = useMemo(
+    () =>
+      studentProfileUser?.institution?.institutionName ||
+      sessionUser?.institution?.institutionName ||
+      null,
+    [sessionUser?.institution?.institutionName, studentProfileUser?.institution?.institutionName],
+  );
   const isCredentialsEmptyPage = section === 'credentials' && !isLoadingCredentials && credentials.length === 0;
+  const isHomeLoading =
+    shouldLoadOverviewData &&
+    (isLoadingCredentials || isLoadingRequests || isLoadingNotifications || isLoadingProfile);
+
+  const renderRequestAction = (buttonClassName?: string) => (
+    <StudentRequestSection
+      requestForm={requestForm}
+      isSubmittingRequest={isSubmittingRequest}
+      requestError={requestError}
+      onSubmit={handleRequestSubmit}
+      onTypeChange={(value: CredentialType) => setRequestForm(previous => ({ ...previous, type: value }))}
+      onTitleChange={(value: string) => setRequestForm(previous => ({ ...previous, title: value }))}
+      onPurposeChange={(value: string) => setRequestForm(previous => ({ ...previous, purpose: value }))}
+      onDeliveryMethodChange={(value: DeliveryMethod) =>
+        setRequestForm(previous => ({ ...previous, deliveryMethod: value }))
+      }
+      buttonClassName={buttonClassName}
+    />
+  );
 
   const handleRequestSubmit = async (event: FormEvent<HTMLFormElement>): Promise<boolean> => {
     event.preventDefault();
@@ -385,16 +444,59 @@ export default function StudentDashboard() {
     }
   };
 
+  const handleSaveStudentPersonalInfo = async (payload: {
+    birthday?: string | null;
+    sex?: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY' | null;
+    guardianFullName?: string | null;
+    guardianRelationship?: string | null;
+  }) => {
+    if (!studentProfileUser?.profile) {
+      throw new Error('Student profile is not available yet.');
+    }
+
+    setIsSavingProfilePersonalInfo(true);
+    setProfileError(null);
+    try {
+      const profile = studentProfileUser.profile;
+      const updated = await UserService.upsertMyProfile({
+        studentNumber: profile.studentNumber,
+        street: profile.street,
+        barangay: profile.barangay,
+        city: profile.city,
+        province: profile.province,
+        zipCode: profile.zipCode,
+        phone: profile.phone,
+        courseOfStudy: profile.courseOfStudy,
+        yearLevel: profile.yearLevel,
+        department: profile.department,
+        birthday: payload.birthday,
+        sex: payload.sex,
+        guardianFullName: payload.guardianFullName,
+        guardianRelationship: payload.guardianRelationship,
+      });
+      setStudentProfileUser(updated);
+    } catch (error) {
+      const message = getApiErrorMessage(error) || 'Unable to update personal information.';
+      setProfileError(message);
+      throw new Error(message);
+    } finally {
+      setIsSavingProfilePersonalInfo(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {(credentialsError || requestsError || notificationsError) &&
-        (section === 'credentials' || section === 'requests' || section === 'notifications') && (
+        (section === 'credentials' ||
+          section === 'requests' ||
+          section === 'notifications' ||
+          section === 'overview') && (
         <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           <AlertCircle size={16} />
           {credentialsError || requestsError || notificationsError}
         </div>
       )}
-      {profileError && section === 'profile' && (
+      {profileError && (section === 'profile' || section === 'overview') && (
         <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           <AlertCircle size={16} />
           {profileError}
@@ -440,31 +542,49 @@ export default function StudentDashboard() {
           onCancelRequest={(requestId: string) => void handleCancelRequest(requestId)}
           cancelingRequestId={cancelingRequestId}
           animatedRequestIds={animatedRequestIds}
-          requestAction={
-            <StudentRequestSection
-              requestForm={requestForm}
-              isSubmittingRequest={isSubmittingRequest}
-              requestError={requestError}
-              onSubmit={handleRequestSubmit}
-              onTypeChange={(value: CredentialType) => setRequestForm(previous => ({ ...previous, type: value }))}
-              onTitleChange={(value: string) => setRequestForm(previous => ({ ...previous, title: value }))}
-              onPurposeChange={(value: string) => setRequestForm(previous => ({ ...previous, purpose: value }))}
-              onDeliveryMethodChange={(value: DeliveryMethod) =>
-                setRequestForm(previous => ({ ...previous, deliveryMethod: value }))
-              }
-              buttonClassName="inline-flex h-10 items-center justify-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-            />
+          initialDetailsRequestId={requestDetailsFromQueryId}
+          onDetailsRequestConsumed={() => setRequestDetailsFromQueryId(null)}
+          requestAction={renderRequestAction('inline-flex h-10 items-center justify-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100')}
+        />
+      )}
+
+      {section === 'overview' && (
+        <StudentHomeSection
+          requests={requests}
+          notifications={notifications}
+          institutionName={institutionName}
+          user={studentProfileUser}
+          isLoading={isHomeLoading}
+          requestAction={renderRequestAction('inline-flex h-10 items-center justify-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100')}
+          cancelingRequestId={cancelingRequestId}
+          onCancelRequest={(requestId: string) => void handleCancelRequest(requestId)}
+          onOpenCredential={(credentialId: string) =>
+            navigate(`/student/credentials?credentialId=${encodeURIComponent(credentialId)}`)
           }
+          onOpenRequest={(requestId: string) =>
+            navigate(`/student/requests?requestId=${encodeURIComponent(requestId)}`)
+          }
+          onOpenRequestsPage={() => navigate('/student/requests')}
+          onOpenCredentialsPage={() => navigate('/student/credentials')}
+          onOpenNotificationsPage={() => navigate('/student/notifications')}
+          onOpenProfilePage={() => navigate('/student/profile')}
         />
       )}
 
       {section === 'notifications' && (
         <StudentNotificationsSection
           notifications={notifications}
+          institutionName={institutionName}
           isLoading={isLoadingNotifications}
-          onRefresh={() => void loadNotifications()}
           onMarkAllRead={() => void handleMarkAllNotificationsRead()}
           onMarkRead={(id: string) => void handleMarkNotificationRead(id)}
+          onOpenCredential={(credentialId: string) =>
+            navigate(`/student/credentials?credentialId=${encodeURIComponent(credentialId)}`)
+          }
+          onOpenRequest={(requestId: string) =>
+            navigate(`/student/requests?requestId=${encodeURIComponent(requestId)}`)
+          }
+          onOpenNotificationsPage={() => navigate('/student/notifications')}
           markingNotificationId={markingNotificationId}
           isMarkingAllRead={isMarkingAllNotificationsRead}
         />
@@ -475,6 +595,8 @@ export default function StudentDashboard() {
           user={studentProfileUser}
           isLoading={isLoadingProfile}
           onRefresh={() => void loadProfile()}
+          onSavePersonalInfo={handleSaveStudentPersonalInfo}
+          isSavingPersonalInfo={isSavingProfilePersonalInfo}
         />
       )}
     </div>

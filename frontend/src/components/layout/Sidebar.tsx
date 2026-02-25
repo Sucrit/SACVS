@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { UserButton } from '@clerk/clerk-react';
 import { 
   Users, 
   FileText, 
@@ -9,14 +10,16 @@ import {
   BriefcaseBusiness,
   Building2,
   Bell,
+  ChevronDown,
 } from 'lucide-react';
-import logo2 from '../../assets/logo2.png';
 
 interface SidebarProps {
   role: 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION';
+  displayName: string;
+  email: string;
 }
 
-export default function Sidebar({ role }: SidebarProps) {
+export default function Sidebar({ role, displayName, email }: SidebarProps) {
   const links = {
     STUDENT: [
       { to: '/student', label: 'Home', icon: LayoutDashboard },
@@ -52,8 +55,17 @@ export default function Sidebar({ role }: SidebarProps) {
 
   return (
     <aside className="fixed left-0 top-0 z-50 flex h-screen w-56 flex-col overflow-hidden bg-[#f7f7f8]">
-      <div className="p-4 pb-3">
-        <img alt="Credence logo" className="h-8 w-auto" src={logo2} />
+      <div className="flex items-center gap-3 p-4 pb-3">
+        <div className="relative inline-flex">
+          <UserButton afterSignOutUrl="/" />
+          <span className="pointer-events-none absolute -bottom-1 -right-0.5 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-slate-300 bg-slate-700 text-white shadow-sm">
+            <ChevronDown size={8} />
+          </span>
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-800">{displayName}</p>
+          <p className="truncate text-xs text-slate-500">{email}</p>
+        </div>
       </div>
       <div className="flex justify-center py-1">
         <div className="h-px w-48 rounded-full bg-slate-300/70" />

@@ -6,7 +6,7 @@ interface CredentialIssueNotificationPayload {
   credentialId: string;
   credentialType: string;
   credentialTitle: string;
-  issuerDisplayName: string;
+  institutionName: string;
   isReissue: boolean;
 }
 
@@ -15,7 +15,7 @@ interface CredentialStatusNotificationPayload {
   credentialId: string;
   credentialType: string;
   credentialTitle: string;
-  issuerDisplayName: string;
+  institutionName: string;
   previousStatus: string;
   nextStatus: string;
 }
@@ -64,7 +64,7 @@ export class NotificationClient {
     }
 
     const actionLabel = payload.isReissue ? 're-issued' : 'issued';
-    const message = `Your ${payload.credentialType.toLowerCase()} credential "${payload.credentialTitle}" was ${actionLabel} by ${payload.issuerDisplayName}.`;
+    const message = `Your ${payload.credentialType.toLowerCase()} "${payload.credentialTitle}" was ${actionLabel} by ${payload.institutionName}.`;
 
     const response = await fetch(`${baseUrl}/notifications/system`, {
       method: 'POST',
@@ -84,7 +84,7 @@ export class NotificationClient {
           credentialTitle: payload.credentialTitle,
           credentialType: payload.credentialType,
           event: payload.isReissue ? 'REISSUED' : 'ISSUED',
-          issuerDisplayName: payload.issuerDisplayName,
+          institutionName: payload.institutionName,
         },
       }),
     });
@@ -110,7 +110,7 @@ export class NotificationClient {
       return;
     }
 
-    const message = `Your ${payload.credentialType.toLowerCase()} credential "${payload.credentialTitle}" was ${statusNotification.verb} by ${payload.issuerDisplayName}.`;
+    const message = `Your ${payload.credentialType.toLowerCase()} "${payload.credentialTitle}" was ${statusNotification.verb} by ${payload.institutionName}.`;
 
     const response = await fetch(`${baseUrl}/notifications/system`, {
       method: 'POST',
@@ -132,7 +132,7 @@ export class NotificationClient {
           event: 'STATUS_CHANGED',
           previousStatus: payload.previousStatus,
           nextStatus: payload.nextStatus,
-          issuerDisplayName: payload.issuerDisplayName,
+          institutionName: payload.institutionName,
         },
       }),
     });

@@ -2,6 +2,7 @@ import { api } from '../api/client';
 
 export type UserRole = 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION';
 export type UserStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+export type StudentSex = 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
 
 export interface StudentProfile {
   id: string;
@@ -16,6 +17,10 @@ export interface StudentProfile {
   courseOfStudy: string;
   yearLevel: string;
   department: string;
+  birthday?: string | null;
+  sex?: StudentSex | null;
+  guardianFullName?: string | null;
+  guardianRelationship?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -33,7 +38,7 @@ export interface EmployerProfile {
 
 export interface InstitutionProfile {
   id: string;
-  name: string;
+  institutionName: string;
   accreditationNumber: string;
   registrationNumber: string;
   email: string;
@@ -81,6 +86,10 @@ export interface UpsertStudentProfilePayload {
   courseOfStudy: string;
   yearLevel: string;
   department: string;
+  birthday?: string | null;
+  sex?: StudentSex | null;
+  guardianFullName?: string | null;
+  guardianRelationship?: string | null;
 }
 
 export interface CompleteStudentOnboardingPayload extends UpsertStudentProfilePayload {
@@ -109,7 +118,7 @@ export interface CompleteEmployerOnboardingPayload extends CompleteOrganizationO
 
 export interface CompleteInstitutionOnboardingPayload extends CompleteOrganizationOnboardingBasePayload {
   role: 'INSTITUTION';
-  name: string;
+  institutionName: string;
   accreditationNumber: string;
 }
 
@@ -129,11 +138,15 @@ export interface UpdateUserRolePayload {
   role: UserRole;
 }
 
-export interface InstitutionStudentPayload extends UpsertStudentProfilePayload {
+export interface InstitutionStudentPayload {
   email: string;
   firstName: string;
   middleName?: string | null;
   lastName: string;
+  studentNumber: string;
+  courseOfStudy: string;
+  yearLevel: string;
+  department: string;
   status?: UserStatus;
 }
 

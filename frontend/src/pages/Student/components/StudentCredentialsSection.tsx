@@ -119,7 +119,7 @@ export default function StudentCredentialsSection({
         credential.title,
         credential.type,
         credential.description || '',
-        credential.issuedById,
+        credential.issuedBy?.institution?.institutionName || '',
       ]
         .join(' ')
         .toLowerCase();

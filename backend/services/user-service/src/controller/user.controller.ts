@@ -5,6 +5,7 @@ import {
   CreateInstitutionStudentDto,
   CompleteOrganizationOnboardingDto,
   CreateUserDto,
+  StudentSex,
   UpdateUserRoleDto,
   UpdateUserStatusDto,
   UpsertStudentProfileDto,
@@ -79,11 +80,6 @@ export class UserController {
       'firstName',
       'lastName',
       'studentNumber',
-      'street',
-      'barangay',
-      'city',
-      'province',
-      'phone',
       'courseOfStudy',
       'yearLevel',
       'department',
@@ -96,11 +92,6 @@ export class UserController {
 
     if (missingField) {
       return { data: null, error: `Missing required field: ${missingField}` };
-    }
-
-    const parsedZipCode = Number(data.zipCode);
-    if (!Number.isInteger(parsedZipCode) || parsedZipCode <= 0) {
-      return { data: null, error: 'Missing required field: zipCode' };
     }
 
     const validStatuses: UserStatus[] = ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'];
@@ -116,12 +107,6 @@ export class UserController {
         lastName: data.lastName!.trim(),
         status: data.status ?? 'PENDING',
         studentNumber: data.studentNumber!.trim(),
-        street: data.street!.trim(),
-        barangay: data.barangay!.trim(),
-        city: data.city!.trim(),
-        province: data.province!.trim(),
-        zipCode: parsedZipCode,
-        phone: data.phone!.trim(),
         courseOfStudy: data.courseOfStudy!.trim(),
         yearLevel: data.yearLevel!.trim(),
         department: data.department!.trim(),
@@ -145,6 +130,7 @@ export class UserController {
       typeof data.companyName === 'string' ||
       typeof data.taxId === 'string';
     const hasInstitutionHints =
+      typeof data.institutionName === 'string' ||
       typeof data.name === 'string' ||
       typeof data.accreditationNumber === 'string';
 
@@ -172,6 +158,7 @@ export class UserController {
       typeof data.phoneNumber === 'string' ||
       typeof data.organizationName === 'string' ||
       typeof data.companyName === 'string' ||
+      typeof data.institutionName === 'string' ||
       typeof data.name === 'string' ||
       typeof data.taxId === 'string' ||
       typeof data.accreditationNumber === 'string';
@@ -220,9 +207,13 @@ export class UserController {
       if (body.role === 'EMPLOYER' && typeof body.companyName !== 'string') {
         body.companyName = body.organizationName;
       }
-      if (body.role === 'INSTITUTION' && typeof body.name !== 'string') {
-        body.name = body.organizationName;
+      if (body.role === 'INSTITUTION' && typeof body.institutionName !== 'string') {
+        body.institutionName = body.organizationName;
       }
+    }
+    // Backward compatibility for older clients that still send "name".
+    if (body.role === 'INSTITUTION' && typeof body.institutionName !== 'string' && typeof body.name === 'string') {
+      body.institutionName = body.name;
     }
 
     const data = body as unknown as CompleteOrganizationOnboardingDto;
@@ -261,8 +252,12 @@ export class UserController {
     }
 
     if (data.role === 'INSTITUTION') {
-      if (!data.name || typeof data.name !== 'string' || data.name.trim().length === 0) {
-        return res.status(400).json({ error: 'Missing required field: name' });
+      if (
+        !data.institutionName ||
+        typeof data.institutionName !== 'string' ||
+        data.institutionName.trim().length === 0
+      ) {
+        return res.status(400).json({ error: 'Missing required field: institutionName' });
       }
       if (
         !data.accreditationNumber ||
@@ -353,10 +348,52 @@ export class UserController {
       return res.status(400).json({ error: 'Missing required field: zipCode' });
     }
 
+    let normalizedBirthday: string | null | undefined = undefined;
+    if (typeof profileData.birthday !== 'undefined') {
+      if (profileData.birthday === null) {
+        normalizedBirthday = null;
+      } else if (typeof profileData.birthday === 'string') {
+        const trimmed = profileData.birthday.trim();
+        if (!trimmed) {
+          normalizedBirthday = null;
+        } else {
+          const parsed = new Date(trimmed);
+          if (Number.isNaN(parsed.getTime())) {
+            return res.status(400).json({ error: 'Invalid birthday value.' });
+          }
+          normalizedBirthday = trimmed;
+        }
+      } else {
+        return res.status(400).json({ error: 'Invalid birthday value.' });
+      }
+    }
+
+    const validSexes: StudentSex[] = ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY'];
+    if (typeof profileData.sex !== 'undefined' && profileData.sex !== null && !validSexes.includes(profileData.sex)) {
+      return res.status(400).json({ error: 'Invalid sex value.' });
+    }
+
+    if (typeof profileData.guardianFullName !== 'undefined' && profileData.guardianFullName !== null && typeof profileData.guardianFullName !== 'string') {
+      return res.status(400).json({ error: 'Invalid guardianFullName value.' });
+    }
+
+    if (typeof profileData.guardianRelationship !== 'undefined' && profileData.guardianRelationship !== null && typeof profileData.guardianRelationship !== 'string') {
+      return res.status(400).json({ error: 'Invalid guardianRelationship value.' });
+    }
+
     try {
       const updatedUser = await userService.upsertStudentProfileByUserId(userId, {
         ...profileData,
         zipCode: parsedZipCode,
+        birthday: normalizedBirthday,
+        guardianFullName:
+          typeof profileData.guardianFullName === 'string'
+            ? profileData.guardianFullName.trim()
+            : profileData.guardianFullName,
+        guardianRelationship:
+          typeof profileData.guardianRelationship === 'string'
+            ? profileData.guardianRelationship.trim()
+            : profileData.guardianRelationship,
       });
       return res.status(200).json(updatedUser);
     } catch (error) {

@@ -58,7 +58,7 @@ const getRoleStyles = (role: UserRole) => {
 
 const getLinkedOrganizationLabel = (user: User) => {
   if (user.role === 'INSTITUTION') {
-    return user.institution?.name || '-';
+    return user.institution?.institutionName || '-';
   }
   if (user.role === 'EMPLOYER') {
     return user.employer?.companyName || '-';
@@ -156,7 +156,7 @@ export default function AdminDashboard() {
         user.role,
         user.status,
         user.employer?.companyName || '',
-        user.institution?.name || '',
+        user.institution?.institutionName || '',
       ]
         .join(' ')
         .toLowerCase();

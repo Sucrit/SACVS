@@ -1,8 +1,9 @@
-import { PrismaClient, Prisma, User, Status, Role } from '../../../../db/node_modules/@prisma/client';
+import { PrismaClient, Prisma, User, Status, Role, Sex } from '../../../../db/node_modules/@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
   CreateInstitutionStudentDto,
   CreateUserDto,
+  StudentSex,
   UpsertStudentProfileDto,
   UserRole,
   UserStatus,
@@ -29,7 +30,7 @@ const adminUserInclude = {
   institution: {
     select: {
       id: true,
-      name: true,
+      institutionName: true,
       email: true,
     },
   },
@@ -44,6 +45,81 @@ const normalizeOptionalString = (value?: string | null): string | null => {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 };
+
+const normalizeOptionalProfileString = (value?: string | null): string | null | undefined => {
+  if (typeof value === 'undefined') return undefined;
+  if (value === null) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const toPrismaSex = (value?: StudentSex | null): Sex | null | undefined => {
+  if (typeof value === 'undefined') return undefined;
+  if (value === null) return null;
+  return Sex[value];
+};
+
+const normalizeBirthday = (value?: string | null): Date | null | undefined => {
+  if (typeof value === 'undefined') return undefined;
+  if (value === null) return null;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return null;
+  const date = new Date(trimmed);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+};
+
+const INSTITUTION_MANAGED_PROFILE_DEFAULTS = {
+  street: '',
+  barangay: '',
+  city: '',
+  province: '',
+  zipCode: 0,
+  phone: '',
+} as const;
+
+const buildStudentProfileWriteData = (
+  data: UpsertStudentProfileDto,
+): Prisma.StudentProfileCreateWithoutUserInput => ({
+  studentNumber: data.studentNumber.trim(),
+  street: data.street.trim(),
+  barangay: data.barangay.trim(),
+  city: data.city.trim(),
+  province: data.province.trim(),
+  zipCode: data.zipCode,
+  phone: data.phone.trim(),
+  courseOfStudy: data.courseOfStudy.trim(),
+  yearLevel: data.yearLevel.trim(),
+  department: data.department.trim(),
+  birthday: normalizeBirthday(data.birthday),
+  sex: toPrismaSex(data.sex),
+  guardianFullName: normalizeOptionalProfileString(data.guardianFullName),
+  guardianRelationship: normalizeOptionalProfileString(data.guardianRelationship),
+});
+
+const buildInstitutionManagedStudentProfileCreateData = (
+  data: CreateInstitutionStudentDto,
+): Prisma.StudentProfileCreateWithoutUserInput => ({
+  studentNumber: data.studentNumber.trim(),
+  street: INSTITUTION_MANAGED_PROFILE_DEFAULTS.street,
+  barangay: INSTITUTION_MANAGED_PROFILE_DEFAULTS.barangay,
+  city: INSTITUTION_MANAGED_PROFILE_DEFAULTS.city,
+  province: INSTITUTION_MANAGED_PROFILE_DEFAULTS.province,
+  zipCode: INSTITUTION_MANAGED_PROFILE_DEFAULTS.zipCode,
+  phone: INSTITUTION_MANAGED_PROFILE_DEFAULTS.phone,
+  courseOfStudy: data.courseOfStudy.trim(),
+  yearLevel: data.yearLevel.trim(),
+  department: data.department.trim(),
+});
+
+const buildInstitutionManagedStudentProfileUpdateData = (
+  data: CreateInstitutionStudentDto,
+): Prisma.StudentProfileUpdateWithoutUserInput => ({
+  studentNumber: data.studentNumber.trim(),
+  courseOfStudy: data.courseOfStudy.trim(),
+  yearLevel: data.yearLevel.trim(),
+  department: data.department.trim(),
+});
 
 const toPrismaRole = (role?: UserRole): Role => {
   switch (role) {
@@ -205,18 +281,7 @@ export class UserRepository {
         approvedById,
         approvedAt,
         profile: {
-          create: {
-            studentNumber: data.studentNumber.trim(),
-            street: data.street.trim(),
-            barangay: data.barangay.trim(),
-            city: data.city.trim(),
-            province: data.province.trim(),
-            zipCode: data.zipCode,
-            phone: data.phone.trim(),
-            courseOfStudy: data.courseOfStudy.trim(),
-            yearLevel: data.yearLevel.trim(),
-            department: data.department.trim(),
-          },
+          create: buildInstitutionManagedStudentProfileCreateData(data),
         },
       },
       update: {
@@ -232,30 +297,8 @@ export class UserRepository {
         approvedAt,
         profile: {
           upsert: {
-            create: {
-              studentNumber: data.studentNumber.trim(),
-              street: data.street.trim(),
-              barangay: data.barangay.trim(),
-              city: data.city.trim(),
-              province: data.province.trim(),
-              zipCode: data.zipCode,
-              phone: data.phone.trim(),
-              courseOfStudy: data.courseOfStudy.trim(),
-              yearLevel: data.yearLevel.trim(),
-              department: data.department.trim(),
-            },
-            update: {
-              studentNumber: data.studentNumber.trim(),
-              street: data.street.trim(),
-              barangay: data.barangay.trim(),
-              city: data.city.trim(),
-              province: data.province.trim(),
-              zipCode: data.zipCode,
-              phone: data.phone.trim(),
-              courseOfStudy: data.courseOfStudy.trim(),
-              yearLevel: data.yearLevel.trim(),
-              department: data.department.trim(),
-            },
+            create: buildInstitutionManagedStudentProfileCreateData(data),
+            update: buildInstitutionManagedStudentProfileUpdateData(data),
           },
         },
       },
@@ -290,18 +333,7 @@ export class UserRepository {
         role: Role.STUDENT,
         status: Status.PENDING,
         profile: {
-          create: {
-            studentNumber: data.profile.studentNumber.trim(),
-            street: data.profile.street.trim(),
-            barangay: data.profile.barangay.trim(),
-            city: data.profile.city.trim(),
-            province: data.profile.province.trim(),
-            zipCode: data.profile.zipCode,
-            phone: data.profile.phone.trim(),
-            courseOfStudy: data.profile.courseOfStudy.trim(),
-            yearLevel: data.profile.yearLevel.trim(),
-            department: data.profile.department.trim(),
-          },
+          create: buildStudentProfileWriteData(data.profile),
         },
       },
       update: {
@@ -312,30 +344,8 @@ export class UserRepository {
         role: Role.STUDENT,
         profile: {
           upsert: {
-            create: {
-              studentNumber: data.profile.studentNumber.trim(),
-              street: data.profile.street.trim(),
-              barangay: data.profile.barangay.trim(),
-              city: data.profile.city.trim(),
-              province: data.profile.province.trim(),
-              zipCode: data.profile.zipCode,
-              phone: data.profile.phone.trim(),
-              courseOfStudy: data.profile.courseOfStudy.trim(),
-              yearLevel: data.profile.yearLevel.trim(),
-              department: data.profile.department.trim(),
-            },
-            update: {
-              studentNumber: data.profile.studentNumber.trim(),
-              street: data.profile.street.trim(),
-              barangay: data.profile.barangay.trim(),
-              city: data.profile.city.trim(),
-              province: data.profile.province.trim(),
-              zipCode: data.profile.zipCode,
-              phone: data.profile.phone.trim(),
-              courseOfStudy: data.profile.courseOfStudy.trim(),
-              yearLevel: data.profile.yearLevel.trim(),
-              department: data.profile.department.trim(),
-            },
+            create: buildStudentProfileWriteData(data.profile),
+            update: buildStudentProfileWriteData(data.profile),
           },
         },
       },
@@ -359,7 +369,7 @@ export class UserRepository {
         taxId: string;
       };
       institution?: {
-        name: string;
+        institutionName: string;
         accreditationNumber: string;
       };
     },
@@ -432,14 +442,14 @@ export class UserRepository {
       const institution = await tx.institution.upsert({
         where: { email: normalizedOrgEmail },
         create: {
-          name: data.institution.name,
+          institutionName: data.institution.institutionName,
           accreditationNumber: data.institution.accreditationNumber,
           registrationNumber: data.registrationNumber,
           email: normalizedOrgEmail,
           phoneNumber: data.phoneNumber,
         },
         update: {
-          name: data.institution.name,
+          institutionName: data.institution.institutionName,
           accreditationNumber: data.institution.accreditationNumber,
           registrationNumber: data.registrationNumber,
           email: normalizedOrgEmail,
@@ -497,30 +507,8 @@ export class UserRepository {
       data: {
         profile: {
           upsert: {
-            create: {
-              studentNumber: data.studentNumber.trim(),
-              street: data.street.trim(),
-              barangay: data.barangay.trim(),
-              city: data.city.trim(),
-              province: data.province.trim(),
-              zipCode: data.zipCode,
-              phone: data.phone.trim(),
-              courseOfStudy: data.courseOfStudy.trim(),
-              yearLevel: data.yearLevel.trim(),
-              department: data.department.trim(),
-            },
-            update: {
-              studentNumber: data.studentNumber.trim(),
-              street: data.street.trim(),
-              barangay: data.barangay.trim(),
-              city: data.city.trim(),
-              province: data.province.trim(),
-              zipCode: data.zipCode,
-              phone: data.phone.trim(),
-              courseOfStudy: data.courseOfStudy.trim(),
-              yearLevel: data.yearLevel.trim(),
-              department: data.department.trim(),
-            },
+            create: buildStudentProfileWriteData(data),
+            update: buildStudentProfileWriteData(data),
           },
         },
       },
@@ -622,30 +610,8 @@ export class UserRepository {
         approvedAt,
         profile: {
           upsert: {
-            create: {
-              studentNumber: data.studentNumber.trim(),
-              street: data.street.trim(),
-              barangay: data.barangay.trim(),
-              city: data.city.trim(),
-              province: data.province.trim(),
-              zipCode: data.zipCode,
-              phone: data.phone.trim(),
-              courseOfStudy: data.courseOfStudy.trim(),
-              yearLevel: data.yearLevel.trim(),
-              department: data.department.trim(),
-            },
-            update: {
-              studentNumber: data.studentNumber.trim(),
-              street: data.street.trim(),
-              barangay: data.barangay.trim(),
-              city: data.city.trim(),
-              province: data.province.trim(),
-              zipCode: data.zipCode,
-              phone: data.phone.trim(),
-              courseOfStudy: data.courseOfStudy.trim(),
-              yearLevel: data.yearLevel.trim(),
-              department: data.department.trim(),
-            },
+            create: buildInstitutionManagedStudentProfileCreateData(data),
+            update: buildInstitutionManagedStudentProfileUpdateData(data),
           },
         },
       },

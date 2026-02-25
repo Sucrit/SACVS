@@ -1,21 +1,31 @@
+import { FormEvent, useEffect, useState } from 'react';
 import {
   BookOpen,
   Building2,
+  CalendarDays,
+  HeartHandshake,
   GraduationCap,
-  Hash,
   Mail,
   MapPin,
   Phone,
   RefreshCw,
   User as UserIcon,
+  UserRound,
 } from 'lucide-react';
 import Card from '../../../components/common/Card';
-import { User } from '../../../services/user.service';
+import { StudentSex, User } from '../../../services/user.service';
 
 interface StudentProfileSectionProps {
   user: User | null;
   isLoading: boolean;
   onRefresh: () => void;
+  onSavePersonalInfo: (payload: {
+    birthday?: string | null;
+    sex?: StudentSex | null;
+    guardianFullName?: string | null;
+    guardianRelationship?: string | null;
+  }) => Promise<void>;
+  isSavingPersonalInfo: boolean;
 }
 
 const valueOrDash = (value: string | number | null | undefined) => {
@@ -45,7 +55,35 @@ const joinValues = (...values: Array<string | number | null | undefined>) => {
   return parts.length > 0 ? parts.join(', ') : '-';
 };
 
-export default function StudentProfileSection({ user, isLoading, onRefresh }: StudentProfileSectionProps) {
+export default function StudentProfileSection({
+  user,
+  isLoading,
+  onRefresh,
+  onSavePersonalInfo,
+  isSavingPersonalInfo,
+}: StudentProfileSectionProps) {
+  const [birthday, setBirthday] = useState('');
+  const [sex, setSex] = useState<StudentSex | ''>('');
+  const [guardianFullName, setGuardianFullName] = useState('');
+  const [guardianRelationship, setGuardianRelationship] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveHint, setSaveHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.profile) {
+      setBirthday('');
+      setSex('');
+      setGuardianFullName('');
+      setGuardianRelationship('');
+      return;
+    }
+
+    setBirthday(user.profile.birthday ? user.profile.birthday.slice(0, 10) : '');
+    setSex(user.profile.sex ?? '');
+    setGuardianFullName(user.profile.guardianFullName ?? '');
+    setGuardianRelationship(user.profile.guardianRelationship ?? '');
+  }, [user]);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -81,11 +119,24 @@ export default function StudentProfileSection({ user, isLoading, onRefresh }: St
 
   const profile = user.profile;
   const fullName = [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ');
-  const initials = [user.firstName, user.lastName]
-    .filter(Boolean)
-    .map(part => part.trim().charAt(0).toUpperCase())
-    .join('')
-    .slice(0, 2);
+
+  const handleSavePersonalInfo = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaveError(null);
+    setSaveHint(null);
+
+    try {
+      await onSavePersonalInfo({
+        birthday: birthday.trim() ? birthday.trim() : null,
+        sex: sex || null,
+        guardianFullName: guardianFullName.trim() ? guardianFullName.trim() : null,
+        guardianRelationship: guardianRelationship.trim() ? guardianRelationship.trim() : null,
+      });
+      setSaveHint('Personal information updated.');
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Unable to update personal information.');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -96,9 +147,6 @@ export default function StudentProfileSection({ user, isLoading, onRefresh }: St
 
           <div className="relative flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/30 bg-white/20 text-lg font-semibold text-white backdrop-blur">
-                {initials || '--'}
-              </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.14em] text-slate-300">Student Profile</p>
                 <h3 className="mt-1 text-2xl font-semibold leading-tight text-white">{valueOrDash(fullName)}</h3>
@@ -119,16 +167,13 @@ export default function StudentProfileSection({ user, isLoading, onRefresh }: St
 
         <div className="grid grid-cols-1 gap-4 p-6 md:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
-              <Hash size={14} />
-              Student Number
-            </p>
+            <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Student Number</p>
             <p className="mt-1.5 text-sm font-semibold text-slate-900">{valueOrDash(profile?.studentNumber)}</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
             <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
               <Phone size={14} />
-              Phone
+              Phone Number
             </p>
             <p className="mt-1.5 text-sm font-semibold text-slate-900">{valueOrDash(profile?.phone)}</p>
           </div>
@@ -222,6 +267,92 @@ export default function StudentProfileSection({ user, isLoading, onRefresh }: St
           </div>
         </Card>
       </div>
+
+      <Card title="Personal & Guardian Information" className="rounded-3xl">
+        <form className="space-y-4" onSubmit={handleSavePersonalInfo}>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <label className="space-y-1">
+              <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <CalendarDays size={14} />
+                Birthday
+              </span>
+              <input
+                type="date"
+                value={birthday}
+                onChange={event => setBirthday(event.target.value)}
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+              />
+            </label>
+
+            <label className="space-y-1">
+              <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <UserRound size={14} />
+                Sex
+              </span>
+              <select
+                value={sex}
+                onChange={event => setSex((event.target.value as StudentSex | '') || '')}
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+              >
+                <option value="">Select sex</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+                <option value="PREFER_NOT_TO_SAY">Prefer not to say</option>
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <UserIcon size={14} />
+                Guardian Full Name
+              </span>
+              <input
+                type="text"
+                value={guardianFullName}
+                onChange={event => setGuardianFullName(event.target.value)}
+                placeholder="Guardian full name"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+              />
+            </label>
+
+            <label className="space-y-1">
+              <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <HeartHandshake size={14} />
+                Relationship To Guardian
+              </span>
+              <input
+                type="text"
+                value={guardianRelationship}
+                onChange={event => setGuardianRelationship(event.target.value)}
+                placeholder="e.g. Mother, Father, Aunt"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+              />
+            </label>
+          </div>
+
+          {saveError && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {saveError}
+            </div>
+          )}
+          {saveHint && !saveError && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+              {saveHint}
+            </div>
+          )}
+
+          <div className="flex items-center justify-end">
+            <button
+              type="submit"
+              disabled={isSavingPersonalInfo}
+              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSavingPersonalInfo ? 'Saving...' : 'Save Information'}
+            </button>
+          </div>
+        </form>
+      </Card>
     </div>
   );
 }

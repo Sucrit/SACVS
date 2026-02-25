@@ -30,6 +30,63 @@ export interface NotificationListResponse {
   };
 }
 
+interface NotificationDisplayOptions {
+  institutionNameFallback?: string | null;
+}
+
+const parseMetadataString = (
+  metadata: Record<string, unknown> | null,
+  key: string,
+): string | null => {
+  if (!metadata) return null;
+  const value = metadata[key];
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+};
+
+const stripEmailDetails = (message: string): string =>
+  message.replace(/\s*\([^)]+@[^)]+\)/g, '');
+
+export const getNotificationDisplayMessage = (
+  notification: AppNotification,
+  options: NotificationDisplayOptions = {},
+): string => {
+  const credentialType = parseMetadataString(notification.metadata, 'credentialType')?.toLowerCase();
+  const credentialTitle = parseMetadataString(notification.metadata, 'credentialTitle');
+  const event = parseMetadataString(notification.metadata, 'event');
+  const institutionName =
+    parseMetadataString(notification.metadata, 'institutionName') ||
+    (options.institutionNameFallback?.trim() || null) ||
+    'the institution';
+
+  if (
+    credentialType &&
+    notification.type === 'CREDENTIAL_ISSUED' &&
+    (event === 'ISSUED' || event === 'REISSUED')
+  ) {
+    const action = event === 'REISSUED' ? 're-issued' : 'issued';
+    if (credentialTitle) {
+      return `Your ${credentialType} "${credentialTitle}" was ${action} by ${institutionName}.`;
+    }
+    return `Your ${credentialType} was ${action} by ${institutionName}.`;
+  }
+
+  if (credentialType && notification.type === 'CREDENTIAL_REVOKED') {
+    if (credentialTitle) {
+      return `Your ${credentialType} "${credentialTitle}" was revoked by ${institutionName}.`;
+    }
+    return `Your ${credentialType} was revoked by ${institutionName}.`;
+  }
+
+  if (credentialType && notification.type === 'CREDENTIAL_VERIFIED') {
+    if (credentialTitle) {
+      return `Your ${credentialType} "${credentialTitle}" was verified by ${institutionName}.`;
+    }
+    return `Your ${credentialType} credential was verified by ${institutionName}.`;
+  }
+
+  return stripEmailDetails(notification.message);
+};
+
 export const NotificationService = {
   list: async (query: { read?: boolean; page?: number; pageSize?: number } = {}) => {
     const response = await api.get<NotificationListResponse>('/notifications', { params: query });
@@ -51,4 +108,3 @@ export const NotificationService = {
     return response.data;
   },
 };
-

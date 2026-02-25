@@ -104,22 +104,22 @@ export class CredentialService {
     return VALID_TRANSITIONS[current].includes(next);
   }
 
-  private formatIssuerDisplayName(
+  private formatIssuerInstitutionName(
     issuer: {
       firstName: string;
       middleName: string | null;
       lastName: string;
       email: string;
+      institution?: {
+        institutionName: string;
+      } | null;
     } | null | undefined,
-    fallbackIssuerId: string,
   ): string {
-    if (!issuer) return fallbackIssuerId;
-    const fullName = [issuer.firstName, issuer.middleName, issuer.lastName]
-      .filter(part => typeof part === 'string' && part.trim().length > 0)
-      .join(' ')
-      .trim();
-    if (fullName.length === 0) return issuer.email;
-    return `${fullName} (${issuer.email})`;
+    const institutionName = issuer?.institution?.institutionName?.trim();
+    if (institutionName) {
+      return institutionName;
+    }
+    return 'your institution';
   }
 
   private async emitIssuedNotification(payload: {
@@ -127,7 +127,7 @@ export class CredentialService {
     credentialId: string;
     credentialType: string;
     credentialTitle: string;
-    issuerDisplayName: string;
+    institutionName: string;
     isReissue: boolean;
   }): Promise<void> {
     try {
@@ -142,7 +142,7 @@ export class CredentialService {
     credentialId: string;
     credentialType: string;
     credentialTitle: string;
-    issuerDisplayName: string;
+    institutionName: string;
     previousStatus: CredentialStatus;
     nextStatus: CredentialStatus;
   }): Promise<void> {
@@ -152,7 +152,7 @@ export class CredentialService {
         credentialId: payload.credentialId,
         credentialType: payload.credentialType,
         credentialTitle: payload.credentialTitle,
-        issuerDisplayName: payload.issuerDisplayName,
+        institutionName: payload.institutionName,
         previousStatus: payload.previousStatus,
         nextStatus: payload.nextStatus,
       });
@@ -409,27 +409,27 @@ export class CredentialService {
 
     if (options?.notifyIssued && nextStatus === CredentialStatus.ISSUED) {
       const isReissue = currentStatus === CredentialStatus.ISSUED;
-      const issuerDisplayName = this.formatIssuerDisplayName(updated.issuedBy, scope.issuedById);
+      const institutionName = this.formatIssuerInstitutionName(updated.issuedBy);
 
       void this.emitIssuedNotification({
         userId: scope.studentId,
         credentialId: updated.id,
         credentialType: scope.type,
         credentialTitle: updated.title,
-        issuerDisplayName,
+        institutionName,
         isReissue,
       });
       return updated;
     }
 
     if (currentStatus !== nextStatus) {
-      const issuerDisplayName = this.formatIssuerDisplayName(updated.issuedBy, scope.issuedById);
+      const institutionName = this.formatIssuerInstitutionName(updated.issuedBy);
       void this.emitStatusChangedNotification({
         userId: scope.studentId,
         credentialId: updated.id,
         credentialType: scope.type,
         credentialTitle: updated.title,
-        issuerDisplayName,
+        institutionName,
         previousStatus: currentStatus,
         nextStatus,
       });

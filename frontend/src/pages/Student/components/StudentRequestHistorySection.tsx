@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Activity,
@@ -30,6 +30,8 @@ interface StudentRequestHistorySectionProps {
   onCancelRequest?: (requestId: string) => void;
   cancelingRequestId?: string | null;
   animatedRequestIds?: string[];
+  initialDetailsRequestId?: string | null;
+  onDetailsRequestConsumed?: () => void;
 }
 
 type RequestTypeFilter = 'ALL' | CredentialType;
@@ -52,12 +54,30 @@ export default function StudentRequestHistorySection({
   onCancelRequest,
   cancelingRequestId = null,
   animatedRequestIds = [],
+  initialDetailsRequestId = null,
+  onDetailsRequestConsumed,
 }: StudentRequestHistorySectionProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<RequestTypeFilter>('ALL');
   const [dateFilter, setDateFilter] = useState<DateRangeFilter>('ALL');
   const [openMenuRequestId, setOpenMenuRequestId] = useState<string | null>(null);
   const [detailsRequest, setDetailsRequest] = useState<(CredentialRequest & { _uiKey?: string }) | null>(null);
+
+  useEffect(() => {
+    if (!initialDetailsRequestId) {
+      return;
+    }
+
+    if (isLoadingRequests) {
+      return;
+    }
+
+    const matched = requests.find(request => request.id === initialDetailsRequestId) || null;
+    if (matched) {
+      setDetailsRequest(matched);
+    }
+    onDetailsRequestConsumed?.();
+  }, [initialDetailsRequestId, isLoadingRequests, onDetailsRequestConsumed, requests]);
 
   const matchesDateRange = (value: string | null | undefined, range: DateRangeFilter) => {
     if (range === 'ALL') return true;

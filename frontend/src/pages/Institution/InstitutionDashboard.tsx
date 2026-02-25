@@ -41,12 +41,6 @@ const toStudentFormState = (student: User): StudentFormState => ({
   middleName: student.middleName || '',
   lastName: student.lastName,
   studentNumber: student.profile?.studentNumber || '',
-  street: student.profile?.street || '',
-  barangay: student.profile?.barangay || '',
-  city: student.profile?.city || '',
-  province: student.profile?.province || '',
-  zipCode: String(student.profile?.zipCode || ''),
-  phone: student.profile?.phone || '',
   courseOfStudy: student.profile?.courseOfStudy || '',
   yearLevel: student.profile?.yearLevel || '',
   department: student.profile?.department || '',
@@ -235,16 +229,16 @@ export default function InstitutionDashboard() {
     setCreateStudentError(null);
     setCreateStudentHint(null);
 
-    const zipCode = Number(studentForm.zipCode);
-    if (!Number.isInteger(zipCode) || zipCode <= 0) {
-      setCreateStudentError('Zip code must be a positive integer.');
-      return;
-    }
-
     const payload: InstitutionStudentPayload = {
-      ...studentForm,
+      email: studentForm.email.trim(),
+      firstName: studentForm.firstName.trim(),
       middleName: studentForm.middleName.trim() || null,
-      zipCode,
+      lastName: studentForm.lastName.trim(),
+      studentNumber: studentForm.studentNumber.trim(),
+      courseOfStudy: studentForm.courseOfStudy.trim(),
+      yearLevel: studentForm.yearLevel.trim(),
+      department: studentForm.department.trim(),
+      status: studentForm.status,
     };
 
     setIsSubmittingStudent(true);
@@ -324,24 +318,12 @@ export default function InstitutionDashboard() {
     setEditStudentError(null);
     setEditStudentHint(null);
 
-    const zipCode = Number(editStudentForm.zipCode);
-    if (!Number.isInteger(zipCode) || zipCode <= 0) {
-      setEditStudentError('Zip code must be a positive integer.');
-      return;
-    }
-
     const payload: InstitutionStudentPayload = {
       email: editStudentForm.email.trim(),
       firstName: editStudentForm.firstName.trim(),
       middleName: editStudentForm.middleName.trim() || null,
       lastName: editStudentForm.lastName.trim(),
       studentNumber: editStudentForm.studentNumber.trim(),
-      street: editStudentForm.street.trim(),
-      barangay: editStudentForm.barangay.trim(),
-      city: editStudentForm.city.trim(),
-      province: editStudentForm.province.trim(),
-      zipCode,
-      phone: editStudentForm.phone.trim(),
       courseOfStudy: editStudentForm.courseOfStudy.trim(),
       yearLevel: editStudentForm.yearLevel.trim(),
       department: editStudentForm.department.trim(),

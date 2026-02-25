@@ -149,7 +149,6 @@ export default function InstitutionStudentsSection({
                   <input value={studentForm.middleName} onChange={event => onSetStudentFormValue('middleName', event.target.value)} placeholder="Middle name (optional)" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
                   <input required value={studentForm.lastName} onChange={event => onSetStudentFormValue('lastName', event.target.value)} placeholder="Last name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
                   <input required type="email" value={studentForm.email} onChange={event => onSetStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                  <input required value={studentForm.phone} onChange={event => onSetStudentFormValue('phone', event.target.value)} placeholder="Phone" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
 
                   <p className="pt-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:col-span-2 xl:col-span-3">
                     Student Record
@@ -158,15 +157,6 @@ export default function InstitutionStudentsSection({
                   <select value={studentForm.status} onChange={event => onSetStudentFormValue('status', event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none">
                     {STUDENT_STATUS_OPTIONS.map(status => <option key={status} value={status}>{getStatusOptionLabel(status)}</option>)}
                   </select>
-
-                  <p className="pt-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:col-span-2 xl:col-span-3">
-                    Address
-                  </p>
-                  <input required value={studentForm.street} onChange={event => onSetStudentFormValue('street', event.target.value)} placeholder="Street" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                  <input required value={studentForm.barangay} onChange={event => onSetStudentFormValue('barangay', event.target.value)} placeholder="Barangay" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                  <input required value={studentForm.city} onChange={event => onSetStudentFormValue('city', event.target.value)} placeholder="City" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                  <input required value={studentForm.province} onChange={event => onSetStudentFormValue('province', event.target.value)} placeholder="Province" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                  <input required value={studentForm.zipCode} onChange={event => onSetStudentFormValue('zipCode', event.target.value)} placeholder="Zip code" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
 
                   <p className="pt-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:col-span-2 xl:col-span-3">
                     Academic Info
@@ -193,7 +183,7 @@ export default function InstitutionStudentsSection({
             <p className="text-sm text-slate-600">
               Use headers:
               <span className="mt-2 block max-w-full break-all rounded-lg bg-slate-50 p-2 text-xs text-slate-700">
-                email,firstName,middleName,lastName,studentNumber,street,barangay,city,province,zipCode,phone,courseOfStudy,yearLevel,department,status
+                email,firstName,middleName,lastName,studentNumber,courseOfStudy,yearLevel,department,status
               </span>
             </p>
             <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
@@ -262,13 +252,7 @@ export default function InstitutionStudentsSection({
               <input required value={editStudentForm.courseOfStudy} onChange={event => onSetEditStudentFormValue('courseOfStudy', event.target.value)} placeholder="Course of study" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
               <input required value={editStudentForm.yearLevel} onChange={event => onSetEditStudentFormValue('yearLevel', event.target.value)} placeholder="Year level" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
               <input required value={editStudentForm.department} onChange={event => onSetEditStudentFormValue('department', event.target.value)} placeholder="Department" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-              <input required value={editStudentForm.phone} onChange={event => onSetEditStudentFormValue('phone', event.target.value)} placeholder="Phone" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
               <input required type="email" value={editStudentForm.email} onChange={event => onSetEditStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-              <input required value={editStudentForm.street} onChange={event => onSetEditStudentFormValue('street', event.target.value)} placeholder="Street" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-              <input required value={editStudentForm.barangay} onChange={event => onSetEditStudentFormValue('barangay', event.target.value)} placeholder="Barangay" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-              <input required value={editStudentForm.city} onChange={event => onSetEditStudentFormValue('city', event.target.value)} placeholder="City" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-              <input required value={editStudentForm.province} onChange={event => onSetEditStudentFormValue('province', event.target.value)} placeholder="Province" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-              <input required value={editStudentForm.zipCode} onChange={event => onSetEditStudentFormValue('zipCode', event.target.value)} placeholder="Zip code" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
               <select value={editStudentForm.status} onChange={event => onSetEditStudentFormValue('status', event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none">
                 {STUDENT_STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
               </select>
