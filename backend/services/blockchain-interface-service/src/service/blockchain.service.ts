@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { readFileSync } from 'node:fs';
+import { createHmac } from 'node:crypto';
 import { ethers } from 'ethers';
 import { ENV } from '../config/env';
 
@@ -34,7 +35,7 @@ const ACADEMIC_CREDENTIAL_REGISTRY_ABI: ethers.InterfaceAbi = [
 const isBytes32Hex = (value: string): boolean => /^0x[0-9a-fA-F]{64}$/.test(value);
 const isSha256Hex = (value: string): boolean => /^[0-9a-fA-F]{64}$/.test(value);
 
-const toBytes32 = (value: string): string => {
+const toLegacyBytes32 = (value: string): string => {
   const trimmed = value.trim();
   if (isBytes32Hex(trimmed)) {
     return trimmed;
@@ -43,6 +44,25 @@ const toBytes32 = (value: string): string => {
     return `0x${trimmed}`;
   }
   return ethers.keccak256(ethers.toUtf8Bytes(trimmed));
+};
+
+const normalizeDocumentInput = (value: string): string => {
+  const trimmed = value.trim();
+  if (isBytes32Hex(trimmed)) {
+    return trimmed.slice(2).toLowerCase();
+  }
+  if (isSha256Hex(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+  return trimmed;
+};
+
+const toHmacBytes32 = (domain: 'student' | 'document', value: string): string => {
+  const normalized = domain === 'document' ? normalizeDocumentInput(value) : value.trim();
+  const digest = createHmac('sha256', ENV.HASH_HMAC_SECRET)
+    .update(`${domain}:${normalized}`)
+    .digest('hex');
+  return `0x${digest}`;
 };
 
 export class BlockchainService {
@@ -125,8 +145,8 @@ export class BlockchainService {
     reissued: boolean;
   }> {
     const onChainCredentialId = this.toOnChainCredentialId(input.credentialId);
-    const studentHash = toBytes32(input.studentId);
-    const documentHash = toBytes32(input.fileHash);
+    const studentHash = toHmacBytes32('student', input.studentId);
+    const documentHash = toHmacBytes32('document', input.fileHash);
     const readOnlyContract = this.getReadOnlyContract();
     const contract = this.getContract();
 
@@ -227,22 +247,47 @@ export class BlockchainService {
     documentHash: string;
   }> {
     const onChainCredentialId = this.toOnChainCredentialId(credentialId);
-    const documentHash = toBytes32(fileHash);
+    const hmacDocumentHash = toHmacBytes32('document', fileHash);
     const contract = this.getReadOnlyContract();
 
-    const verify = (await contract.verifyCredentialDocument(
+    const hmacVerify = (await contract.verifyCredentialDocument(
       onChainCredentialId,
-      documentHash,
+      hmacDocumentHash,
+    )) as ContractVerifyDocumentTuple;
+
+    if (Boolean(hmacVerify[0])) {
+      return {
+        chain: this.chainName,
+        valid: true,
+        issuer: hmacVerify[1] && hmacVerify[1] !== ethers.ZeroAddress ? hmacVerify[1] : null,
+        issuedAt:
+          Number(hmacVerify[2]) > 0
+            ? new Date(Number(hmacVerify[2]) * 1000).toISOString()
+            : null,
+        version: Number(hmacVerify[3]) || 0,
+        onChainCredentialId,
+        documentHash: hmacDocumentHash,
+      };
+    }
+
+    // Backward compatibility: allow verifying legacy non-HMAC anchors.
+    const legacyDocumentHash = toLegacyBytes32(fileHash);
+    const legacyVerify = (await contract.verifyCredentialDocument(
+      onChainCredentialId,
+      legacyDocumentHash,
     )) as ContractVerifyDocumentTuple;
 
     return {
       chain: this.chainName,
-      valid: Boolean(verify[0]),
-      issuer: verify[1] && verify[1] !== ethers.ZeroAddress ? verify[1] : null,
-      issuedAt: Number(verify[2]) > 0 ? new Date(Number(verify[2]) * 1000).toISOString() : null,
-      version: Number(verify[3]) || 0,
+      valid: Boolean(legacyVerify[0]),
+      issuer: legacyVerify[1] && legacyVerify[1] !== ethers.ZeroAddress ? legacyVerify[1] : null,
+      issuedAt:
+        Number(legacyVerify[2]) > 0
+          ? new Date(Number(legacyVerify[2]) * 1000).toISOString()
+          : null,
+      version: Number(legacyVerify[3]) || 0,
       onChainCredentialId,
-      documentHash,
+      documentHash: legacyDocumentHash,
     };
   }
 }
