@@ -6,7 +6,6 @@ export const getInstitutionSection = (pathname: string): InstitutionSection => {
   if (pathname.startsWith('/institution/students')) return 'students';
   if (pathname.startsWith('/institution/requests')) return 'requests';
   if (pathname.startsWith('/institution/issue')) return 'issue';
-  if (pathname.startsWith('/institution/history')) return 'history';
   if (pathname.startsWith('/institution/notifications')) return 'notifications';
   return 'overview';
 };

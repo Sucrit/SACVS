@@ -12,7 +12,7 @@ import { User } from '../../../services/user.service';
 import { formatDateTime, getStudentFullName } from '../utils';
 
 const CREDENTIAL_TYPES: CredentialType[] = ['TRANSCRIPT', 'DIPLOMA', 'CERTIFICATE', 'DEGREE', 'LICENSE'];
-const CREDENTIAL_STATUSES: CredentialStatus[] = ['PENDING', 'VERIFIED', 'ISSUED', 'REVOKED', 'EXPIRED'];
+const CREDENTIAL_STATUSES: CredentialStatus[] = ['PENDING', 'AI_REVIEW', 'ISSUED', 'REVOKED', 'EXPIRED'];
 
 interface InstitutionIssueSectionProps {
   students: User[];
@@ -331,6 +331,10 @@ export default function InstitutionIssueSection({
               {!isLoadingCredentials &&
                 institutionCredentials.map(credential => (
                   <tr key={credential.id} className="hover:bg-slate-50/70">
+                    {(() => {
+                      const isRevoked = credential.status === 'REVOKED';
+                      return (
+                        <>
                     <td className="px-4 py-3 text-sm text-slate-700">
                       {studentNameById.get(credential.studentId) || credential.studentId}
                     </td>
@@ -369,7 +373,8 @@ export default function InstitutionIssueSection({
                               [credential.id]: event.target.value as CredentialStatus,
                             }))
                           }
-                          className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none"
+                          disabled={isRevoked}
+                          className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {CREDENTIAL_STATUSES.map(status => (
                             <option key={status} value={status}>
@@ -387,7 +392,7 @@ export default function InstitutionIssueSection({
                                 setUpdatingCredentialId(current => (current === credential.id ? null : current)),
                               );
                           }}
-                          disabled={updatingCredentialId === credential.id}
+                          disabled={updatingCredentialId === credential.id || isRevoked}
                           className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
                         >
                           Save
@@ -409,14 +414,22 @@ export default function InstitutionIssueSection({
                                 setReissuingCredentialId(current => (current === credential.id ? null : current)),
                               );
                           }}
-                          disabled={reissuingCredentialId === credential.id}
+                          disabled={reissuingCredentialId === credential.id || isRevoked}
                           className="inline-flex h-9 items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
                         >
                           <ClipboardCheck size={12} />
                           Re-issue
                         </button>
+                        {isRevoked && (
+                          <span className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-rose-700">
+                            Locked
+                          </span>
+                        )}
                       </div>
                     </td>
+                        </>
+                      );
+                    })()}
                   </tr>
                 ))}
             </tbody>

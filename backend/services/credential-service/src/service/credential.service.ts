@@ -17,10 +17,9 @@ const credentialRepository = new CredentialRepository();
 const NO_RESULTS_SCOPE = '__no_results__';
 
 const VALID_TRANSITIONS: Record<CredentialStatus, CredentialStatus[]> = {
-  PENDING: ['AI_REVIEW', 'VERIFIED', 'ISSUED', 'REVOKED', 'EXPIRED'],
-  AI_REVIEW: ['VERIFIED', 'REVOKED', 'EXPIRED'],
-  VERIFIED: ['ISSUED', 'REVOKED', 'EXPIRED'],
-  ISSUED: ['VERIFIED', 'REVOKED', 'EXPIRED'],
+  PENDING: ['AI_REVIEW', 'ISSUED', 'REVOKED', 'EXPIRED'],
+  AI_REVIEW: ['ISSUED', 'REVOKED', 'EXPIRED'],
+  ISSUED: ['REVOKED', 'EXPIRED'],
   REVOKED: [],
   EXPIRED: [],
 };
@@ -337,6 +336,10 @@ export class CredentialService {
 
     const currentStatus = scope.status;
     const nextStatus = statusData.status as CredentialStatus;
+
+    if (currentStatus === CredentialStatus.REVOKED) {
+      throw new Error('CREDENTIAL_REVOKED_IMMUTABLE');
+    }
 
     if (!this.isValidTransition(currentStatus, nextStatus)) {
       throw new Error('INVALID_STATUS_TRANSITION');

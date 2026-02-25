@@ -5,7 +5,6 @@ import {
   FileText, 
   ShieldCheck,
   LayoutDashboard, 
-  History, 
   Settings,
   BriefcaseBusiness,
   Building2,
@@ -32,8 +31,7 @@ export default function Sidebar({ role, displayName, email }: SidebarProps) {
       { to: '/institution', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/institution/students', label: 'Students', icon: Users },
       { to: '/institution/requests', label: 'Requests', icon: FileText },
-      { to: '/institution/issue', label: 'Issue Credentials', icon: ShieldCheck },
-      { to: '/institution/history', label: 'Audit Logs', icon: History },
+      { to: '/institution/issue', label: 'Credentials', icon: ShieldCheck },
       { to: '/institution/notifications', label: 'Notifications', icon: Bell },
     ],
     EMPLOYER: [

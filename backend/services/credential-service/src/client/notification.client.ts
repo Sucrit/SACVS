@@ -38,14 +38,6 @@ export class NotificationClient {
       };
     }
 
-    if (status === 'VERIFIED') {
-      return {
-        type: NotificationType.CREDENTIAL_VERIFIED,
-        title: 'Credential verified',
-        verb: 'verified',
-      };
-    }
-
     if (status === 'ISSUED') {
       return {
         type: NotificationType.CREDENTIAL_ISSUED,

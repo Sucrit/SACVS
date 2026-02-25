@@ -39,8 +39,6 @@ export const getStatusLabel = (status: Credential['status']) => {
   switch (status) {
     case 'AI_REVIEW':
       return 'AI review in progress';
-    case 'VERIFIED':
-      return 'Credential verified';
     case 'ISSUED':
       return 'Credential issued';
     case 'REVOKED':

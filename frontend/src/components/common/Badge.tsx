@@ -4,7 +4,6 @@ type BadgeStatus =
   | 'PENDING'
   | 'APPROVED'
   | 'REJECTED'
-  | 'VERIFIED'
   | 'ISSUED'
   | 'REVOKED'
   | 'SUSPENDED'
@@ -22,7 +21,6 @@ const statusStyles: Record<BadgeStatus, string> = {
   PENDING: 'bg-amber-50 text-amber-800 border-amber-200',
   APPROVED: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   REJECTED: 'bg-rose-50 text-rose-800 border-rose-200',
-  VERIFIED: 'bg-cyan-50 text-cyan-800 border-cyan-200',
   ISSUED: 'bg-slate-100 text-slate-800 border-slate-300',
   REVOKED: 'bg-slate-100 text-slate-500 border-slate-300 line-through decoration-slate-400',
   SUSPENDED: 'bg-orange-50 text-orange-800 border-orange-200',

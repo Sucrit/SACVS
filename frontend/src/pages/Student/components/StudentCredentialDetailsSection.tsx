@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   ArrowLeft,
   Building2,
   CalendarDays,
@@ -41,6 +42,7 @@ export default function StudentCredentialDetailsSection({
 }: StudentCredentialDetailsSectionProps) {
   const selectedCredentialFileUrl = getCredentialFileUrl(selectedCredential?.storageKey ?? null);
   const selectedCredentialHasImage = selectedCredential?.mimeType?.startsWith('image/') ?? false;
+  const isRevoked = selectedCredential?.status === 'REVOKED';
   const issuerInstitutionName =
     selectedCredential?.issuedBy?.institution?.institutionName?.trim() || 'Your institution';
 
@@ -95,6 +97,17 @@ export default function StudentCredentialDetailsSection({
 
       <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.5fr_1fr]">
           <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+            {isRevoked && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                <p className="inline-flex items-center gap-2 font-semibold">
+                  <AlertTriangle size={14} />
+                  Revoked Credential
+                </p>
+                <p className="mt-1 text-xs text-rose-700/90">
+                  This credential has been revoked by {issuerInstitutionName} and is no longer usable.
+                </p>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <FileBadge2 size={14} className="text-slate-500" />
               <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Document Preview</p>
@@ -102,7 +115,11 @@ export default function StudentCredentialDetailsSection({
 
             {selectedCredentialFileUrl ? (
               <>
-                {selectedCredentialHasImage ? (
+                {isRevoked ? (
+                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-16 text-center text-sm text-slate-600">
+                    This credential has been revoked.
+                  </div>
+                ) : selectedCredentialHasImage ? (
                   <div className="h-[clamp(420px,70vh,760px)] w-full overflow-hidden rounded-xl border border-slate-200 bg-white">
                     <img
                       src={selectedCredentialFileUrl}
@@ -127,19 +144,31 @@ export default function StudentCredentialDetailsSection({
                 <button
                   type="button"
                   onClick={() => void handleShare()}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  disabled={isRevoked}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Share2 size={13} />
                   Share
                 </button>
-                <a
-                  href={selectedCredentialFileUrl}
-                  download={selectedCredential.filename || `${selectedCredential.title}.pdf`}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  <Download size={13} />
-                  Download
-                </a>
+                {isRevoked ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 opacity-40"
+                  >
+                    <Download size={13} />
+                    Download
+                  </button>
+                ) : (
+                  <a
+                    href={selectedCredentialFileUrl}
+                    download={selectedCredential.filename || `${selectedCredential.title}.pdf`}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    <Download size={13} />
+                    Download
+                  </a>
+                )}
               </div>
             )}
           </section>
@@ -155,6 +184,14 @@ export default function StudentCredentialDetailsSection({
             </div>
 
             <div className="grid grid-cols-[130px_1fr] items-start gap-x-3 gap-y-3 text-sm">
+              <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+                <Sparkles size={14} />
+                Status
+              </p>
+              <p className={`font-semibold ${isRevoked ? 'text-rose-700' : 'text-slate-900'}`}>
+                {selectedCredential.status}
+              </p>
+
               <p className="inline-flex items-center gap-2 font-medium text-slate-500">
                 <CalendarDays size={14} />
                 Issued

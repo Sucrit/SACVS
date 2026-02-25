@@ -1,5 +1,5 @@
 import { MouseEvent, useMemo, useState } from 'react';
-import { Download, FileText, MoreHorizontal, Plus, Search, Share2 } from 'lucide-react';
+import { AlertTriangle, Download, FileText, MoreHorizontal, Plus, Search, Share2 } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import { Credential, CredentialType } from '../../../services/credential.service';
 import { getCredentialFileUrl } from '../utils';
@@ -205,18 +205,27 @@ export default function StudentCredentialsSection({
               const isSelected = credential.id === selectedCredentialId;
               const showImagePreview = Boolean(fileUrl) && isImageFile(credential);
               const showPdfPreview = Boolean(fileUrl) && isPdfFile(credential);
+              const isRevoked = credential.status === 'REVOKED';
 
               return (
                 <article
                   key={credential.id}
                   onClick={() => onSelectCredential(credential.id)}
-                  className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${isSelected ? 'border-slate-900 ring-1 ring-slate-900' : 'border-slate-200'}`}
+                  className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${isSelected ? 'border-slate-900 ring-1 ring-slate-900' : 'border-slate-200'} ${isRevoked ? 'ring-1 ring-rose-200' : ''}`}
                 >
                   <div className="flex flex-1 flex-col p-3" style={paperTextureStyle}>
                     <div className="mb-3 flex items-center justify-between gap-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400">
-                        {credential.type}
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400">
+                          {credential.type}
+                        </p>
+                        {isRevoked && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-700">
+                            <AlertTriangle size={10} />
+                            Revoked
+                          </span>
+                        )}
+                      </div>
                       <div className="inline-flex items-center gap-1">
                         <button
                           type="button"
@@ -234,14 +243,14 @@ export default function StudentCredentialsSection({
                         <button
                           type="button"
                           onClick={event => void handleShare(fileUrl, event)}
-                          disabled={!fileUrl}
+                          disabled={!fileUrl || isRevoked}
                           className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                          title="Share"
+                          title={isRevoked ? 'Revoked credentials cannot be shared' : 'Share'}
                           aria-label="Share"
                         >
                           <Share2 size={14} />
                         </button>
-                        {fileUrl ? (
+                        {fileUrl && !isRevoked ? (
                           <a
                             href={fileUrl}
                             download={credential.filename || `${credential.title}.pdf`}
@@ -257,7 +266,7 @@ export default function StudentCredentialsSection({
                             type="button"
                             disabled
                             className="inline-flex h-7 w-7 cursor-not-allowed items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 opacity-40"
-                            title="Download"
+                            title={isRevoked ? 'Revoked credentials cannot be downloaded' : 'Download'}
                             aria-label="Download"
                           >
                             <Download size={14} />
@@ -266,8 +275,13 @@ export default function StudentCredentialsSection({
                       </div>
                     </div>
 
-                    <div className="mb-3 overflow-hidden rounded-xl bg-slate-50">
-                      {showImagePreview ? (
+                    <div className="relative mb-3 overflow-hidden rounded-xl bg-slate-50">
+                      {isRevoked ? (
+                        <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500">
+                          <FileText size={24} />
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em]">This credential has been revoked.</p>
+                        </div>
+                      ) : showImagePreview ? (
                         <img
                           src={fileUrl as string}
                           alt={credential.title}
@@ -281,10 +295,8 @@ export default function StudentCredentialsSection({
                         </div>
                       )}
                     </div>
-
                     <h3 className="line-clamp-2 text-center text-xl font-semibold leading-tight text-slate-900">{credential.title}</h3>
                   </div>
-
                 </article>
               );
             })}
@@ -294,4 +306,3 @@ export default function StudentCredentialsSection({
     </Card>
   );
 }
-

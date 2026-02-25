@@ -406,6 +406,31 @@ export class UserController {
     }
 
     try {
+      const currentUser = await userService.getCurrentUser(userId);
+      const currentProfile = currentUser?.profile;
+
+      if (currentProfile?.birthday) {
+        const existingBirthdayDate = new Date(currentProfile.birthday).toISOString().slice(0, 10);
+        const incomingBirthdayDate =
+          normalizedBirthday === undefined
+            ? undefined
+            : normalizedBirthday === null
+              ? null
+              : new Date(normalizedBirthday).toISOString().slice(0, 10);
+
+        if (incomingBirthdayDate !== undefined && incomingBirthdayDate !== existingBirthdayDate) {
+          return res.status(400).json({ error: 'Birthday is a one-time setup field and can no longer be changed.' });
+        }
+      }
+
+      if (
+        currentProfile?.sex &&
+        typeof profileData.sex !== 'undefined' &&
+        profileData.sex !== currentProfile.sex
+      ) {
+        return res.status(400).json({ error: 'Sex is a one-time setup field and can no longer be changed.' });
+      }
+
       const updatedUser = await userService.upsertStudentProfileByUserId(userId, {
         ...profileData,
         zipCode: parsedZipCode,

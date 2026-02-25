@@ -35,10 +35,10 @@ const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string }>> = {
   ],
   INSTITUTION: [
     { to: '/institution', label: 'Dashboard' },
+    { to: '/institution/issue', label: 'Student Credentials' },
     { to: '/institution/students', label: 'Students' },
     { to: '/institution/requests', label: 'Requests' },
-    { to: '/institution/issue', label: 'Issue Credentials' },
-    { to: '/institution/history', label: 'Audit Logs' },
+    { to: '/institution/logs', label: 'Audit Logs' },
   ],
   EMPLOYER: [
     { to: '/employer', label: 'Dashboard' },
@@ -61,7 +61,6 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   '/institution': LayoutDashboard,
   '/institution/students': Users,
   '/institution/requests': FileText,
-  '/institution/history': History,
   '/employer': LayoutDashboard,
   '/employer/requests': FileText,
   '/employer/verifications': Shield,
@@ -367,6 +366,10 @@ export default function DashboardLayout() {
 
   if (!path.startsWith(expectedRoutePrefix)) {
     return <Navigate to={expectedRoutePrefix} replace />;
+  }
+
+  if (role === 'INSTITUTION' && path.startsWith('/institution/history')) {
+    return <Navigate to="/institution/requests" replace />;
   }
 
   return (

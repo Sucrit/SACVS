@@ -49,7 +49,6 @@ export default function StudentDashboard() {
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
-  const [markingNotificationId, setMarkingNotificationId] = useState<string | null>(null);
   const [studentProfileUser, setStudentProfileUser] = useState<User | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isSavingProfilePersonalInfo, setIsSavingProfilePersonalInfo] = useState(false);
@@ -234,20 +233,51 @@ export default function StudentDashboard() {
       return;
     }
 
-    const requestExists = requests.some(request => request.id === requestId);
-    if (requestExists) {
-      setRequestDetailsFromQueryId(requestId);
-    }
+    let isCancelled = false;
 
-    params.delete('requestId');
-    const nextSearch = params.toString();
-    navigate(
-      {
-        pathname: '/student/requests',
-        search: nextSearch ? `?${nextSearch}` : '',
-      },
-      { replace: true },
-    );
+    const openRequestDetailsFromQuery = async () => {
+      let targetRequestId: string | null =
+        requests.find(request => request.id === requestId)?.id ?? null;
+
+      if (!targetRequestId) {
+        try {
+          const fetched = await CredentialService.getRequestById(requestId);
+          if (!isCancelled && fetched) {
+            targetRequestId = fetched.id;
+            setRequests(previous => {
+              if (previous.some(request => request.id === fetched.id)) {
+                return previous;
+              }
+              return [{ ...fetched, _uiKey: fetched.id }, ...previous];
+            });
+          }
+        } catch (error) {
+          console.error('Failed to fetch request from notification deep-link:', error);
+        }
+      }
+
+      if (!isCancelled && targetRequestId) {
+        setRequestDetailsFromQueryId(targetRequestId);
+      }
+
+      if (!isCancelled) {
+        params.delete('requestId');
+        const nextSearch = params.toString();
+        navigate(
+          {
+            pathname: '/student/requests',
+            search: nextSearch ? `?${nextSearch}` : '',
+          },
+          { replace: true },
+        );
+      }
+    };
+
+    void openRequestDetailsFromQuery();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [isLoadingRequests, location.search, navigate, requests, section]);
 
   const selectedCredential = useMemo(
@@ -390,7 +420,6 @@ export default function StudentDashboard() {
   };
 
   const handleMarkNotificationRead = async (notificationId: string) => {
-    setMarkingNotificationId(notificationId);
     setNotificationsError(null);
     try {
       const updated = await NotificationService.markRead(notificationId, true);
@@ -400,8 +429,6 @@ export default function StudentDashboard() {
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
       setNotificationsError(getApiErrorMessage(error) || 'Unable to update notification state.');
-    } finally {
-      setMarkingNotificationId(null);
     }
   };
 
@@ -420,6 +447,11 @@ export default function StudentDashboard() {
   };
 
   const handleSaveStudentPersonalInfo = async (payload: {
+    street?: string;
+    barangay?: string;
+    city?: string;
+    province?: string;
+    zipCode?: number;
     phone?: string | null;
     birthday?: string | null;
     sex?: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY' | null;
@@ -436,11 +468,11 @@ export default function StudentDashboard() {
       const profile = studentProfileUser.profile;
       const updated = await UserService.upsertMyProfile({
         studentNumber: profile.studentNumber,
-        street: profile.street,
-        barangay: profile.barangay,
-        city: profile.city,
-        province: profile.province,
-        zipCode: profile.zipCode,
+        street: payload.street ?? profile.street,
+        barangay: payload.barangay ?? profile.barangay,
+        city: payload.city ?? profile.city,
+        province: payload.province ?? profile.province,
+        zipCode: payload.zipCode ?? profile.zipCode,
         phone: payload.phone ?? profile.phone,
         courseOfStudy: profile.courseOfStudy,
         yearLevel: profile.yearLevel,
@@ -536,7 +568,6 @@ export default function StudentDashboard() {
             navigate(`/student/requests?requestId=${encodeURIComponent(requestId)}`)
           }
           onOpenNotificationsPage={() => navigate('/student/notifications')}
-          markingNotificationId={markingNotificationId}
           isMarkingAllRead={isMarkingAllNotificationsRead}
         />
       )}

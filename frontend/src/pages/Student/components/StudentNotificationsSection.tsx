@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell,
   CheckCheck,
-  MailCheck,
   MoreHorizontal,
   Settings,
 } from 'lucide-react';
@@ -18,11 +17,10 @@ interface StudentNotificationsSectionProps {
   institutionName?: string | null;
   isLoading: boolean;
   onMarkAllRead: () => void;
-  onMarkRead: (id: string) => void;
+  onMarkRead: (id: string) => void | Promise<void>;
   onOpenCredential: (credentialId: string) => void;
   onOpenRequest: (requestId: string) => void;
   onOpenNotificationsPage: () => void;
-  markingNotificationId: string | null;
   isMarkingAllRead: boolean;
 }
 
@@ -58,7 +56,6 @@ export default function StudentNotificationsSection({
   onOpenCredential,
   onOpenRequest,
   onOpenNotificationsPage,
-  markingNotificationId,
   isMarkingAllRead,
 }: StudentNotificationsSectionProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -102,6 +99,10 @@ export default function StudentNotificationsSection({
   }, [isMenuOpen]);
 
   const handleNotificationClick = (notification: AppNotification) => {
+    if (!notification.read) {
+      void onMarkRead(notification.id);
+    }
+
     const credentialId = parseMetadataString(notification.metadata, 'credentialId');
     if (credentialId) {
       onOpenCredential(credentialId);
@@ -247,21 +248,6 @@ export default function StudentNotificationsSection({
                     </p>
                     <p className="text-xs text-slate-500">{formatDateTime(notification.createdAt)}</p>
                   </div>
-
-                  {!notification.read && (
-                    <button
-                      type="button"
-                      onClick={event => {
-                        event.stopPropagation();
-                        onMarkRead(notification.id);
-                      }}
-                      disabled={markingNotificationId === notification.id}
-                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <MailCheck size={13} />
-                      {markingNotificationId === notification.id ? 'Marking...' : 'Mark read'}
-                    </button>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">

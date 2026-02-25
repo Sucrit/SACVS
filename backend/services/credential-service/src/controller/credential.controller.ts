@@ -13,7 +13,7 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 const credentialService = new CredentialService();
 
-const VALID_CREDENTIAL_STATUSES = ['PENDING', 'VERIFIED', 'AI_REVIEW', 'ISSUED', 'REVOKED', 'EXPIRED'] as const;
+const VALID_CREDENTIAL_STATUSES = ['PENDING', 'AI_REVIEW', 'ISSUED', 'REVOKED', 'EXPIRED'] as const;
 const VALID_CREDENTIAL_TYPES = ['TRANSCRIPT', 'DIPLOMA', 'CERTIFICATE', 'DEGREE', 'LICENSE'] as const;
 
 type RequestWithFile = Request & { file?: Express.Multer.File };
@@ -204,6 +204,7 @@ export class CredentialController {
       INSTITUTION_CONTEXT_MISSING: { code: 403, error: 'Institution context is missing for this account.' },
       FOREIGN_KEY_CONSTRAINT: { code: 400, error: 'One or more referenced records do not exist.' },
       INVALID_STATUS_TRANSITION: { code: 400, error: 'Invalid credential status transition.' },
+      CREDENTIAL_REVOKED_IMMUTABLE: { code: 409, error: 'Revoked credentials are immutable and cannot be updated.' },
       INVALID_AI_VALIDATED_AT: { code: 400, error: 'Invalid aiValidatedAt value.' },
       INVALID_ANCHORED_AT: { code: 400, error: 'Invalid anchoredAt value.' },
       INVALID_ISSUED_DATE: { code: 400, error: 'Invalid issuedDate value.' },

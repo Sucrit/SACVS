@@ -1,7 +1,7 @@
 import { CredentialRequestStatus } from '../../services/credential.service';
 import { UserStatus } from '../../services/user.service';
 
-export type InstitutionSection = 'overview' | 'students' | 'requests' | 'issue' | 'history' | 'notifications';
+export type InstitutionSection = 'overview' | 'students' | 'requests' | 'issue' | 'notifications';
 export type StudentStatusFilter = UserStatus | 'ALL';
 export type RequestStatusFilter = CredentialRequestStatus | 'ALL';
 export type ActivityType = 'STUDENT' | 'REQUEST' | 'SECURITY' | 'SYSTEM' | 'NOTIFICATION';

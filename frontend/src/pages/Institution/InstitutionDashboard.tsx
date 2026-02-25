@@ -17,7 +17,6 @@ import {
 import InstitutionStudentsSection from './components/InstitutionStudentsSection';
 import InstitutionRequestsSection from './components/InstitutionRequestsSection';
 import InstitutionIssueSection from './components/InstitutionIssueSection';
-import InstitutionHistorySection from './components/InstitutionHistorySection';
 import InstitutionNotificationsSection from './components/InstitutionNotificationsSection';
 import {
   ActivityEvent,
@@ -82,7 +81,7 @@ export default function InstitutionDashboard() {
   const [editStudentError, setEditStudentError] = useState<string | null>(null);
   const [editStudentHint, setEditStudentHint] = useState<string | null>(null);
 
-  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([]);
+  const [, setActivityEvents] = useState<ActivityEvent[]>([]);
   const [outboundNotifications, setOutboundNotifications] = useState<OutboundNotification[]>([]);
   const [notificationTarget, setNotificationTarget] = useState<NotificationTarget>('ALL');
   const [notificationTitle, setNotificationTitle] = useState('');
@@ -144,8 +143,6 @@ export default function InstitutionDashboard() {
   }, [createEvent, loadRequests, loadStudents, loadCredentials]);
 
   const pendingCount = requests.filter(request => request.status === 'PENDING').length;
-  const rejectedCount = requests.filter(request => request.status === 'REJECTED').length;
-
   const studentCounts = useMemo(
     () => ({
       total: students.length,
@@ -206,15 +203,6 @@ export default function InstitutionDashboard() {
       return searchable.includes(keyword);
     });
   }, [requestSearch, requestStatusFilter, requests, students]);
-
-  const duplicateStudentEmails = useMemo(() => {
-    const counts = new Map<string, number>();
-    students.forEach(student => {
-      const normalizedEmail = student.email.trim().toLowerCase();
-      counts.set(normalizedEmail, (counts.get(normalizedEmail) || 0) + 1);
-    });
-    return Array.from(counts.entries()).filter(([, count]) => count > 1).map(([email]) => email);
-  }, [students]);
 
   const setStudentFormValue = (field: keyof StudentFormState, value: string) => {
     setStudentForm(previous => ({ ...previous, [field]: value }));
@@ -407,7 +395,7 @@ export default function InstitutionDashboard() {
         title: request.title,
         type: request.type,
         description: request.description || undefined,
-        status: 'VERIFIED',
+        status: 'PENDING',
         metadata: requestMetadata,
         file: selectedFile,
       });
@@ -523,7 +511,7 @@ export default function InstitutionDashboard() {
       type: payload.type,
       title: payload.title,
       description: payload.description,
-      status: 'VERIFIED',
+      status: 'PENDING',
       file: payload.file,
       metadata: {
         source: 'INSTITUTION_DIRECT_ISSUE',
@@ -700,15 +688,6 @@ export default function InstitutionDashboard() {
             setIssueFileByRequestId(previous => ({ ...previous, [requestId]: file }));
           }}
           onRequestAction={handleRequestAction}
-        />
-      )}
-
-      {section === 'history' && (
-        <InstitutionHistorySection
-          events={activityEvents}
-          duplicateEmailCount={duplicateStudentEmails.length}
-          suspendedCount={studentCounts.suspended}
-          rejectedRequestCount={rejectedCount}
         />
       )}
 

@@ -38,6 +38,20 @@ type CredentialWithIssuer = Prisma.CredentialGetPayload<{
 }>;
 
 export class CredentialRepository {
+  async isStorageKeyRevoked(storageKey: string): Promise<boolean> {
+    const revoked = await prisma.credential.findFirst({
+      where: {
+        storageKey,
+        status: CredentialStatus.REVOKED,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    return Boolean(revoked);
+  }
+
   async getStudentContextById(studentId: string): Promise<{
     id: string;
     role: Role;

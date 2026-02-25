@@ -28,7 +28,6 @@ enum Status {
 
 enum CredentialStatus {
   PENDING
-  VERIFIED
   AI_REVIEW
   ISSUED
   REVOKED

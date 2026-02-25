@@ -9,7 +9,6 @@ export type CredentialTypeValue =
 
 export type CredentialStatusValue =
   | 'PENDING'
-  | 'VERIFIED'
   | 'AI_REVIEW'
   | 'ISSUED'
   | 'REVOKED'

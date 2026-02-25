@@ -1,7 +1,7 @@
 import { api } from '../api/client';
 
 export type CredentialType = 'TRANSCRIPT' | 'DIPLOMA' | 'CERTIFICATE' | 'DEGREE' | 'LICENSE';
-export type CredentialStatus = 'PENDING' | 'VERIFIED' | 'AI_REVIEW' | 'ISSUED' | 'REVOKED' | 'EXPIRED';
+export type CredentialStatus = 'PENDING' | 'AI_REVIEW' | 'ISSUED' | 'REVOKED' | 'EXPIRED';
 export type CredentialRequestStatus = 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
 export type DeliveryMethod = 'DIGITAL' | 'PHYSICAL' | 'BOTH';
 
@@ -175,6 +175,11 @@ export const CredentialService = {
 
   listRequests: async (query: CredentialRequestListQuery = {}) => {
     const response = await api.get<CredentialRequest[]>('/credentials/requests', { params: query });
+    return response.data;
+  },
+
+  getRequestById: async (requestId: string) => {
+    const response = await api.get<CredentialRequest>(`/credentials/requests/${requestId}`);
     return response.data;
   },
 
