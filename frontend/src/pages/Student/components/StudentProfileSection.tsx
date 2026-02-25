@@ -340,10 +340,7 @@ export default function StudentProfileSection({
           </div>
 
           <div className="border-t border-slate-200 pt-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Personal & Guardian Information</p>
-            <p className="mt-1 text-xs text-slate-500">
-              Birthday and sex are one-time setup fields.
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Personal Information</p>
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
               <label className="space-y-1">
                 <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">

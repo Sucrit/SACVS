@@ -156,4 +156,29 @@ contract('AcademicCredentialRegistry', (accounts) => {
       assert.isAtMost(verifyFailures, allowedFailures, `verification failure count should be <= ${allowedFailures} (got ${verifyFailures})`);
     });
   });
+
+  describe('Test 4: Reissue + Hash Verification', function () {
+    it('should support reissue and verify updated document hash', async () => {
+      await registry.authorizeIssuer(issuer, { from: admin });
+
+      const credentialId = web3.utils.soliditySha3('cred-reissue-1');
+      const studentHash = web3.utils.soliditySha3('student-reissue-1');
+      const docV1 = web3.utils.soliditySha3('doc-v1');
+      const docV2 = web3.utils.soliditySha3('doc-v2');
+
+      await registry.issueCredential(credentialId, studentHash, docV1, { from: issuer });
+      await registry.reissueCredential(credentialId, studentHash, docV2, { from: issuer });
+
+      const extended = await registry.getCredentialExtended(credentialId);
+      assert.equal(extended[1], docV2, 'documentHash should be updated after reissue');
+      assert.equal(Number(extended[7]), 2, 'version should increment to 2 after one reissue');
+
+      const verifyOld = await registry.verifyCredentialDocument(credentialId, docV1);
+      assert.isFalse(verifyOld[0], 'old hash should fail verification after reissue');
+
+      const verifyNew = await registry.verifyCredentialDocument(credentialId, docV2);
+      assert.isTrue(verifyNew[0], 'new hash should verify after reissue');
+      assert.equal(Number(verifyNew[3]), 2, 'verify payload should expose new version');
+    });
+  });
 });

@@ -11,6 +11,7 @@ import {
   UpdateCredentialStatusDto,
 } from '../dto/credential.dto';
 import { notificationClient } from '../client/notification.client';
+import { blockchainClient } from '../client/blockchain.client';
 
 const credentialRepository = new CredentialRepository();
 
@@ -266,10 +267,9 @@ export class CredentialService {
     const expiryDate = parseOptionalDate(data.expiryDate, 'INVALID_EXPIRY_DATE');
 
     const status = (data.status ?? CredentialStatus.PENDING) as CredentialStatus;
-    if (status === CredentialStatus.ISSUED && !issuedDate) {
-      issuedDate = new Date();
+    if (status === CredentialStatus.ISSUED) {
+      throw new Error('DIRECT_ISSUED_CREATE_NOT_ALLOWED');
     }
-
     const createData: Prisma.CredentialUncheckedCreateInput = {
       title,
       type: data.type,
@@ -406,6 +406,56 @@ export class CredentialService {
 
     if (nextStatus === CredentialStatus.ISSUED && !hasField(statusData, 'issuedDate') && !scope.issuedDate) {
       updateData.issuedDate = new Date();
+    }
+
+    const hasOnChainRecord = Boolean(scope.chain || scope.txHash || scope.blockNumber || scope.anchoredAt);
+    const incomingFileHash = hasField(statusData, 'fileHash')
+      ? parseOptionalString(statusData.fileHash) ?? null
+      : null;
+    const effectiveFileHash = incomingFileHash ?? scope.fileHash;
+    const fileHashChanged = incomingFileHash !== null && incomingFileHash !== scope.fileHash;
+    const shouldAnchor =
+      nextStatus === CredentialStatus.ISSUED &&
+      (currentStatus !== CredentialStatus.ISSUED || fileHashChanged || !hasOnChainRecord);
+
+    if (shouldAnchor) {
+      if (!effectiveFileHash) {
+        throw new Error('MISSING_CREDENTIAL_FILE');
+      }
+
+      try {
+        const anchored = await blockchainClient.anchorCredential({
+          credentialId: scope.id,
+          studentId: scope.studentId,
+          fileHash: effectiveFileHash,
+          allowReissue: true,
+        });
+
+        updateData.chain = anchored.chain;
+        updateData.txHash = anchored.txHash;
+        updateData.blockNumber = Number.isInteger(anchored.blockNumber)
+          ? anchored.blockNumber
+          : null;
+        updateData.anchoredAt =
+          parseOptionalDate(anchored.anchoredAt, 'INVALID_ANCHORED_AT') ?? new Date();
+      } catch (error) {
+        console.error('Blockchain anchor failed:', error);
+        throw new Error('BLOCKCHAIN_ANCHOR_FAILED');
+      }
+    }
+
+    if (
+      nextStatus === CredentialStatus.REVOKED &&
+      hasOnChainRecord
+    ) {
+      try {
+        await blockchainClient.revokeCredential({
+          credentialId: scope.id,
+        });
+      } catch (error) {
+        console.error('Blockchain revoke failed:', error);
+        throw new Error('BLOCKCHAIN_REVOKE_FAILED');
+      }
     }
 
     const updated = await credentialRepository.updateCredential(credentialId, updateData);

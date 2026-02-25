@@ -1,12 +1,27 @@
 {
+  "name": "blockchain-interface-service",
+  "version": "1.0.0",
+  "private": true,
   "scripts": {
+    "dev": "nodemon",
+    "typecheck": "tsc --noEmit",
     "generate": "node ./scripts/dataset_generator.js --output-dir ./data --seed 42"
   },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "ethers": "^6.15.0",
+    "express": "^5.2.1"
+  },
   "devDependencies": {
-    "truffle": "^5.11.5",
-    "chai": "^4.3.7",
     "@faker-js/faker": "^8.0.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.2.3",
+    "chai": "^4.3.7",
+    "nodemon": "^3.1.11",
     "seedrandom": "^3.0.5",
+    "truffle": "^5.11.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
     "uuid": "^9.0.0"
   }
 }

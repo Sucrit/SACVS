@@ -83,4 +83,21 @@ router.use(
   }),
 );
 
+router.use(
+  '/blockchain',
+  createProxyMiddleware({
+    target: ENV.BLOCKCHAIN_INTERFACE_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: path => (path.startsWith('/blockchain') ? path : `/blockchain${path}`),
+    on: {
+      error: (err, _req, res: any) => {
+        console.error('[PROXY] Blockchain interface service error:', err.message);
+        if (!res.headersSent) {
+          res.status(502).json({ error: 'Blockchain interface service unavailable' });
+        }
+      },
+    },
+  }),
+);
+
 export default router;

@@ -215,6 +215,18 @@ export class CredentialController {
       INVALID_AI_REPORT_JSON: { code: 400, error: 'Invalid aiReport JSON value.' },
       INVALID_FILE_TYPE: { code: 400, error: 'Invalid file type. Use PNG, JPEG, WEBP, or PDF.' },
       MISSING_CREDENTIAL_FILE: { code: 400, error: 'A credential file is required before issuing.' },
+      DIRECT_ISSUED_CREATE_NOT_ALLOWED: {
+        code: 400,
+        error: 'Create credentials as pending and use the issue endpoint to issue them.',
+      },
+      BLOCKCHAIN_ANCHOR_FAILED: {
+        code: 502,
+        error: 'Failed to anchor credential to blockchain.',
+      },
+      BLOCKCHAIN_REVOKE_FAILED: {
+        code: 502,
+        error: 'Failed to revoke credential on blockchain.',
+      },
     };
 
     const mapped = map[error.message];

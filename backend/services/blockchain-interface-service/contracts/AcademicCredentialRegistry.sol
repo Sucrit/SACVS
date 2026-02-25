@@ -26,6 +26,9 @@ contract AcademicCredentialRegistry {
         address issuer;
         uint256 issuedAt;
         bool revoked;
+        uint256 revokedAt;
+        address revokedBy;
+        uint32 version;
     }
 
     mapping(bytes32 => Credential) private credentials;
@@ -36,6 +39,7 @@ contract AcademicCredentialRegistry {
     event IssuerRevoked(address indexed issuer);
 
     event CredentialIssued(bytes32 indexed credentialId, address indexed issuer);
+    event CredentialReissued(bytes32 indexed credentialId, address indexed issuer, uint32 version);
     event CredentialRevoked(bytes32 indexed credentialId, address indexed revokedBy);
 
     // Admin Management
@@ -74,10 +78,31 @@ contract AcademicCredentialRegistry {
             documentHash: documentHash,
             issuer: msg.sender,
             issuedAt: block.timestamp,
-            revoked: false
+            revoked: false,
+            revokedAt: 0,
+            revokedBy: address(0),
+            version: 1
         });
 
         emit CredentialIssued(credentialId, msg.sender);
+    }
+
+    function reissueCredential(
+        bytes32 credentialId,
+        bytes32 studentHash,
+        bytes32 documentHash
+    ) external onlyIssuer {
+        Credential storage cred = credentials[credentialId];
+        require(cred.issuedAt != 0, "Credential does not exist");
+        require(!cred.revoked, "Credential is revoked");
+        require(msg.sender == cred.issuer, "Only original issuer can reissue");
+
+        cred.studentHash = studentHash;
+        cred.documentHash = documentHash;
+        cred.issuedAt = block.timestamp;
+        cred.version += 1;
+
+        emit CredentialReissued(credentialId, msg.sender, cred.version);
     }
 
     // credential revocation (issuer , admin only)
@@ -88,6 +113,8 @@ contract AcademicCredentialRegistry {
         require(msg.sender == cred.issuer || msg.sender == admin, "Not authorized to revoke");
 
         cred.revoked = true;
+        cred.revokedAt = block.timestamp;
+        cred.revokedBy = msg.sender;
         emit CredentialRevoked(credentialId, msg.sender);
     }
 
@@ -113,6 +140,37 @@ contract AcademicCredentialRegistry {
         );
     }
 
+    function getCredentialExtended(bytes32 credentialId)
+        external
+        view
+        returns (
+            bytes32 studentHash,
+            bytes32 documentHash,
+            address issuer,
+            uint256 issuedAt,
+            bool revoked,
+            uint256 revokedAt,
+            address revokedBy,
+            uint32 version
+        )
+    {
+        Credential memory cred = credentials[credentialId];
+        return (
+            cred.studentHash,
+            cred.documentHash,
+            cred.issuer,
+            cred.issuedAt,
+            cred.revoked,
+            cred.revokedAt,
+            cred.revokedBy,
+            cred.version
+        );
+    }
+
+    function credentialExists(bytes32 credentialId) external view returns (bool) {
+        return credentials[credentialId].issuedAt != 0;
+    }
+
     // Verification
     function verifyCredential(bytes32 credentialId)
         external
@@ -130,5 +188,28 @@ contract AcademicCredentialRegistry {
         }
 
         return (true, cred.issuer, cred.issuedAt);
+    }
+
+    function verifyCredentialDocument(bytes32 credentialId, bytes32 expectedDocumentHash)
+        external
+        view
+        returns (
+            bool valid,
+            address issuer,
+            uint256 issuedAt,
+            uint32 version
+        )
+    {
+        Credential memory cred = credentials[credentialId];
+
+        if (cred.issuedAt == 0 || cred.revoked) {
+            return (false, address(0), 0, 0);
+        }
+
+        if (cred.documentHash != expectedDocumentHash) {
+            return (false, address(0), 0, 0);
+        }
+
+        return (true, cred.issuer, cred.issuedAt, cred.version);
     }
 }

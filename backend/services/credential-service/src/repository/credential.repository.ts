@@ -104,6 +104,11 @@ export class CredentialRepository {
     status: CredentialStatus;
     issuedById: string;
     studentId: string;
+    fileHash: string | null;
+    chain: string | null;
+    txHash: string | null;
+    blockNumber: number | null;
+    anchoredAt: Date | null;
     issuedDate: Date | null;
     student: {
       institutionId: string | null;
@@ -118,6 +123,11 @@ export class CredentialRepository {
         status: true,
         issuedById: true,
         studentId: true,
+        fileHash: true,
+        chain: true,
+        txHash: true,
+        blockNumber: true,
+        anchoredAt: true,
         issuedDate: true,
         student: {
           select: {

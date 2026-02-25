@@ -106,7 +106,6 @@ export default function DashboardLayout() {
   const [notificationFilter, setNotificationFilter] = useState<'ALL' | 'UNREAD'>('ALL');
   const [headerNotifications, setHeaderNotifications] = useState<AppNotification[]>([]);
   const [isLoadingHeaderNotifications, setIsLoadingHeaderNotifications] = useState(false);
-  const [activeNotificationId, setActiveNotificationId] = useState<string | null>(null);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
   const bellButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -189,7 +188,6 @@ export default function DashboardLayout() {
       return;
     }
 
-    setActiveNotificationId(notificationId);
     setHeaderNotifications(previous =>
       previous.map(item => (item.id === notificationId ? { ...item, read: true } : item)),
     );
@@ -212,7 +210,6 @@ export default function DashboardLayout() {
         setStudentUnreadNotifications(previous => previous + 1);
       }
     } finally {
-      setActiveNotificationId(null);
     }
   }, [headerNotifications, role]);
 
@@ -562,9 +559,6 @@ export default function DashboardLayout() {
                                   </p>
                                   <div className="mt-1.5 flex items-center justify-between">
                                     <p className="text-xs text-slate-500">{formatNotificationDate(notification.createdAt)}</p>
-                                    {activeNotificationId === notification.id && (
-                                      <p className="text-[11px] font-semibold text-slate-500">Marking...</p>
-                                    )}
                                   </div>
                                 </button>
                               ))}

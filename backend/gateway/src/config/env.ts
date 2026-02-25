@@ -9,5 +9,7 @@ export const ENV = {
   CREDENTIALS_SERVICE_URL: process.env.CREDENTIALS_SERVICE_URL || 'http://localhost:5100',
   CREDENTIAL_REQUEST_SERVICE_URL: process.env.CREDENTIAL_REQUEST_SERVICE_URL || 'http://localhost:5200',
   NOTIFICATION_SERVICE_URL: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5300',
+  BLOCKCHAIN_INTERFACE_SERVICE_URL:
+    process.env.BLOCKCHAIN_INTERFACE_SERVICE_URL || 'http://localhost:5400',
   RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX) || 100,
 };
