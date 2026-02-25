@@ -24,7 +24,7 @@ import {
   NotificationService,
 } from '../services/notification.service';
 import { useLegacyAuth } from '../auth/auth-context';
-import logo2 from '../assets/logo2.png';
+import logoCompact from '../assets/c-version_logo.png';
 import credentialsIcon from '../assets/credentials.svg';
 
 const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string }>> = {
@@ -376,7 +376,10 @@ export default function DashboardLayout() {
         <div className="bg-slate-50 border-b border-slate-300">
           <div className="flex h-12 items-center justify-between px-4 sm:h-[52px] sm:px-6 lg:h-[52px] lg:px-8">
             <div className="flex items-center gap-2 sm:gap-2.5">
-              <img src={logo2} alt="Credence logo" className="block h-4 w-auto max-w-[92px] object-contain sm:h-5 sm:max-w-[108px] lg:h-5 lg:max-w-[120px]" />
+              <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 sm:h-9 sm:w-9">
+                <img src={logoCompact} alt="Credence logo" className="block h-[18px] w-[18px] object-contain sm:h-5 sm:w-5" />
+              </div>
+              <div className="h-6 w-px bg-slate-300 sm:h-7" />
               <p className="text-sm font-medium text-slate-500 sm:text-base">{welcomeText}</p>
             </div>
 
