@@ -1,4 +1,5 @@
 import {
+  CredentialType,
   CredentialStatus,
   Prisma,
   Role,
@@ -25,6 +26,14 @@ const VALID_TRANSITIONS: Record<CredentialStatus, CredentialStatus[]> = {
   EXPIRED: [],
 };
 
+const NON_EXPIRING_TYPES = new Set<CredentialType>([
+  CredentialType.TRANSCRIPT,
+  CredentialType.DIPLOMA,
+  CredentialType.DEGREE,
+]);
+const CERTIFICATE_CATEGORIES = new Set(['ACADEMIC', 'PROFESSIONAL'] as const);
+type CertificateCategory = 'ACADEMIC' | 'PROFESSIONAL';
+
 const parseOptionalString = (value?: string | null): string | null => {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
@@ -44,6 +53,44 @@ const parseOptionalDate = (
     throw new Error(errorCode);
   }
   return date;
+};
+
+const extractCertificateCategory = (metadata: unknown): CertificateCategory | null => {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const rawValue = (metadata as Record<string, unknown>).certificateCategory;
+  if (typeof rawValue !== 'string') {
+    return null;
+  }
+
+  const normalized = rawValue.trim().toUpperCase();
+  if (!CERTIFICATE_CATEGORIES.has(normalized as CertificateCategory)) {
+    return null;
+  }
+
+  return normalized as CertificateCategory;
+};
+
+const validateCertificateCategoryIfPresent = (metadata: unknown): void => {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return;
+  }
+
+  const rawValue = (metadata as Record<string, unknown>).certificateCategory;
+  if (typeof rawValue === 'undefined' || rawValue === null || rawValue === '') {
+    return;
+  }
+
+  if (typeof rawValue !== 'string') {
+    throw new Error('INVALID_CERTIFICATE_CATEGORY');
+  }
+
+  const normalized = rawValue.trim().toUpperCase();
+  if (!CERTIFICATE_CATEGORIES.has(normalized as CertificateCategory)) {
+    throw new Error('INVALID_CERTIFICATE_CATEGORY');
+  }
 };
 
 export interface CredentialActor {
@@ -264,7 +311,13 @@ export class CredentialService {
     const aiValidatedAt = parseOptionalDate(data.aiValidatedAt, 'INVALID_AI_VALIDATED_AT');
     const anchoredAt = parseOptionalDate(data.anchoredAt, 'INVALID_ANCHORED_AT');
     let issuedDate = parseOptionalDate(data.issuedDate, 'INVALID_ISSUED_DATE');
-    const expiryDate = parseOptionalDate(data.expiryDate, 'INVALID_EXPIRY_DATE');
+    let expiryDate = parseOptionalDate(data.expiryDate, 'INVALID_EXPIRY_DATE');
+    if (NON_EXPIRING_TYPES.has(data.type as CredentialType)) {
+      expiryDate = null;
+    }
+    if (data.type === CredentialType.CERTIFICATE) {
+      validateCertificateCategoryIfPresent(data.metadata);
+    }
 
     const status = (data.status ?? CredentialStatus.PENDING) as CredentialStatus;
     if (status === CredentialStatus.ISSUED) {
@@ -348,6 +401,9 @@ export class CredentialService {
     const updateData: Prisma.CredentialUncheckedUpdateInput = {
       status: nextStatus,
     };
+    const isNonExpiringCredential = NON_EXPIRING_TYPES.has(scope.type);
+    let parsedExpiryDate: Date | null | undefined;
+    let certificateCategory: CertificateCategory = 'ACADEMIC';
 
     if (hasField(statusData, 'description')) {
       updateData.description = parseOptionalString(statusData.description) ?? null;
@@ -366,6 +422,17 @@ export class CredentialService {
     }
     if (hasField(statusData, 'metadata')) {
       updateData.metadata = statusData.metadata === null ? Prisma.JsonNull : statusData.metadata;
+      if (scope.type === CredentialType.CERTIFICATE) {
+        validateCertificateCategoryIfPresent(statusData.metadata);
+      }
+    }
+    if (scope.type === CredentialType.CERTIFICATE) {
+      if (hasField(statusData, 'metadata')) {
+        certificateCategory = extractCertificateCategory(statusData.metadata) ?? 'ACADEMIC';
+      } else {
+        validateCertificateCategoryIfPresent(scope.metadata);
+        certificateCategory = extractCertificateCategory(scope.metadata) ?? 'ACADEMIC';
+      }
     }
     if (hasField(statusData, 'aiStatus')) {
       updateData.aiStatus = parseOptionalString(statusData.aiStatus) ?? null;
@@ -401,11 +468,36 @@ export class CredentialService {
       updateData.issuedDate = parseOptionalDate(statusData.issuedDate, 'INVALID_ISSUED_DATE');
     }
     if (hasField(statusData, 'expiryDate')) {
-      updateData.expiryDate = parseOptionalDate(statusData.expiryDate, 'INVALID_EXPIRY_DATE');
+      parsedExpiryDate = isNonExpiringCredential
+        ? null
+        : parseOptionalDate(statusData.expiryDate, 'INVALID_EXPIRY_DATE');
+      updateData.expiryDate = parsedExpiryDate;
     }
 
     if (nextStatus === CredentialStatus.ISSUED && !hasField(statusData, 'issuedDate') && !scope.issuedDate) {
       updateData.issuedDate = new Date();
+    }
+
+    if (nextStatus === CredentialStatus.ISSUED) {
+      if (isNonExpiringCredential) {
+        updateData.expiryDate = null;
+      } else if (scope.type === CredentialType.LICENSE) {
+        const effectiveExpiryDate = hasField(statusData, 'expiryDate')
+          ? parsedExpiryDate ?? null
+          : scope.expiryDate;
+
+        if (!effectiveExpiryDate) {
+          throw new Error('EXPIRY_DATE_REQUIRED');
+        }
+      } else if (scope.type === CredentialType.CERTIFICATE && certificateCategory === 'PROFESSIONAL') {
+        const effectiveExpiryDate = hasField(statusData, 'expiryDate')
+          ? parsedExpiryDate ?? null
+          : scope.expiryDate;
+
+        if (!effectiveExpiryDate) {
+          throw new Error('EXPIRY_DATE_REQUIRED');
+        }
+      }
     }
 
     const hasOnChainRecord = Boolean(scope.chain || scope.txHash || scope.blockNumber || scope.anchoredAt);
@@ -440,6 +532,9 @@ export class CredentialService {
           parseOptionalDate(anchored.anchoredAt, 'INVALID_ANCHORED_AT') ?? new Date();
       } catch (error) {
         console.error('Blockchain anchor failed:', error);
+        if (error instanceof Error && error.message === 'BLOCKCHAIN_INTERFACE_UNREACHABLE') {
+          throw new Error('BLOCKCHAIN_INTERFACE_UNREACHABLE');
+        }
         throw new Error('BLOCKCHAIN_ANCHOR_FAILED');
       }
     }
@@ -454,6 +549,9 @@ export class CredentialService {
         });
       } catch (error) {
         console.error('Blockchain revoke failed:', error);
+        if (error instanceof Error && error.message === 'BLOCKCHAIN_INTERFACE_UNREACHABLE') {
+          throw new Error('BLOCKCHAIN_INTERFACE_UNREACHABLE');
+        }
         throw new Error('BLOCKCHAIN_REVOKE_FAILED');
       }
     }

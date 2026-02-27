@@ -43,6 +43,12 @@ export default function StudentCredentialDetailsSection({
   const selectedCredentialFileUrl = getCredentialFileUrl(selectedCredential?.storageKey ?? null);
   const selectedCredentialHasImage = selectedCredential?.mimeType?.startsWith('image/') ?? false;
   const isRevoked = selectedCredential?.status === 'REVOKED';
+  const isAnchored = Boolean(
+    selectedCredential?.chain ||
+    selectedCredential?.txHash ||
+    selectedCredential?.blockNumber !== null ||
+    selectedCredential?.anchoredAt,
+  );
   const issuerInstitutionName =
     selectedCredential?.issuedBy?.institution?.institutionName?.trim() || 'Your institution';
 
@@ -86,16 +92,7 @@ export default function StudentCredentialDetailsSection({
 
   return (
     <Card className="overflow-hidden rounded-3xl border border-slate-200 p-6 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-      >
-        <ArrowLeft size={14} />
-        Back
-      </button>
-
-      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[1.5fr_1fr]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.5fr_1fr]">
           <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
             {isRevoked && (
               <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
@@ -109,8 +106,18 @@ export default function StudentCredentialDetailsSection({
               </div>
             )}
             <div className="flex items-center gap-2">
-              <FileBadge2 size={14} className="text-slate-500" />
-              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Document Preview</p>
+              <button
+                type="button"
+                onClick={onBack}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <ArrowLeft size={14} />
+                Back
+              </button>
+              <div className="flex items-center gap-2">
+                <FileBadge2 size={14} className="text-slate-500" />
+                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Document Preview</p>
+              </div>
             </div>
 
             {selectedCredentialFileUrl ? (
@@ -139,38 +146,6 @@ export default function StudentCredentialDetailsSection({
               </div>
             )}
 
-            {selectedCredentialFileUrl && (
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => void handleShare()}
-                  disabled={isRevoked}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <Share2 size={13} />
-                  Share
-                </button>
-                {isRevoked ? (
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 opacity-40"
-                  >
-                    <Download size={13} />
-                    Download
-                  </button>
-                ) : (
-                  <a
-                    href={selectedCredentialFileUrl}
-                    download={selectedCredential.filename || `${selectedCredential.title}.pdf`}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    <Download size={13} />
-                    Download
-                  </a>
-                )}
-              </div>
-            )}
           </section>
 
           <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
@@ -219,19 +194,23 @@ export default function StudentCredentialDetailsSection({
               </p>
               <div>
                 <p className="font-semibold text-slate-900">{selectedCredential.chain || 'Not anchored yet'}</p>
-                <p className="mt-1 text-xs text-slate-500">Block: {selectedCredential.blockNumber ?? '-'}</p>
-                <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs">
-                  <code className="truncate font-mono text-slate-600">{shortenHash(selectedCredential.txHash)}</code>
-                  {selectedCredential.txHash && (
-                    <button
-                      onClick={() => void copyText(selectedCredential.txHash as string)}
-                      className="inline-flex h-5 w-5 items-center justify-center rounded text-slate-500 hover:bg-slate-200/60 hover:text-slate-700"
-                      title="Copy transaction hash"
-                    >
-                      <Link2 size={12} />
-                    </button>
-                  )}
-                </div>
+                {isAnchored && (
+                  <>
+                    <p className="mt-1 text-xs text-slate-500">Block #: {selectedCredential.blockNumber ?? '-'}</p>
+                    <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs">
+                      <code className="truncate font-mono text-slate-600">{shortenHash(selectedCredential.txHash)}</code>
+                      {selectedCredential.txHash && (
+                        <button
+                          onClick={() => void copyText(selectedCredential.txHash as string)}
+                          className="inline-flex h-5 w-5 items-center justify-center rounded text-slate-500 hover:bg-slate-200/60 hover:text-slate-700"
+                          title="Copy transaction hash"
+                        >
+                          <Link2 size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
 
               <p className="inline-flex items-center gap-2 font-medium text-slate-500">
@@ -245,10 +224,48 @@ export default function StudentCredentialDetailsSection({
                 File Hash
               </p>
               <p className="break-all font-semibold text-slate-900">{shortenHash(selectedCredential.fileHash)}</p>
+
+              {selectedCredentialFileUrl && (
+                <>
+                  <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+                    <Link2 size={14} />
+                    Actions
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleShare()}
+                      disabled={isRevoked}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Share2 size={13} />
+                      Share
+                    </button>
+                    {isRevoked ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 opacity-40"
+                      >
+                        <Download size={13} />
+                        Download
+                      </button>
+                    ) : (
+                      <a
+                        href={selectedCredentialFileUrl}
+                        download={selectedCredential.filename || `${selectedCredential.title}.pdf`}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        <Download size={13} />
+                        Download
+                      </a>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </section>
       </div>
     </Card>
   );
 }
-

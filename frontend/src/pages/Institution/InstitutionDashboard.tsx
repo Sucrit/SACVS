@@ -46,6 +46,22 @@ const toStudentFormState = (student: User): StudentFormState => ({
   status: student.status,
 });
 
+type CertificateCategory = 'ACADEMIC' | 'PROFESSIONAL';
+
+const EXPIRY_ALLOWED_TYPES: CredentialType[] = ['CERTIFICATE', 'LICENSE'];
+const DEFAULT_CERTIFICATE_CATEGORY: CertificateCategory = 'ACADEMIC';
+const supportsExpiryDate = (type: CredentialType) => EXPIRY_ALLOWED_TYPES.includes(type);
+const requiresExpiryDate = (type: CredentialType, certificateCategory: CertificateCategory = DEFAULT_CERTIFICATE_CATEGORY) =>
+  type === 'LICENSE' || (type === 'CERTIFICATE' && certificateCategory === 'PROFESSIONAL');
+
+const toIsoDateFromInput = (value: string): string | undefined => {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const date = new Date(`${trimmed}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toISOString();
+};
+
 export default function InstitutionDashboard() {
   const location = useLocation();
   const section = getInstitutionSection(location.pathname);
@@ -60,6 +76,8 @@ export default function InstitutionDashboard() {
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
   const [rejectionReasonByRequestId, setRejectionReasonByRequestId] = useState<Record<string, string>>({});
   const [issueFileByRequestId, setIssueFileByRequestId] = useState<Record<string, File | null>>({});
+  const [issueExpiryByRequestId, setIssueExpiryByRequestId] = useState<Record<string, string>>({});
+  const [issueCertificateCategoryByRequestId, setIssueCertificateCategoryByRequestId] = useState<Record<string, CertificateCategory>>({});
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
 
@@ -382,11 +400,21 @@ export default function InstitutionDashboard() {
     let credentialId = request.credentialId;
     const selectedFile = issueFileByRequestId[request.id] ?? undefined;
     let uploadFileDuringIssue = selectedFile;
+    const certificateCategory: CertificateCategory | undefined =
+      request.type === 'CERTIFICATE'
+        ? issueCertificateCategoryByRequestId[request.id] || DEFAULT_CERTIFICATE_CATEGORY
+        : undefined;
+    const rawExpiryDate = issueExpiryByRequestId[request.id] || '';
+    const expiryDate = supportsExpiryDate(request.type) ? toIsoDateFromInput(rawExpiryDate) : undefined;
+    if (requiresExpiryDate(request.type, certificateCategory || DEFAULT_CERTIFICATE_CATEGORY) && !expiryDate) {
+      throw new Error('Expiry date is required for license and professional certificate credentials.');
+    }
     const requestMetadata = {
       source: 'CREDENTIAL_REQUEST',
       requestId: request.id,
       deliveryMethod: request.deliveryMethod,
       purpose: request.purpose,
+      ...(certificateCategory ? { certificateCategory } : {}),
     };
 
     if (!credentialId) {
@@ -397,6 +425,7 @@ export default function InstitutionDashboard() {
         description: request.description || undefined,
         status: 'PENDING',
         metadata: requestMetadata,
+        expiryDate,
         file: selectedFile,
       });
       credentialId = created.id;
@@ -409,6 +438,7 @@ export default function InstitutionDashboard() {
       description: request.description || undefined,
       issuedDate: new Date().toISOString(),
       metadata: requestMetadata,
+      expiryDate,
       file: uploadFileDuringIssue,
     });
 
@@ -424,6 +454,16 @@ export default function InstitutionDashboard() {
       previous.map(entry => (entry.id === request.id ? { ...entry, credentialId } : entry)),
     );
     setIssueFileByRequestId(previous => {
+      const next = { ...previous };
+      delete next[request.id];
+      return next;
+    });
+    setIssueExpiryByRequestId(previous => {
+      const next = { ...previous };
+      delete next[request.id];
+      return next;
+    });
+    setIssueCertificateCategoryByRequestId(previous => {
       const next = { ...previous };
       delete next[request.id];
       return next;
@@ -501,37 +541,59 @@ export default function InstitutionDashboard() {
     type: CredentialType;
     title: string;
     description?: string;
+    expiryDate?: string;
+    certificateCategory?: CertificateCategory;
     file: File;
   }) => {
     setRequestsError(null);
     setRequestsHint(null);
-
-    const created = await CredentialService.create({
-      studentId: payload.studentId,
-      type: payload.type,
-      title: payload.title,
-      description: payload.description,
-      status: 'PENDING',
-      file: payload.file,
-      metadata: {
+    try {
+      const certificateCategory: CertificateCategory | undefined =
+        payload.type === 'CERTIFICATE'
+          ? payload.certificateCategory || DEFAULT_CERTIFICATE_CATEGORY
+          : undefined;
+      const normalizedExpiryDate = supportsExpiryDate(payload.type)
+        ? toIsoDateFromInput(payload.expiryDate || '')
+        : undefined;
+      if (requiresExpiryDate(payload.type, certificateCategory || DEFAULT_CERTIFICATE_CATEGORY) && !normalizedExpiryDate) {
+        throw new Error('Expiry date is required for license and professional certificate credentials.');
+      }
+      const directIssueMetadata = {
         source: 'INSTITUTION_DIRECT_ISSUE',
-      },
-    });
+        ...(certificateCategory ? { certificateCategory } : {}),
+      };
 
-    const issued = await CredentialService.issue(created.id, {
-      issuedDate: new Date().toISOString(),
-      description: payload.description,
-    });
+      const created = await CredentialService.create({
+        studentId: payload.studentId,
+        type: payload.type,
+        title: payload.title,
+        description: payload.description,
+        status: 'PENDING',
+        expiryDate: normalizedExpiryDate,
+        file: payload.file,
+        metadata: directIssueMetadata,
+      });
 
-    setRequestsHint('Credential issued successfully.');
-    createEvent(
-      'REQUEST',
-      'Credential issued directly',
-      `Credential ${issued.id} issued to student ${payload.studentId}.`,
-    );
+      const issued = await CredentialService.issue(created.id, {
+        issuedDate: new Date().toISOString(),
+        description: payload.description,
+        expiryDate: normalizedExpiryDate,
+        metadata: directIssueMetadata,
+      });
 
-    await loadCredentials();
-    return issued;
+      setRequestsHint('Credential issued successfully.');
+      createEvent(
+        'REQUEST',
+        'Credential issued directly',
+        `Credential ${issued.id} issued to student ${payload.studentId}.`,
+      );
+
+      await loadCredentials();
+      return issued;
+    } catch (error) {
+      const message = getApiErrorMessage(error) || 'Unable to issue credential directly.';
+      throw new Error(message);
+    }
   };
 
   const handleCredentialStatusUpdate = async (credentialId: string, status: CredentialStatus) => {
@@ -661,8 +723,16 @@ export default function InstitutionDashboard() {
             setRejectionReasonByRequestId(previous => ({ ...previous, [requestId]: reason }));
           }}
           issueFileByRequestId={issueFileByRequestId}
+          issueExpiryByRequestId={issueExpiryByRequestId}
+          issueCertificateCategoryByRequestId={issueCertificateCategoryByRequestId}
           onIssueFileChange={(requestId: string, file: File | null) => {
             setIssueFileByRequestId(previous => ({ ...previous, [requestId]: file }));
+          }}
+          onIssueExpiryChange={(requestId: string, expiryDate: string) => {
+            setIssueExpiryByRequestId(previous => ({ ...previous, [requestId]: expiryDate }));
+          }}
+          onIssueCertificateCategoryChange={(requestId: string, value: CertificateCategory) => {
+            setIssueCertificateCategoryByRequestId(previous => ({ ...previous, [requestId]: value }));
           }}
           onRequestAction={handleRequestAction}
           onBulkAction={handleBulkRequestAction}
@@ -684,8 +754,16 @@ export default function InstitutionDashboard() {
           onCredentialStatusUpdate={handleCredentialStatusUpdate}
           onCredentialReissue={handleCredentialReissue}
           issueFileByRequestId={issueFileByRequestId}
+          issueExpiryByRequestId={issueExpiryByRequestId}
+          issueCertificateCategoryByRequestId={issueCertificateCategoryByRequestId}
           onIssueFileChange={(requestId: string, file: File | null) => {
             setIssueFileByRequestId(previous => ({ ...previous, [requestId]: file }));
+          }}
+          onIssueExpiryChange={(requestId: string, expiryDate: string) => {
+            setIssueExpiryByRequestId(previous => ({ ...previous, [requestId]: expiryDate }));
+          }}
+          onIssueCertificateCategoryChange={(requestId: string, value: CertificateCategory) => {
+            setIssueCertificateCategoryByRequestId(previous => ({ ...previous, [requestId]: value }));
           }}
           onRequestAction={handleRequestAction}
         />

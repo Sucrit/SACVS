@@ -1,184 +1,340 @@
-const AcademicCredentialRegistry = artifacts.require('AcademicCredentialRegistry');
-const { assert } = require('chai');
+const AcademicCredentialRegistry = artifacts.require("AcademicCredentialRegistry");
+const { assert } = require("chai");
 
-contract('AcademicCredentialRegistry', (accounts) => {
+contract("AcademicCredentialRegistry", (accounts) => {
   const admin = accounts[0];
   const issuer = accounts[1];
-  const other = accounts[2];
+  const otherIssuer = accounts[2];
+  const outsider = accounts[3];
 
   let registry;
-  const short = (h) => (typeof h === 'string' ? (h.slice(0,10) + '...' + h.slice(-6)) : h);
+
+  const makeHash = (label) => web3.utils.soliditySha3(`${label}-${Date.now()}-${Math.random()}`);
+  const makeCredentialPayload = (name) => ({
+    credentialId: makeHash(`cred-${name}`),
+    studentHash: makeHash(`student-${name}`),
+    documentHash: makeHash(`doc-${name}`),
+  });
+
+  const expectRevert = async (promise, expectedReason) => {
+    try {
+      await promise;
+      assert.fail("Expected transaction to revert");
+    } catch (error) {
+      assert.include(
+        error.message,
+        "revert",
+        `Expected EVM revert but got: ${error.message}`
+      );
+      if (expectedReason) {
+        assert.include(
+          error.message,
+          expectedReason,
+          `Expected revert reason to include "${expectedReason}" but got: ${error.message}`
+        );
+      }
+    }
+  };
 
   beforeEach(async () => {
     registry = await AcademicCredentialRegistry.new({ from: admin });
   });
 
-  /*
-   Step 1: Ensure an authorized issuer can successfully issue a credential
-   *and that the credential can be retrieved and verified correctly.
-   */
-  describe('Test 1: Happy Path', function () {
-    it('should allow an authorized issuer to issue and verify a credential', async () => {
+  describe("Admin and issuer management", () => {
+    it("sets deployer as admin", async () => {
+      const deployedAdmin = await registry.admin();
+      assert.equal(deployedAdmin, admin, "deployer must be admin");
+    });
+
+    it("enforces admin-only issuer management", async () => {
+      await expectRevert(
+        registry.authorizeIssuer(issuer, { from: outsider }),
+        "Only admin allowed"
+      );
+
       await registry.authorizeIssuer(issuer, { from: admin });
-      const isAuth = await registry.authorizedIssuers(issuer);
-      assert.isTrue(isAuth, 'issuer should be authorized');
+      assert.isTrue(await registry.authorizedIssuers(issuer), "issuer should be authorized");
 
-      const credentialId = web3.utils.soliditySha3('cred-1');
-      const studentHash = web3.utils.soliditySha3('student-1');
-      const documentHash = web3.utils.soliditySha3('doc-1');
+      await expectRevert(
+        registry.revokeIssuer(issuer, { from: outsider }),
+        "Only admin allowed"
+      );
 
-      const tx = await registry.issueCredential(credentialId, studentHash, documentHash, { from: issuer });
-      assert.exists(tx.receipt, 'transaction should have a receipt');
-      assert.equal(tx.receipt.status, true, 'issue transaction should succeed');
+      await registry.revokeIssuer(issuer, { from: admin });
+      assert.isFalse(await registry.authorizedIssuers(issuer), "issuer should be revoked");
+    });
 
-      const cred = await registry.getCredential(credentialId);
-      assert.equal(cred[1], documentHash, 'documentHash stored on-chain should match the issued document hash');
+    it("supports admin transfer and applies new permissions", async () => {
+      await expectRevert(
+        registry.transferAdmin("0x0000000000000000000000000000000000000000", { from: admin }),
+        "New admin is zero address"
+      );
 
-      const t0 = Date.now();
-      const verify = await registry.verifyCredential(credentialId);
-      const t1 = Date.now();
-      const verifyMs = t1 - t0;
+      await registry.transferAdmin(otherIssuer, { from: admin });
+      assert.equal(await registry.admin(), otherIssuer, "admin should be transferred");
 
-      assert.isTrue(verify[0], 'verifyCredential should report the credential as valid');
-      assert.equal(verify[1], issuer, 'verifyCredential should return the correct issuer address');
-      assert.isAbove(Number(verify[2]), 0, 'verifyCredential should return a non-zero issuedAt timestamp');
+      await expectRevert(
+        registry.authorizeIssuer(issuer, { from: admin }),
+        "Only admin allowed"
+      );
 
-      console.log(`\n[Test 1] Authorized issuer ${issuer} issued credential ${short(credentialId)}.`);
-      console.log(`   Document hash on-chain: ${short(cred[1])}`);
-      console.log(`   Verification: valid=${verify[0]}, issuer=${verify[1]}, issuedAt=${verify[2]} (verified in ${verifyMs}ms)\n`);
+      await registry.authorizeIssuer(issuer, { from: otherIssuer });
+      assert.isTrue(await registry.authorizedIssuers(issuer), "new admin should manage issuers");
     });
   });
 
-  /*
-   Test 2: Validate system behavior for invalid inputs and revoked credentials.
-   Checks:
-   - Verifying a non-existent credential must return invalid without reverting
-   - Verifying a revoked credential must return invalid
-   */
-  describe('Test 2: Edge Case', function () {
-    it('should return false for altered or missing credential (no crash)', async () => {
-      const fakeId = web3.utils.soliditySha3('nonexistent');
-
-      const verifyFake = await registry.verifyCredential(fakeId);
-      assert.isFalse(verifyFake[0], 'verification should fail for a non-existent credential');
-      assert.equal(verifyFake[1], '0x0000000000000000000000000000000000000000', 'issuer should be zero address when invalid');
-      assert.equal(Number(verifyFake[2]), 0, 'issuedAt should be zero for invalid credentials');
-
-      console.log(`\n[Test 2] Non-existent credential ${short(fakeId)} correctly reported as invalid.`);
-
-      // Setup a revoked credential and ensure verification fails
+  describe("Issue and verify", () => {
+    it("allows authorized issuer to issue and verify", async () => {
       await registry.authorizeIssuer(issuer, { from: admin });
-      const credentialId = web3.utils.soliditySha3('cred-revoke');
-      const studentHash = web3.utils.soliditySha3('student-x');
-      const documentHash = web3.utils.soliditySha3('doc-x');
+      const payload = makeCredentialPayload("happy");
 
-      await registry.issueCredential(credentialId, studentHash, documentHash, { from: issuer });
-      await registry.revokeCredential(credentialId, { from: issuer });
+      const issueTx = await registry.issueCredential(
+        payload.credentialId,
+        payload.studentHash,
+        payload.documentHash,
+        { from: issuer }
+      );
+      assert.isTrue(issueTx.receipt.status, "issue transaction should succeed");
 
-      const verifyRevoked = await registry.verifyCredential(credentialId);
-      assert.isFalse(verifyRevoked[0], 'revoked credentials must not verify as valid');
+      assert.isTrue(
+        await registry.credentialExists(payload.credentialId),
+        "credential should exist after issue"
+      );
 
-      console.log(`   Revoked credential ${short(credentialId)} verification returned invalid as expected.\n`);
+      const cred = await registry.getCredential(payload.credentialId);
+      assert.equal(cred[0], payload.studentHash, "student hash should match");
+      assert.equal(cred[1], payload.documentHash, "document hash should match");
+      assert.equal(cred[2], issuer, "issuer should match");
+      assert.isAbove(Number(cred[3]), 0, "issuedAt should be non-zero");
+      assert.isFalse(cred[4], "newly issued credential should not be revoked");
+
+      const verify = await registry.verifyCredential(payload.credentialId);
+      assert.isTrue(verify[0], "verifyCredential should be valid");
+      assert.equal(verify[1], issuer, "verify issuer should match");
+      assert.isAbove(Number(verify[2]), 0, "verify issuedAt should be non-zero");
+
+      const verifyDoc = await registry.verifyCredentialDocument(
+        payload.credentialId,
+        payload.documentHash
+      );
+      assert.isTrue(verifyDoc[0], "document verification should pass");
+      assert.equal(verifyDoc[1], issuer, "document verify issuer should match");
+      assert.equal(Number(verifyDoc[3]), 1, "initial version should be 1");
+    });
+
+    it("rejects non-authorized issuer and duplicate credentialId", async () => {
+      const payload = makeCredentialPayload("rules");
+
+      await expectRevert(
+        registry.issueCredential(payload.credentialId, payload.studentHash, payload.documentHash, {
+          from: outsider,
+        }),
+        "Not an authorized issuer"
+      );
+
+      await registry.authorizeIssuer(issuer, { from: admin });
+      await registry.issueCredential(payload.credentialId, payload.studentHash, payload.documentHash, {
+        from: issuer,
+      });
+
+      await expectRevert(
+        registry.issueCredential(payload.credentialId, payload.studentHash, payload.documentHash, {
+          from: issuer,
+        }),
+        "Credential already exists"
+      );
+    });
+
+    it("returns invalid for non-existent verification calls", async () => {
+      const fakeId = makeHash("missing-cred");
+      const fakeDoc = makeHash("missing-doc");
+
+      const verify = await registry.verifyCredential(fakeId);
+      assert.isFalse(verify[0], "non-existent credential should be invalid");
+      assert.equal(verify[1], "0x0000000000000000000000000000000000000000", "issuer should be zero");
+      assert.equal(Number(verify[2]), 0, "issuedAt should be zero");
+
+      const verifyDoc = await registry.verifyCredentialDocument(fakeId, fakeDoc);
+      assert.isFalse(verifyDoc[0], "non-existent credential document check should be invalid");
+      assert.equal(verifyDoc[1], "0x0000000000000000000000000000000000000000", "issuer should be zero");
+      assert.equal(Number(verifyDoc[2]), 0, "issuedAt should be zero");
+      assert.equal(Number(verifyDoc[3]), 0, "version should be zero");
     });
   });
 
-  /*
-   Test 3: Performance test
-   Chwck:
-   - Authorize an issuer and issue N credentials (transactions)
-   - Verify transaction success rate (>= 95%)
-   - Measure verification-only latency by calling verifyCredential for both 
-     existing and non-existent IDs (50/50 mix)
-   - Assert average verification latency is below the threshold and
-     the failure rate for existing credentials is within acceptable limits
-   */
-  describe('Test 3: Performance Test', function () {
+  describe("Reissue rules and hash verification", () => {
+    it("supports reissue by original issuer and increments version", async () => {
+      await registry.authorizeIssuer(issuer, { from: admin });
+      const payload = makeCredentialPayload("reissue");
+      const docV2 = makeHash("doc-v2");
+
+      await registry.issueCredential(payload.credentialId, payload.studentHash, payload.documentHash, {
+        from: issuer,
+      });
+      await registry.reissueCredential(payload.credentialId, payload.studentHash, docV2, {
+        from: issuer,
+      });
+
+      const extended = await registry.getCredentialExtended(payload.credentialId);
+      assert.equal(extended[1], docV2, "document hash should be replaced by reissue");
+      assert.equal(Number(extended[7]), 2, "version should increment to 2");
+
+      const verifyOld = await registry.verifyCredentialDocument(
+        payload.credentialId,
+        payload.documentHash
+      );
+      assert.isFalse(verifyOld[0], "old document hash should fail after reissue");
+
+      const verifyNew = await registry.verifyCredentialDocument(payload.credentialId, docV2);
+      assert.isTrue(verifyNew[0], "new document hash should pass after reissue");
+      assert.equal(Number(verifyNew[3]), 2, "version in verify response should be 2");
+    });
+
+    it("enforces reissue restrictions", async () => {
+      await registry.authorizeIssuer(issuer, { from: admin });
+      await registry.authorizeIssuer(otherIssuer, { from: admin });
+
+      const payload = makeCredentialPayload("reissue-restrictions");
+      const nextDoc = makeHash("next-doc");
+
+      await expectRevert(
+        registry.reissueCredential(payload.credentialId, payload.studentHash, nextDoc, {
+          from: issuer,
+        }),
+        "Credential does not exist"
+      );
+
+      await registry.issueCredential(payload.credentialId, payload.studentHash, payload.documentHash, {
+        from: issuer,
+      });
+
+      await expectRevert(
+        registry.reissueCredential(payload.credentialId, payload.studentHash, nextDoc, {
+          from: otherIssuer,
+        }),
+        "Only original issuer can reissue"
+      );
+
+      await registry.revokeCredential(payload.credentialId, { from: issuer });
+
+      await expectRevert(
+        registry.reissueCredential(payload.credentialId, payload.studentHash, nextDoc, {
+          from: issuer,
+        }),
+        "Credential is revoked"
+      );
+    });
+  });
+
+  describe("Revocation behavior", () => {
+    it("allows issuer or admin to revoke and blocks verification", async () => {
+      await registry.authorizeIssuer(issuer, { from: admin });
+      const payload = makeCredentialPayload("revoke");
+
+      await registry.issueCredential(payload.credentialId, payload.studentHash, payload.documentHash, {
+        from: issuer,
+      });
+      await registry.revokeCredential(payload.credentialId, { from: admin });
+
+      const extended = await registry.getCredentialExtended(payload.credentialId);
+      assert.isTrue(extended[4], "revoked flag should be true");
+      assert.isAbove(Number(extended[5]), 0, "revokedAt should be set");
+      assert.equal(extended[6], admin, "revokedBy should track actor");
+
+      const verify = await registry.verifyCredential(payload.credentialId);
+      assert.isFalse(verify[0], "revoked credential should be invalid");
+
+      const verifyDoc = await registry.verifyCredentialDocument(
+        payload.credentialId,
+        payload.documentHash
+      );
+      assert.isFalse(verifyDoc[0], "revoked credential document check should be invalid");
+    });
+
+    it("rejects revoke attempts by unauthorized actors and duplicate revoke", async () => {
+      await registry.authorizeIssuer(issuer, { from: admin });
+      const payload = makeCredentialPayload("revoke-guards");
+
+      await expectRevert(
+        registry.revokeCredential(payload.credentialId, { from: outsider }),
+        "Credential does not exist"
+      );
+
+      await registry.issueCredential(payload.credentialId, payload.studentHash, payload.documentHash, {
+        from: issuer,
+      });
+
+      await expectRevert(
+        registry.revokeCredential(payload.credentialId, { from: outsider }),
+        "Not authorized to revoke"
+      );
+
+      await registry.revokeCredential(payload.credentialId, { from: issuer });
+
+      await expectRevert(
+        registry.revokeCredential(payload.credentialId, { from: issuer }),
+        "Credential already revoked"
+      );
+    });
+  });
+
+  describe("Performance baseline", function () {
     this.timeout(60000);
 
-    it('should perform verification quickly and maintain high transaction success rate', async () => {
+    it("keeps issue success high and verification latency low", async () => {
       await registry.authorizeIssuer(issuer, { from: admin });
 
-      const N = 100; // # of credentials
-      const issueResults = [];
+      const N = 80;
       const issuedIds = [];
+      let successCount = 0;
 
-      // Issue N credentials and record successful IDs
       for (let i = 0; i < N; i++) {
-        const id = web3.utils.soliditySha3('perf-' + i + '-' + Math.random());
-        const studentHash = web3.utils.soliditySha3('s-' + i + '-' + Math.random());
-        const documentHash = web3.utils.soliditySha3('d-' + i + '-' + Math.random());
+        const payload = makeCredentialPayload(`perf-${i}`);
         try {
-          const tx = await registry.issueCredential(id, studentHash, documentHash, { from: issuer });
-          issueResults.push(tx.receipt && tx.receipt.status === true);
-          if (tx.receipt && tx.receipt.status === true) issuedIds.push(id);
-        } catch (e) {
-          issueResults.push(false);
+          const tx = await registry.issueCredential(
+            payload.credentialId,
+            payload.studentHash,
+            payload.documentHash,
+            { from: issuer }
+          );
+          if (tx.receipt && tx.receipt.status) {
+            successCount += 1;
+            issuedIds.push(payload.credentialId);
+          }
+        } catch (error) {
+          // keep loop running, measured by success rate below
         }
       }
 
-      const successCount = issueResults.filter(Boolean).length;
       const successRate = (successCount / N) * 100;
 
-      // Measure verification-only latency for N calls (50% existing, 50% random)
+      let existingVerifyFailures = 0;
+      const verifyCalls = N;
       const start = Date.now();
-      let verifyFailures = 0;
 
-      for (let i = 0; i < N; i++) {
-        const useExisting = (i % 2 === 0);
-        const idToCheck = useExisting && issuedIds[i / 2] ? issuedIds[i / 2] : web3.utils.soliditySha3('random-' + i + '-' + Math.random());
-        try {
-          const res = await registry.verifyCredential(idToCheck);
-          if (useExisting && (!res[0])) verifyFailures++;
-        } catch (e) {
-          verifyFailures++;
+      for (let i = 0; i < verifyCalls; i++) {
+        const shouldUseExisting = i % 2 === 0;
+        const id = shouldUseExisting && issuedIds[i / 2]
+          ? issuedIds[i / 2]
+          : makeHash(`random-${i}`);
+
+        const result = await registry.verifyCredential(id);
+        if (shouldUseExisting && !result[0]) {
+          existingVerifyFailures += 1;
         }
       }
 
       const elapsedMs = Date.now() - start;
-      const avgMs = elapsedMs / N;
+      const avgMs = elapsedMs / verifyCalls;
+      const allowedFailures = Math.ceil((verifyCalls / 2) * 0.05);
 
-      const allowedFailures = Math.ceil((N / 2) * 0.05);
-
-      // Print a concise performance summary so test output is easy to scan
-      console.log(`\n[Test 3] Performance summary:`);
-      console.log(`   Issued: ${issuedIds.length}/${N} credentials  —  Success rate: ${successRate.toFixed(2)}% (${successCount}/${N})`);
-      console.log(`   Verification calls: ${N} (50% existing / 50% random)`);
-      console.log(`   Avg verification latency: ${avgMs.toFixed(2)}ms`);
-      console.log(`   Verification failures for existing creds: ${verifyFailures}  (allowed: ${allowedFailures})`);
-
-      if (successRate >= 95) console.log('   Transaction success rate target met'); else console.log('   Transaction success rate below target');
-      if (avgMs < 5000) console.log('   Average verification latency target met'); else console.log('   Average verification latency too high');
-      if (verifyFailures <= allowedFailures) console.log('   Verification failure rate within allowed threshold'); else console.log('   Verification failure rate exceeded threshold');
-
-      // Performance assertions
-      assert.isAtLeast(successRate, 95, `transaction success rate should be >= 95% (got ${successRate}%)`);
-      assert.isBelow(avgMs, 5000, `average verification should be < 5000ms (got ${avgMs}ms)`);
-      assert.isAtMost(verifyFailures, allowedFailures, `verification failure count should be <= ${allowedFailures} (got ${verifyFailures})`);
-    });
-  });
-
-  describe('Test 4: Reissue + Hash Verification', function () {
-    it('should support reissue and verify updated document hash', async () => {
-      await registry.authorizeIssuer(issuer, { from: admin });
-
-      const credentialId = web3.utils.soliditySha3('cred-reissue-1');
-      const studentHash = web3.utils.soliditySha3('student-reissue-1');
-      const docV1 = web3.utils.soliditySha3('doc-v1');
-      const docV2 = web3.utils.soliditySha3('doc-v2');
-
-      await registry.issueCredential(credentialId, studentHash, docV1, { from: issuer });
-      await registry.reissueCredential(credentialId, studentHash, docV2, { from: issuer });
-
-      const extended = await registry.getCredentialExtended(credentialId);
-      assert.equal(extended[1], docV2, 'documentHash should be updated after reissue');
-      assert.equal(Number(extended[7]), 2, 'version should increment to 2 after one reissue');
-
-      const verifyOld = await registry.verifyCredentialDocument(credentialId, docV1);
-      assert.isFalse(verifyOld[0], 'old hash should fail verification after reissue');
-
-      const verifyNew = await registry.verifyCredentialDocument(credentialId, docV2);
-      assert.isTrue(verifyNew[0], 'new hash should verify after reissue');
-      assert.equal(Number(verifyNew[3]), 2, 'verify payload should expose new version');
+      assert.isAtLeast(successRate, 95, `issue success rate must be >= 95% (got ${successRate}%)`);
+      assert.isBelow(avgMs, 5000, `average verify latency must be < 5000ms (got ${avgMs}ms)`);
+      assert.isAtMost(
+        existingVerifyFailures,
+        allowedFailures,
+        `existing verify failures must be <= ${allowedFailures} (got ${existingVerifyFailures})`
+      );
     });
   });
 });

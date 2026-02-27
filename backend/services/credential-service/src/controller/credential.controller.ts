@@ -209,6 +209,14 @@ export class CredentialController {
       INVALID_ANCHORED_AT: { code: 400, error: 'Invalid anchoredAt value.' },
       INVALID_ISSUED_DATE: { code: 400, error: 'Invalid issuedDate value.' },
       INVALID_EXPIRY_DATE: { code: 400, error: 'Invalid expiryDate value.' },
+      EXPIRY_DATE_REQUIRED: {
+        code: 400,
+        error: 'expiryDate is required when issuing license or professional certificate credentials.',
+      },
+      INVALID_CERTIFICATE_CATEGORY: {
+        code: 400,
+        error: 'Invalid certificateCategory. Use ACADEMIC or PROFESSIONAL.',
+      },
       INVALID_BLOCK_NUMBER: { code: 400, error: 'Invalid blockNumber value.' },
       INVALID_AI_SCORE: { code: 400, error: 'Invalid aiScore value.' },
       INVALID_METADATA_JSON: { code: 400, error: 'Invalid metadata JSON value.' },
@@ -226,6 +234,10 @@ export class CredentialController {
       BLOCKCHAIN_REVOKE_FAILED: {
         code: 502,
         error: 'Failed to revoke credential on blockchain.',
+      },
+      BLOCKCHAIN_INTERFACE_UNREACHABLE: {
+        code: 503,
+        error: 'Blockchain interface service is unreachable. Please try again in a moment.',
       },
     };
 

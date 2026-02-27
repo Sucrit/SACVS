@@ -110,6 +110,8 @@ export class CredentialRepository {
     blockNumber: number | null;
     anchoredAt: Date | null;
     issuedDate: Date | null;
+    expiryDate: Date | null;
+    metadata: Prisma.JsonValue | null;
     student: {
       institutionId: string | null;
     };
@@ -129,6 +131,8 @@ export class CredentialRepository {
         blockNumber: true,
         anchoredAt: true,
         issuedDate: true,
+        expiryDate: true,
+        metadata: true,
         student: {
           select: {
             institutionId: true,

@@ -33,7 +33,7 @@ services:
       - PRISMA_SCHEMA_PATH=/prisma/schema.prisma
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY:-}
       - CLERK_ADMIN_SECRET_KEY=${CLERK_ADMIN_SECRET_KEY:-}
-      - BLOCKCHAIN_RPC_URL=http://host.docker.internal:7545
+      - BLOCKCHAIN_RPC_URL=http://host.docker.internal:7546
       - BLOCKCHAIN_CONTRACT_ADDRESS=${BLOCKCHAIN_CONTRACT_ADDRESS:-0x091BbE5f369FB8e3e34ec340675dc2dC22810642}
       - AI_SERVICE_URL=${AI_SERVICE_URL:-}
       - AI_ENABLED=${AI_ENABLED:-true}

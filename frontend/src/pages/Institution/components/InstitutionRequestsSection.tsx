@@ -1,7 +1,7 @@
 import { Check, ClipboardCheck, FileText, RefreshCw, Search, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
-import { CredentialRequest } from '../../../services/credential.service';
+import { CredentialRequest, CredentialType } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
 import { REQUEST_STATUS_OPTIONS, RequestStatusFilter } from '../types';
 import { formatDate } from '../utils';
@@ -15,6 +15,8 @@ interface InstitutionRequestsSectionProps {
   selectedRequestIds: string[];
   rejectionReasonByRequestId: Record<string, string>;
   issueFileByRequestId: Record<string, File | null>;
+  issueExpiryByRequestId: Record<string, string>;
+  issueCertificateCategoryByRequestId: Record<string, CertificateCategory>;
   updatingRequestId: string | null;
   onRefresh: () => void;
   onSearchChange: (value: string) => void;
@@ -22,9 +24,21 @@ interface InstitutionRequestsSectionProps {
   onToggleRequest: (requestId: string) => void;
   onReasonChange: (requestId: string, reason: string) => void;
   onIssueFileChange: (requestId: string, file: File | null) => void;
+  onIssueExpiryChange: (requestId: string, expiryDate: string) => void;
+  onIssueCertificateCategoryChange: (requestId: string, value: CertificateCategory) => void;
   onRequestAction: (requestId: string, action: 'APPROVE' | 'REJECT' | 'ISSUE') => Promise<void>;
   onBulkAction: (action: 'APPROVE' | 'REJECT' | 'ISSUE') => Promise<void>;
 }
+
+const EXPIRY_ALLOWED_TYPES: CredentialType[] = ['CERTIFICATE', 'LICENSE'];
+type CertificateCategory = 'ACADEMIC' | 'PROFESSIONAL';
+const DEFAULT_CERTIFICATE_CATEGORY: CertificateCategory = 'ACADEMIC';
+const CERTIFICATE_CATEGORIES: CertificateCategory[] = ['ACADEMIC', 'PROFESSIONAL'];
+const supportsExpiryDate = (type: CredentialType) => EXPIRY_ALLOWED_TYPES.includes(type);
+const requiresExpiryDate = (
+  type: CredentialType,
+  certificateCategory: CertificateCategory = DEFAULT_CERTIFICATE_CATEGORY,
+) => type === 'LICENSE' || (type === 'CERTIFICATE' && certificateCategory === 'PROFESSIONAL');
 
 export default function InstitutionRequestsSection({
   requests,
@@ -35,6 +49,8 @@ export default function InstitutionRequestsSection({
   selectedRequestIds,
   rejectionReasonByRequestId,
   issueFileByRequestId,
+  issueExpiryByRequestId,
+  issueCertificateCategoryByRequestId,
   updatingRequestId,
   onRefresh,
   onSearchChange,
@@ -42,6 +58,8 @@ export default function InstitutionRequestsSection({
   onToggleRequest,
   onReasonChange,
   onIssueFileChange,
+  onIssueExpiryChange,
+  onIssueCertificateCategoryChange,
   onRequestAction,
   onBulkAction,
 }: InstitutionRequestsSectionProps) {
@@ -101,6 +119,8 @@ export default function InstitutionRequestsSection({
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Document</th>
                 <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Certificate Mode</th>
+                <th className="px-4 py-3">Expiry Date</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Reason</th>
                 <th className="px-4 py-3 text-right">Actions</th>
@@ -109,20 +129,28 @@ export default function InstitutionRequestsSection({
             <tbody className="divide-y divide-slate-100 bg-white">
               {isLoadingRequests && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={9} className="px-5 py-8 text-center text-sm text-slate-500">
                     Loading verification requests...
                   </td>
                 </tr>
               )}
               {!isLoadingRequests && requests.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={9} className="px-5 py-8 text-center text-sm text-slate-500">
                     No requests available.
                   </td>
                 </tr>
               )}
               {!isLoadingRequests && requests.map(request => (
                 <tr key={request.id} className="hover:bg-slate-50/70">
+                  {(() => {
+                    const requestCertificateCategory =
+                      request.type === 'CERTIFICATE'
+                        ? issueCertificateCategoryByRequestId[request.id] || DEFAULT_CERTIFICATE_CATEGORY
+                        : DEFAULT_CERTIFICATE_CATEGORY;
+                    const requestRequiresExpiry = requiresExpiryDate(request.type, requestCertificateCategory);
+                    return (
+                      <>
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
@@ -152,6 +180,40 @@ export default function InstitutionRequestsSection({
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600">{formatDate(request.createdAt)}</td>
+                  <td className="px-4 py-3">
+                    {request.type === 'CERTIFICATE' ? (
+                      <select
+                        value={requestCertificateCategory}
+                        onChange={event => onIssueCertificateCategoryChange(request.id, event.target.value as CertificateCategory)}
+                        className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none"
+                      >
+                        {CERTIFICATE_CATEGORIES.map(category => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="text-xs text-slate-400">Not applicable</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {supportsExpiryDate(request.type) ? (
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-500">Expiry</p>
+                        <input
+                          type="date"
+                          value={issueExpiryByRequestId[request.id] || ''}
+                          onChange={event => onIssueExpiryChange(request.id, event.target.value)}
+                          aria-label="Expiry Date"
+                          className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none"
+                          required={requestRequiresExpiry}
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-400">Not applicable</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3"><Badge status={request.status} /></td>
                   <td className="px-4 py-3">
                     <input
@@ -179,10 +241,20 @@ export default function InstitutionRequestsSection({
                           {issueFileByRequestId[request.id]?.name ? 'Change File' : 'Attach File'}
                         </label>
                         <button
-                          disabled={updatingRequestId === request.id || (!request.credentialId && !issueFileByRequestId[request.id])}
+                          disabled={
+                            updatingRequestId === request.id ||
+                            (!request.credentialId && !issueFileByRequestId[request.id]) ||
+                            (requestRequiresExpiry && !issueExpiryByRequestId[request.id])
+                          }
                           onClick={() => void onRequestAction(request.id, 'ISSUE')}
                           className="rounded-lg border border-cyan-200 bg-cyan-50 p-2 text-cyan-700 hover:bg-cyan-100 disabled:opacity-50"
-                          title={!request.credentialId && !issueFileByRequestId[request.id] ? 'Attach a file to issue this credential.' : 'Issue'}
+                          title={
+                            !request.credentialId && !issueFileByRequestId[request.id]
+                              ? 'Attach a file to issue this credential.'
+                              : requestRequiresExpiry && !issueExpiryByRequestId[request.id]
+                                ? 'Set an expiry date before issuing this credential.'
+                                : 'Issue'
+                          }
                         >
                           <ClipboardCheck size={16} />
                         </button>
@@ -191,6 +263,9 @@ export default function InstitutionRequestsSection({
                       <span className="text-xs text-slate-500">Completed</span>
                     )}
                   </td>
+                      </>
+                    );
+                  })()}
                 </tr>
               ))}
             </tbody>

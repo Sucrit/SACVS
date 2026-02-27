@@ -33,16 +33,21 @@ export class BlockchainClient {
       throw new Error('BLOCKCHAIN_INTERFACE_UNAVAILABLE');
     }
 
-    const response = await fetch(`${baseUrl}/blockchain/credentials/anchor`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(ENV.INTERNAL_SERVICE_TOKEN
-          ? { 'x-internal-service-token': ENV.INTERNAL_SERVICE_TOKEN }
-          : {}),
-      },
-      body: JSON.stringify(payload),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}/blockchain/credentials/anchor`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(ENV.INTERNAL_SERVICE_TOKEN
+            ? { 'x-internal-service-token': ENV.INTERNAL_SERVICE_TOKEN }
+            : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      throw new Error('BLOCKCHAIN_INTERFACE_UNREACHABLE');
+    }
 
     if (!response.ok) {
       const responseText = await response.text();
@@ -60,16 +65,21 @@ export class BlockchainClient {
       throw new Error('BLOCKCHAIN_INTERFACE_UNAVAILABLE');
     }
 
-    const response = await fetch(`${baseUrl}/blockchain/credentials/revoke`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(ENV.INTERNAL_SERVICE_TOKEN
-          ? { 'x-internal-service-token': ENV.INTERNAL_SERVICE_TOKEN }
-          : {}),
-      },
-      body: JSON.stringify(payload),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}/blockchain/credentials/revoke`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(ENV.INTERNAL_SERVICE_TOKEN
+            ? { 'x-internal-service-token': ENV.INTERNAL_SERVICE_TOKEN }
+            : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      throw new Error('BLOCKCHAIN_INTERFACE_UNREACHABLE');
+    }
 
     if (!response.ok) {
       const responseText = await response.text();

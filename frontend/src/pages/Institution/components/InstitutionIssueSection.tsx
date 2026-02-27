@@ -13,6 +13,16 @@ import { formatDateTime, getStudentFullName } from '../utils';
 
 const CREDENTIAL_TYPES: CredentialType[] = ['TRANSCRIPT', 'DIPLOMA', 'CERTIFICATE', 'DEGREE', 'LICENSE'];
 const CREDENTIAL_STATUSES: CredentialStatus[] = ['PENDING', 'AI_REVIEW', 'ISSUED', 'REVOKED', 'EXPIRED'];
+const EXPIRY_ALLOWED_TYPES: CredentialType[] = ['CERTIFICATE', 'LICENSE'];
+type CertificateCategory = 'ACADEMIC' | 'PROFESSIONAL';
+const DEFAULT_CERTIFICATE_CATEGORY: CertificateCategory = 'ACADEMIC';
+const CERTIFICATE_CATEGORIES: CertificateCategory[] = ['ACADEMIC', 'PROFESSIONAL'];
+
+const supportsExpiryDate = (type: CredentialType) => EXPIRY_ALLOWED_TYPES.includes(type);
+const requiresExpiryDate = (
+  type: CredentialType,
+  certificateCategory: CertificateCategory = DEFAULT_CERTIFICATE_CATEGORY,
+) => type === 'LICENSE' || (type === 'CERTIFICATE' && certificateCategory === 'PROFESSIONAL');
 
 interface InstitutionIssueSectionProps {
   students: User[];
@@ -21,7 +31,11 @@ interface InstitutionIssueSectionProps {
   requests: CredentialRequest[];
   isLoadingRequests: boolean;
   issueFileByRequestId: Record<string, File | null>;
+  issueExpiryByRequestId: Record<string, string>;
+  issueCertificateCategoryByRequestId: Record<string, CertificateCategory>;
   onIssueFileChange: (requestId: string, file: File | null) => void;
+  onIssueExpiryChange: (requestId: string, expiryDate: string) => void;
+  onIssueCertificateCategoryChange: (requestId: string, value: CertificateCategory) => void;
   onRequestAction: (requestId: string, action: 'APPROVE' | 'REJECT' | 'ISSUE') => Promise<void>;
   onRefresh: () => void;
   onDirectIssue: (payload: {
@@ -29,6 +43,8 @@ interface InstitutionIssueSectionProps {
     type: CredentialType;
     title: string;
     description?: string;
+    expiryDate?: string;
+    certificateCategory?: CertificateCategory;
     file: File;
   }) => Promise<Credential>;
   onCredentialStatusUpdate: (credentialId: string, status: CredentialStatus) => Promise<void>;
@@ -42,7 +58,11 @@ export default function InstitutionIssueSection({
   requests,
   isLoadingRequests,
   issueFileByRequestId,
+  issueExpiryByRequestId,
+  issueCertificateCategoryByRequestId,
   onIssueFileChange,
+  onIssueExpiryChange,
+  onIssueCertificateCategoryChange,
   onRequestAction,
   onRefresh,
   onDirectIssue,
@@ -54,6 +74,8 @@ export default function InstitutionIssueSection({
     type: 'TRANSCRIPT' as CredentialType,
     title: '',
     description: '',
+    expiryDate: '',
+    certificateCategory: DEFAULT_CERTIFICATE_CATEGORY as CertificateCategory,
   });
   const [directFile, setDirectFile] = useState<File | null>(null);
   const [directIssueError, setDirectIssueError] = useState<string | null>(null);
@@ -110,6 +132,10 @@ export default function InstitutionIssueSection({
       setDirectIssueError('Attach a credential file before issuing.');
       return;
     }
+    if (requiresExpiryDate(directForm.type, directForm.certificateCategory) && !directForm.expiryDate) {
+      setDirectIssueError('Expiry date is required for license and professional certificate credentials.');
+      return;
+    }
 
     setIsDirectIssuing(true);
     try {
@@ -118,6 +144,8 @@ export default function InstitutionIssueSection({
         type: directForm.type,
         title,
         description: description || undefined,
+        expiryDate: supportsExpiryDate(directForm.type) && directForm.expiryDate ? directForm.expiryDate : undefined,
+        certificateCategory: directForm.type === 'CERTIFICATE' ? directForm.certificateCategory : undefined,
         file: directFile,
       });
       setDirectForm({
@@ -125,6 +153,8 @@ export default function InstitutionIssueSection({
         type: 'TRANSCRIPT',
         title: '',
         description: '',
+        expiryDate: '',
+        certificateCategory: DEFAULT_CERTIFICATE_CATEGORY,
       });
       setDirectFile(null);
     } catch (error) {
@@ -183,7 +213,17 @@ export default function InstitutionIssueSection({
             </select>
             <select
               value={directForm.type}
-              onChange={event => setDirectForm(previous => ({ ...previous, type: event.target.value as CredentialType }))}
+              onChange={event =>
+                setDirectForm(previous => {
+                  const nextType = event.target.value as CredentialType;
+                  return {
+                    ...previous,
+                    type: nextType,
+                    expiryDate: supportsExpiryDate(nextType) ? previous.expiryDate : '',
+                    certificateCategory: nextType === 'CERTIFICATE' ? previous.certificateCategory : DEFAULT_CERTIFICATE_CATEGORY,
+                  };
+                })
+              }
               className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
             >
               {CREDENTIAL_TYPES.map(type => (
@@ -205,6 +245,37 @@ export default function InstitutionIssueSection({
               placeholder="Description (optional)"
               className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
             />
+            {directForm.type === 'CERTIFICATE' && (
+              <select
+                value={directForm.certificateCategory}
+                onChange={event =>
+                  setDirectForm(previous => ({
+                    ...previous,
+                    certificateCategory: event.target.value as CertificateCategory,
+                  }))
+                }
+                className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+              >
+                {CERTIFICATE_CATEGORIES.map(category => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            )}
+            {supportsExpiryDate(directForm.type) && (
+              <div className="space-y-1">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">Expiry Date</p>
+                <input
+                  type="date"
+                  value={directForm.expiryDate}
+                  onChange={event => setDirectForm(previous => ({ ...previous, expiryDate: event.target.value }))}
+                  aria-label="Expiry Date"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  required={requiresExpiryDate(directForm.type, directForm.certificateCategory)}
+                />
+              </div>
+            )}
           </div>
 
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100">
@@ -240,7 +311,9 @@ export default function InstitutionIssueSection({
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Request</th>
                 <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Certificate Mode</th>
                 <th className="px-4 py-3">Requested</th>
+                <th className="px-4 py-3">Expiry Date</th>
                 <th className="px-4 py-3">File</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
@@ -248,14 +321,14 @@ export default function InstitutionIssueSection({
             <tbody className="divide-y divide-slate-100 bg-white">
               {isLoadingRequests && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-500">
                     Loading approved requests...
                   </td>
                 </tr>
               )}
               {!isLoadingRequests && readyToIssue.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-500">
                     No approved requests ready for issuance.
                   </td>
                 </tr>
@@ -263,13 +336,55 @@ export default function InstitutionIssueSection({
               {!isLoadingRequests &&
                 readyToIssue.map(request => (
                   <tr key={request.id} className="hover:bg-slate-50/70">
+                    {(() => {
+                      const requestCertificateCategory =
+                        request.type === 'CERTIFICATE'
+                          ? issueCertificateCategoryByRequestId[request.id] || DEFAULT_CERTIFICATE_CATEGORY
+                          : DEFAULT_CERTIFICATE_CATEGORY;
+                      const requestRequiresExpiry = requiresExpiryDate(request.type, requestCertificateCategory);
+                      return (
+                        <>
                     <td className="px-4 py-3 text-sm text-slate-700">{studentNameById.get(request.studentId) || request.studentId}</td>
                     <td className="px-4 py-3">
                       <p className="text-sm font-semibold text-slate-900">{request.title}</p>
                       <p className="mt-1 text-xs text-slate-500">{request.id}</p>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{request.type}</td>
+                    <td className="px-4 py-3">
+                      {request.type === 'CERTIFICATE' ? (
+                        <select
+                          value={requestCertificateCategory}
+                          onChange={event => onIssueCertificateCategoryChange(request.id, event.target.value as CertificateCategory)}
+                          className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none"
+                        >
+                          {CERTIFICATE_CATEGORIES.map(category => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-xs text-slate-400">Not applicable</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{formatDateTime(request.createdAt)}</td>
+                    <td className="px-4 py-3">
+                      {supportsExpiryDate(request.type) ? (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-500">Expiry</p>
+                          <input
+                            type="date"
+                            value={issueExpiryByRequestId[request.id] || ''}
+                            onChange={event => onIssueExpiryChange(request.id, event.target.value)}
+                            aria-label="Expiry Date"
+                            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none"
+                            required={requestRequiresExpiry}
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">Not applicable</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100">
                         <input
@@ -284,15 +399,27 @@ export default function InstitutionIssueSection({
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        disabled={!request.credentialId && !issueFileByRequestId[request.id]}
+                        disabled={
+                          (!request.credentialId && !issueFileByRequestId[request.id]) ||
+                          (requestRequiresExpiry && !issueExpiryByRequestId[request.id])
+                        }
                         onClick={() => void onRequestAction(request.id, 'ISSUE')}
                         className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
-                        title={!request.credentialId && !issueFileByRequestId[request.id] ? 'Attach a file to issue this credential.' : 'Issue Credential'}
+                        title={
+                          !request.credentialId && !issueFileByRequestId[request.id]
+                            ? 'Attach a file to issue this credential.'
+                            : requestRequiresExpiry && !issueExpiryByRequestId[request.id]
+                              ? 'Set an expiry date before issuing this credential.'
+                              : 'Issue Credential'
+                        }
                       >
                         <ClipboardCheck size={13} />
                         Issue
                       </button>
                     </td>
+                        </>
+                      );
+                    })()}
                   </tr>
                 ))}
             </tbody>
