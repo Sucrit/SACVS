@@ -89,6 +89,16 @@ services:
       - AI_SERVICE_URL=http://ai-interface-service:5500
       - RATE_LIMIT_MAX=200
 
+  ai-model-service:
+    build: ./backend/ai-model-service
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./backend/ai-model-service:/app
+      - /app/node_modules
+    environment:
+      - MODEL_PATH=/app/models/fraud.pkl
+
   ai-interface-service:
     build: ./backend/services/ai-interface-service
     ports:
@@ -103,15 +113,16 @@ services:
       - PRISMA_SCHEMA_PATH=/prisma/schema.prisma
       - CREDENTIAL_SERVICE_URL=http://credential-service:5100
       - AI_ENABLED=${AI_ENABLED:-true}
-      - AI_PROVIDER=${AI_PROVIDER:-managed}
+      - AI_PROVIDER=${AI_PROVIDER:-ml}
       - AI_MANAGED_ENDPOINT=${AI_MANAGED_ENDPOINT:-}
-      - AI_MODEL=${AI_MODEL:-managed-fraud-v1}
+      - AI_MODEL=${AI_MODEL:-logistic-regression-fraud-v1}
       - AI_MODEL_VERSION=${AI_MODEL_VERSION:-v1}
       - AI_SCORE_CLEAR_THRESHOLD=${AI_SCORE_CLEAR_THRESHOLD:-0.35}
       - AI_SCORE_BLOCK_THRESHOLD=${AI_SCORE_BLOCK_THRESHOLD:-0.70}
       - AI_QUEUE_CONCURRENCY=${AI_QUEUE_CONCURRENCY:-3}
       - AI_QUEUE_RETRY_LIMIT=${AI_QUEUE_RETRY_LIMIT:-3}
       - AI_QUEUE_RETRY_DELAY_SECONDS=${AI_QUEUE_RETRY_DELAY_SECONDS:-30}
+      - AI_MODEL_SERVICE_URL=${AI_MODEL_SERVICE_URL:-http://ai-model-service:5001}
       - INTERNAL_SERVICE_TOKEN=${INTERNAL_SERVICE_TOKEN:-}
 
   frontend:

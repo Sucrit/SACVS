@@ -12,6 +12,7 @@
   "dependencies": {
     "@prisma/client": "^7.4.0",
     "dotenv": "^17.3.1",
+    "pg": "^8.19.0",
     "prisma": "^7.4.0"
   },
   "devDependencies": {

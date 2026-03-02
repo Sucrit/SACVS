@@ -1,0 +1,2 @@
+label_fraud,credential_type,credential_status,mime_type,filename_len,has_file_hash,duplicate_hash_count,cross_institution_hash_reuse,ai_score_prev,issuer_role,student_status
+0,TRANSCRIPT,PENDING,image/png,12,1,1,0,0,INSTITUTION,APPROVED

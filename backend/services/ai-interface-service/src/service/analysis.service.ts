@@ -13,6 +13,10 @@ const resolveProvider = (): AiFraudProvider => {
   if (ENV.AI_PROVIDER === 'rule_only') {
     return new RuleOnlyProvider();
   }
+  if (ENV.AI_PROVIDER === 'ml') {
+    const { MlProvider } = require('../providers/ml.provider');
+    return new MlProvider();
+  }
   return new ManagedProvider();
 };
 

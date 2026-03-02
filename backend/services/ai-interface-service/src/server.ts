@@ -11,6 +11,7 @@ interface AnalyzeJobData {
 
 const bootstrap = async () => {
   await pgBoss.start();
+  await pgBoss.createQueue(ANALYZE_JOB_NAME);
   await pgBoss.work<AnalyzeJobData>(
     ANALYZE_JOB_NAME,
     {
