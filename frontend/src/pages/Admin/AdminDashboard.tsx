@@ -15,6 +15,7 @@ import {
   UserRoundCheck,
   Users,
 } from 'lucide-react';
+import { Credential, CredentialAiReport, CredentialService } from '../../services/credential.service';
 import { User, UserRole, UserService, UserStatus } from '../../services/user.service';
 
 type AdminSection = 'overview' | 'users' | 'logs' | 'settings';
@@ -73,6 +74,13 @@ const getSection = (pathname: string): AdminSection => {
   return 'overview';
 };
 
+const getApiErrorMessage = (error: unknown): string | null => {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+  return null;
+};
+
 export default function AdminDashboard() {
   const location = useLocation();
   const section = getSection(location.pathname);
@@ -82,6 +90,14 @@ export default function AdminDashboard() {
   const [usersError, setUsersError] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
   const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
+  const [aiQueue, setAiQueue] = useState<Credential[]>([]);
+  const [isLoadingAiQueue, setIsLoadingAiQueue] = useState(false);
+  const [aiQueueError, setAiQueueError] = useState<string | null>(null);
+  const [selectedAiCredentialId, setSelectedAiCredentialId] = useState<string | null>(null);
+  const [selectedAiReport, setSelectedAiReport] = useState<CredentialAiReport | null>(null);
+  const [isLoadingAiReport, setIsLoadingAiReport] = useState(false);
+  const [aiActionCredentialId, setAiActionCredentialId] = useState<string | null>(null);
+  const [overrideReasonByCredentialId, setOverrideReasonByCredentialId] = useState<Record<string, string>>({});
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
@@ -107,6 +123,78 @@ export default function AdminDashboard() {
   useEffect(() => {
     void loadUsers();
   }, [loadUsers]);
+
+  const loadAiQueue = useCallback(async () => {
+    setIsLoadingAiQueue(true);
+    setAiQueueError(null);
+    try {
+      const queue = await CredentialService.listAiQueue();
+      setAiQueue(queue);
+    } catch (error) {
+      setAiQueue([]);
+      setAiQueueError(getApiErrorMessage(error) || 'Unable to load AI queue.');
+    } finally {
+      setIsLoadingAiQueue(false);
+    }
+  }, []);
+
+  const refreshAiReport = useCallback(async (credentialId: string) => {
+    setIsLoadingAiReport(true);
+    try {
+      const report = await CredentialService.getAiReport(credentialId);
+      setSelectedAiReport(report);
+      setSelectedAiCredentialId(credentialId);
+    } catch (error) {
+      setSelectedAiReport(null);
+      setAiQueueError(getApiErrorMessage(error) || 'Unable to load AI report.');
+    } finally {
+      setIsLoadingAiReport(false);
+    }
+  }, []);
+
+  const handleAdminAiAction = useCallback(
+    async (credentialId: string, action: 'APPROVE' | 'REJECT' | 'OVERRIDE') => {
+      setAiActionCredentialId(credentialId);
+      setAiQueueError(null);
+      try {
+        await CredentialService.reviewAi(credentialId, {
+          action,
+          reason: overrideReasonByCredentialId[credentialId],
+          label: action === 'REJECT' ? 'FRAUD' : 'UNSURE',
+        });
+        await loadAiQueue();
+        await refreshAiReport(credentialId);
+      } catch (error) {
+        setAiQueueError(getApiErrorMessage(error) || 'Unable to apply AI action.');
+      } finally {
+        setAiActionCredentialId(null);
+      }
+    },
+    [loadAiQueue, overrideReasonByCredentialId, refreshAiReport],
+  );
+
+  const handleAdminAiReanalyze = useCallback(
+    async (credentialId: string) => {
+      setAiActionCredentialId(credentialId);
+      setAiQueueError(null);
+      try {
+        await CredentialService.reanalyzeAi(credentialId);
+        await loadAiQueue();
+        await refreshAiReport(credentialId);
+      } catch (error) {
+        setAiQueueError(getApiErrorMessage(error) || 'Unable to queue AI reanalysis.');
+      } finally {
+        setAiActionCredentialId(null);
+      }
+    },
+    [loadAiQueue, refreshAiReport],
+  );
+
+  useEffect(() => {
+    if (section === 'logs') {
+      void loadAiQueue();
+    }
+  }, [loadAiQueue, section]);
 
   const totalUsers = users.length;
   const approvedUsers = users.filter(user => user.status === 'APPROVED').length;
@@ -595,13 +683,143 @@ export default function AdminDashboard() {
   );
 
   const renderLogsPlaceholder = () => (
-    <Card title="System Logs & Reports">
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-        <p className="text-sm text-slate-700">
-          Audit logs and operational reports are available here for compliance and traceability.
-        </p>
-      </div>
-    </Card>
+    <div className="space-y-4">
+      {aiQueueError && (
+        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <AlertCircle size={16} />
+          {aiQueueError}
+        </div>
+      )}
+      <Card
+        title="AI Review Queue"
+        action={
+          <button
+            onClick={() => void loadAiQueue()}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </button>
+        }
+      >
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Credential</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">AI Decision</th>
+                <th className="px-4 py-3">Review</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {isLoadingAiQueue && (
+                <tr>
+                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-500">
+                    Loading AI queue...
+                  </td>
+                </tr>
+              )}
+              {!isLoadingAiQueue && aiQueue.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-500">
+                    No credentials in AI queue.
+                  </td>
+                </tr>
+              )}
+              {!isLoadingAiQueue &&
+                aiQueue.map(credential => (
+                  <tr key={credential.id} className="hover:bg-slate-50/70">
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-semibold text-slate-900">{credential.title}</p>
+                      <p className="mt-1 text-xs text-slate-500">{credential.id}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge status={credential.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge status={credential.aiDecision || 'PENDING'} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge status={credential.aiReviewStatus || 'PENDING'} />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => void refreshAiReport(credential.id)}
+                          className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                        >
+                          Report
+                        </button>
+                        <button
+                          onClick={() => void handleAdminAiReanalyze(credential.id)}
+                          disabled={aiActionCredentialId === credential.id}
+                          className="inline-flex h-9 items-center rounded-lg border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
+                        >
+                          Reanalyze
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Card title="AI Report Detail">
+        {isLoadingAiReport && <p className="text-sm text-slate-500">Loading report...</p>}
+        {!isLoadingAiReport && !selectedAiCredentialId && (
+          <p className="text-sm text-slate-500">Select a credential report from the AI queue.</p>
+        )}
+        {!isLoadingAiReport && selectedAiCredentialId && selectedAiReport && (
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge status={selectedAiReport.aiDecision || 'PENDING'} />
+              <Badge status={selectedAiReport.aiReviewStatus || 'PENDING'} />
+            </div>
+            <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              {(selectedAiReport.aiReport?.summary as string) || 'No AI summary available.'}
+            </p>
+            <input
+              value={overrideReasonByCredentialId[selectedAiCredentialId] || ''}
+              onChange={event =>
+                setOverrideReasonByCredentialId(previous => ({
+                  ...previous,
+                  [selectedAiCredentialId]: event.target.value,
+                }))
+              }
+              placeholder="Override reason (required for OVERRIDE)"
+              className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => void handleAdminAiAction(selectedAiCredentialId, 'APPROVE')}
+                disabled={aiActionCredentialId === selectedAiCredentialId}
+                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
+              >
+                Approve
+              </button>
+              <button
+                onClick={() => void handleAdminAiAction(selectedAiCredentialId, 'REJECT')}
+                disabled={aiActionCredentialId === selectedAiCredentialId}
+                className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:opacity-50"
+              >
+                Reject
+              </button>
+              <button
+                onClick={() => void handleAdminAiAction(selectedAiCredentialId, 'OVERRIDE')}
+                disabled={aiActionCredentialId === selectedAiCredentialId}
+                className="rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
+              >
+                Override
+              </button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 
   const renderSettingsPlaceholder = () => (

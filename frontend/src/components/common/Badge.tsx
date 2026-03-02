@@ -10,7 +10,12 @@ type BadgeStatus =
   | 'AI_REVIEW'
   | 'EXPIRED'
   | 'COMPLETED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'CLEAR'
+  | 'REVIEW_REQUIRED'
+  | 'BLOCK'
+  | 'FAILED'
+  | 'OVERRIDDEN';
 
 interface BadgeProps {
   status: BadgeStatus;
@@ -28,6 +33,11 @@ const statusStyles: Record<BadgeStatus, string> = {
   EXPIRED: 'bg-zinc-100 text-zinc-700 border-zinc-300',
   COMPLETED: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   CANCELLED: 'bg-neutral-100 text-neutral-700 border-neutral-300',
+  CLEAR: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  REVIEW_REQUIRED: 'bg-amber-50 text-amber-800 border-amber-200',
+  BLOCK: 'bg-rose-50 text-rose-800 border-rose-200',
+  FAILED: 'bg-orange-50 text-orange-800 border-orange-200',
+  OVERRIDDEN: 'bg-cyan-50 text-cyan-800 border-cyan-200',
 };
 
 export default function Badge({ status, className }: BadgeProps) {

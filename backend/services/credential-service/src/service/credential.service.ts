@@ -1,18 +1,28 @@
 import {
+  AiDecision,
+  AiReviewStatus,
   CredentialType,
   CredentialStatus,
+  FraudLabel,
+  FraudLabelSource,
+  NotificationType,
   Prisma,
   Role,
 } from '../../../../db/node_modules/@prisma/client';
 import { CredentialRepository } from '../repository/credential.repository';
 import {
+  AiReviewCredentialDto,
   CreateCredentialDto,
+  CredentialAiQueueQueryDto,
+  InternalAiResultDto,
   IssueCredentialDto,
   ListCredentialsQueryDto,
   UpdateCredentialStatusDto,
 } from '../dto/credential.dto';
 import { notificationClient } from '../client/notification.client';
 import { blockchainClient } from '../client/blockchain.client';
+import { aiClient } from '../client/ai.client';
+import { ENV } from '../config/env';
 
 const credentialRepository = new CredentialRepository();
 
@@ -33,6 +43,8 @@ const NON_EXPIRING_TYPES = new Set<CredentialType>([
 ]);
 const CERTIFICATE_CATEGORIES = new Set(['ACADEMIC', 'PROFESSIONAL'] as const);
 type CertificateCategory = 'ACADEMIC' | 'PROFESSIONAL';
+const AI_SCORE_CLEAR_THRESHOLD = ENV.AI_SCORE_CLEAR_THRESHOLD;
+const AI_SCORE_BLOCK_THRESHOLD = ENV.AI_SCORE_BLOCK_THRESHOLD;
 
 const parseOptionalString = (value?: string | null): string | null => {
   if (typeof value !== 'string') return null;
@@ -208,6 +220,78 @@ export class CredentialService {
     }
   }
 
+  private async createAuditEntry(payload: {
+    action: Prisma.AuditLogUncheckedCreateInput['action'];
+    actorId?: string | null;
+    actorRole?: `${Role}`;
+    targetType?: string;
+    targetId?: string;
+    description?: string;
+    metadata?: Prisma.InputJsonValue | null;
+    severity?: Prisma.AuditLogUncheckedCreateInput['severity'];
+  }): Promise<void> {
+    try {
+      await credentialRepository.createAuditLog({
+        action: payload.action,
+        actorId: payload.actorId,
+        actorRole: payload.actorRole,
+        targetType: payload.targetType,
+        targetId: payload.targetId,
+        description: payload.description,
+        metadata: payload.metadata,
+        severity: payload.severity,
+      });
+    } catch (error) {
+      console.error('Failed to write credential audit entry:', error);
+    }
+  }
+
+  private async queueAiAnalysis(credentialId: string, reason: 'CREATE' | 'REISSUE' | 'REANALYZE'): Promise<void> {
+    if (!ENV.AI_ENABLED) {
+      return;
+    }
+
+    try {
+      await aiClient.queueAnalyze({ credentialId, reason });
+      await this.createAuditEntry({
+        action: 'AI_VALIDATION_RUN',
+        targetType: 'Credential',
+        targetId: credentialId,
+        description: `Queued AI analysis (${reason})`,
+        metadata: {
+          reason,
+        },
+      });
+    } catch (error) {
+      await this.createAuditEntry({
+        action: 'AI_VALIDATION_FAILED',
+        severity: 'WARNING',
+        targetType: 'Credential',
+        targetId: credentialId,
+        description: `Failed to queue AI analysis (${reason})`,
+      });
+      console.error('Failed queueing AI analysis:', error);
+    }
+  }
+
+  private canIssueWithAiGate(scope: {
+    status: CredentialStatus;
+    aiDecision: AiDecision | null;
+    aiReviewStatus: AiReviewStatus | null;
+  }): boolean {
+    if (!ENV.AI_ENABLED || !ENV.AI_ENFORCE_GATE) return true;
+    if (scope.aiReviewStatus === AiReviewStatus.OVERRIDDEN) return true;
+    if (scope.aiReviewStatus === AiReviewStatus.APPROVED) return true;
+    return scope.aiDecision === AiDecision.CLEAR;
+  }
+
+  private mapScoreDecision(score: number | null): AiDecision {
+    if (typeof score !== 'number') return AiDecision.PENDING;
+    if (score < AI_SCORE_CLEAR_THRESHOLD) return AiDecision.CLEAR;
+    if (score >= AI_SCORE_BLOCK_THRESHOLD) return AiDecision.BLOCK;
+    return AiDecision.REVIEW_REQUIRED;
+  }
+
   private buildListWhere(
     actor: CredentialActor,
     query: ListCredentialsQueryDto,
@@ -319,10 +403,19 @@ export class CredentialService {
       validateCertificateCategoryIfPresent(data.metadata);
     }
 
-    const status = (data.status ?? CredentialStatus.PENDING) as CredentialStatus;
+    const hasFile = Boolean(data.fileHash && data.filename && data.mimeType && data.storageKey);
+    const requestedStatus = (data.status ?? CredentialStatus.PENDING) as CredentialStatus;
+    const status =
+      ENV.AI_ENABLED && hasFile ? CredentialStatus.AI_REVIEW : requestedStatus;
     if (status === CredentialStatus.ISSUED) {
       throw new Error('DIRECT_ISSUED_CREATE_NOT_ALLOWED');
     }
+    const aiScore = typeof data.aiScore === 'number' ? data.aiScore : null;
+    const aiDecision = ENV.AI_ENABLED
+      ? hasFile
+        ? AiDecision.PENDING
+        : this.mapScoreDecision(aiScore)
+      : null;
     const createData: Prisma.CredentialUncheckedCreateInput = {
       title,
       type: data.type,
@@ -336,9 +429,20 @@ export class CredentialService {
       fileHash: parseOptionalString(data.fileHash),
       metadata: data.metadata ?? undefined,
       aiStatus: parseOptionalString(data.aiStatus),
-      aiScore: typeof data.aiScore === 'number' ? data.aiScore : null,
+      aiScore,
       aiReport: data.aiReport ?? undefined,
       aiValidatedAt,
+      aiDecision,
+      aiReviewStatus:
+        ENV.AI_ENABLED && hasFile
+          ? AiReviewStatus.PENDING
+          : data.aiReviewStatus ?? null,
+      aiModel: parseOptionalString(data.aiModel),
+      aiModelVersion: parseOptionalString(data.aiModelVersion),
+      aiSignals: data.aiSignals ?? undefined,
+      aiReviewedById: parseOptionalString(data.aiReviewedById),
+      aiReviewedAt: parseOptionalDate(data.aiReviewedAt, 'INVALID_AI_VALIDATED_AT'),
+      aiOverrideReason: parseOptionalString(data.aiOverrideReason),
       chain: parseOptionalString(data.chain),
       txHash: parseOptionalString(data.txHash),
       blockNumber: Number.isInteger(data.blockNumber) ? data.blockNumber : null,
@@ -348,7 +452,30 @@ export class CredentialService {
     };
 
     try {
-      return await credentialRepository.createCredential(createData);
+      const created = await credentialRepository.createCredential(createData);
+      if (ENV.AI_ENABLED && hasFile) {
+        await this.queueAiAnalysis(created.id, 'CREATE');
+        if (created.student?.institutionId) {
+          const recipients = await credentialRepository.listInstitutionReviewerIds(
+            created.student.institutionId,
+          );
+          await Promise.allSettled(
+            recipients.map(recipient =>
+              notificationClient.createSystemNotification({
+                userId: recipient.id,
+                type: NotificationType.CREDENTIAL_REQUEST_UPDATE,
+                title: 'Credential requires AI review',
+                message: `Credential "${created.title}" is awaiting AI fraud review.`,
+                metadata: {
+                  credentialId: created.id,
+                  event: 'AI_REVIEW_REQUIRED',
+                },
+              }),
+            ),
+          );
+        }
+      }
+      return created;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
         throw new Error('FOREIGN_KEY_CONSTRAINT');
@@ -446,6 +573,30 @@ export class CredentialService {
     if (hasField(statusData, 'aiValidatedAt')) {
       updateData.aiValidatedAt = parseOptionalDate(statusData.aiValidatedAt, 'INVALID_AI_VALIDATED_AT');
     }
+    if (hasField(statusData, 'aiDecision')) {
+      updateData.aiDecision = statusData.aiDecision ?? null;
+    }
+    if (hasField(statusData, 'aiReviewStatus')) {
+      updateData.aiReviewStatus = statusData.aiReviewStatus ?? null;
+    }
+    if (hasField(statusData, 'aiModel')) {
+      updateData.aiModel = parseOptionalString(statusData.aiModel) ?? null;
+    }
+    if (hasField(statusData, 'aiModelVersion')) {
+      updateData.aiModelVersion = parseOptionalString(statusData.aiModelVersion) ?? null;
+    }
+    if (hasField(statusData, 'aiSignals')) {
+      updateData.aiSignals = statusData.aiSignals === null ? Prisma.JsonNull : statusData.aiSignals;
+    }
+    if (hasField(statusData, 'aiReviewedById')) {
+      updateData.aiReviewedById = parseOptionalString(statusData.aiReviewedById) ?? null;
+    }
+    if (hasField(statusData, 'aiReviewedAt')) {
+      updateData.aiReviewedAt = parseOptionalDate(statusData.aiReviewedAt, 'INVALID_AI_VALIDATED_AT');
+    }
+    if (hasField(statusData, 'aiOverrideReason')) {
+      updateData.aiOverrideReason = parseOptionalString(statusData.aiOverrideReason) ?? null;
+    }
     if (hasField(statusData, 'chain')) {
       updateData.chain = parseOptionalString(statusData.chain) ?? null;
     }
@@ -476,6 +627,18 @@ export class CredentialService {
 
     if (nextStatus === CredentialStatus.ISSUED && !hasField(statusData, 'issuedDate') && !scope.issuedDate) {
       updateData.issuedDate = new Date();
+    }
+
+    if (nextStatus === CredentialStatus.ISSUED && !this.canIssueWithAiGate(scope)) {
+      const overrideReason = parseOptionalString(statusData.aiOverrideReason) ?? null;
+      if (overrideReason && (actor.role === Role.ADMIN || this.isInstitutionScopedRole(actor.role))) {
+        updateData.aiReviewStatus = AiReviewStatus.OVERRIDDEN;
+        updateData.aiReviewedById = actor.userId;
+        updateData.aiReviewedAt = new Date();
+        updateData.aiOverrideReason = overrideReason;
+      } else {
+        throw new Error('AI_REVIEW_REQUIRED_BEFORE_ISSUE');
+      }
     }
 
     if (nextStatus === CredentialStatus.ISSUED) {
@@ -558,6 +721,20 @@ export class CredentialService {
 
     const updated = await credentialRepository.updateCredential(credentialId, updateData);
 
+    if (nextStatus === CredentialStatus.ISSUED) {
+      await this.createAuditEntry({
+        action: 'CREDENTIAL_VERIFIED_BY_AI',
+        actorId: actor.userId,
+        actorRole: actor.role,
+        targetType: 'Credential',
+        targetId: updated.id,
+        description:
+          updateData.aiReviewStatus === AiReviewStatus.OVERRIDDEN
+            ? 'Credential issued with AI override'
+            : 'Credential issued after AI validation',
+      });
+    }
+
     if (options?.notifyIssued && nextStatus === CredentialStatus.ISSUED) {
       const isReissue = currentStatus === CredentialStatus.ISSUED;
       const institutionName = this.formatIssuerInstitutionName(updated.issuedBy);
@@ -589,7 +766,237 @@ export class CredentialService {
     return updated;
   }
 
+  async getCredentialAiReport(actor: CredentialActor, credentialId: string) {
+    const credential = await this.getCredentialById(actor, credentialId);
+    if (!credential) {
+      return null;
+    }
+
+    return {
+      id: credential.id,
+      aiDecision: credential.aiDecision ?? null,
+      aiReviewStatus: credential.aiReviewStatus ?? null,
+      aiStatus: credential.aiStatus ?? null,
+      aiScore: credential.aiScore ?? null,
+      aiModel: credential.aiModel ?? null,
+      aiModelVersion: credential.aiModelVersion ?? null,
+      aiValidatedAt: credential.aiValidatedAt ? credential.aiValidatedAt.toISOString() : null,
+      aiReviewedById: credential.aiReviewedById ?? null,
+      aiReviewedAt: credential.aiReviewedAt ? credential.aiReviewedAt.toISOString() : null,
+      aiOverrideReason: credential.aiOverrideReason ?? null,
+      aiSignals: credential.aiSignals ?? null,
+      aiReport: credential.aiReport ?? null,
+    };
+  }
+
+  async reviewCredentialAi(
+    actor: CredentialActor,
+    credentialId: string,
+    data: AiReviewCredentialDto,
+  ) {
+    this.ensureCanManageCredentials(actor);
+    const scope = await credentialRepository.getCredentialScopeById(credentialId);
+    if (!scope) {
+      throw new Error('CREDENTIAL_NOT_FOUND');
+    }
+    if (!this.canAccessCredential(actor, scope)) {
+      throw new Error('FORBIDDEN_SCOPE');
+    }
+
+    if (scope.status === CredentialStatus.REVOKED) {
+      throw new Error('CREDENTIAL_REVOKED_IMMUTABLE');
+    }
+
+    const label = data.label ?? 'UNSURE';
+    const source = actor.role === Role.ADMIN ? FraudLabelSource.ADMIN : FraudLabelSource.INSTITUTION;
+    const action = data.action;
+    const reason = parseOptionalString(data.reason);
+    const updateData: Prisma.CredentialUncheckedUpdateInput = {
+      aiReviewedById: actor.userId,
+      aiReviewedAt: new Date(),
+    };
+
+    if (action === 'APPROVE') {
+      updateData.aiReviewStatus = AiReviewStatus.APPROVED;
+      updateData.aiDecision = AiDecision.CLEAR;
+    } else if (action === 'REJECT') {
+      updateData.aiReviewStatus = AiReviewStatus.REJECTED;
+      updateData.aiDecision = AiDecision.BLOCK;
+      updateData.status = CredentialStatus.REVOKED;
+      updateData.aiOverrideReason = null;
+    } else if (action === 'OVERRIDE') {
+      if (!reason) {
+        throw new Error('AI_OVERRIDE_REASON_REQUIRED');
+      }
+      updateData.aiReviewStatus = AiReviewStatus.OVERRIDDEN;
+      updateData.aiOverrideReason = reason;
+    } else {
+      throw new Error('INVALID_AI_REVIEW_ACTION');
+    }
+
+    const updated = await credentialRepository.updateCredential(credentialId, updateData);
+    await credentialRepository.createFraudReviewLabel({
+      credentialId,
+      reviewedById: actor.userId,
+      label: label as FraudLabel,
+      source,
+      notes: reason,
+    });
+
+    await this.createAuditEntry({
+      action: action === 'REJECT' ? 'AI_VALIDATION_FAILED' : 'CREDENTIAL_VERIFIED_BY_AI',
+      actorId: actor.userId,
+      actorRole: actor.role,
+      targetType: 'Credential',
+      targetId: credentialId,
+      description: `AI review action: ${action}`,
+      metadata: {
+        action,
+        label,
+        reason,
+      },
+    });
+
+    if (action === 'REJECT') {
+      const institutionName = this.formatIssuerInstitutionName(updated.issuedBy);
+      void notificationClient.createSystemNotification({
+        userId: updated.studentId,
+        type: NotificationType.CREDENTIAL_REVOKED,
+        title: 'Credential rejected by fraud review',
+        message: `Your credential "${updated.title}" was rejected during fraud review by ${institutionName}.`,
+        metadata: {
+          credentialId: updated.id,
+          event: 'AI_REVIEW_REJECTED',
+          reason,
+        },
+      });
+    }
+
+    return updated;
+  }
+
+  async queueCredentialAiReanalyze(actor: CredentialActor, credentialId: string) {
+    this.ensureCanManageCredentials(actor);
+    const scope = await credentialRepository.getCredentialScopeById(credentialId);
+    if (!scope) {
+      throw new Error('CREDENTIAL_NOT_FOUND');
+    }
+    if (!this.canAccessCredential(actor, scope)) {
+      throw new Error('FORBIDDEN_SCOPE');
+    }
+
+    const updated = await credentialRepository.updateCredential(credentialId, {
+      status: CredentialStatus.AI_REVIEW,
+      aiDecision: AiDecision.PENDING,
+      aiReviewStatus: AiReviewStatus.PENDING,
+      aiReviewedById: null,
+      aiReviewedAt: null,
+      aiOverrideReason: null,
+    });
+    await this.queueAiAnalysis(credentialId, 'REANALYZE');
+    return updated;
+  }
+
+  async listAiQueue(actor: CredentialActor, query: CredentialAiQueueQueryDto) {
+    this.ensureCanManageCredentials(actor);
+    const page = Math.max(1, Number(query.page) || 1);
+    const pageSize = Math.min(200, Math.max(1, Number(query.pageSize) || 100));
+    const skip = (page - 1) * pageSize;
+    const baseWhere: Prisma.CredentialWhereInput = {
+      status: CredentialStatus.AI_REVIEW,
+      ...(query.decision ? { aiDecision: query.decision } : {}),
+    };
+    const where = this.buildListWhere(actor, {
+      page,
+      pageSize,
+      status: 'AI_REVIEW',
+    });
+    return credentialRepository.listAiReviewQueue(
+      {
+        AND: [baseWhere, where],
+      },
+      skip,
+      pageSize,
+    );
+  }
+
+  async applyInternalAiResult(data: InternalAiResultDto) {
+    const scope = await credentialRepository.getCredentialScopeById(data.credentialId);
+    if (!scope) {
+      throw new Error('CREDENTIAL_NOT_FOUND');
+    }
+
+    const aiValidatedAt = parseOptionalDate(data.aiValidatedAt, 'INVALID_AI_VALIDATED_AT') ?? new Date();
+    const aiScore = typeof data.aiScore === 'number' ? data.aiScore : null;
+    const nextDecision = data.aiDecision ?? this.mapScoreDecision(aiScore);
+    const nextStatus =
+      nextDecision === AiDecision.CLEAR ? CredentialStatus.PENDING : CredentialStatus.AI_REVIEW;
+
+    const updated = await credentialRepository.updateCredential(data.credentialId, {
+      aiStatus: parseOptionalString(data.aiStatus) ?? nextDecision,
+      aiScore,
+      aiReport: data.aiReport ?? undefined,
+      aiSignals: data.aiSignals ?? undefined,
+      aiDecision: nextDecision,
+      aiModel: parseOptionalString(data.aiModel) ?? null,
+      aiModelVersion: parseOptionalString(data.aiModelVersion) ?? null,
+      aiValidatedAt,
+      aiReviewStatus:
+        nextDecision === AiDecision.CLEAR ? AiReviewStatus.APPROVED : AiReviewStatus.PENDING,
+      status: nextStatus,
+    });
+
+    await this.createAuditEntry({
+      action:
+        nextDecision === AiDecision.FAILED ? 'AI_VALIDATION_FAILED' : 'CREDENTIAL_VERIFIED_BY_AI',
+      targetType: 'Credential',
+      targetId: data.credentialId,
+      description: `Applied AI result: ${nextDecision}`,
+      metadata: {
+        decision: nextDecision,
+        provider: data.provider,
+        error: data.error,
+      },
+      severity: nextDecision === AiDecision.FAILED ? 'WARNING' : 'INFO',
+    });
+
+    return updated;
+  }
+
+  async getCredentialDocumentContext(credentialId: string) {
+    return credentialRepository.getCredentialForAiDocument(credentialId);
+  }
+
   async issueCredential(actor: CredentialActor, credentialId: string, data: IssueCredentialDto) {
+    const scope = await credentialRepository.getCredentialScopeById(credentialId);
+    if (!scope) {
+      throw new Error('CREDENTIAL_NOT_FOUND');
+    }
+
+    if (!this.canAccessCredential(actor, scope)) {
+      throw new Error('FORBIDDEN_SCOPE');
+    }
+
+    const hasNewFile = Boolean(data.fileHash && data.filename && data.mimeType && data.storageKey);
+    if (ENV.AI_ENABLED && hasNewFile) {
+      const updated = await credentialRepository.updateCredential(credentialId, {
+        description: parseOptionalString(data.description) ?? undefined,
+        filename: parseOptionalString(data.filename) ?? undefined,
+        mimeType: parseOptionalString(data.mimeType) ?? undefined,
+        storageKey: parseOptionalString(data.storageKey) ?? undefined,
+        fileHash: parseOptionalString(data.fileHash) ?? undefined,
+        metadata: data.metadata ?? undefined,
+        aiDecision: AiDecision.PENDING,
+        aiReviewStatus: AiReviewStatus.PENDING,
+        aiOverrideReason: null,
+        aiReviewedById: null,
+        aiReviewedAt: null,
+        status: CredentialStatus.AI_REVIEW,
+      });
+      await this.queueAiAnalysis(credentialId, 'REISSUE');
+      return updated;
+    }
+
     const statusData: UpdateCredentialStatusDto = {
       ...data,
       status: 'ISSUED',

@@ -1,7 +1,9 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
+  AiDecision,
   Credential,
+  CredentialAiReport,
   CredentialRequest,
   CredentialRequestStatus,
   CredentialService,
@@ -80,6 +82,13 @@ export default function InstitutionDashboard() {
   const [issueCertificateCategoryByRequestId, setIssueCertificateCategoryByRequestId] = useState<Record<string, CertificateCategory>>({});
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
+  const [aiQueue, setAiQueue] = useState<Credential[]>([]);
+  const [isLoadingAiQueue, setIsLoadingAiQueue] = useState(true);
+  const [aiDecisionFilter, setAiDecisionFilter] = useState<'ALL' | AiDecision>('ALL');
+  const [selectedAiCredentialId, setSelectedAiCredentialId] = useState<string | null>(null);
+  const [selectedAiReport, setSelectedAiReport] = useState<CredentialAiReport | null>(null);
+  const [isLoadingAiReport, setIsLoadingAiReport] = useState(false);
+  const [aiActionCredentialId, setAiActionCredentialId] = useState<string | null>(null);
 
   const [students, setStudents] = useState<User[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
@@ -153,12 +162,47 @@ export default function InstitutionDashboard() {
     }
   }, []);
 
+  const loadAiQueue = useCallback(async (decision: 'ALL' | AiDecision = aiDecisionFilter) => {
+    setIsLoadingAiQueue(true);
+    try {
+      const data = await CredentialService.listAiQueue(
+        decision === 'ALL' ? {} : { decision },
+      );
+      setAiQueue(data);
+    } catch (error) {
+      setAiQueue([]);
+      setRequestsError('Unable to load AI review queue from the server.');
+      console.error('Failed to load AI review queue:', error);
+    } finally {
+      setIsLoadingAiQueue(false);
+    }
+  }, [aiDecisionFilter]);
+
+  const upsertCredentialState = useCallback((updated: Credential) => {
+    setCredentials(previous =>
+      previous.some(item => item.id === updated.id)
+        ? previous.map(item => (item.id === updated.id ? updated : item))
+        : [updated, ...previous],
+    );
+    setAiQueue(previous => {
+      const next = previous.some(item => item.id === updated.id)
+        ? previous.map(item => (item.id === updated.id ? updated : item))
+        : [updated, ...previous];
+      return next.filter(item => item.status === 'AI_REVIEW');
+    });
+  }, []);
+
   useEffect(() => {
     void loadRequests();
     void loadStudents();
     void loadCredentials();
+    void loadAiQueue();
     createEvent('SYSTEM', 'Institution workspace initialized', 'Institution frontend sections loaded.');
-  }, [createEvent, loadRequests, loadStudents, loadCredentials]);
+  }, [createEvent, loadRequests, loadStudents, loadCredentials, loadAiQueue]);
+
+  useEffect(() => {
+    void loadAiQueue(aiDecisionFilter);
+  }, [aiDecisionFilter, loadAiQueue]);
 
   const pendingCount = requests.filter(request => request.status === 'PENDING').length;
   const studentCounts = useMemo(
@@ -417,6 +461,7 @@ export default function InstitutionDashboard() {
       ...(certificateCategory ? { certificateCategory } : {}),
     };
 
+    let createdCredential: Credential | null = null;
     if (!credentialId) {
       const created = await CredentialService.create({
         studentId: request.studentId,
@@ -428,19 +473,40 @@ export default function InstitutionDashboard() {
         expiryDate,
         file: selectedFile,
       });
+      createdCredential = created;
       credentialId = created.id;
+      upsertCredentialState(created);
       if (selectedFile) {
         uploadFileDuringIssue = undefined;
       }
+
+      if (created.status === 'AI_REVIEW') {
+        setRequests(previous =>
+          previous.map(entry => (entry.id === request.id ? { ...entry, credentialId } : entry)),
+        );
+        return {
+          credentialId,
+          status: created.status,
+          completed: false,
+        };
+      }
     }
 
-    await CredentialService.issue(credentialId, {
+    const issued = await CredentialService.issue(credentialId, {
       description: request.description || undefined,
       issuedDate: new Date().toISOString(),
       metadata: requestMetadata,
       expiryDate,
       file: uploadFileDuringIssue,
     });
+    upsertCredentialState(issued);
+    if (issued.status !== 'ISSUED') {
+      return {
+        credentialId,
+        status: issued.status,
+        completed: false,
+      };
+    }
 
     await updateRequestStatus(
       request.id,
@@ -469,7 +535,12 @@ export default function InstitutionDashboard() {
       return next;
     });
 
-    return credentialId;
+    return {
+      credentialId,
+      status: issued.status,
+      completed: true,
+      createdCredential,
+    };
   };
 
   const handleRequestAction = async (requestId: string, action: 'APPROVE' | 'REJECT' | 'ISSUE') => {
@@ -493,14 +564,24 @@ export default function InstitutionDashboard() {
         throw new Error('Credential request not found.');
       }
 
-      const issuedCredentialId = await issueCredentialForRequest(request);
-      setRequestsHint('Credential issued and request marked as completed.');
-      createEvent(
-        'REQUEST',
-        'Credential issued',
-        `Request ${requestId} completed with credential ${issuedCredentialId}.`,
-      );
+      const result = await issueCredentialForRequest(request);
+      if (result.completed) {
+        setRequestsHint('Credential issued and request marked as completed.');
+        createEvent(
+          'REQUEST',
+          'Credential issued',
+          `Request ${requestId} completed with credential ${result.credentialId}.`,
+        );
+      } else {
+        setRequestsHint('Credential is in AI review. Complete review/override before issuing.');
+        createEvent(
+          'REQUEST',
+          'Credential queued for AI review',
+          `Request ${requestId} is waiting for AI review on credential ${result.credentialId}.`,
+        );
+      }
       await loadCredentials();
+      await loadAiQueue();
     } catch (error) {
       setRequestsError(getApiErrorMessage(error) || 'Unable to issue credential.');
       console.error('Failed handling request action:', error);
@@ -573,6 +654,18 @@ export default function InstitutionDashboard() {
         file: payload.file,
         metadata: directIssueMetadata,
       });
+      upsertCredentialState(created);
+      if (created.status === 'AI_REVIEW') {
+        setRequestsHint('Credential created and queued for AI review. Issue it after review/override.');
+        createEvent(
+          'REQUEST',
+          'Credential queued for AI review',
+          `Credential ${created.id} uploaded and moved to AI_REVIEW.`,
+        );
+        await loadAiQueue();
+        await loadCredentials();
+        return created;
+      }
 
       const issued = await CredentialService.issue(created.id, {
         issuedDate: new Date().toISOString(),
@@ -580,6 +673,7 @@ export default function InstitutionDashboard() {
         expiryDate: normalizedExpiryDate,
         metadata: directIssueMetadata,
       });
+      upsertCredentialState(issued);
 
       setRequestsHint('Credential issued successfully.');
       createEvent(
@@ -589,6 +683,7 @@ export default function InstitutionDashboard() {
       );
 
       await loadCredentials();
+      await loadAiQueue();
       return issued;
     } catch (error) {
       const message = getApiErrorMessage(error) || 'Unable to issue credential directly.';
@@ -601,9 +696,10 @@ export default function InstitutionDashboard() {
     setRequestsHint(null);
     try {
       const updated = await CredentialService.updateStatus(credentialId, status);
-      setCredentials(previous => previous.map(item => (item.id === credentialId ? updated : item)));
+      upsertCredentialState(updated);
       setRequestsHint(`Credential status updated to ${status}.`);
       createEvent('REQUEST', 'Credential updated', `Credential ${credentialId} updated to ${status}.`);
+      await loadAiQueue();
     } catch (error) {
       setRequestsError(getApiErrorMessage(error) || 'Unable to update credential.');
       throw error;
@@ -618,12 +714,86 @@ export default function InstitutionDashboard() {
         issuedDate: new Date().toISOString(),
         file,
       });
-      setCredentials(previous => previous.map(item => (item.id === credentialId ? issued : item)));
-      setRequestsHint('Credential re-issued successfully.');
-      createEvent('REQUEST', 'Credential re-issued', `Credential ${credentialId} re-issued.`);
+      upsertCredentialState(issued);
+      if (issued.status === 'AI_REVIEW') {
+        setRequestsHint('Credential file updated. AI review is now required before issuance.');
+        createEvent('REQUEST', 'Credential queued for AI review', `Credential ${credentialId} moved to AI_REVIEW.`);
+      } else {
+        setRequestsHint('Credential re-issued successfully.');
+        createEvent('REQUEST', 'Credential re-issued', `Credential ${credentialId} re-issued.`);
+      }
+      if (selectedAiCredentialId === credentialId) {
+        const report = await CredentialService.getAiReport(credentialId);
+        setSelectedAiReport(report);
+      }
+      await loadAiQueue();
     } catch (error) {
       setRequestsError(getApiErrorMessage(error) || 'Unable to re-issue credential.');
       throw error;
+    }
+  };
+
+  const handleSelectAiCredential = async (credentialId: string) => {
+    setSelectedAiCredentialId(credentialId);
+    setIsLoadingAiReport(true);
+    try {
+      const report = await CredentialService.getAiReport(credentialId);
+      setSelectedAiReport(report);
+    } catch (error) {
+      setSelectedAiReport(null);
+      setRequestsError(getApiErrorMessage(error) || 'Unable to load AI report.');
+      console.error('Failed to load AI report:', error);
+    } finally {
+      setIsLoadingAiReport(false);
+    }
+  };
+
+  const handleAiReviewAction = async (
+    credentialId: string,
+    action: 'APPROVE' | 'REJECT' | 'OVERRIDE',
+    reason?: string,
+    label?: 'CLEAN' | 'FRAUD' | 'UNSURE',
+  ) => {
+    setAiActionCredentialId(credentialId);
+    setRequestsError(null);
+    setRequestsHint(null);
+    try {
+      const updated = await CredentialService.reviewAi(credentialId, {
+        action,
+        reason,
+        label,
+      });
+      upsertCredentialState(updated);
+      const report = await CredentialService.getAiReport(credentialId);
+      setSelectedAiReport(report);
+      setRequestsHint(`AI review action "${action}" recorded for credential ${credentialId}.`);
+      createEvent('REQUEST', 'AI review action', `${action} applied to credential ${credentialId}.`);
+      await loadAiQueue();
+    } catch (error) {
+      setRequestsError(getApiErrorMessage(error) || 'Unable to apply AI review action.');
+      console.error('Failed applying AI review action:', error);
+    } finally {
+      setAiActionCredentialId(null);
+    }
+  };
+
+  const handleAiReanalyze = async (credentialId: string) => {
+    setAiActionCredentialId(credentialId);
+    setRequestsError(null);
+    setRequestsHint(null);
+    try {
+      const updated = await CredentialService.reanalyzeAi(credentialId);
+      upsertCredentialState(updated);
+      const report = await CredentialService.getAiReport(credentialId);
+      setSelectedAiReport(report);
+      setRequestsHint(`AI reanalysis queued for credential ${credentialId}.`);
+      createEvent('REQUEST', 'AI reanalysis queued', `Credential ${credentialId} sent for reanalysis.`);
+      await loadAiQueue();
+    } catch (error) {
+      setRequestsError(getApiErrorMessage(error) || 'Unable to queue AI reanalysis.');
+      console.error('Failed queueing AI reanalysis:', error);
+    } finally {
+      setAiActionCredentialId(null);
     }
   };
 
@@ -749,10 +919,33 @@ export default function InstitutionDashboard() {
           onRefresh={() => {
             void loadRequests();
             void loadCredentials();
+            void loadAiQueue();
           }}
           onDirectIssue={handleDirectIssueCredential}
           onCredentialStatusUpdate={handleCredentialStatusUpdate}
           onCredentialReissue={handleCredentialReissue}
+          aiQueue={aiQueue}
+          isLoadingAiQueue={isLoadingAiQueue}
+          aiDecisionFilter={aiDecisionFilter}
+          onAiDecisionFilterChange={setAiDecisionFilter}
+          selectedAiCredentialId={selectedAiCredentialId}
+          selectedAiReport={selectedAiReport}
+          isLoadingAiReport={isLoadingAiReport}
+          aiActionCredentialId={aiActionCredentialId}
+          onSelectAiCredential={(credentialId: string) => {
+            void handleSelectAiCredential(credentialId);
+          }}
+          onAiReviewAction={(
+            credentialId: string,
+            action: 'APPROVE' | 'REJECT' | 'OVERRIDE',
+            reason?: string,
+            label?: 'CLEAN' | 'FRAUD' | 'UNSURE',
+          ) => {
+            void handleAiReviewAction(credentialId, action, reason, label);
+          }}
+          onAiReanalyze={(credentialId: string) => {
+            void handleAiReanalyze(credentialId);
+          }}
           issueFileByRequestId={issueFileByRequestId}
           issueExpiryByRequestId={issueExpiryByRequestId}
           issueCertificateCategoryByRequestId={issueCertificateCategoryByRequestId}

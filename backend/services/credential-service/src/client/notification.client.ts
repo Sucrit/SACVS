@@ -27,6 +27,37 @@ const parseRequiredBaseUrl = (value: string | undefined): string | null => {
 };
 
 export class NotificationClient {
+  async createSystemNotification(payload: {
+    userId: string;
+    type: NotificationType;
+    title: string;
+    message: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<void> {
+    const baseUrl = parseRequiredBaseUrl(ENV.NOTIFICATION_SERVICE_URL);
+    if (!baseUrl) {
+      return;
+    }
+
+    const response = await fetch(`${baseUrl}/notifications/system`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(ENV.INTERNAL_SERVICE_TOKEN
+          ? { 'x-internal-service-token': ENV.INTERNAL_SERVICE_TOKEN }
+          : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const responseText = await response.text();
+      throw new Error(
+        `Notification service returned ${response.status}: ${responseText}`,
+      );
+    }
+  }
+
   private resolveStatusNotification(
     status: string,
   ): { type: NotificationType; title: string; verb: string } | null {
@@ -57,36 +88,19 @@ export class NotificationClient {
 
     const actionLabel = payload.isReissue ? 're-issued' : 'issued';
     const message = `Your ${payload.credentialType.toLowerCase()} "${payload.credentialTitle}" was ${actionLabel} by ${payload.institutionName}.`;
-
-    const response = await fetch(`${baseUrl}/notifications/system`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(ENV.INTERNAL_SERVICE_TOKEN
-          ? { 'x-internal-service-token': ENV.INTERNAL_SERVICE_TOKEN }
-          : {}),
+    await this.createSystemNotification({
+      userId: payload.userId,
+      type: NotificationType.CREDENTIAL_ISSUED,
+      title: payload.isReissue ? 'Credential re-issued' : 'Credential issued',
+      message,
+      metadata: {
+        credentialId: payload.credentialId,
+        credentialTitle: payload.credentialTitle,
+        credentialType: payload.credentialType,
+        event: payload.isReissue ? 'REISSUED' : 'ISSUED',
+        institutionName: payload.institutionName,
       },
-      body: JSON.stringify({
-        userId: payload.userId,
-        type: NotificationType.CREDENTIAL_ISSUED,
-        title: payload.isReissue ? 'Credential re-issued' : 'Credential issued',
-        message,
-        metadata: {
-          credentialId: payload.credentialId,
-          credentialTitle: payload.credentialTitle,
-          credentialType: payload.credentialType,
-          event: payload.isReissue ? 'REISSUED' : 'ISSUED',
-          institutionName: payload.institutionName,
-        },
-      }),
     });
-
-    if (!response.ok) {
-      const responseText = await response.text();
-      throw new Error(
-        `Notification service returned ${response.status} for credential notification: ${responseText}`,
-      );
-    }
   }
 
   async sendCredentialStatusChangedNotification(
@@ -103,38 +117,21 @@ export class NotificationClient {
     }
 
     const message = `Your ${payload.credentialType.toLowerCase()} "${payload.credentialTitle}" was ${statusNotification.verb} by ${payload.institutionName}.`;
-
-    const response = await fetch(`${baseUrl}/notifications/system`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(ENV.INTERNAL_SERVICE_TOKEN
-          ? { 'x-internal-service-token': ENV.INTERNAL_SERVICE_TOKEN }
-          : {}),
+    await this.createSystemNotification({
+      userId: payload.userId,
+      type: statusNotification.type,
+      title: statusNotification.title,
+      message,
+      metadata: {
+        credentialId: payload.credentialId,
+        credentialTitle: payload.credentialTitle,
+        credentialType: payload.credentialType,
+        event: 'STATUS_CHANGED',
+        previousStatus: payload.previousStatus,
+        nextStatus: payload.nextStatus,
+        institutionName: payload.institutionName,
       },
-      body: JSON.stringify({
-        userId: payload.userId,
-        type: statusNotification.type,
-        title: statusNotification.title,
-        message,
-        metadata: {
-          credentialId: payload.credentialId,
-          credentialTitle: payload.credentialTitle,
-          credentialType: payload.credentialType,
-          event: 'STATUS_CHANGED',
-          previousStatus: payload.previousStatus,
-          nextStatus: payload.nextStatus,
-          institutionName: payload.institutionName,
-        },
-      }),
     });
-
-    if (!response.ok) {
-      const responseText = await response.text();
-      throw new Error(
-        `Notification service returned ${response.status} for credential status notification: ${responseText}`,
-      );
-    }
   }
 }
 

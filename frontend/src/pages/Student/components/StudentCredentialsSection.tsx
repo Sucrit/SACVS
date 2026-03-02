@@ -296,6 +296,11 @@ export default function StudentCredentialsSection({
                       )}
                     </div>
                     <h3 className="line-clamp-2 text-center text-xl font-semibold leading-tight text-slate-900">{credential.title}</h3>
+                    {credential.status === 'AI_REVIEW' && (
+                      <p className="mt-2 text-center text-xs font-semibold uppercase tracking-[0.08em] text-amber-700">
+                        Under AI review
+                      </p>
+                    )}
                   </div>
                 </article>
               );

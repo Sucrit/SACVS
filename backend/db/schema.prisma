@@ -34,6 +34,39 @@ enum CredentialStatus {
   EXPIRED
 }
 
+enum AiDecision {
+  PENDING
+  CLEAR
+  REVIEW_REQUIRED
+  BLOCK
+  FAILED
+}
+
+enum AiReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  OVERRIDDEN
+}
+
+enum FraudAnalysisJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum FraudLabel {
+  CLEAN
+  FRAUD
+  UNSURE
+}
+
+enum FraudLabelSource {
+  INSTITUTION
+  ADMIN
+}
+
 enum CredentialRequestStatus {
   PENDING
   APPROVED
@@ -167,6 +200,7 @@ model User {
   institution        Institution?        @relation("InstitutionUsers", fields: [institutionId], references: [id])
   auditLogs          AuditLog[]
   notifications      Notification[]
+  fraudReviewLabels  FraudReviewLabel[]
 
   @@index([role])
   @@index([status])
@@ -233,6 +267,14 @@ model Credential {
   aiScore       Float?
   aiReport      Json?
   aiValidatedAt DateTime?
+  aiDecision    AiDecision?
+  aiReviewStatus AiReviewStatus?
+  aiModel        String?
+  aiModelVersion String?
+  aiSignals      Json?
+  aiReviewedById String?
+  aiReviewedAt   DateTime?
+  aiOverrideReason String?
 
   chain       String?
   txHash      String?
@@ -246,11 +288,14 @@ model Credential {
   updatedAt DateTime @updatedAt
 
   requests CredentialRequest[]
+  fraudAnalysisJobs FraudAnalysisJob[]
+  fraudReviewLabels FraudReviewLabel[]
 
   @@index([studentId])
   @@index([issuedById])
   @@index([status])
   @@index([type])
+  @@index([aiDecision, status])
 }
 
 
@@ -405,4 +450,37 @@ model Institution {
   credentialRequests CredentialRequest[] @relation("InstitutionCredentialRequests")
 
   @@index([email])
+}
+
+model FraudAnalysisJob {
+  id          String                 @id @default(uuid())
+  credentialId String
+  credential  Credential             @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  status      FraudAnalysisJobStatus @default(QUEUED)
+  attempts    Int                    @default(0)
+  provider    String?
+  requestedAt DateTime               @default(now())
+  completedAt DateTime?
+  error       String?
+  payload     Json?
+
+  @@index([status, requestedAt])
+  @@index([credentialId])
+}
+
+model FraudReviewLabel {
+  id           String           @id @default(uuid())
+  credentialId String
+  credential   Credential       @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  reviewedById String
+  reviewedBy   User             @relation(fields: [reviewedById], references: [id])
+  label        FraudLabel
+  source       FraudLabelSource
+  notes        String?
+  reviewedAt   DateTime         @default(now())
+  createdAt    DateTime         @default(now())
+
+  @@index([label, reviewedAt])
+  @@index([credentialId])
+  @@index([reviewedById])
 }

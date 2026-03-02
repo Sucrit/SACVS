@@ -42,6 +42,7 @@ call :assert_component "credential-service" "backend\services\credential-service
 call :assert_component "credential-request-service" "backend\services\credential-request-service" || exit /b 1
 call :assert_component "notification-service" "backend\services\notification-service" || exit /b 1
 call :assert_component "blockchain-interface-service" "backend\services\blockchain-interface-service" || exit /b 1
+call :assert_component "ai-interface-service" "backend\services\ai-interface-service" || exit /b 1
 call :assert_component "backend-db" "backend\db" || exit /b 1
 
 echo.
@@ -53,6 +54,7 @@ call :assert_env_file "backend\services\credential-service\.env" || exit /b 1
 call :assert_env_file "backend\services\credential-request-service\.env" || exit /b 1
 call :assert_env_file "backend\services\notification-service\.env" || exit /b 1
 call :assert_env_file "backend\services\blockchain-interface-service\.env" || exit /b 1
+call :assert_env_file "backend\services\ai-interface-service\.env" || exit /b 1
 
 if "%SKIP_INSTALL%"=="0" (
   echo.
@@ -65,6 +67,7 @@ if "%SKIP_INSTALL%"=="0" (
   call :install_component "credential-request-service" "backend\services\credential-request-service" || exit /b 1
   call :install_component "notification-service" "backend\services\notification-service" || exit /b 1
   call :install_component "blockchain-interface-service" "backend\services\blockchain-interface-service" || exit /b 1
+  call :install_component "ai-interface-service" "backend\services\ai-interface-service" || exit /b 1
 ) else (
   echo.
   echo Skipping npm install because --skip-install was set.
@@ -89,6 +92,7 @@ call :start_service "credential-service" "backend\services\credential-service" |
 call :start_service "credential-request-service" "backend\services\credential-request-service" || exit /b 1
 call :start_service "notification-service" "backend\services\notification-service" || exit /b 1
 call :start_service "blockchain-interface-service" "backend\services\blockchain-interface-service" || exit /b 1
+call :start_service "ai-interface-service" "backend\services\ai-interface-service" || exit /b 1
 
 echo.
 echo Initialization complete and all services have been launched.
