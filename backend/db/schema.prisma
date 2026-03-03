@@ -216,6 +216,9 @@ model User {
 
 
 
+
+
+
 // Student Profile 
 
 model StudentProfile {
@@ -296,6 +299,7 @@ model Credential {
   fraudAnalysisJobs FraudAnalysisJob[]
   fraudReviewLabels FraudReviewLabel[]
   qrTokens          CredentialQrToken[]
+  qrDocumentTokens  CredentialQrDocumentToken[]
 
   @@index([studentId])
   @@index([issuedById])
@@ -304,11 +308,20 @@ model Credential {
   @@index([aiDecision, status])
 }
 
+
+
+
+
+
+
+
 model CredentialQrToken {
   id            String   @id @default(uuid())
   credentialId  String
   studentId     String
   tokenHash     String   @unique
+  allowDocumentPreview Boolean @default(false)
+  allowDocumentDownload Boolean @default(false)
   expiresAt     DateTime
   usedAt        DateTime?
   usedByType    String?
@@ -319,11 +332,37 @@ model CredentialQrToken {
 
   credential Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
   student    User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  documentToken CredentialQrDocumentToken?
 
   @@index([credentialId, studentId, expiresAt])
   @@index([studentId, createdAt])
   @@index([usedAt])
   @@index([invalidatedAt])
+}
+
+
+
+
+
+
+
+
+
+model CredentialQrDocumentToken {
+  id           String   @id @default(uuid())
+  qrTokenId    String   @unique
+  credentialId String
+  tokenHash    String   @unique
+  expiresAt    DateTime
+  usedAt       DateTime?
+  usedByIp     String?
+  createdAt    DateTime @default(now())
+
+  qrToken    CredentialQrToken @relation(fields: [qrTokenId], references: [id], onDelete: Cascade)
+  credential Credential        @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId, expiresAt])
+  @@index([usedAt])
 }
 
 

@@ -64,6 +64,10 @@ router.post(
   requireRoles('EMPLOYER'),
   credentialController.verifyCredentialQrEmployer.bind(credentialController),
 );
+router.get(
+  '/verify/qr/document/:token',
+  credentialController.getCredentialDocumentByQrToken.bind(credentialController),
+);
 router.post(
   '/:id/qr-token',
   requireAuth,

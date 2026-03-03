@@ -313,6 +313,30 @@ export class CredentialController {
     return { token };
   }
 
+  private parseGenerateQrOptionsPayload(rawBody: unknown): {
+    allowDocumentPreview?: boolean;
+    allowDocumentDownload?: boolean;
+  } {
+    const body = (rawBody ?? {}) as Record<string, unknown>;
+    const asBoolean = (value: unknown): boolean | undefined => {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === 'true') return true;
+        if (normalized === 'false') return false;
+      }
+      if (typeof value === 'undefined') return undefined;
+      throw new Error('INVALID_QR_OPTIONS');
+    };
+
+    const allowDocumentPreview = asBoolean(body.allowDocumentPreview);
+    const allowDocumentDownload = asBoolean(body.allowDocumentDownload);
+    return {
+      allowDocumentPreview,
+      allowDocumentDownload,
+    };
+  }
+
   private mapError(error: unknown, res: Response): Response | null {
     if (!(error instanceof Error)) {
       return null;
@@ -412,6 +436,14 @@ export class CredentialController {
       QR_TOKEN_PEPPER_MISSING: {
         code: 500,
         error: 'QR token secret is not configured.',
+      },
+      INVALID_QR_OPTIONS: {
+        code: 400,
+        error: 'Invalid QR share options.',
+      },
+      QR_DOCUMENT_ACCESS_NOT_ALLOWED: {
+        code: 403,
+        error: 'Document access is not allowed for this token.',
       },
     };
 
@@ -912,7 +944,8 @@ export class CredentialController {
     const credentialId: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
     try {
-      const generated: GeneratedQrTokenResponseDto = await credentialService.generateStudentQrToken(
+      const options = this.parseGenerateQrOptionsPayload(req.body);
+      const generated: GeneratedQrTokenResponseDto = await credentialService.generateStudentQrTokenWithOptions(
         {
           userId: actor.userId,
           role: actor.role,
@@ -920,6 +953,7 @@ export class CredentialController {
           employerId: actor.employerId,
         },
         credentialId,
+        options,
       );
 
       return res.status(200).json(generated);
@@ -968,6 +1002,53 @@ export class CredentialController {
       if (mapped) return mapped;
 
       console.error('Error verifying employer one-time credential QR token:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async getCredentialDocumentByQrToken(req: Request, res: Response): Promise<Response> {
+    const token = Array.isArray(req.params.token) ? req.params.token[0] : req.params.token;
+    const mode = req.query.download === '1' ? 'download' : 'preview';
+
+    try {
+      const consumed = await credentialService.consumeQrDocumentToken(
+        token,
+        mode,
+        req.ip || req.socket.remoteAddress || null,
+      );
+      const credential = await credentialService.getCredentialDocumentContext(consumed.credentialId);
+      if (!credential) {
+        return res.status(404).json({ error: 'Credential not found.' });
+      }
+      if (!credential.storageKey) {
+        return res.status(400).json({ error: 'Credential file is not available.' });
+      }
+
+      const absolutePath = this.resolveStoragePathOrThrow(credential.storageKey);
+      if (!existsSync(absolutePath)) {
+        return res.status(404).json({ error: 'Credential file is missing on storage.' });
+      }
+
+      const fileBuffer = decryptFileToBuffer(absolutePath);
+      const computedHash = sha256Hex(fileBuffer);
+      if (credential.fileHash && credential.fileHash !== computedHash) {
+        throw new Error('CREDENTIAL_FILE_TAMPERED');
+      }
+
+      if (credential.mimeType) {
+        res.setHeader('Content-Type', credential.mimeType);
+      } else {
+        res.setHeader('Content-Type', 'application/octet-stream');
+      }
+      const safeFileName = (credential.filename || 'credential').replace(/[\r\n"]/g, '').trim();
+      const disposition = mode === 'download' ? 'attachment' : 'inline';
+      res.setHeader('Content-Disposition', `${disposition}; filename="${safeFileName || 'credential'}"`);
+      return res.status(200).send(fileBuffer);
+    } catch (error) {
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error fetching credential document by one-time QR token:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }

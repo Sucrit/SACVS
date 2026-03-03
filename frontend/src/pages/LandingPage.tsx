@@ -1,6 +1,7 @@
 import { Bot, Globe2, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { FormEvent, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useLegacyAuth } from '../auth/auth-context';
 import { UserRole } from '../services/user.service';
 import studentsGraduateImage from '../assets/students-graduates.jpg';
@@ -40,7 +41,10 @@ function Icon({ name, className = '' }: { name: string; className?: string }) {
 }
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const { user, isSessionAuthenticated, logout } = useLegacyAuth();
+  const [verifyInput, setVerifyInput] = useState('');
+  const [verifyInputError, setVerifyInputError] = useState<string | null>(null);
   const roleRoutes: Record<UserRole, string> = {
     STUDENT: '/student',
     ADMIN: '/admin',
@@ -51,6 +55,31 @@ export default function LandingPage() {
   const isApprovedSession = isSessionAuthenticated && !!user && user.status === 'APPROVED';
   const shouldContinueOnboarding = isSessionAuthenticated && !isApprovedSession;
 
+  const extractTokenFromInput = (raw: string): string => {
+    const trimmed = raw.trim();
+    if (!trimmed) return '';
+
+    try {
+      const parsed = new URL(trimmed);
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      const token = parts[parts.length - 1] || '';
+      return decodeURIComponent(token);
+    } catch {
+      return decodeURIComponent(trimmed);
+    }
+  };
+
+  const handlePublicVerify = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const token = extractTokenFromInput(verifyInput);
+    if (!token) {
+      setVerifyInputError('Enter a QR verification URL or token.');
+      return;
+    }
+    setVerifyInputError(null);
+    navigate(`/verify/qr/${encodeURIComponent(token)}`);
+  };
+
   return (
     <div className="credence-font credence-page-bg relative flex min-h-screen w-full flex-col overflow-x-hidden text-slate-900 antialiased">
       <header className="fixed inset-x-0 top-0 z-50 w-full px-4 py-4 md:px-10">
@@ -60,6 +89,9 @@ export default function LandingPage() {
           <nav className="hidden items-center gap-10 md:flex">
             <a className="text-sm font-medium text-slate-600 transition hover:text-slate-900" href="#features">
               Features
+            </a>
+            <a className="text-sm font-medium text-slate-600 transition hover:text-slate-900" href="#public-verify">
+              Public Verify
             </a>
             <a className="text-sm font-medium text-slate-600 transition hover:text-slate-900" href="#solutions">
               Solutions
@@ -131,6 +163,28 @@ export default function LandingPage() {
               The standard for immutable, instantly verifiable academic credentials. Own your achievement,
               empower your institution with decentralized trust.
             </p>
+            <form
+              id="public-verify"
+              onSubmit={handlePublicVerify}
+              className="w-full max-w-3xl rounded-2xl border border-slate-200/70 bg-white/70 p-3 shadow-[0_8px_25px_rgba(15,23,42,0.08)] backdrop-blur"
+            >
+              <div className="flex flex-col gap-2 md:flex-row">
+                <input
+                  type="text"
+                  value={verifyInput}
+                  onChange={event => setVerifyInput(event.target.value)}
+                  placeholder="Paste one-time verification QR URL or token"
+                  className="h-11 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+                />
+                <button
+                  type="submit"
+                  className="h-11 rounded-xl bg-black px-5 text-sm font-semibold text-white shadow-md shadow-black/20 transition-all hover:brightness-105"
+                >
+                  Verify Credential
+                </button>
+              </div>
+              {verifyInputError && <p className="mt-2 text-left text-xs font-semibold text-rose-700">{verifyInputError}</p>}
+            </form>
           </div>
         </section>
 

@@ -175,6 +175,8 @@ export interface InternalAiResultDto {
 
 export interface GenerateQrTokenDto {
   credentialId: string;
+  allowDocumentPreview?: boolean;
+  allowDocumentDownload?: boolean;
 }
 
 export interface ConsumeQrTokenDto {
@@ -192,6 +194,8 @@ export interface GeneratedQrTokenResponseDto {
   verificationUrl: string;
   expiresAt: string;
   ttlSeconds: number;
+  allowDocumentPreview: boolean;
+  allowDocumentDownload: boolean;
 }
 
 export interface QrVerificationCredentialViewDto {
@@ -199,6 +203,9 @@ export interface QrVerificationCredentialViewDto {
   title: string;
   type: CredentialTypeValue;
   status: CredentialStatusValue;
+  studentOwner: string;
+  studentEmail: string;
+  studentNumber: string | null;
   issuedDate: string | null;
   expiryDate: string | null;
   institutionName: string;
@@ -207,8 +214,16 @@ export interface QrVerificationCredentialViewDto {
   blockNumber: number | null;
 }
 
+export interface QrDocumentAccessDto {
+  previewEnabled: boolean;
+  downloadEnabled: boolean;
+  token: string | null;
+  expiresAt: string | null;
+}
+
 export interface ConsumeQrTokenResponseDto {
   valid: boolean;
   credential: QrVerificationCredentialViewDto | null;
+  documentAccess?: QrDocumentAccessDto;
   reason?: 'INVALID' | 'EXPIRED' | 'USED';
 }

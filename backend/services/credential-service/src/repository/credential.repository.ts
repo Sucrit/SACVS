@@ -303,18 +303,24 @@ export class CredentialRepository {
     credentialId: string;
     studentId: string;
     tokenHash: string;
+    allowDocumentPreview?: boolean;
+    allowDocumentDownload?: boolean;
     expiresAt: Date;
-  }): Promise<{ id: string; expiresAt: Date }> {
+  }): Promise<{ id: string; expiresAt: Date; allowDocumentPreview: boolean; allowDocumentDownload: boolean }> {
     const created = await prisma.credentialQrToken.create({
       data: {
         credentialId: data.credentialId,
         studentId: data.studentId,
         tokenHash: data.tokenHash,
+        allowDocumentPreview: Boolean(data.allowDocumentPreview),
+        allowDocumentDownload: Boolean(data.allowDocumentDownload),
         expiresAt: data.expiresAt,
       },
       select: {
         id: true,
         expiresAt: true,
+        allowDocumentPreview: true,
+        allowDocumentDownload: true,
       },
     });
     return created;
@@ -331,7 +337,10 @@ export class CredentialRepository {
   ): Promise<
     | {
         outcome: 'CONSUMED';
+        qrTokenId: string;
         credentialId: string;
+        allowDocumentPreview: boolean;
+        allowDocumentDownload: boolean;
       }
     | {
         outcome: 'INVALID' | 'EXPIRED' | 'USED';
@@ -345,6 +354,8 @@ export class CredentialRepository {
         select: {
           id: true,
           credentialId: true,
+          allowDocumentPreview: true,
+          allowDocumentDownload: true,
           expiresAt: true,
           usedAt: true,
           invalidatedAt: true,
@@ -386,7 +397,106 @@ export class CredentialRepository {
 
       return {
         outcome: 'CONSUMED' as const,
+        qrTokenId: candidate.id,
         credentialId: candidate.credentialId,
+        allowDocumentPreview: candidate.allowDocumentPreview,
+        allowDocumentDownload: candidate.allowDocumentDownload,
+      };
+    });
+  }
+
+  async createQrDocumentToken(data: {
+    qrTokenId: string;
+    credentialId: string;
+    tokenHash: string;
+    expiresAt: Date;
+  }): Promise<{ id: string; expiresAt: Date }> {
+    return prisma.credentialQrDocumentToken.create({
+      data: {
+        qrTokenId: data.qrTokenId,
+        credentialId: data.credentialId,
+        tokenHash: data.tokenHash,
+        expiresAt: data.expiresAt,
+      },
+      select: {
+        id: true,
+        expiresAt: true,
+      },
+    });
+  }
+
+  async consumeQrDocumentTokenAtomically(
+    tokenHash: string,
+    now: Date,
+    mode: 'preview' | 'download',
+    ipAddress?: string | null,
+  ): Promise<
+    | {
+        outcome: 'CONSUMED';
+        credentialId: string;
+        allowDocumentPreview: boolean;
+        allowDocumentDownload: boolean;
+      }
+    | {
+        outcome: 'INVALID' | 'EXPIRED' | 'USED' | 'NOT_ALLOWED';
+      }
+  > {
+    return prisma.$transaction(async tx => {
+      const candidate = await tx.credentialQrDocumentToken.findUnique({
+        where: { tokenHash },
+        select: {
+          id: true,
+          credentialId: true,
+          expiresAt: true,
+          usedAt: true,
+          qrToken: {
+            select: {
+              allowDocumentPreview: true,
+              allowDocumentDownload: true,
+            },
+          },
+        },
+      });
+
+      if (!candidate) {
+        return { outcome: 'INVALID' as const };
+      }
+      if (candidate.usedAt) {
+        return { outcome: 'USED' as const };
+      }
+      if (candidate.expiresAt <= now) {
+        return { outcome: 'EXPIRED' as const };
+      }
+      if (mode === 'preview' && !candidate.qrToken.allowDocumentPreview) {
+        return { outcome: 'NOT_ALLOWED' as const };
+      }
+      if (mode === 'download' && !candidate.qrToken.allowDocumentDownload) {
+        return { outcome: 'NOT_ALLOWED' as const };
+      }
+
+      const updated = await tx.credentialQrDocumentToken.updateMany({
+        where: {
+          id: candidate.id,
+          usedAt: null,
+          expiresAt: {
+            gt: now,
+          },
+        },
+        data: {
+          usedAt: now,
+          usedByIp: ipAddress ?? null,
+        },
+      });
+
+      if (updated.count !== 1) {
+        return { outcome: 'USED' as const };
+      }
+
+      return {
+        outcome: 'CONSUMED' as const,
+        credentialId: candidate.credentialId,
+        allowDocumentPreview: candidate.qrToken.allowDocumentPreview,
+        allowDocumentDownload: candidate.qrToken.allowDocumentDownload,
       };
     });
   }
@@ -401,6 +511,15 @@ export class CredentialRepository {
     chain: string | null;
     txHash: string | null;
     blockNumber: number | null;
+    student: {
+      firstName: string;
+      middleName: string | null;
+      lastName: string;
+      email: string;
+      profile: {
+        studentNumber: string;
+      } | null;
+    };
     issuedBy: {
       institution: {
         institutionName: string;
@@ -421,6 +540,19 @@ export class CredentialRepository {
         chain: true,
         txHash: true,
         blockNumber: true,
+        student: {
+          select: {
+            firstName: true,
+            middleName: true,
+            lastName: true,
+            email: true,
+            profile: {
+              select: {
+                studentNumber: true,
+              },
+            },
+          },
+        },
         issuedBy: {
           select: {
             firstName: true,

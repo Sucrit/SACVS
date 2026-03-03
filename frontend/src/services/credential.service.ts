@@ -159,6 +159,8 @@ export interface GeneratedQrTokenResponse {
   verificationUrl: string;
   expiresAt: string;
   ttlSeconds: number;
+  allowDocumentPreview: boolean;
+  allowDocumentDownload: boolean;
 }
 
 export interface QrVerificationCredentialView {
@@ -166,6 +168,9 @@ export interface QrVerificationCredentialView {
   title: string;
   type: CredentialType;
   status: CredentialStatus;
+  studentOwner: string;
+  studentEmail: string;
+  studentNumber: string | null;
   issuedDate: string | null;
   expiryDate: string | null;
   institutionName: string;
@@ -177,6 +182,12 @@ export interface QrVerificationCredentialView {
 export interface QrVerificationResult {
   valid: boolean;
   credential: QrVerificationCredentialView | null;
+  documentAccess?: {
+    previewEnabled: boolean;
+    downloadEnabled: boolean;
+    token: string | null;
+    expiresAt: string | null;
+  };
   reason?: 'INVALID' | 'EXPIRED' | 'USED';
 }
 
@@ -311,9 +322,16 @@ export const CredentialService = {
     return response.data;
   },
 
-  generateQrToken: async (credentialId: string) => {
+  generateQrToken: async (
+    credentialId: string,
+    options?: {
+      allowDocumentPreview?: boolean;
+      allowDocumentDownload?: boolean;
+    },
+  ) => {
     const response = await api.post<GeneratedQrTokenResponse>(
       `/credentials/${encodeURIComponent(credentialId)}/qr-token`,
+      options || {},
     );
     return response.data;
   },
@@ -325,6 +343,14 @@ export const CredentialService = {
 
   verifyQrEmployer: async (token: string) => {
     const response = await api.post<QrVerificationResult>('/credentials/verify/qr/employer', { token });
+    return response.data;
+  },
+
+  getQrSharedDocumentBlob: async (token: string, mode: 'preview' | 'download') => {
+    const response = await api.get<Blob>(
+      `/credentials/verify/qr/document/${encodeURIComponent(token)}${mode === 'download' ? '?download=1' : ''}`,
+      { responseType: 'blob' },
+    );
     return response.data;
   },
 };

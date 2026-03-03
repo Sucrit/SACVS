@@ -148,6 +148,15 @@ export class CredentialService {
     chain: string | null;
     txHash: string | null;
     blockNumber: number | null;
+    student: {
+      firstName: string;
+      middleName: string | null;
+      lastName: string;
+      email: string;
+      profile: {
+        studentNumber: string;
+      } | null;
+    };
     issuedBy: {
       institution: {
         institutionName: string;
@@ -160,12 +169,19 @@ export class CredentialService {
       view.issuedBy?.institution?.institutionName?.trim() ||
       `${view.issuedBy?.firstName ?? ''} ${view.issuedBy?.lastName ?? ''}`.trim() ||
       'Issuing institution';
+    const studentOwner = [view.student.firstName, view.student.middleName, view.student.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
 
     return {
       id: view.id,
       title: view.title,
       type: view.type,
       status: view.status,
+      studentOwner: studentOwner || 'Student',
+      studentEmail: view.student.email,
+      studentNumber: view.student.profile?.studentNumber ?? null,
       issuedDate: view.issuedDate ? view.issuedDate.toISOString() : null,
       expiryDate: view.expiryDate ? view.expiryDate.toISOString() : null,
       institutionName,
@@ -1128,6 +1144,26 @@ export class CredentialService {
     verificationUrl: string;
     expiresAt: string;
     ttlSeconds: number;
+    allowDocumentPreview: boolean;
+    allowDocumentDownload: boolean;
+  }> {
+    return this.generateStudentQrTokenWithOptions(actor, credentialId, {});
+  }
+
+  async generateStudentQrTokenWithOptions(
+    actor: CredentialActor,
+    credentialId: string,
+    options: {
+      allowDocumentPreview?: boolean;
+      allowDocumentDownload?: boolean;
+    },
+  ): Promise<{
+    tokenId: string;
+    verificationUrl: string;
+    expiresAt: string;
+    ttlSeconds: number;
+    allowDocumentPreview: boolean;
+    allowDocumentDownload: boolean;
   }> {
     if (actor.role !== Role.STUDENT) {
       throw new Error('FORBIDDEN_ROLE');
@@ -1151,12 +1187,16 @@ export class CredentialService {
     const expiresAt = new Date(now.getTime() + ttlSeconds * 1000);
     const rawToken = crypto.randomBytes(32).toString('base64url');
     const tokenHash = this.hashQrToken(rawToken);
+    const allowDocumentPreview = Boolean(options.allowDocumentPreview);
+    const allowDocumentDownload = allowDocumentPreview && Boolean(options.allowDocumentDownload);
 
     await credentialRepository.invalidateActiveQrTokens(scope.id, scope.studentId, now);
     const tokenRecord = await credentialRepository.createQrToken({
       credentialId: scope.id,
       studentId: scope.studentId,
       tokenHash,
+      allowDocumentPreview,
+      allowDocumentDownload,
       expiresAt,
     });
 
@@ -1172,6 +1212,8 @@ export class CredentialService {
         studentId: scope.studentId,
         expiresAt: tokenRecord.expiresAt.toISOString(),
         ttlSeconds,
+        allowDocumentPreview,
+        allowDocumentDownload,
       },
       severity: 'INFO',
     });
@@ -1181,6 +1223,8 @@ export class CredentialService {
       verificationUrl: this.buildVerificationUrl(rawToken),
       expiresAt: tokenRecord.expiresAt.toISOString(),
       ttlSeconds,
+      allowDocumentPreview,
+      allowDocumentDownload,
     };
   }
 
@@ -1190,6 +1234,12 @@ export class CredentialService {
   ): Promise<{
     valid: boolean;
     credential: QrVerificationCredentialViewDto | null;
+    documentAccess?: {
+      previewEnabled: boolean;
+      downloadEnabled: boolean;
+      token: string | null;
+      expiresAt: string | null;
+    };
     reason?: 'INVALID' | 'EXPIRED' | 'USED';
   }> {
     const normalizedToken = rawToken.trim();
@@ -1255,6 +1305,24 @@ export class CredentialService {
     }
 
     const credential = this.mapCredentialVerificationView(view);
+    let documentAccessToken: string | null = null;
+    let documentAccessExpiresAt: string | null = null;
+
+    if (consumeResult.allowDocumentPreview || consumeResult.allowDocumentDownload) {
+      const rawDocumentToken = crypto.randomBytes(32).toString('base64url');
+      const documentTokenHash = this.hashQrToken(rawDocumentToken);
+      const documentTtlSeconds = Math.max(30, Math.min(300, Math.floor(ENV.QR_TOKEN_TTL_SECONDS)));
+      const documentExpiresAt = new Date(now.getTime() + documentTtlSeconds * 1000);
+      await credentialRepository.createQrDocumentToken({
+        qrTokenId: consumeResult.qrTokenId,
+        credentialId: consumeResult.credentialId,
+        tokenHash: documentTokenHash,
+        expiresAt: documentExpiresAt,
+      });
+      documentAccessToken = rawDocumentToken;
+      documentAccessExpiresAt = documentExpiresAt.toISOString();
+    }
+
     await this.createAuditEntry({
       action: 'QR_TOKEN_CONSUMED',
       actorId: consumer.consumerId ?? null,
@@ -1273,6 +1341,34 @@ export class CredentialService {
     return {
       valid: true,
       credential,
+      documentAccess: {
+        previewEnabled: consumeResult.allowDocumentPreview,
+        downloadEnabled: consumeResult.allowDocumentDownload,
+        token: documentAccessToken,
+        expiresAt: documentAccessExpiresAt,
+      },
+    };
+  }
+
+  async consumeQrDocumentToken(rawToken: string, mode: 'preview' | 'download', ipAddress?: string | null): Promise<{
+    credentialId: string;
+  }> {
+    const normalizedToken = rawToken.trim();
+    if (!normalizedToken || normalizedToken.length < 20 || normalizedToken.length > 512) {
+      throw new Error('QR_TOKEN_MALFORMED');
+    }
+
+    const now = new Date();
+    const tokenHash = this.hashQrToken(normalizedToken);
+    const result = await credentialRepository.consumeQrDocumentTokenAtomically(tokenHash, now, mode, ipAddress);
+    if (result.outcome === 'INVALID') throw new Error('QR_TOKEN_INVALID');
+    if (result.outcome === 'EXPIRED') throw new Error('QR_TOKEN_EXPIRED');
+    if (result.outcome === 'USED') throw new Error('QR_TOKEN_USED');
+    if (result.outcome === 'NOT_ALLOWED') throw new Error('QR_DOCUMENT_ACCESS_NOT_ALLOWED');
+    if (result.outcome !== 'CONSUMED') throw new Error('QR_TOKEN_INVALID');
+
+    return {
+      credentialId: result.credentialId,
     };
   }
 }

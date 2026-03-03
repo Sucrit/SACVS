@@ -1,9 +1,15 @@
 import { MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Download, FileText, MoreHorizontal, Plus, Search, Share2 } from 'lucide-react';
+import { AlertTriangle, Download, FileText, Link2, MoreHorizontal, Plus, Search, Share2, X } from 'lucide-react';
+import QRCode from 'qrcode';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import Card from '../../../components/common/Card';
-import { Credential, CredentialService, CredentialType } from '../../../services/credential.service';
+import {
+  Credential,
+  CredentialService,
+  CredentialType,
+  GeneratedQrTokenResponse,
+} from '../../../services/credential.service';
 
 type CredentialTypeFilter = 'ALL' | CredentialType;
 type DateRangeFilter = 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH';
@@ -176,6 +182,14 @@ export default function StudentCredentialsSection({
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<CredentialTypeFilter>('ALL');
   const [dateFilter, setDateFilter] = useState<DateRangeFilter>('ALL');
+  const [shareCredential, setShareCredential] = useState<Credential | null>(null);
+  const [qrToken, setQrToken] = useState<GeneratedQrTokenResponse | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [isGeneratingQr, setIsGeneratingQr] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [qrSecondsRemaining, setQrSecondsRemaining] = useState(0);
+  const [allowDocumentPreview, setAllowDocumentPreview] = useState(false);
+  const [allowDocumentDownload, setAllowDocumentDownload] = useState(false);
 
   const matchesDateRange = (value: string | null | undefined, range: DateRangeFilter) => {
     if (range === 'ALL') return true;
@@ -208,21 +222,102 @@ export default function StudentCredentialsSection({
     return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
   };
 
-  const handleShare = async (url: string | null, event: MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    if (!url) return;
+  useEffect(() => {
+    let cancelled = false;
 
-    try {
-      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-        await navigator.share({ url });
+    const renderQr = async () => {
+      if (!qrToken?.verificationUrl) {
+        setQrDataUrl(null);
         return;
       }
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(url);
+
+      try {
+        const dataUrl = await QRCode.toDataURL(qrToken.verificationUrl, { width: 280, margin: 1 });
+        if (!cancelled) setQrDataUrl(dataUrl);
+      } catch {
+        if (!cancelled) {
+          setQrDataUrl(null);
+          setQrError('Unable to render QR code.');
+        }
       }
-    } catch {
-      // Ignore share/copy errors in unsupported contexts.
+    };
+
+    void renderQr();
+    return () => {
+      cancelled = true;
+    };
+  }, [qrToken?.verificationUrl]);
+
+  useEffect(() => {
+    if (!qrToken?.expiresAt) {
+      setQrSecondsRemaining(0);
+      return;
     }
+
+    const updateRemaining = () => {
+      const diff = Math.max(0, Math.floor((new Date(qrToken.expiresAt).getTime() - Date.now()) / 1000));
+      setQrSecondsRemaining(diff);
+    };
+
+    updateRemaining();
+    const timer = window.setInterval(updateRemaining, 1000);
+    return () => window.clearInterval(timer);
+  }, [qrToken?.expiresAt]);
+
+  const handleShare = async (credential: Credential, event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (credential.status !== 'ISSUED') return;
+    setShareCredential(credential);
+    setAllowDocumentPreview(false);
+    setAllowDocumentDownload(false);
+    setIsGeneratingQr(true);
+    setQrError(null);
+    setQrDataUrl(null);
+    try {
+      const generated = await CredentialService.generateQrToken(credential.id, {
+        allowDocumentPreview: false,
+        allowDocumentDownload: false,
+      });
+      setQrToken(generated);
+    } catch {
+      setQrToken(null);
+      setQrError('Unable to generate one-time QR. Please try again.');
+    } finally {
+      setIsGeneratingQr(false);
+    }
+  };
+
+  const handleCopyQrLink = async () => {
+    if (!qrToken?.verificationUrl) return;
+    try {
+      await navigator.clipboard.writeText(qrToken.verificationUrl);
+    } catch {
+      // Ignore clipboard errors.
+    }
+  };
+
+  const handleRegenerateQr = async () => {
+    if (!shareCredential) return;
+    setIsGeneratingQr(true);
+    setQrError(null);
+    setQrDataUrl(null);
+    try {
+      const generated = await CredentialService.generateQrToken(shareCredential.id, {
+        allowDocumentPreview,
+        allowDocumentDownload,
+      });
+      setQrToken(generated);
+    } catch {
+      setQrError('Unable to regenerate one-time QR. Please try again.');
+    } finally {
+      setIsGeneratingQr(false);
+    }
+  };
+
+  const formatQrCountdown = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
   const handleDownload = async (credential: Credential, event: MouseEvent<HTMLButtonElement>) => {
@@ -322,6 +417,11 @@ export default function StudentCredentialsSection({
             </button>
           </div>
         </div>
+        {!qrToken && qrError && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+            {qrError}
+          </div>
+        )}
 
         {isLoadingCredentials && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -379,10 +479,16 @@ export default function StudentCredentialsSection({
                         </button>
                         <button
                           type="button"
-                          onClick={event => void handleShare(window.location.href, event)}
-                          disabled={isRevoked}
+                          onClick={event => void handleShare(credential, event)}
+                          disabled={isRevoked || credential.status !== 'ISSUED'}
                           className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                          title={isRevoked ? 'Revoked credentials cannot be shared' : 'Share'}
+                          title={
+                            isRevoked
+                              ? 'Revoked credentials cannot be shared'
+                              : credential.status !== 'ISSUED'
+                                ? 'Only issued credentials can be shared'
+                                : 'Share'
+                          }
                           aria-label="Share"
                         >
                           <Share2 size={14} />
@@ -416,6 +522,97 @@ export default function StudentCredentialsSection({
           </div>
         )}
       </div>
+      {shareCredential && qrToken && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 px-4 py-4 sm:items-center"
+          onClick={() => {
+            setShareCredential(null);
+            setQrToken(null);
+            setQrDataUrl(null);
+            setQrError(null);
+          }}
+        >
+          <div
+            className="max-h-[92vh] w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="max-h-[92vh] overflow-y-auto p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-lg font-semibold text-slate-900">Share One-Time QR</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setShareCredential(null);
+                  setQrToken(null);
+                  setQrDataUrl(null);
+                  setQrError(null);
+                }}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <p className="text-sm text-slate-600">
+              <span className="font-semibold text-slate-900">{shareCredential.title}</span> verification QR expires in{' '}
+              <span className="font-semibold text-amber-700">{formatQrCountdown(qrSecondsRemaining)}</span>.
+            </p>
+            <div className="mt-4 flex justify-center rounded-xl border border-slate-200 bg-slate-50 p-4">
+              {qrDataUrl ? (
+                <img src={qrDataUrl} alt="One-time credential verification QR" className="h-64 w-64" />
+              ) : (
+                <p className="text-sm text-slate-500">{isGeneratingQr ? 'Generating QR...' : 'Rendering QR...'}</p>
+              )}
+            </div>
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              This QR is single-use and short-lived. Regenerate if you suspect it was leaked.
+            </div>
+            <div className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Shared document access</p>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={allowDocumentPreview}
+                  onChange={event => {
+                    const checked = event.target.checked;
+                    setAllowDocumentPreview(checked);
+                    if (!checked) setAllowDocumentDownload(false);
+                  }}
+                />
+                Allow document preview
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={allowDocumentDownload}
+                  disabled={!allowDocumentPreview}
+                  onChange={event => setAllowDocumentDownload(event.target.checked)}
+                />
+                Allow document download
+              </label>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void handleCopyQrLink()}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <Link2 size={13} />
+                Copy Link
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleRegenerateQr()}
+                disabled={isGeneratingQr}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+              >
+                {isGeneratingQr ? 'Regenerating...' : 'Regenerate'}
+              </button>
+            </div>
+            {qrError && <p className="mt-3 text-xs text-rose-700">{qrError}</p>}
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

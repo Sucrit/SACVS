@@ -72,6 +72,8 @@ export default function StudentCredentialDetailsSection({
   const [qrToken, setQrToken] = useState<GeneratedQrTokenResponse | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrSecondsRemaining, setQrSecondsRemaining] = useState(0);
+  const [allowDocumentPreview, setAllowDocumentPreview] = useState(false);
+  const [allowDocumentDownload, setAllowDocumentDownload] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,17 +170,29 @@ export default function StudentCredentialDetailsSection({
   );
   const issuerInstitutionName =
     selectedCredential?.issuedBy?.institution?.institutionName?.trim() || 'Your institution';
-  const canGenerateQr =
-    selectedCredential?.status === 'ISSUED' &&
-    selectedCredential?.status !== 'REVOKED';
+  const canGenerateQr = selectedCredential?.status === 'ISSUED';
 
-  const handleGenerateQr = async () => {
+  const handleGenerateQr = async (options?: {
+    allowDocumentPreview?: boolean;
+    allowDocumentDownload?: boolean;
+  }) => {
     if (!selectedCredential) return;
     setIsGeneratingQr(true);
     setQrError(null);
     setQrDataUrl(null);
+    const previewEnabled =
+      typeof options?.allowDocumentPreview === 'boolean'
+        ? options.allowDocumentPreview
+        : allowDocumentPreview;
+    const downloadEnabled =
+      typeof options?.allowDocumentDownload === 'boolean'
+        ? options.allowDocumentDownload
+        : allowDocumentDownload;
     try {
-      const generated = await CredentialService.generateQrToken(selectedCredential.id);
+      const generated = await CredentialService.generateQrToken(selectedCredential.id, {
+        allowDocumentPreview: previewEnabled,
+        allowDocumentDownload: downloadEnabled,
+      });
       setQrToken(generated);
     } catch {
       setQrToken(null);
@@ -200,22 +214,13 @@ export default function StudentCredentialDetailsSection({
   };
 
   const handleShare = async () => {
-    if (!selectedCredential || !selectedCredentialFileUrl) return;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: selectedCredential.title,
-          text: `Credential: ${selectedCredential.title}`,
-          url: selectedCredentialFileUrl,
-        });
-        return;
-      } catch {
-        // Fall back to copy link if share dialog is unavailable/cancelled.
-      }
-    }
-
-    await copyText(selectedCredentialFileUrl);
+    if (!canGenerateQr) return;
+    setAllowDocumentPreview(false);
+    setAllowDocumentDownload(false);
+    await handleGenerateQr({
+      allowDocumentPreview: false,
+      allowDocumentDownload: false,
+    });
   };
 
   if (!selectedCredential) {
@@ -379,11 +384,11 @@ export default function StudentCredentialDetailsSection({
                     <button
                       type="button"
                       onClick={() => void handleShare()}
-                      disabled={isRevoked}
+                      disabled={isRevoked || !canGenerateQr || isGeneratingQr}
                       className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <Share2 size={13} />
-                      Share
+                      {isGeneratingQr ? 'Generating QR...' : 'Share'}
                     </button>
                     {isRevoked ? (
                       <button
@@ -407,36 +412,39 @@ export default function StudentCredentialDetailsSection({
                   </div>
                 </>
               )}
-              {canGenerateQr && (
+              {qrToken && (
                 <>
                   <p className="inline-flex items-center gap-2 font-medium text-slate-500">
                     <QrCode size={14} />
                     Verification QR
                   </p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void handleGenerateQr()}
-                      disabled={isGeneratingQr}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <QrCode size={13} />
-                      {isGeneratingQr ? 'Generating...' : qrToken ? 'Regenerate One-Time QR' : 'Generate One-Time QR'}
-                    </button>
-                    {qrToken && (
-                      <span className="text-xs font-semibold text-amber-700">
-                        Expires in {formatQrCountdown(qrSecondsRemaining)}
-                      </span>
-                    )}
-                  </div>
+                  <p className="text-xs font-semibold text-amber-700">
+                    Expires in {formatQrCountdown(qrSecondsRemaining)}
+                  </p>
+                </>
+              )}
+              {!qrToken && qrError && (
+                <>
+                  <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+                    <AlertTriangle size={14} />
+                    QR Error
+                  </p>
+                  <p className="text-xs font-semibold text-rose-700">{qrError}</p>
                 </>
               )}
             </div>
           </section>
       </div>
       {qrToken && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 px-4 py-4 sm:items-center"
+          onClick={() => setQrToken(null)}
+        >
+          <div
+            className="max-h-[92vh] w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="max-h-[92vh] overflow-y-auto p-5">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-lg font-semibold text-slate-900">One-Time Verification QR</p>
               <button
@@ -461,6 +469,30 @@ export default function StudentCredentialDetailsSection({
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               Security notice: this link is short-lived and single-use. If leaked, regenerate immediately.
             </div>
+            <div className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Shared document access</p>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={allowDocumentPreview}
+                  onChange={event => {
+                    const checked = event.target.checked;
+                    setAllowDocumentPreview(checked);
+                    if (!checked) setAllowDocumentDownload(false);
+                  }}
+                />
+                Allow document preview
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={allowDocumentDownload}
+                  disabled={!allowDocumentPreview}
+                  onChange={event => setAllowDocumentDownload(event.target.checked)}
+                />
+                Allow document download
+              </label>
+            </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -481,6 +513,7 @@ export default function StudentCredentialDetailsSection({
               </button>
             </div>
             {qrError && <p className="mt-3 text-xs text-rose-700">{qrError}</p>}
+            </div>
           </div>
         </div>
       )}
