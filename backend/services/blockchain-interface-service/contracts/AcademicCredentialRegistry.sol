@@ -19,16 +19,22 @@ contract AcademicCredentialRegistry {
         _;
     }
 
+    error CredentialAlreadyExists();
+    error CredentialDoesNotExist();
+    error CredentialIsRevoked();
+    error CredentialAlreadyRevoked();
+    error NotOriginalIssuer();
+    error NotAuthorizedToRevoke();
+
     struct Credential {
-        bytes32 credentialId;
         bytes32 studentHash;
         bytes32 documentHash;
         address issuer;
-        uint256 issuedAt;
         bool revoked;
-        uint256 revokedAt;
-        address revokedBy;
         uint32 version;
+        uint64 issuedAt;
+        uint64 revokedAt;
+        address revokedBy;
     }
 
     mapping(bytes32 => Credential) private credentials;
@@ -70,19 +76,14 @@ contract AcademicCredentialRegistry {
         bytes32 studentHash,
         bytes32 documentHash
     ) external onlyIssuer {
-        require(credentials[credentialId].issuedAt == 0, "Credential already exists");
+        Credential storage cred = credentials[credentialId];
+        if (cred.issuedAt != 0) revert CredentialAlreadyExists();
 
-        credentials[credentialId] = Credential({
-            credentialId: credentialId,
-            studentHash: studentHash,
-            documentHash: documentHash,
-            issuer: msg.sender,
-            issuedAt: block.timestamp,
-            revoked: false,
-            revokedAt: 0,
-            revokedBy: address(0),
-            version: 1
-        });
+        cred.studentHash = studentHash;
+        cred.documentHash = documentHash;
+        cred.issuer = msg.sender;
+        cred.issuedAt = uint64(block.timestamp);
+        cred.version = 1;
 
         emit CredentialIssued(credentialId, msg.sender);
     }
@@ -93,14 +94,16 @@ contract AcademicCredentialRegistry {
         bytes32 documentHash
     ) external onlyIssuer {
         Credential storage cred = credentials[credentialId];
-        require(cred.issuedAt != 0, "Credential does not exist");
-        require(!cred.revoked, "Credential is revoked");
-        require(msg.sender == cred.issuer, "Only original issuer can reissue");
+        if (cred.issuedAt == 0) revert CredentialDoesNotExist();
+        if (cred.revoked) revert CredentialIsRevoked();
+        if (msg.sender != cred.issuer) revert NotOriginalIssuer();
 
         cred.studentHash = studentHash;
         cred.documentHash = documentHash;
-        cred.issuedAt = block.timestamp;
-        cred.version += 1;
+        cred.issuedAt = uint64(block.timestamp);
+        unchecked {
+            cred.version += 1;
+        }
 
         emit CredentialReissued(credentialId, msg.sender, cred.version);
     }
@@ -108,12 +111,12 @@ contract AcademicCredentialRegistry {
     // credential revocation (issuer , admin only)
     function revokeCredential(bytes32 credentialId) external {
         Credential storage cred = credentials[credentialId];
-        require(cred.issuedAt != 0, "Credential does not exist");
-        require(!cred.revoked, "Credential already revoked");
-        require(msg.sender == cred.issuer || msg.sender == admin, "Not authorized to revoke");
+        if (cred.issuedAt == 0) revert CredentialDoesNotExist();
+        if (cred.revoked) revert CredentialAlreadyRevoked();
+        if (msg.sender != cred.issuer && msg.sender != admin) revert NotAuthorizedToRevoke();
 
         cred.revoked = true;
-        cred.revokedAt = block.timestamp;
+        cred.revokedAt = uint64(block.timestamp);
         cred.revokedBy = msg.sender;
         emit CredentialRevoked(credentialId, msg.sender);
     }
@@ -130,7 +133,7 @@ contract AcademicCredentialRegistry {
             bool revoked
         )
     {
-        Credential memory cred = credentials[credentialId];
+        Credential storage cred = credentials[credentialId];
         return (
             cred.studentHash,
             cred.documentHash,
@@ -154,7 +157,7 @@ contract AcademicCredentialRegistry {
             uint32 version
         )
     {
-        Credential memory cred = credentials[credentialId];
+        Credential storage cred = credentials[credentialId];
         return (
             cred.studentHash,
             cred.documentHash,
@@ -181,7 +184,7 @@ contract AcademicCredentialRegistry {
             uint256 issuedAt
         )
     {
-        Credential memory cred = credentials[credentialId];
+        Credential storage cred = credentials[credentialId];
 
         if (cred.issuedAt == 0 || cred.revoked) {
             return (false, address(0), 0);
@@ -200,7 +203,7 @@ contract AcademicCredentialRegistry {
             uint32 version
         )
     {
-        Credential memory cred = credentials[credentialId];
+        Credential storage cred = credentials[credentialId];
 
         if (cred.issuedAt == 0 || cred.revoked) {
             return (false, address(0), 0, 0);

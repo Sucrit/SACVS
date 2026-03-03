@@ -1,5 +1,8 @@
 import dotenv from 'dotenv';
+import path from 'node:path';
+
 dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 const parseBoolean = (value: string | undefined, fallback: boolean): boolean => {
   if (typeof value !== 'string') return fallback;
