@@ -195,12 +195,17 @@ export const CredentialService = {
     return response.data;
   },
 
-  issue: async (id: string, data: IssueCredentialPayload = {}) => {
+  issue: async (id: string, data: IssueCredentialPayload = {}, stepUpToken?: string) => {
     const hasFile = data.file instanceof File;
     const response = await api.put<Credential>(
       `/credentials/${id}/issue`,
       hasFile ? toMultipartPayload(data) : data,
-      hasFile ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined,
+      {
+        headers: {
+          ...(hasFile ? { 'Content-Type': 'multipart/form-data' } : {}),
+          ...(stepUpToken ? { 'x-step-up-token': stepUpToken } : {}),
+        },
+      },
     );
     return response.data;
   },
@@ -249,10 +254,14 @@ export const CredentialService = {
       allowDocumentPreview?: boolean;
       allowDocumentDownload?: boolean;
     },
+    stepUpToken?: string,
   ) => {
     const response = await api.post<GeneratedQrTokenResponse>(
       `/credentials/${encodeURIComponent(credentialId)}/qr-token`,
       options || {},
+      {
+        headers: stepUpToken ? { 'x-step-up-token': stepUpToken } : undefined,
+      },
     );
     return response.data;
   },

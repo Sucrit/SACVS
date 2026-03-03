@@ -169,6 +169,30 @@ export interface DeleteInstitutionStudentResult {
   message: string;
 }
 
+export type StepUpAction =
+  | 'ROLE_CHANGE'
+  | 'STATUS_CHANGE'
+  | 'CREDENTIAL_ISSUE'
+  | 'BULK_STUDENT_CREATE'
+  | 'QR_DOWNLOAD_ENABLE';
+
+export interface CreateStepUpChallengePayload {
+  action: StepUpAction;
+  targetId?: string;
+  payloadHash?: string;
+}
+
+export interface CreateStepUpChallengeResponse {
+  challengeId: string;
+  expiresAt: string;
+  delivery: 'EMAIL_OTP';
+}
+
+export interface VerifyStepUpChallengeResponse {
+  stepUpToken: string;
+  expiresAt: string;
+}
+
 export const UserService = {
   getMe: async () => {
     const response = await api.get<User>('/users/me');
@@ -200,13 +224,21 @@ export const UserService = {
     return response.data;
   },
 
-  updateStatus: async (id: string, status: UserStatus) => {
-    const response = await api.put<User>(`/users/${id}/status`, { status });
+  updateStatus: async (id: string, status: UserStatus, stepUpToken?: string) => {
+    const response = await api.put<User>(
+      `/users/${id}/status`,
+      { status },
+      { headers: stepUpToken ? { 'x-step-up-token': stepUpToken } : undefined },
+    );
     return response.data;
   },
 
-  updateRole: async (id: string, role: UserRole) => {
-    const response = await api.put<User>(`/users/${id}/role`, { role } as UpdateUserRolePayload);
+  updateRole: async (id: string, role: UserRole, stepUpToken?: string) => {
+    const response = await api.put<User>(
+      `/users/${id}/role`,
+      { role } as UpdateUserRolePayload,
+      { headers: stepUpToken ? { 'x-step-up-token': stepUpToken } : undefined },
+    );
     return response.data;
   },
 
@@ -220,8 +252,25 @@ export const UserService = {
     return response.data;
   },
 
-  createInstitutionStudentsBulk: async (data: InstitutionStudentBulkPayload) => {
-    const response = await api.post<InstitutionStudentBulkResult>('/users/me/institution/students/bulk', data);
+  createInstitutionStudentsBulk: async (data: InstitutionStudentBulkPayload, stepUpToken?: string) => {
+    const response = await api.post<InstitutionStudentBulkResult>(
+      '/users/me/institution/students/bulk',
+      data,
+      { headers: stepUpToken ? { 'x-step-up-token': stepUpToken } : undefined },
+    );
+    return response.data;
+  },
+
+  createStepUpChallenge: async (payload: CreateStepUpChallengePayload) => {
+    const response = await api.post<CreateStepUpChallengeResponse>('/users/me/step-up/challenges', payload);
+    return response.data;
+  },
+
+  verifyStepUpChallenge: async (challengeId: string, otpCode: string) => {
+    const response = await api.post<VerifyStepUpChallengeResponse>(
+      `/users/me/step-up/challenges/${encodeURIComponent(challengeId)}/verify`,
+      { otpCode },
+    );
     return response.data;
   },
 

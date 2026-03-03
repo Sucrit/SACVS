@@ -1,19 +1,33 @@
+import crypto from 'node:crypto';
 import { clerkClient } from '@clerk/express';
+import { NotificationType, StepUpAction } from '../../../../db/node_modules/@prisma/client';
 import {
   BulkCreateInstitutionStudentsResultDto,
+  CreateStepUpChallengeDto,
   CreateInstitutionStudentDto,
   CompleteOrganizationOnboardingDto,
   CreateUserDto,
+  VerifyStepUpChallengeDto,
   UpdateUserRoleDto,
   UpdateUserStatusDto,
   UpsertStudentProfileDto,
   UserStatus,
 } from '../dto/user.dto';
 import { UserRepository } from '../repository/user.repository';
+import { ENV } from '../config/env';
+import { notificationClient } from '../client/notification.client';
+import { emailClient } from '../client/email.client';
 
 const userRepository = new UserRepository();
 
 const normalizeEmail = (value: string): string => value.trim().toLowerCase();
+const stepUpActionLabel = (action: StepUpAction): string => {
+  if (action === 'ROLE_CHANGE') return 'Role change';
+  if (action === 'STATUS_CHANGE') return 'Status change';
+  if (action === 'CREDENTIAL_ISSUE') return 'Credential issuance';
+  if (action === 'BULK_STUDENT_CREATE') return 'Bulk student creation';
+  return 'QR document download enable';
+};
 const normalizeErrorMessage = (error: unknown): string => {
   if (error instanceof Error && error.message.trim().length > 0) {
     return error.message;
@@ -33,6 +47,29 @@ const normalizeErrorMessage = (error: unknown): string => {
 type WithApprover = { approvedById: string | null };
 
 export class UserService {
+  private getStepUpPepperOrThrow(): string {
+    const pepper = ENV.STEP_UP_TOKEN_PEPPER?.trim();
+    if (!pepper) {
+      throw new Error('STEP_UP_TOKEN_INVALID');
+    }
+    return pepper;
+  }
+
+  private hashStepUpValue(raw: string): string {
+    const pepper = this.getStepUpPepperOrThrow();
+    return crypto.createHash('sha256').update(`${raw}:${pepper}`).digest('hex');
+  }
+
+  private generateOtpCode(): string {
+    return String(Math.floor(100000 + Math.random() * 900000));
+  }
+
+  private normalizeOptionalString(value: string | undefined | null): string | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+
   private async addApproverNames<T extends WithApprover>(
     records: T[],
   ): Promise<Array<T & { approverName: string | null }>> {
@@ -163,6 +200,168 @@ export class UserService {
 
   async listUsers() {
     return userRepository.listUsersForAdmin();
+  }
+
+  async createStepUpChallenge(
+    userId: string,
+    data: CreateStepUpChallengeDto,
+    context?: { correlationId?: string | null; ipAddress?: string | null; userAgent?: string | null },
+  ): Promise<{
+    challengeId: string;
+    expiresAt: string;
+    delivery: 'EMAIL_OTP';
+  }> {
+    const actor = await userRepository.getUserById(userId);
+    if (!actor) {
+      throw new Error('ACTOR_NOT_FOUND');
+    }
+
+    const action = data.action as StepUpAction;
+    const otpCode = this.generateOtpCode();
+    const codeHash = this.hashStepUpValue(otpCode);
+    const ttlSeconds = Math.max(60, Math.min(600, Math.floor(ENV.STEP_UP_OTP_TTL_SECONDS)));
+    const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+    const maxAttempts = Math.max(3, Math.min(10, Math.floor(ENV.STEP_UP_MAX_ATTEMPTS)));
+    const created = await userRepository.createStepUpChallenge({
+      userId,
+      action,
+      targetId: this.normalizeOptionalString(data.targetId),
+      payloadHash: this.normalizeOptionalString(data.payloadHash),
+      codeHash,
+      expiresAt,
+      maxAttempts,
+    });
+
+    try {
+      await emailClient.sendStepUpOtpEmail({
+        to: actor.email,
+        otpCode,
+        expiresInMinutes: Math.max(1, Math.floor(ttlSeconds / 60)),
+        actionLabel: stepUpActionLabel(action),
+      });
+    } catch (error) {
+      console.error('Failed to dispatch step-up OTP email:', error);
+      throw error instanceof Error && error.message === 'STEP_UP_DELIVERY_NOT_CONFIGURED'
+        ? new Error('STEP_UP_DELIVERY_NOT_CONFIGURED')
+        : new Error('STEP_UP_DELIVERY_FAILED');
+    }
+
+    try {
+      await notificationClient.createSystemNotification({
+        userId,
+        type: NotificationType.SECURITY_ALERT,
+        title: 'Security verification code',
+        message: `Your one-time security verification code is ${otpCode}. It expires in ${Math.floor(ttlSeconds / 60)} minute(s).`,
+        metadata: {
+          event: 'STEP_UP_OTP',
+          action,
+          challengeId: created.id,
+          expiresAt: created.expiresAt.toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error('Failed to dispatch step-up OTP notification:', error);
+    }
+
+    await userRepository.createAuditLog({
+      action: 'SECURITY_ALERT',
+      actorId: userId,
+      targetType: 'StepUpChallenge',
+      targetId: created.id,
+      description: `Step-up challenge created for action ${action}`,
+      metadata: {
+        action,
+        targetId: data.targetId ?? null,
+        expiresAt: created.expiresAt.toISOString(),
+        correlationId: context?.correlationId ?? null,
+        ipAddress: context?.ipAddress ?? null,
+        userAgent: context?.userAgent ?? null,
+      },
+      severity: 'INFO',
+    });
+
+    return {
+      challengeId: created.id,
+      expiresAt: created.expiresAt.toISOString(),
+      delivery: 'EMAIL_OTP',
+    };
+  }
+
+  async verifyStepUpChallenge(
+    userId: string,
+    challengeId: string,
+    data: VerifyStepUpChallengeDto,
+    context?: { correlationId?: string | null; ipAddress?: string | null; userAgent?: string | null },
+  ): Promise<{ stepUpToken: string; expiresAt: string }> {
+    const challenge = await userRepository.getStepUpChallengeById(challengeId, userId);
+    if (!challenge) throw new Error('STEP_UP_TOKEN_INVALID');
+    if (challenge.lockedAt) throw new Error('STEP_UP_CHALLENGE_LOCKED');
+    if (challenge.verifiedAt) throw new Error('STEP_UP_TOKEN_INVALID');
+    if (challenge.expiresAt <= new Date()) throw new Error('STEP_UP_TOKEN_EXPIRED');
+
+    const submittedHash = this.hashStepUpValue(data.otpCode.trim());
+    const valid = crypto.timingSafeEqual(Buffer.from(submittedHash), Buffer.from(challenge.codeHash));
+    if (!valid) {
+      const nextAttempts = challenge.attempts + 1;
+      await userRepository.markStepUpChallengeAttempt(
+        challenge.id,
+        nextAttempts,
+        nextAttempts >= challenge.maxAttempts,
+      );
+      await userRepository.createAuditLog({
+        action: 'ACCESS_DENIED',
+        actorId: userId,
+        targetType: 'StepUpChallenge',
+        targetId: challenge.id,
+        description: 'Invalid step-up OTP attempt',
+        metadata: {
+          attempts: nextAttempts,
+          maxAttempts: challenge.maxAttempts,
+          action: challenge.action,
+          correlationId: context?.correlationId ?? null,
+          ipAddress: context?.ipAddress ?? null,
+          userAgent: context?.userAgent ?? null,
+        },
+        severity: 'WARNING',
+      });
+      if (nextAttempts >= challenge.maxAttempts) {
+        throw new Error('STEP_UP_CHALLENGE_LOCKED');
+      }
+      throw new Error('STEP_UP_TOKEN_INVALID');
+    }
+
+    const rawSessionToken = crypto.randomBytes(32).toString('base64url');
+    const sessionTokenHash = this.hashStepUpValue(rawSessionToken);
+    const sessionTtlSeconds = Math.max(60, Math.min(600, Math.floor(ENV.STEP_UP_SESSION_TTL_SECONDS)));
+    const sessionExpiresAt = new Date(Date.now() + sessionTtlSeconds * 1000);
+    const session = await userRepository.verifyStepUpChallengeAndCreateSession({
+      challengeId: challenge.id,
+      userId,
+      tokenHash: sessionTokenHash,
+      expiresAt: sessionExpiresAt,
+    });
+
+    await userRepository.createAuditLog({
+      action: 'ACCESS_GRANTED',
+      actorId: userId,
+      targetType: 'StepUpChallenge',
+      targetId: challenge.id,
+      description: `Step-up challenge verified for action ${challenge.action}`,
+      metadata: {
+        action: challenge.action,
+        sessionId: session.sessionId,
+        expiresAt: session.expiresAt.toISOString(),
+        correlationId: context?.correlationId ?? null,
+        ipAddress: context?.ipAddress ?? null,
+        userAgent: context?.userAgent ?? null,
+      },
+      severity: 'INFO',
+    });
+
+    return {
+      stepUpToken: rawSessionToken,
+      expiresAt: session.expiresAt.toISOString(),
+    };
   }
 
   async listInstitutionStudents(actorUserId: string) {

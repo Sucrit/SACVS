@@ -1,17 +1,27 @@
 import express from 'express';
 import cors from 'cors';
+import crypto from 'node:crypto';
 import routes from './routes';
 import { ENV } from './config/env';
 
 const app = express();
 
-// Security headers 
+// Security headers
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+// Correlation ID propagation
+app.use((req, res, next) => {
+  const incoming = req.header('x-correlation-id')?.trim();
+  const correlationId = incoming && incoming.length > 0 ? incoming : crypto.randomUUID();
+  req.headers['x-correlation-id'] = correlationId;
+  res.setHeader('x-correlation-id', correlationId);
   next();
 });
 
@@ -29,50 +39,174 @@ if (!ENV.CORS_ORIGIN) {
       cb(new Error('Not allowed by CORS'));
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-step-up-token', 'x-correlation-id'],
     credentials: true,
   };
   app.use(cors(corsOptions));
 }
 
-// rate limiting
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX = ENV.RATE_LIMIT_MAX;
+type RouteClass = 'PUBLIC_VERIFY' | 'HIGH_RISK_MUTATION' | 'INTERNAL' | 'STANDARD_AUTH';
+type RatePolicy = {
+  windowMs: number;
+  maxRequests: number;
+  burstMax: number;
+  cooldownMs: number;
+  blockDurationMs?: number;
+};
+
+type RateState = {
+  count: number;
+  burstCount: number;
+  resetAt: number;
+  cooldownUntil?: number;
+  blockedUntil?: number;
+  violations: number;
+};
+
+const RATE_POLICY: Record<RouteClass, RatePolicy> = {
+  PUBLIC_VERIFY: {
+    windowMs: 60_000,
+    maxRequests: 30,
+    burstMax: 10,
+    cooldownMs: 30_000,
+    blockDurationMs: 180_000,
+  },
+  HIGH_RISK_MUTATION: {
+    windowMs: 60_000,
+    maxRequests: 20,
+    burstMax: 8,
+    cooldownMs: 20_000,
+    blockDurationMs: 120_000,
+  },
+  INTERNAL: {
+    windowMs: 60_000,
+    maxRequests: 120,
+    burstMax: 30,
+    cooldownMs: 10_000,
+  },
+  STANDARD_AUTH: {
+    windowMs: 60_000,
+    maxRequests: Math.max(20, ENV.RATE_LIMIT_MAX || 100),
+    burstMax: Math.max(10, Math.floor((ENV.RATE_LIMIT_MAX || 100) / 4)),
+    cooldownMs: 10_000,
+  },
+};
+
+const rateState = new Map<string, RateState>();
+
+const classifyRoute = (req: express.Request): RouteClass => {
+  const path = req.path || req.originalUrl || '';
+  const method = req.method.toUpperCase();
+
+  if (path.startsWith('/credentials/verify/qr')) {
+    return 'PUBLIC_VERIFY';
+  }
+  if (path.startsWith('/credentials/internal/') || path.startsWith('/notifications/system')) {
+    return 'INTERNAL';
+  }
+  if (
+    (method === 'PUT' && /^\/users\/[^/]+\/(role|status)$/.test(path)) ||
+    (method === 'PUT' && /^\/credentials\/[^/]+\/issue$/.test(path)) ||
+    (method === 'POST' && path === '/users/me/institution/students/bulk')
+  ) {
+    return 'HIGH_RISK_MUTATION';
+  }
+
+  return 'STANDARD_AUTH';
+};
+
+const identityPart = (req: express.Request): string => {
+  const auth = req.header('authorization')?.trim();
+  if (!auth) return 'anon';
+  return crypto.createHash('sha1').update(auth).digest('hex').slice(0, 16);
+};
 
 app.use((req, res, next) => {
-  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const routeClass = classifyRoute(req);
+  const policy = RATE_POLICY[routeClass];
   const now = Date.now();
-  const entry = rateLimitMap.get(ip);
+  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const key = `${routeClass}:${ip}:${identityPart(req)}`;
+  const current = rateState.get(key);
 
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+  if (!current || now > current.resetAt) {
+    rateState.set(key, {
+      count: 1,
+      burstCount: 1,
+      resetAt: now + policy.windowMs,
+      violations: current?.violations ?? 0,
+    });
+    res.setHeader('X-RateLimit-Remaining', String(Math.max(0, policy.maxRequests - 1)));
+    res.setHeader('X-RateLimit-Reset', String(Math.ceil((now + policy.windowMs) / 1000)));
     return next();
   }
 
-  entry.count++;
-  if (entry.count > RATE_LIMIT_MAX) {
-    res.setHeader('Retry-After', String(Math.ceil((entry.resetAt - now) / 1000)));
-    return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+  if (current.blockedUntil && now < current.blockedUntil) {
+    res.setHeader('Retry-After', String(Math.ceil((current.blockedUntil - now) / 1000)));
+    return res.status(429).json({ error: 'RATE_LIMITED' });
+  }
+
+  if (current.cooldownUntil && now < current.cooldownUntil) {
+    res.setHeader('Retry-After', String(Math.ceil((current.cooldownUntil - now) / 1000)));
+    return res.status(429).json({ error: 'RATE_LIMITED' });
+  }
+
+  current.count += 1;
+  current.burstCount += 1;
+
+  res.setHeader('X-RateLimit-Remaining', String(Math.max(0, policy.maxRequests - current.count)));
+  res.setHeader('X-RateLimit-Reset', String(Math.ceil(current.resetAt / 1000)));
+
+  if (current.burstCount > policy.burstMax || current.count > policy.maxRequests) {
+    current.violations += 1;
+    current.cooldownUntil = now + policy.cooldownMs;
+    if (policy.blockDurationMs && current.violations >= 3) {
+      current.blockedUntil = now + policy.blockDurationMs;
+    }
+
+    const retryAt = current.blockedUntil && current.blockedUntil > current.cooldownUntil
+      ? current.blockedUntil
+      : current.cooldownUntil;
+    if (retryAt) {
+      res.setHeader('Retry-After', String(Math.ceil((retryAt - now) / 1000)));
+    }
+
+    return res.status(429).json({ error: 'RATE_LIMITED' });
   }
 
   return next();
 });
 
-// cleanup old entries 
 setInterval(() => {
   const now = Date.now();
-  for (const [ip, entry] of rateLimitMap) {
-    if (now > entry.resetAt) rateLimitMap.delete(ip);
+  for (const [key, entry] of rateState) {
+    const expired =
+      now > entry.resetAt &&
+      (!entry.cooldownUntil || now > entry.cooldownUntil) &&
+      (!entry.blockedUntil || now > entry.blockedUntil);
+    if (expired) {
+      rateState.delete(key);
+    }
   }
 }, 60_000);
+
+const redactUrl = (rawUrl: string): string => {
+  let value = rawUrl || '';
+  value = value.replace(/(\/verify\/qr\/document\/)[^/?#]+/gi, '$1[REDACTED]');
+  value = value.replace(/(\/verify\/qr\/)[^/?#]+/gi, '$1[REDACTED]');
+  value = value.replace(/([?&](token|verificationUrl)=)[^&]+/gi, '$1[REDACTED]');
+  return value;
+};
 
 // request logging
 app.use((req, res, next) => {
   const start = Date.now();
+  const correlationId = req.header('x-correlation-id') || 'n/a';
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} → ${res.statusCode} (${duration}ms)`);
+    console.log(
+      `[${new Date().toISOString()}] [corr=${correlationId}] ${req.method} ${redactUrl(req.originalUrl)} -> ${res.statusCode} (${duration}ms)`,
+    );
   });
   next();
 });

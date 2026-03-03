@@ -3,8 +3,10 @@ import { UserService } from '../service/user.service';
 import {
   BulkCreateInstitutionStudentsDto,
   CreateInstitutionStudentDto,
+  CreateStepUpChallengeDto,
   CompleteOrganizationOnboardingDto,
   CreateUserDto,
+  VerifyStepUpChallengeDto,
   StudentSex,
   UpdateUserRoleDto,
   UpdateUserStatusDto,
@@ -461,6 +463,82 @@ export class UserController {
       return res.status(200).json(users);
     } catch (error) {
       console.error('Error listing users:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async createStepUpChallenge(req: Request, res: Response): Promise<Response> {
+    const actorId = getAuthUserId(req);
+    if (!actorId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const payload = (req.body ?? {}) as Partial<CreateStepUpChallengeDto>;
+    const validActions = ['ROLE_CHANGE', 'STATUS_CHANGE', 'CREDENTIAL_ISSUE', 'BULK_STUDENT_CREATE', 'QR_DOWNLOAD_ENABLE'];
+    if (!payload.action || !validActions.includes(payload.action)) {
+      return res.status(400).json({ error: 'Invalid step-up action.' });
+    }
+
+    try {
+      const challenge = await userService.createStepUpChallenge(actorId, {
+        action: payload.action,
+        targetId: typeof payload.targetId === 'string' ? payload.targetId : undefined,
+        payloadHash: typeof payload.payloadHash === 'string' ? payload.payloadHash : undefined,
+      }, {
+        correlationId: req.header('x-correlation-id') || null,
+        ipAddress: req.ip || req.socket.remoteAddress || null,
+        userAgent: req.header('user-agent') || null,
+      });
+      return res.status(200).json(challenge);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
+        return res.status(404).json({ error: 'ACTOR_NOT_FOUND' });
+      }
+      if (error instanceof Error && error.message === 'STEP_UP_DELIVERY_NOT_CONFIGURED') {
+        return res.status(503).json({ error: 'STEP_UP_DELIVERY_NOT_CONFIGURED' });
+      }
+      if (error instanceof Error && error.message === 'STEP_UP_DELIVERY_FAILED') {
+        return res.status(502).json({ error: 'STEP_UP_DELIVERY_FAILED' });
+      }
+      if (error instanceof Error && error.message === 'STEP_UP_TOKEN_INVALID') {
+        return res.status(500).json({ error: 'STEP_UP_MISCONFIGURED' });
+      }
+      console.error('Error creating step-up challenge:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async verifyStepUpChallenge(req: Request, res: Response): Promise<Response> {
+    const actorId = getAuthUserId(req);
+    if (!actorId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const challengeId = Array.isArray(req.params.challengeId) ? req.params.challengeId[0] : req.params.challengeId;
+    const payload = (req.body ?? {}) as Partial<VerifyStepUpChallengeDto>;
+    const otpCode = typeof payload.otpCode === 'string' ? payload.otpCode.trim() : '';
+    if (!otpCode) {
+      return res.status(400).json({ error: 'Missing required field: otpCode' });
+    }
+
+    try {
+      const verified = await userService.verifyStepUpChallenge(actorId, challengeId, { otpCode }, {
+        correlationId: req.header('x-correlation-id') || null,
+        ipAddress: req.ip || req.socket.remoteAddress || null,
+        userAgent: req.header('user-agent') || null,
+      });
+      return res.status(200).json(verified);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'STEP_UP_CHALLENGE_LOCKED') {
+        return res.status(423).json({ error: 'STEP_UP_CHALLENGE_LOCKED' });
+      }
+      if (error instanceof Error && error.message === 'STEP_UP_TOKEN_EXPIRED') {
+        return res.status(410).json({ error: 'STEP_UP_TOKEN_EXPIRED' });
+      }
+      if (error instanceof Error && error.message === 'STEP_UP_TOKEN_INVALID') {
+        return res.status(403).json({ error: 'STEP_UP_TOKEN_INVALID' });
+      }
+      console.error('Error verifying step-up challenge:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }

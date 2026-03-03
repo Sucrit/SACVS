@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../services/audit.service';
 import { User, UserRole, UserService, UserStatus } from '../../services/user.service';
+import { useStepUp } from '../../hooks/useStepUp';
 
 type AdminSection = 'overview' | 'users' | 'logs' | 'settings';
 type RoleFilter = UserRole | 'ALL';
@@ -26,6 +27,8 @@ const ROLE_OPTIONS: RoleFilter[] = ['ALL', 'STUDENT', 'EMPLOYER', 'INSTITUTION',
 const STATUS_OPTIONS: StatusFilter[] = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'];
 const USER_STATUS_ACTIONS: UserStatus[] = ['APPROVED', 'REJECTED', 'SUSPENDED', 'PENDING'];
 const USER_ROLE_ACTIONS: UserRole[] = ['STUDENT', 'EMPLOYER', 'INSTITUTION', 'ADMIN'];
+const OTP_BADGE_CLASS =
+  'rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700';
 
 const formatDateTime = (value: string | null | undefined) => {
   if (!value) return '-';
@@ -101,6 +104,7 @@ export default function AdminDashboard() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const { requestStepUpToken, stepUpModal } = useStepUp();
 
   const loadUsers = useCallback(async () => {
     setIsLoadingUsers(true);
@@ -257,30 +261,48 @@ export default function AdminDashboard() {
     setUsersError(null);
 
     try {
-      const updated = await UserService.updateStatus(userId, status);
+      const stepUpToken = await requestStepUpToken({
+        action: 'STATUS_CHANGE',
+        targetId: userId,
+        title: 'Confirm Status Update',
+        description: 'Enter the OTP sent to your email to change this account status.',
+      });
+      const updated = await UserService.updateStatus(userId, status, stepUpToken);
       setUsers(previous => previous.map(user => (user.id === userId ? { ...user, ...updated } : user)));
     } catch (error) {
+      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+        return;
+      }
       console.error('Failed to update user status:', error);
       setUsersError('Unable to update user status at this time.');
     } finally {
       setIsUpdatingStatus(null);
     }
-  }, []);
+  }, [requestStepUpToken]);
 
   const handleRoleUpdate = useCallback(async (userId: string, role: UserRole) => {
     setIsUpdatingRole(userId);
     setUsersError(null);
 
     try {
-      const updated = await UserService.updateRole(userId, role);
+      const stepUpToken = await requestStepUpToken({
+        action: 'ROLE_CHANGE',
+        targetId: userId,
+        title: 'Confirm Role Update',
+        description: 'Enter the OTP sent to your email to change this user role.',
+      });
+      const updated = await UserService.updateRole(userId, role, stepUpToken);
       setUsers(previous => previous.map(user => (user.id === userId ? { ...user, ...updated } : user)));
     } catch (error) {
+      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+        return;
+      }
       console.error('Failed to update user role:', error);
       setUsersError('Unable to update user role at this time.');
     } finally {
       setIsUpdatingRole(null);
     }
-  }, []);
+  }, [requestStepUpToken]);
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -606,7 +628,10 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Role Actions</p>
+                  <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+                    Role Actions
+                    <span className={OTP_BADGE_CLASS}>OTP Required</span>
+                  </p>
                   <div className="grid grid-cols-2 gap-2">
                     {USER_ROLE_ACTIONS.map(nextRole => (
                       <button
@@ -618,15 +643,22 @@ export default function AdminDashboard() {
                             ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
                             : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
                         }`}
+                        title="OTP required before this action is applied"
                       >
-                        {isUpdatingRole === selectedUser.id && selectedUser.role !== nextRole ? 'Updating...' : nextRole}
+                        <span className="inline-flex items-center gap-1.5">
+                          {isUpdatingRole === selectedUser.id && selectedUser.role !== nextRole ? 'Updating...' : nextRole}
+                          {selectedUser.role !== nextRole && <span className={OTP_BADGE_CLASS}>OTP</span>}
+                        </span>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Status Actions</p>
+                  <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+                    Status Actions
+                    <span className={OTP_BADGE_CLASS}>OTP Required</span>
+                  </p>
                   <div className="grid grid-cols-2 gap-2">
                     {USER_STATUS_ACTIONS.map(nextStatus => (
                       <button
@@ -638,8 +670,12 @@ export default function AdminDashboard() {
                             ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
                             : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
                         }`}
+                        title="OTP required before this action is applied"
                       >
-                        {isUpdatingStatus === selectedUser.id && selectedUser.status !== nextStatus ? 'Updating...' : nextStatus}
+                        <span className="inline-flex items-center gap-1.5">
+                          {isUpdatingStatus === selectedUser.id && selectedUser.status !== nextStatus ? 'Updating...' : nextStatus}
+                          {selectedUser.status !== nextStatus && <span className={OTP_BADGE_CLASS}>OTP</span>}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -833,22 +869,34 @@ export default function AdminDashboard() {
                     disabled={isUpdatingStatus === user.id}
                     onClick={() => void handleStatusUpdate(user.id, 'APPROVED')}
                     className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    title="OTP required before this action is applied"
                   >
-                    Approve
+                    <span className="inline-flex items-center gap-1.5">
+                      Approve
+                      <span className={OTP_BADGE_CLASS}>OTP</span>
+                    </span>
                   </button>
                   <button
                     disabled={isUpdatingStatus === user.id}
                     onClick={() => void handleStatusUpdate(user.id, 'REJECTED')}
                     className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    title="OTP required before this action is applied"
                   >
-                    Reject
+                    <span className="inline-flex items-center gap-1.5">
+                      Reject
+                      <span className={OTP_BADGE_CLASS}>OTP</span>
+                    </span>
                   </button>
                   <button
                     disabled={isUpdatingStatus === user.id}
                     onClick={() => void handleStatusUpdate(user.id, 'SUSPENDED')}
                     className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    title="OTP required before this action is applied"
                   >
-                    Suspend
+                    <span className="inline-flex items-center gap-1.5">
+                      Suspend
+                      <span className={OTP_BADGE_CLASS}>OTP</span>
+                    </span>
                   </button>
                 </div>
               </div>
@@ -857,6 +905,7 @@ export default function AdminDashboard() {
         </Card>
       )}
 
+      {stepUpModal}
     </div>
   );
 }

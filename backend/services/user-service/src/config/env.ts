@@ -1,10 +1,56 @@
-import dotenv from "dotenv"
-dotenv.config()
+import dotenv from 'dotenv';
+dotenv.config();
+
+const parseNumber = (value: string | undefined, fallback: number): number => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const resolveStepUpPepper = (): string | undefined => {
+  const configured = process.env.STEP_UP_TOKEN_PEPPER?.trim();
+  if (configured) return configured;
+  if ((process.env.NODE_ENV || 'development') !== 'production') {
+    return 'local-dev-step-up-pepper';
+  }
+  return undefined;
+};
 
 export const ENV = {
-    PORT: process.env.PORT,
-    DATABASE_URL: process.env.DATABASE_URL,
-    PRISMA_SCHEMA_PATH: process.env.PRISMA_SCHEMA_PATH,
-    CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY,
-    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+  NODE_ENV: process.env.NODE_ENV || 'development',
+  PORT: process.env.PORT,
+  DATABASE_URL: process.env.DATABASE_URL,
+  PRISMA_SCHEMA_PATH: process.env.PRISMA_SCHEMA_PATH,
+  CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY,
+  CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+  NOTIFICATION_SERVICE_URL: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5300',
+  INTERNAL_SERVICE_TOKEN: process.env.INTERNAL_SERVICE_TOKEN,
+  STEP_UP_TOKEN_PEPPER: resolveStepUpPepper(),
+  STEP_UP_OTP_TTL_SECONDS: parseNumber(process.env.STEP_UP_OTP_TTL_SECONDS, 300),
+  STEP_UP_SESSION_TTL_SECONDS: parseNumber(process.env.STEP_UP_SESSION_TTL_SECONDS, 300),
+  STEP_UP_MAX_ATTEMPTS: parseNumber(process.env.STEP_UP_MAX_ATTEMPTS, 5),
+  STEP_UP_ENFORCEMENT_MODE: (process.env.STEP_UP_ENFORCEMENT_MODE || 'log_only').toLowerCase(),
+  SMTP_HOST: process.env.SMTP_HOST,
+  SMTP_PORT: process.env.SMTP_PORT,
+  SMTP_SECURE: (process.env.SMTP_SECURE || 'false').toLowerCase(),
+  SMTP_USER: process.env.SMTP_USER,
+  SMTP_PASS: process.env.SMTP_PASS,
+  SMTP_FROM: process.env.SMTP_FROM,
+};
+
+if (
+  ENV.NODE_ENV === 'production' &&
+  (!ENV.STEP_UP_TOKEN_PEPPER || ENV.STEP_UP_TOKEN_PEPPER.trim().length === 0)
+) {
+  throw new Error('STEP_UP_TOKEN_PEPPER is required for user-service in production mode.');
+}
+
+if ((ENV.NODE_ENV || 'development') !== 'production' && !process.env.STEP_UP_TOKEN_PEPPER) {
+  console.warn('[user-service] STEP_UP_TOKEN_PEPPER is not set. Using local development fallback pepper.');
+}
+
+if (
+  (ENV.NODE_ENV || 'development') !== 'production' &&
+  (!ENV.SMTP_HOST || !ENV.SMTP_USER || !ENV.SMTP_PASS || !ENV.SMTP_FROM)
+) {
+  console.warn('[user-service] SMTP is not fully configured. Step-up OTP email delivery is disabled.');
 }

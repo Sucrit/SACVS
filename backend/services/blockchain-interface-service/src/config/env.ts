@@ -16,6 +16,7 @@ const parseOptional = (value: string | undefined): string | undefined => {
 };
 
 export const ENV = {
+  NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: Number(process.env.PORT) || 5400,
   RPC_URL: parseOptional(process.env.BLOCKCHAIN_RPC_URL) || 'http://127.0.0.1:7546',
   PRIVATE_KEY: parseOptional(process.env.BLOCKCHAIN_PRIVATE_KEY),
@@ -24,3 +25,10 @@ export const ENV = {
   INTERNAL_SERVICE_TOKEN: parseOptional(process.env.INTERNAL_SERVICE_TOKEN),
   HASH_HMAC_SECRET: parseRequired(process.env.BLOCKCHAIN_HASH_HMAC_SECRET, 'BLOCKCHAIN_HASH_HMAC_SECRET'),
 };
+
+if (
+  ENV.NODE_ENV === 'production' &&
+  (!ENV.INTERNAL_SERVICE_TOKEN || ENV.INTERNAL_SERVICE_TOKEN.trim().length === 0)
+) {
+  throw new Error('INTERNAL_SERVICE_TOKEN is required for blockchain-interface-service in production mode.');
+}

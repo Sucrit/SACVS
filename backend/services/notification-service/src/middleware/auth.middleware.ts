@@ -84,7 +84,7 @@ export const requireInternalService = (
 ): Response | void => {
   const configuredToken = ENV.INTERNAL_SERVICE_TOKEN?.trim();
   if (!configuredToken) {
-    return next();
+    return res.status(500).json({ error: 'INTERNAL_AUTH_MISCONFIGURED' });
   }
 
   const incomingToken = req.header('x-internal-service-token');

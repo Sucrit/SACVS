@@ -34,6 +34,7 @@ import {
   getInstitutionSection,
   parseCsvStudents,
 } from './utils';
+import { useStepUp } from '../../hooks/useStepUp';
 
 const toStudentFormState = (student: User): StudentFormState => ({
   email: student.email,
@@ -113,6 +114,7 @@ export default function InstitutionDashboard() {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [notificationHint, setNotificationHint] = useState<string | null>(null);
+  const { requestStepUpToken, stepUpModal } = useStepUp();
 
   const createEvent = useCallback((type: ActivityEvent['type'], title: string, description: string) => {
     setActivityEvents(previous => [{ id: createClientId(), type, title, description, createdAt: new Date().toISOString() }, ...previous].slice(0, 100));
@@ -290,11 +292,19 @@ export default function InstitutionDashboard() {
         setStudentsError(parsed.error);
         return;
       }
-      const result = await UserService.createInstitutionStudentsBulk({ students: parsed.students });
+      const stepUpToken = await requestStepUpToken({
+        action: 'BULK_STUDENT_CREATE',
+        title: 'Confirm Bulk Student Import',
+        description: 'Enter the OTP sent to your email to continue with bulk student creation.',
+      });
+      const result = await UserService.createInstitutionStudentsBulk({ students: parsed.students }, stepUpToken);
       setStudentsHint(`Bulk import complete: ${result.created} created, ${result.failed.length} failed.`);
       createEvent('STUDENT', 'Bulk student import', `${result.created} created, ${result.failed.length} failed.`);
       await loadStudents();
     } catch (error) {
+      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+        return;
+      }
       setStudentsError('Unable to import students from CSV.');
       console.error('Failed bulk importing students:', error);
     } finally {
@@ -453,13 +463,20 @@ export default function InstitutionDashboard() {
 
     }
 
+    const stepUpToken = await requestStepUpToken({
+      action: 'CREDENTIAL_ISSUE',
+      targetId: credentialId,
+      title: 'Confirm Credential Issuance',
+      description: 'Enter the OTP sent to your email to issue this credential.',
+    });
+
     const issued = await CredentialService.issue(credentialId, {
       description: request.description || undefined,
       issuedDate: new Date().toISOString(),
       metadata: requestMetadata,
       expiryDate,
       file: uploadFileDuringIssue,
-    });
+    }, stepUpToken);
     upsertCredentialState(issued);
     if (issued.status !== 'ISSUED') {
       return {
@@ -538,6 +555,9 @@ export default function InstitutionDashboard() {
       }
       await loadCredentials();
     } catch (error) {
+      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+        return;
+      }
       setRequestsError(getApiErrorMessage(error) || 'Unable to issue credential.');
       console.error('Failed handling request action:', error);
     }
@@ -549,22 +569,36 @@ export default function InstitutionDashboard() {
       return;
     }
 
-    const results = await Promise.allSettled(
-      selectedRequestIds.map(async requestId => {
-        if (action === 'APPROVE') return updateRequestStatus(requestId, 'APPROVED');
+    const results: Array<'fulfilled' | 'rejected'> = [];
+    for (const requestId of selectedRequestIds) {
+      try {
+        if (action === 'APPROVE') {
+          await updateRequestStatus(requestId, 'APPROVED');
+          results.push('fulfilled');
+          continue;
+        }
         if (action === 'REJECT') {
           const reason = rejectionReasonByRequestId[requestId]?.trim() || 'Rejected during bulk review.';
-          return updateRequestStatus(requestId, 'REJECTED', reason);
+          await updateRequestStatus(requestId, 'REJECTED', reason);
+          results.push('fulfilled');
+          continue;
         }
         const request = requests.find(entry => entry.id === requestId);
         if (!request) {
           throw new Error(`Credential request ${requestId} not found.`);
         }
-        return issueCredentialForRequest(request);
-      }),
-    );
+        await issueCredentialForRequest(request);
+        results.push('fulfilled');
+      } catch (error) {
+        if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+          results.push('rejected');
+          continue;
+        }
+        results.push('rejected');
+      }
+    }
 
-    const succeeded = results.filter(result => result.status === 'fulfilled').length;
+    const succeeded = results.filter(result => result === 'fulfilled').length;
     const failed = results.length - succeeded;
     setSelectedRequestIds([]);
     setRequestsHint(`Bulk ${action.toLowerCase()} complete: ${succeeded} updated, ${failed} failed.`);
@@ -616,7 +650,12 @@ export default function InstitutionDashboard() {
         description: payload.description,
         expiryDate: normalizedExpiryDate,
         metadata: directIssueMetadata,
-      });
+      }, await requestStepUpToken({
+        action: 'CREDENTIAL_ISSUE',
+        targetId: created.id,
+        title: 'Confirm Credential Issuance',
+        description: 'Enter the OTP sent to your email to issue this credential.',
+      }));
       upsertCredentialState(issued);
 
       setRequestsHint('Credential issued successfully.');
@@ -629,6 +668,9 @@ export default function InstitutionDashboard() {
       await loadCredentials();
       return issued;
     } catch (error) {
+      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+        throw error;
+      }
       const message = getApiErrorMessage(error) || 'Unable to issue credential directly.';
       throw new Error(message);
     }
@@ -652,14 +694,23 @@ export default function InstitutionDashboard() {
     setRequestsError(null);
     setRequestsHint(null);
     try {
+      const stepUpToken = await requestStepUpToken({
+        action: 'CREDENTIAL_ISSUE',
+        targetId: credentialId,
+        title: 'Confirm Credential Re-Issuance',
+        description: 'Enter the OTP sent to your email to re-issue this credential.',
+      });
       const issued = await CredentialService.issue(credentialId, {
         issuedDate: new Date().toISOString(),
         file,
-      });
+      }, stepUpToken);
       upsertCredentialState(issued);
       setRequestsHint('Credential re-issued successfully.');
       createEvent('REQUEST', 'Credential re-issued', `Credential ${credentialId} re-issued.`);
     } catch (error) {
+      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+        throw error;
+      }
       setRequestsError(getApiErrorMessage(error) || 'Unable to re-issue credential.');
       throw error;
     }
@@ -1001,6 +1052,7 @@ export default function InstitutionDashboard() {
           )}
         </div>
       )}
+      {stepUpModal}
     </div>
   );
 }

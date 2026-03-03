@@ -101,6 +101,8 @@ const DEFAULT_YEAR_LEVEL_OPTIONS = [
 ];
 
 const DEFAULT_DEPARTMENT_OPTIONS = Object.keys(PHINMA_DEPARTMENT_COURSE_MAP);
+const OTP_BADGE_CLASS =
+  'rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700';
 
 export default function InstitutionStudentsSection({
   studentForm,
@@ -259,6 +261,7 @@ export default function InstitutionStudentsSection({
         <button
           type="button"
           onClick={() => setActivePanel(previous => (previous === 'bulk' ? null : 'bulk'))}
+          title="Bulk student import requires OTP verification"
           className={`inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-sm font-semibold ${
             activePanel === 'bulk'
               ? 'border-slate-900 bg-slate-900 text-white'
@@ -267,6 +270,7 @@ export default function InstitutionStudentsSection({
         >
           <Upload size={14} />
           Bulk Account Import (CSV)
+          <span className={OTP_BADGE_CLASS}>OTP</span>
           <ChevronDown size={14} className={`transition-transform ${activePanel === 'bulk' ? 'rotate-180' : ''}`} />
         </button>
       </div>
@@ -403,6 +407,7 @@ export default function InstitutionStudentsSection({
             <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
               <Upload size={14} />
               {isBulkImporting ? 'Importing...' : 'Upload CSV'}
+              {!isBulkImporting && <span className={OTP_BADGE_CLASS}>OTP Required</span>}
               <input type="file" accept=".csv,text/csv" onChange={event => { void onBulkCsvUpload(event); }} className="hidden" />
             </label>
           </Card>

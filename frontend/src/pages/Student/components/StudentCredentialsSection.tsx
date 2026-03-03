@@ -10,6 +10,7 @@ import {
   CredentialType,
   GeneratedQrTokenResponse,
 } from '../../../services/credential.service';
+import { useStepUp } from '../../../hooks/useStepUp';
 
 type CredentialTypeFilter = 'ALL' | CredentialType;
 type DateRangeFilter = 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH';
@@ -190,6 +191,7 @@ export default function StudentCredentialsSection({
   const [qrSecondsRemaining, setQrSecondsRemaining] = useState(0);
   const [allowDocumentPreview, setAllowDocumentPreview] = useState(false);
   const [allowDocumentDownload, setAllowDocumentDownload] = useState(false);
+  const { requestStepUpToken, stepUpModal } = useStepUp();
 
   const matchesDateRange = (value: string | null | undefined, range: DateRangeFilter) => {
     if (range === 'ALL') return true;
@@ -302,12 +304,23 @@ export default function StudentCredentialsSection({
     setQrError(null);
     setQrDataUrl(null);
     try {
+      const stepUpToken = allowDocumentDownload
+        ? await requestStepUpToken({
+            action: 'QR_DOWNLOAD_ENABLE',
+            targetId: shareCredential.id,
+            title: 'Confirm Download-Enabled Share',
+            description: 'Enter the OTP sent to your email to enable document download in this shared QR.',
+          })
+        : undefined;
       const generated = await CredentialService.generateQrToken(shareCredential.id, {
         allowDocumentPreview,
         allowDocumentDownload,
-      });
+      }, stepUpToken);
       setQrToken(generated);
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+        return;
+      }
       setQrError('Unable to regenerate one-time QR. Please try again.');
     } finally {
       setIsGeneratingQr(false);
@@ -487,7 +500,7 @@ export default function StudentCredentialsSection({
                               ? 'Revoked credentials cannot be shared'
                               : credential.status !== 'ISSUED'
                                 ? 'Only issued credentials can be shared'
-                                : 'Share'
+                                : 'Share (OTP required only if document download is enabled)'
                           }
                           aria-label="Share"
                         >
@@ -583,6 +596,12 @@ export default function StudentCredentialsSection({
                   onChange={event => setAllowDocumentDownload(event.target.checked)}
                 />
                 Allow document download
+                <span
+                  className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700"
+                  title="Enabling download requires OTP verification"
+                >
+                  OTP Required
+                </span>
               </label>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -599,8 +618,14 @@ export default function StudentCredentialsSection({
                 onClick={() => void handleRegenerateQr()}
                 disabled={isGeneratingQr}
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                title={allowDocumentDownload ? 'OTP required when regenerating with download enabled' : 'Regenerate one-time QR'}
               >
                 {isGeneratingQr ? 'Regenerating...' : 'Regenerate'}
+                {allowDocumentDownload && (
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+                    OTP
+                  </span>
+                )}
               </button>
             </div>
             {qrError && <p className="mt-3 text-xs text-rose-700">{qrError}</p>}
@@ -608,6 +633,7 @@ export default function StudentCredentialsSection({
           </div>
         </div>
       )}
+      {stepUpModal}
     </Card>
   );
 }

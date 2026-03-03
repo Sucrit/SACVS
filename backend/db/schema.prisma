@@ -123,6 +123,14 @@ enum AuditSeverity {
   CRITICAL
 }
 
+enum StepUpAction {
+  ROLE_CHANGE
+  STATUS_CHANGE
+  CREDENTIAL_ISSUE
+  BULK_STUDENT_CREATE
+  QR_DOWNLOAD_ENABLE
+}
+
 enum NotificationType {
   ACCOUNT_APPROVED
   ACCOUNT_REJECTED
@@ -168,6 +176,8 @@ model User {
   auditLogs          AuditLog[]
   notifications      Notification[]
   qrTokens           CredentialQrToken[]
+  stepUpChallenges   StepUpChallenge[]
+  stepUpSessions     StepUpSession[]
 
   @@index([role])
   @@index([status])
@@ -308,6 +318,63 @@ model CredentialQrDocumentToken {
   credential Credential        @relation(fields: [credentialId], references: [id], onDelete: Cascade)
 
   @@index([credentialId, expiresAt])
+  @@index([usedAt])
+}
+
+
+
+
+
+
+
+
+
+model StepUpChallenge {
+  id          String       @id @default(uuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action      StepUpAction
+  targetId    String?
+  payloadHash String?
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int          @default(0)
+  maxAttempts Int          @default(5)
+  lockedAt    DateTime?
+  verifiedAt  DateTime?
+  createdAt   DateTime     @default(now())
+
+  session StepUpSession?
+
+  @@index([userId, createdAt])
+  @@index([action, expiresAt])
+  @@index([expiresAt])
+}
+
+
+
+
+
+
+
+
+
+model StepUpSession {
+  id          String          @id @default(uuid())
+  challengeId String          @unique
+  challenge   StepUpChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action      StepUpAction
+  targetId    String?
+  payloadHash String?
+  tokenHash   String          @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime        @default(now())
+
+  @@index([userId, action, expiresAt])
+  @@index([expiresAt])
   @@index([usedAt])
 }
 

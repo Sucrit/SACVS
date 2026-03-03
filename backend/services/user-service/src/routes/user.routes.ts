@@ -1,6 +1,7 @@
 import express from 'express';
 import { UserController } from '../controller/user.controller';
 import { requireApprovedAccount, requireAuth, requireRoles } from '../middleware/auth.middleware';
+import { requireStepUp } from '../middleware/stepup.middleware';
 
 const router = express.Router();
 const userController = new UserController();
@@ -9,6 +10,18 @@ router.get('/me', requireAuth, userController.getCurrentUser.bind(userController
 router.post('/me/onboarding', requireAuth, userController.completeOrganizationOnboarding.bind(userController));
 router.put('/me/onboarding', requireAuth, userController.completeOrganizationOnboarding.bind(userController));
 router.put('/me/profile', requireAuth, userController.upsertMyProfile.bind(userController));
+router.post(
+  '/me/step-up/challenges',
+  requireAuth,
+  requireApprovedAccount,
+  userController.createStepUpChallenge.bind(userController),
+);
+router.post(
+  '/me/step-up/challenges/:challengeId/verify',
+  requireAuth,
+  requireApprovedAccount,
+  userController.verifyStepUpChallenge.bind(userController),
+);
 router.get(
   '/me/institution/students',
   requireAuth,
@@ -25,6 +38,7 @@ router.post(
   '/me/institution/students/bulk',
   requireAuth,
   requireRoles('INSTITUTION'),
+  requireStepUp('BULK_STUDENT_CREATE'),
   userController.createInstitutionStudentsBulk.bind(userController),
 );
 router.put(
@@ -75,12 +89,14 @@ router.put(
   '/:id/status',
   requireAuth,
   requireRoles('ADMIN'),
+  requireStepUp('STATUS_CHANGE', req => (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id)),
   userController.updateUserStatus.bind(userController),
 );
 router.put(
   '/:id/role',
   requireAuth,
   requireRoles('ADMIN'),
+  requireStepUp('ROLE_CHANGE', req => (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id)),
   userController.updateUserRole.bind(userController),
 );
 

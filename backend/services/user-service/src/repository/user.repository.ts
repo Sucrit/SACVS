@@ -7,6 +7,7 @@ import {
   Sex,
   AuditAction,
   AuditSeverity,
+  StepUpAction,
 } from '../../../../db/node_modules/@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
@@ -874,6 +875,189 @@ export class UserRepository {
       metadata: {
         email: studentEmail,
       },
+    });
+  }
+
+  async createAuditLog(data: {
+    action: AuditAction;
+    severity?: AuditSeverity;
+    actorId?: string | null;
+    targetType?: string | null;
+    targetId?: string | null;
+    description?: string | null;
+    metadata?: Prisma.InputJsonValue | null;
+  }): Promise<void> {
+    await this.createAuditLogEntry(data);
+  }
+
+  async createStepUpChallenge(data: {
+    userId: string;
+    action: StepUpAction;
+    targetId?: string | null;
+    payloadHash?: string | null;
+    codeHash: string;
+    expiresAt: Date;
+    maxAttempts: number;
+  }): Promise<{ id: string; expiresAt: Date }> {
+    return prisma.stepUpChallenge.create({
+      data: {
+        userId: data.userId,
+        action: data.action,
+        targetId: data.targetId ?? null,
+        payloadHash: data.payloadHash ?? null,
+        codeHash: data.codeHash,
+        expiresAt: data.expiresAt,
+        maxAttempts: data.maxAttempts,
+      },
+      select: {
+        id: true,
+        expiresAt: true,
+      },
+    });
+  }
+
+  async getStepUpChallengeById(challengeId: string, userId: string): Promise<{
+    id: string;
+    userId: string;
+    action: StepUpAction;
+    targetId: string | null;
+    payloadHash: string | null;
+    codeHash: string;
+    expiresAt: Date;
+    attempts: number;
+    maxAttempts: number;
+    lockedAt: Date | null;
+    verifiedAt: Date | null;
+  } | null> {
+    return prisma.stepUpChallenge.findFirst({
+      where: {
+        id: challengeId,
+        userId,
+      },
+      select: {
+        id: true,
+        userId: true,
+        action: true,
+        targetId: true,
+        payloadHash: true,
+        codeHash: true,
+        expiresAt: true,
+        attempts: true,
+        maxAttempts: true,
+        lockedAt: true,
+        verifiedAt: true,
+      },
+    });
+  }
+
+  async markStepUpChallengeAttempt(challengeId: string, attempts: number, lock: boolean): Promise<void> {
+    await prisma.stepUpChallenge.update({
+      where: { id: challengeId },
+      data: {
+        attempts,
+        lockedAt: lock ? new Date() : null,
+      },
+    });
+  }
+
+  async verifyStepUpChallengeAndCreateSession(data: {
+    challengeId: string;
+    userId: string;
+    tokenHash: string;
+    expiresAt: Date;
+  }): Promise<{ sessionId: string; expiresAt: Date }> {
+    return prisma.$transaction(async tx => {
+      const challenge = await tx.stepUpChallenge.findFirst({
+        where: {
+          id: data.challengeId,
+          userId: data.userId,
+          verifiedAt: null,
+          lockedAt: null,
+        },
+        select: {
+          id: true,
+          action: true,
+          targetId: true,
+          payloadHash: true,
+          expiresAt: true,
+        },
+      });
+
+      if (!challenge || challenge.expiresAt <= new Date()) {
+        throw new Error('STEP_UP_TOKEN_EXPIRED');
+      }
+
+      await tx.stepUpChallenge.update({
+        where: { id: challenge.id },
+        data: { verifiedAt: new Date() },
+      });
+
+      const session = await tx.stepUpSession.create({
+        data: {
+          challengeId: challenge.id,
+          userId: data.userId,
+          action: challenge.action,
+          targetId: challenge.targetId,
+          payloadHash: challenge.payloadHash,
+          tokenHash: data.tokenHash,
+          expiresAt: data.expiresAt,
+        },
+        select: {
+          id: true,
+          expiresAt: true,
+        },
+      });
+
+      return {
+        sessionId: session.id,
+        expiresAt: session.expiresAt,
+      };
+    });
+  }
+
+  async consumeStepUpSessionAtomically(data: {
+    tokenHash: string;
+    userId: string;
+    action: StepUpAction;
+    targetId?: string | null;
+    payloadHash?: string | null;
+    now: Date;
+  }): Promise<'CONSUMED' | 'INVALID' | 'EXPIRED' | 'USED' | 'MISMATCH'> {
+    return prisma.$transaction(async tx => {
+      const candidate = await tx.stepUpSession.findUnique({
+        where: { tokenHash: data.tokenHash },
+        select: {
+          id: true,
+          userId: true,
+          action: true,
+          targetId: true,
+          payloadHash: true,
+          expiresAt: true,
+          usedAt: true,
+        },
+      });
+
+      if (!candidate) return 'INVALID';
+      if (candidate.usedAt) return 'USED';
+      if (candidate.expiresAt <= data.now) return 'EXPIRED';
+
+      if (candidate.userId !== data.userId || candidate.action !== data.action) return 'MISMATCH';
+      if ((candidate.targetId ?? null) !== (data.targetId ?? null)) return 'MISMATCH';
+      if ((candidate.payloadHash ?? null) !== (data.payloadHash ?? null)) return 'MISMATCH';
+
+      const updated = await tx.stepUpSession.updateMany({
+        where: {
+          id: candidate.id,
+          usedAt: null,
+          expiresAt: { gt: data.now },
+        },
+        data: {
+          usedAt: data.now,
+        },
+      });
+
+      if (updated.count !== 1) return 'USED';
+      return 'CONSUMED';
     });
   }
 

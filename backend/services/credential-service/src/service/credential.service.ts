@@ -810,7 +810,7 @@ export class CredentialService {
       throw new Error('CREDENTIAL_NOT_ISSUED');
     }
 
-    const ttlSeconds = Math.max(30, Math.floor(ENV.QR_TOKEN_TTL_SECONDS));
+    const ttlSeconds = Math.max(30, Math.min(300, Math.floor(ENV.QR_TOKEN_TTL_SECONDS)));
     const now = new Date();
     const expiresAt = new Date(now.getTime() + ttlSeconds * 1000);
     const rawToken = crypto.randomBytes(32).toString('base64url');

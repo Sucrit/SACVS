@@ -331,6 +331,22 @@ export class CredentialController {
         code: 403,
         error: 'Document access is not allowed for this token.',
       },
+      STEP_UP_REQUIRED: {
+        code: 403,
+        error: 'STEP_UP_REQUIRED',
+      },
+      STEP_UP_TOKEN_INVALID: {
+        code: 403,
+        error: 'STEP_UP_TOKEN_INVALID',
+      },
+      STEP_UP_TOKEN_EXPIRED: {
+        code: 403,
+        error: 'STEP_UP_TOKEN_EXPIRED',
+      },
+      INTERNAL_AUTH_MISCONFIGURED: {
+        code: 500,
+        error: 'INTERNAL_AUTH_MISCONFIGURED',
+      },
     };
 
     const mapped = map[error.message];

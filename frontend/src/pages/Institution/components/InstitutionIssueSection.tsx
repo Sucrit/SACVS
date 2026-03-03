@@ -17,6 +17,8 @@ const EXPIRY_ALLOWED_TYPES: CredentialType[] = ['CERTIFICATE', 'LICENSE'];
 type CertificateCategory = 'ACADEMIC' | 'PROFESSIONAL';
 const DEFAULT_CERTIFICATE_CATEGORY: CertificateCategory = 'ACADEMIC';
 const CERTIFICATE_CATEGORIES: CertificateCategory[] = ['ACADEMIC', 'PROFESSIONAL'];
+const OTP_BADGE_CLASS =
+  'rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700';
 
 const supportsExpiryDate = (type: CredentialType) => EXPIRY_ALLOWED_TYPES.includes(type);
 const requiresExpiryDate = (
@@ -158,6 +160,9 @@ export default function InstitutionIssueSection({
       });
       setDirectFile(null);
     } catch (error) {
+      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+        return;
+      }
       const message = error instanceof Error && error.message.trim().length > 0
         ? error.message
         : 'Unable to issue credential directly.';
@@ -294,9 +299,11 @@ export default function InstitutionIssueSection({
               type="submit"
               disabled={isDirectIssuing}
               className="inline-flex h-10 items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-4 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
+              title="OTP required before this action is applied"
             >
               <ClipboardCheck size={13} />
               {isDirectIssuing ? 'Issuing...' : 'Issue Credential'}
+              {!isDirectIssuing && <span className={OTP_BADGE_CLASS}>OTP</span>}
             </button>
           </div>
           {directIssueError && <p className="text-xs text-rose-700">{directIssueError}</p>}
@@ -410,11 +417,12 @@ export default function InstitutionIssueSection({
                             ? 'Attach a file to issue this credential.'
                             : requestRequiresExpiry && !issueExpiryByRequestId[request.id]
                               ? 'Set an expiry date before issuing this credential.'
-                              : 'Issue Credential'
+                              : 'Issue Credential (OTP required)'
                         }
                       >
                         <ClipboardCheck size={13} />
                         Issue
+                        <span className={OTP_BADGE_CLASS}>OTP</span>
                       </button>
                     </td>
                         </>
@@ -543,9 +551,11 @@ export default function InstitutionIssueSection({
                           }}
                           disabled={reissuingCredentialId === credential.id || isRevoked}
                           className="inline-flex h-9 items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
+                          title="OTP required before this action is applied"
                         >
                           <ClipboardCheck size={12} />
                           Re-issue
+                          <span className={OTP_BADGE_CLASS}>OTP</span>
                         </button>
                         {isRevoked && (
                           <span className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-rose-700">

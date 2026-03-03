@@ -25,9 +25,11 @@
     "@clerk/express": "^1.7.72",
     "@prisma/adapter-pg": "^7.4.0",
     "@prisma/client": "^7.4.0",
+    "@types/nodemailer": "^7.0.11",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "nodemailer": "^8.0.1",
     "pg": "^8.17.2"
   }
 }

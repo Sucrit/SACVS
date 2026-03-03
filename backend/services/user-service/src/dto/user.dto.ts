@@ -3,6 +3,12 @@ export type UserStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 export type OrganizationRole = 'EMPLOYER' | 'INSTITUTION';
 export type InstitutionManagedStudentStatus = UserStatus;
 export type StudentSex = 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
+export type StepUpAction =
+  | 'ROLE_CHANGE'
+  | 'STATUS_CHANGE'
+  | 'CREDENTIAL_ISSUE'
+  | 'BULK_STUDENT_CREATE'
+  | 'QR_DOWNLOAD_ENABLE';
 
 export interface CreateUserDto {
   email: string;
@@ -92,3 +98,13 @@ export interface CompleteInstitutionOnboardingDto extends CompleteOrganizationOn
 export type CompleteOrganizationOnboardingDto =
   | CompleteEmployerOnboardingDto
   | CompleteInstitutionOnboardingDto;
+
+export interface CreateStepUpChallengeDto {
+  action: StepUpAction;
+  targetId?: string;
+  payloadHash?: string;
+}
+
+export interface VerifyStepUpChallengeDto {
+  otpCode: string;
+}
