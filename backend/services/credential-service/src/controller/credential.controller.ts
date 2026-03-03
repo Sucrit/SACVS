@@ -1,5 +1,4 @@
-import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { Request, Response } from 'express';
 import { Prisma } from '../../../../db/node_modules/@prisma/client';
@@ -15,6 +14,12 @@ import {
 } from '../dto/credential.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { CREDENTIAL_UPLOADS_DIR } from '../config/uploads';
+import {
+  createEncryptedStorageName,
+  decryptFileToBuffer,
+  encryptBufferToFile,
+  sha256Hex,
+} from '../service/secure-file.service';
 
 const credentialService = new CredentialService();
 
@@ -104,14 +109,32 @@ export class CredentialController {
       return {};
     }
 
-    const fileHash = createHash('sha256').update(readFileSync(uploaded.path)).digest('hex');
+    if (!uploaded.buffer || uploaded.buffer.length === 0) {
+      throw new Error('EMPTY_CREDENTIAL_FILE');
+    }
+
+    const encryptedStorageName = createEncryptedStorageName(uploaded.originalname);
+    const outputPath = path.resolve(CREDENTIAL_UPLOADS_DIR, encryptedStorageName);
+    encryptBufferToFile(uploaded.buffer, outputPath);
+
+    const fileHash = sha256Hex(uploaded.buffer);
 
     return {
       filename: uploaded.originalname,
       mimeType: uploaded.mimetype,
-      storageKey: `/credentials/uploads/${uploaded.filename}`,
+      storageKey: `/credentials/uploads/${encryptedStorageName}`,
       fileHash,
     };
+  }
+
+  private resolveStoragePathOrThrow(storageKey: string): string {
+    const relativeStorage = storageKey.replace(/^\/credentials\/uploads\//, '');
+    const absolutePath = path.resolve(CREDENTIAL_UPLOADS_DIR, relativeStorage);
+    const normalizedRoot = `${path.resolve(CREDENTIAL_UPLOADS_DIR)}${path.sep}`;
+    if (!(`${absolutePath}${path.sep}`).startsWith(normalizedRoot)) {
+      throw new Error('CREDENTIAL_FILE_INVALID');
+    }
+    return absolutePath;
   }
 
   private parseCreatePayload(rawBody: unknown): Partial<CreateCredentialDto> {
@@ -323,6 +346,20 @@ export class CredentialController {
       },
       CREDENTIAL_ID_REQUIRED: { code: 400, error: 'Missing required field: credentialId' },
       INVALID_FILE_TYPE: { code: 400, error: 'Invalid file type. Use PNG, JPEG, WEBP, or PDF.' },
+      EMPTY_CREDENTIAL_FILE: { code: 400, error: 'Uploaded credential file is empty.' },
+      FILE_ENCRYPTION_KEY_MISSING: {
+        code: 500,
+        error: 'Credential file encryption key is not configured.',
+      },
+      FILE_ENCRYPTION_KEY_INVALID: {
+        code: 500,
+        error: 'Credential file encryption key format is invalid.',
+      },
+      CREDENTIAL_FILE_INVALID: { code: 500, error: 'Credential file payload is invalid.' },
+      CREDENTIAL_FILE_TAMPERED: {
+        code: 409,
+        error: 'Credential file integrity check failed.',
+      },
       MISSING_CREDENTIAL_FILE: { code: 400, error: 'A credential file is required before issuing.' },
       DIRECT_ISSUED_CREATE_NOT_ALLOWED: {
         code: 400,
@@ -670,13 +707,16 @@ export class CredentialController {
         return res.status(400).json({ error: 'Credential file is not available.' });
       }
 
-      const relativeStorage = credential.storageKey.replace(/^\/credentials\/uploads\//, '');
-      const absolutePath = path.resolve(CREDENTIAL_UPLOADS_DIR, relativeStorage);
+      const absolutePath = this.resolveStoragePathOrThrow(credential.storageKey);
       if (!existsSync(absolutePath)) {
         return res.status(404).json({ error: 'Credential file is missing on storage.' });
       }
 
-      const fileBuffer = readFileSync(absolutePath);
+      const fileBuffer = decryptFileToBuffer(absolutePath);
+      const computedHash = sha256Hex(fileBuffer);
+      if (credential.fileHash && credential.fileHash !== computedHash) {
+        throw new Error('CREDENTIAL_FILE_TAMPERED');
+      }
       return res.status(200).json({
         credentialId: credential.id,
         studentId: credential.studentId,
@@ -693,6 +733,83 @@ export class CredentialController {
       if (mapped) return mapped;
 
       console.error('Error fetching internal credential document:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async getCredentialDocument(req: Request, res: Response): Promise<Response> {
+    const actor = this.getActor(req);
+    if (!actor.userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const credentialId: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const actorContext = {
+      userId: actor.userId,
+      role: actor.role,
+      institutionId: actor.institutionId,
+      employerId: actor.employerId,
+    };
+
+    try {
+      const credential = await credentialService.getCredentialById(actorContext, credentialId);
+      if (!credential) {
+        await credentialService.auditCredentialDocumentAccess({
+          actorId: actor.userId,
+          actorRole: actor.role,
+          credentialId,
+          outcome: 'DENIED',
+          reason: 'CREDENTIAL_NOT_FOUND',
+        });
+        return res.status(404).json({ error: 'Credential not found' });
+      }
+      if (!credential.storageKey) {
+        return res.status(400).json({ error: 'Credential file is not available.' });
+      }
+
+      const absolutePath = this.resolveStoragePathOrThrow(credential.storageKey);
+      if (!existsSync(absolutePath)) {
+        return res.status(404).json({ error: 'Credential file is missing on storage.' });
+      }
+
+      const fileBuffer = decryptFileToBuffer(absolutePath);
+      const computedHash = sha256Hex(fileBuffer);
+      if (credential.fileHash && credential.fileHash !== computedHash) {
+        throw new Error('CREDENTIAL_FILE_TAMPERED');
+      }
+
+      await credentialService.auditCredentialDocumentAccess({
+        actorId: actor.userId,
+        actorRole: actor.role,
+        credentialId,
+        outcome: 'GRANTED',
+      });
+
+      if (credential.mimeType) {
+        res.setHeader('Content-Type', credential.mimeType);
+      } else {
+        res.setHeader('Content-Type', 'application/octet-stream');
+      }
+      const safeFileName = (credential.filename || 'credential')
+        .replace(/[\r\n"]/g, '')
+        .trim();
+      res.setHeader('Content-Disposition', `inline; filename="${safeFileName || 'credential'}"`);
+      return res.status(200).send(fileBuffer);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'FORBIDDEN_SCOPE') {
+        await credentialService.auditCredentialDocumentAccess({
+          actorId: actor.userId,
+          actorRole: actor.role,
+          credentialId,
+          outcome: 'DENIED',
+          reason: 'FORBIDDEN_SCOPE',
+        });
+      }
+
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error fetching credential document:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }

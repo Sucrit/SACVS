@@ -246,6 +246,31 @@ export class CredentialService {
     }
   }
 
+  async auditCredentialDocumentAccess(payload: {
+    actorId?: string | null;
+    actorRole?: `${Role}`;
+    credentialId: string;
+    outcome: 'GRANTED' | 'DENIED';
+    reason?: string;
+  }): Promise<void> {
+    await this.createAuditEntry({
+      action: payload.outcome === 'GRANTED' ? 'ACCESS_GRANTED' : 'ACCESS_DENIED',
+      actorId: payload.actorId,
+      actorRole: payload.actorRole,
+      targetType: 'CredentialDocument',
+      targetId: payload.credentialId,
+      description:
+        payload.outcome === 'GRANTED'
+          ? `Credential document access granted for ${payload.credentialId}`
+          : `Credential document access denied for ${payload.credentialId}${payload.reason ? ` (${payload.reason})` : ''}`,
+      metadata: {
+        outcome: payload.outcome,
+        reason: payload.reason ?? null,
+      },
+      severity: payload.outcome === 'GRANTED' ? 'INFO' : 'WARNING',
+    });
+  }
+
   private async queueAiAnalysis(credentialId: string, reason: 'CREATE' | 'REISSUE' | 'REANALYZE'): Promise<void> {
     if (!ENV.AI_ENABLED) {
       return;

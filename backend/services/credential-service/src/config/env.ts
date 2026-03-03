@@ -30,4 +30,5 @@ export const ENV = {
     AI_SERVICE_URL: process.env.AI_SERVICE_URL || 'http://localhost:5500',
     AI_SCORE_CLEAR_THRESHOLD: parseNumber(process.env.AI_SCORE_CLEAR_THRESHOLD, 0.35),
     AI_SCORE_BLOCK_THRESHOLD: parseNumber(process.env.AI_SCORE_BLOCK_THRESHOLD, 0.7),
+    FILE_ENCRYPTION_KEY: process.env.FILE_ENCRYPTION_KEY,
 };

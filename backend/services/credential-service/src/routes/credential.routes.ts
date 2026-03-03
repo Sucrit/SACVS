@@ -47,6 +47,12 @@ router.get(
   requireRoles('ADMIN', 'INSTITUTION'),
   credentialController.getCredentialAiReport.bind(credentialController),
 );
+router.get(
+  '/:id/document',
+  requireAuth,
+  requireApprovedAccount,
+  credentialController.getCredentialDocument.bind(credentialController),
+);
 router.post(
   '/:id/ai-review',
   requireAuth,
