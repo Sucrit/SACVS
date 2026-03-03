@@ -1,5 +1,5 @@
 import { ChangeEvent, FormEvent, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, PauseCircle, Pencil, RefreshCw, Search, Trash2, Upload, UserPlus, X } from 'lucide-react';
+import { Check, ChevronDown, PauseCircle, Pencil, Search, Trash2, Upload, UserPlus, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import { User, UserStatus } from '../../../services/user.service';
@@ -22,7 +22,6 @@ interface InstitutionStudentsSectionProps {
   onStudentSearchChange: (value: string) => void;
   onStudentStatusFilterChange: (value: StudentStatusFilter) => void;
   onStudentDepartmentFilterChange: (value: string) => void;
-  onRefreshStudents: () => void;
   updatingStudentId: string | null;
   onStartEditStudent: (student: User) => void;
   onStudentStatusUpdate: (studentId: string, status: UserStatus) => Promise<void>;
@@ -120,7 +119,6 @@ export default function InstitutionStudentsSection({
   onStudentSearchChange,
   onStudentStatusFilterChange,
   onStudentDepartmentFilterChange,
-  onRefreshStudents,
   updatingStudentId,
   onStartEditStudent,
   onStudentStatusUpdate,
@@ -414,7 +412,7 @@ export default function InstitutionStudentsSection({
         </div>
       </div>
 
-      <Card title="Institution Students" action={<button onClick={onRefreshStudents} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"><RefreshCw size={14} />Refresh</button>}>
+      <Card title="Institution Students">
         <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="md:col-span-2 relative">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />

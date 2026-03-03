@@ -1,4 +1,4 @@
-import { Check, ClipboardCheck, FileText, RefreshCw, Search, X } from 'lucide-react';
+import { Check, ClipboardCheck, FileText, Search, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import { CredentialRequest, CredentialType } from '../../../services/credential.service';
@@ -18,7 +18,6 @@ interface InstitutionRequestsSectionProps {
   issueExpiryByRequestId: Record<string, string>;
   issueCertificateCategoryByRequestId: Record<string, CertificateCategory>;
   updatingRequestId: string | null;
-  onRefresh: () => void;
   onSearchChange: (value: string) => void;
   onFilterChange: (value: RequestStatusFilter) => void;
   onToggleRequest: (requestId: string) => void;
@@ -52,7 +51,6 @@ export default function InstitutionRequestsSection({
   issueExpiryByRequestId,
   issueCertificateCategoryByRequestId,
   updatingRequestId,
-  onRefresh,
   onSearchChange,
   onFilterChange,
   onToggleRequest,
@@ -69,18 +67,7 @@ export default function InstitutionRequestsSection({
 
   return (
     <div className="space-y-6">
-      <Card
-        title="Request Filters & Bulk Actions"
-        action={
-          <button
-            onClick={onRefresh}
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-          >
-            <RefreshCw size={14} />
-            Refresh
-          </button>
-        }
-      >
+      <Card title="Request Filters & Bulk Actions">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="md:col-span-2 relative">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />

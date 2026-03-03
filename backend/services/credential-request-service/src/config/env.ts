@@ -10,4 +10,5 @@ export const ENV = {
   CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
   NOTIFICATION_SERVICE_URL: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5300',
   INTERNAL_SERVICE_TOKEN: process.env.INTERNAL_SERVICE_TOKEN,
+  REALTIME_GATEWAY_URL: process.env.REALTIME_GATEWAY_URL || 'http://localhost:4900',
 };

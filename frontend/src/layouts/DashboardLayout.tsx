@@ -24,6 +24,7 @@ import {
   NotificationService,
 } from '../services/notification.service';
 import { useLegacyAuth } from '../auth/auth-context';
+import { realtimeService } from '../services/realtime.service';
 import logoCompact from '../assets/c-version_logo.png';
 import credentialsIcon from '../assets/credentials.svg';
 
@@ -108,12 +109,14 @@ export default function DashboardLayout() {
   const [notificationFilter, setNotificationFilter] = useState<'ALL' | 'UNREAD'>('ALL');
   const [headerNotifications, setHeaderNotifications] = useState<AppNotification[]>([]);
   const [isLoadingHeaderNotifications, setIsLoadingHeaderNotifications] = useState(false);
+  const [hasLoadedHeaderNotifications, setHasLoadedHeaderNotifications] = useState(false);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
   const bellButtonRef = useRef<HTMLButtonElement | null>(null);
   const bellPanelRef = useRef<HTMLDivElement | null>(null);
   const notificationMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const notificationMenuRef = useRef<HTMLDivElement | null>(null);
+  const notificationRefreshTimerRef = useRef<number | null>(null);
 
   if (isLoading) {
     return <div className="h-screen flex items-center justify-center bg-white text-slate-700 font-medium">Loading session...</div>;
@@ -176,6 +179,7 @@ export default function DashboardLayout() {
     try {
       const data = await NotificationService.list({ page: 1, pageSize: 20 });
       setHeaderNotifications(data.items);
+      setHasLoadedHeaderNotifications(true);
     } catch (error) {
       console.error('Failed to load header notifications:', error);
       setHeaderNotifications([]);
@@ -287,21 +291,16 @@ export default function DashboardLayout() {
     }
 
     void loadStudentUnreadNotifications();
-    const timer = window.setInterval(() => {
-      void loadStudentUnreadNotifications();
-    }, 15000);
-
-    return () => window.clearInterval(timer);
   }, [loadStudentUnreadNotifications, role]);
 
   useEffect(() => {
-    if (!isNotificationOpen) {
+    if (!isNotificationOpen || hasLoadedHeaderNotifications) {
       setIsNotificationMenuOpen(false);
       return;
     }
 
     void loadHeaderNotifications();
-  }, [isNotificationOpen, loadHeaderNotifications]);
+  }, [hasLoadedHeaderNotifications, isNotificationOpen, loadHeaderNotifications]);
 
   useEffect(() => {
     if (!isNotificationOpen) {
@@ -338,6 +337,35 @@ export default function DashboardLayout() {
       document.removeEventListener('keydown', onEscape);
     };
   }, [isNotificationMenuOpen, isNotificationOpen]);
+
+  useEffect(() => {
+    const scheduleNotificationRefresh = () => {
+      if (notificationRefreshTimerRef.current) return;
+      notificationRefreshTimerRef.current = window.setTimeout(() => {
+        notificationRefreshTimerRef.current = null;
+        if (role === 'STUDENT') {
+          void loadStudentUnreadNotifications();
+        }
+        if (isNotificationOpen) {
+          void loadHeaderNotifications();
+        }
+      }, 350);
+    };
+
+    const unsubscribe = realtimeService.subscribe(event => {
+      if (event.domain === 'notifications') {
+        scheduleNotificationRefresh();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      if (notificationRefreshTimerRef.current) {
+        window.clearTimeout(notificationRefreshTimerRef.current);
+        notificationRefreshTimerRef.current = null;
+      }
+    };
+  }, [isNotificationOpen, loadHeaderNotifications, loadStudentUnreadNotifications, role]);
 
   useEffect(() => {
     if (!isNotificationPageOpen) {

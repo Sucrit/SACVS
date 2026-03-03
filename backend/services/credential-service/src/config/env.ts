@@ -36,7 +36,8 @@ export const ENV = {
     QR_TOKEN_TTL_SECONDS: parseNumber(process.env.QR_TOKEN_TTL_SECONDS, 300),
     QR_TOKEN_PEPPER: process.env.QR_TOKEN_PEPPER,
     QR_VERIFY_BASE_URL: process.env.QR_VERIFY_BASE_URL || 'http://localhost:5173',
-};
+    REALTIME_GATEWAY_URL: process.env.REALTIME_GATEWAY_URL || 'http://localhost:4900',
+  };
 
 if (
   ENV.NODE_ENV === 'production' &&

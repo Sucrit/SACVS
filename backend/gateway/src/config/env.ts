@@ -12,4 +12,5 @@ export const ENV = {
   BLOCKCHAIN_INTERFACE_SERVICE_URL:
     process.env.BLOCKCHAIN_INTERFACE_SERVICE_URL || 'http://localhost:5400',
   RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX) || 100,
+  INTERNAL_SERVICE_TOKEN: process.env.INTERNAL_SERVICE_TOKEN,
 };

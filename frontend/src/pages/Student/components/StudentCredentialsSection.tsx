@@ -1,5 +1,5 @@
 import { MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, Download, FileText, Link2, MoreHorizontal, Plus, Search, Share2, X } from 'lucide-react';
+import { AlertTriangle, Download, FileText, Link2, MoreHorizontal, Search, Share2, X } from 'lucide-react';
 import QRCode from 'qrcode';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -21,7 +21,6 @@ interface StudentCredentialsSectionProps {
   selectedCredentialId: string | null;
   onSelectCredential: (credentialId: string) => void;
   onOpenDetails: (credentialId: string) => void;
-  onRefresh: () => void;
   heading?: string;
 }
 
@@ -177,7 +176,6 @@ export default function StudentCredentialsSection({
   selectedCredentialId,
   onSelectCredential,
   onOpenDetails,
-  onRefresh,
   heading,
 }: StudentCredentialsSectionProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -421,13 +419,6 @@ export default function StudentCredentialsSection({
                 </option>
               ))}
             </select>
-            <button
-              onClick={onRefresh}
-              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-            >
-              <Plus size={14} />
-              Reload
-            </button>
           </div>
         </div>
         {!qrToken && qrError && (

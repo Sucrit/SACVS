@@ -9,7 +9,6 @@ import {
   Link2,
   MessageSquare,
   MoreHorizontal,
-  Plus,
   RefreshCcw,
   Search,
   Tag,
@@ -24,7 +23,6 @@ import { formatDate } from '../utils';
 interface StudentRequestHistorySectionProps {
   requests: Array<CredentialRequest & { _uiKey?: string }>;
   isLoadingRequests: boolean;
-  onRefresh: () => void;
   requestAction?: ReactNode;
   onViewIssuedCredential?: (credentialId: string) => void;
   onCancelRequest?: (requestId: string) => void;
@@ -48,7 +46,6 @@ const dateRangeFilters: Array<{ value: DateRangeFilter; label: string }> = [
 export default function StudentRequestHistorySection({
   requests,
   isLoadingRequests,
-  onRefresh,
   requestAction,
   onViewIssuedCredential,
   onCancelRequest,
@@ -208,13 +205,6 @@ export default function StudentRequestHistorySection({
               </option>
             ))}
           </select>
-          <button
-            onClick={onRefresh}
-            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-          >
-            <Plus size={14} />
-            Reload
-          </button>
           {requestAction}
         </div>
       </div>

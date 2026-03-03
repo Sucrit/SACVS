@@ -6,7 +6,6 @@ import {
   BriefcaseBusiness,
   Clock3,
   ClipboardList,
-  RefreshCw,
   AlertCircle,
   QrCode,
   Camera,
@@ -18,6 +17,7 @@ import {
   QrVerificationResult,
 } from '../../services/credential.service';
 import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../services/audit.service';
+import { realtimeService } from '../../services/realtime.service';
 
 const formatDate = (value: string | null | undefined) => {
   if (!value) return '-';
@@ -39,9 +39,11 @@ export default function EmployerDashboard() {
   const section = location.pathname.includes('/employer/logs') ? 'logs' : 'overview';
   const [requests, setRequests] = useState<CredentialRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
+  const [hasLoadedRequests, setHasLoadedRequests] = useState(false);
   const [requestsError, setRequestsError] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
+  const [hasLoadedAuditLogs, setHasLoadedAuditLogs] = useState(false);
   const [auditActionFilter, setAuditActionFilter] = useState<'ALL' | AuditAction>('ALL');
   const [auditSeverityFilter, setAuditSeverityFilter] = useState<'ALL' | AuditSeverity>('ALL');
   const [auditPage, setAuditPage] = useState(1);
@@ -53,6 +55,10 @@ export default function EmployerDashboard() {
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
   const scannerRef = useRef<any>(null);
+  const refreshTimersRef = useRef<Record<'requests' | 'logs', number | null>>({
+    requests: null,
+    logs: null,
+  });
 
   const extractToken = (value: string): string => {
     const trimmed = value.trim();
@@ -156,6 +162,7 @@ export default function EmployerDashboard() {
     try {
       const data = await CredentialService.listRequests();
       setRequests(data.filter(request => getRequesterLabel(request) === 'EMPLOYER'));
+      setHasLoadedRequests(true);
     } catch (error) {
       console.error('Failed to load employer requests:', error);
       setRequests([]);
@@ -166,9 +173,9 @@ export default function EmployerDashboard() {
   }, []);
 
   useEffect(() => {
-    if (section === 'logs') return;
+    if (section === 'logs' || hasLoadedRequests) return;
     void loadRequests();
-  }, [loadRequests, section]);
+  }, [hasLoadedRequests, loadRequests, section]);
 
   const loadAuditLogs = useCallback(async () => {
     setIsLoadingAuditLogs(true);
@@ -176,6 +183,7 @@ export default function EmployerDashboard() {
     try {
       const data = await AuditService.list();
       setAuditLogs(data);
+      setHasLoadedAuditLogs(true);
     } catch (error) {
       console.error('Failed to load employer audit logs:', error);
       setAuditLogs([]);
@@ -186,9 +194,9 @@ export default function EmployerDashboard() {
   }, []);
 
   useEffect(() => {
-    if (section !== 'logs') return;
+    if (section !== 'logs' || hasLoadedAuditLogs) return;
     void loadAuditLogs();
-  }, [loadAuditLogs, section]);
+  }, [hasLoadedAuditLogs, loadAuditLogs, section]);
 
   const employerAuditActionOptions = useMemo(
     () =>
@@ -219,6 +227,40 @@ export default function EmployerDashboard() {
     setAuditPage(1);
   }, [auditActionFilter, auditSeverityFilter, auditPageSize]);
 
+  const scheduleRefresh = useCallback((key: 'requests' | 'logs') => {
+    if (refreshTimersRef.current[key]) return;
+    refreshTimersRef.current[key] = window.setTimeout(() => {
+      refreshTimersRef.current[key] = null;
+      if (key === 'requests' && section !== 'logs') {
+        void loadRequests();
+      }
+      if (key === 'logs' && section === 'logs') {
+        void loadAuditLogs();
+      }
+    }, 350);
+  }, [loadAuditLogs, loadRequests, section]);
+
+  useEffect(() => {
+    const unsubscribe = realtimeService.subscribe(event => {
+      if (event.domain === 'credentialRequests' || event.domain === 'credentials') {
+        scheduleRefresh('requests');
+      }
+      if (event.domain === 'audit') {
+        scheduleRefresh('logs');
+      }
+    });
+    return () => {
+      unsubscribe();
+      (Object.keys(refreshTimersRef.current) as Array<'requests' | 'logs'>).forEach(key => {
+        const timer = refreshTimersRef.current[key];
+        if (timer) {
+          window.clearTimeout(timer);
+          refreshTimersRef.current[key] = null;
+        }
+      });
+    };
+  }, [scheduleRefresh]);
+
   const totalRequests = requests.length;
   const pendingRequests = requests.filter(request => request.status === 'PENDING').length;
   const completedRequests = requests.filter(
@@ -243,15 +285,6 @@ export default function EmployerDashboard() {
 
         <Card
           title="Employer Audit Logs"
-          action={
-            <button
-              onClick={loadAuditLogs}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-            >
-              <RefreshCw size={16} />
-              Refresh
-            </button>
-          }
         >
           <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
             <div>
@@ -376,13 +409,6 @@ export default function EmployerDashboard() {
             <p className="text-2xl font-semibold text-white">Employer Verification Workspace</p>
             <p className="mt-1 text-sm text-slate-300">Track your credential verification requests and responses.</p>
           </div>
-          <button
-            onClick={loadRequests}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
-          >
-            <RefreshCw size={16} />
-            Refresh
-          </button>
         </div>
       </Card>
 

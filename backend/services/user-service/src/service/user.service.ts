@@ -17,6 +17,7 @@ import { UserRepository } from '../repository/user.repository';
 import { ENV } from '../config/env';
 import { notificationClient } from '../client/notification.client';
 import { emailClient } from '../client/email.client';
+import { realtimeClient } from '../client/realtime.client';
 
 const userRepository = new UserRepository();
 
@@ -382,7 +383,21 @@ export class UserService {
     } catch (error) {
       console.error('Failed to write institution student creation audit entry:', error);
     }
-    return this.addApproverName(student);
+    const enriched = await this.addApproverName(student);
+    void realtimeClient.publishMany([
+      {
+        domain: 'users',
+        action: 'institution.student.created',
+        entityId: student.id,
+        scope: { institutionIds: [actor.institutionId], roles: ['ADMIN', 'INSTITUTION'] },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
+      },
+    ]);
+    return enriched;
   }
 
   async createInstitutionStudentsBulk(
@@ -416,6 +431,19 @@ export class UserService {
       }
     }
 
+    void realtimeClient.publishMany([
+      {
+        domain: 'users',
+        action: 'institution.student.bulk_imported',
+        scope: { institutionIds: [actor.institutionId], roles: ['ADMIN', 'INSTITUTION'] },
+        payload: { created, failed: failed.length },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
+      },
+    ]);
     return { created, failed };
   }
 
@@ -428,7 +456,21 @@ export class UserService {
   }
 
   async upsertStudentProfileByUserId(userId: string, data: UpsertStudentProfileDto) {
-    return userRepository.upsertStudentProfileByUserId(userId, data);
+    const updated = await userRepository.upsertStudentProfileByUserId(userId, data);
+    void realtimeClient.publishMany([
+      {
+        domain: 'users',
+        action: 'profile.updated',
+        entityId: userId,
+        scope: { userIds: [userId], roles: ['ADMIN', 'INSTITUTION'] },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+      },
+    ]);
+    return updated;
   }
 
   async completeOrganizationOnboarding(clerkUserId: string, data: CompleteOrganizationOnboardingDto) {
@@ -484,7 +526,21 @@ export class UserService {
       throw new Error('STUDENT_NOT_FOUND_OR_FORBIDDEN');
     }
 
-    return this.addApproverName(updated);
+    const enriched = await this.addApproverName(updated);
+    void realtimeClient.publishMany([
+      {
+        domain: 'users',
+        action: 'institution.student.status.updated',
+        entityId: studentUserId,
+        scope: { institutionIds: [actor.institutionId], roles: ['ADMIN', 'INSTITUTION'] },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
+      },
+    ]);
+    return enriched;
   }
 
   async updateInstitutionStudent(
@@ -504,7 +560,21 @@ export class UserService {
       throw new Error('STUDENT_NOT_FOUND_OR_FORBIDDEN');
     }
 
-    return this.addApproverName(updated);
+    const enriched = await this.addApproverName(updated);
+    void realtimeClient.publishMany([
+      {
+        domain: 'users',
+        action: 'institution.student.updated',
+        entityId: studentUserId,
+        scope: { institutionIds: [actor.institutionId], roles: ['ADMIN', 'INSTITUTION'] },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
+      },
+    ]);
+    return enriched;
   }
 
   async deleteInstitutionStudent(actorUserId: string, studentUserId: string) {
@@ -531,15 +601,56 @@ export class UserService {
       throw new Error('STUDENT_NOT_FOUND_OR_FORBIDDEN');
     }
 
+    void realtimeClient.publishMany([
+      {
+        domain: 'users',
+        action: 'institution.student.deleted',
+        entityId: studentUserId,
+        scope: { institutionIds: [actor.institutionId], roles: ['ADMIN', 'INSTITUTION'] },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
+      },
+    ]);
     return deleted;
   }
 
   async updateUserStatus(userId: string, data: UpdateUserStatusDto, actorId?: string | null) {
-    return userRepository.updateUserStatus(userId, data.status, actorId);
+    const updated = await userRepository.updateUserStatus(userId, data.status, actorId);
+    void realtimeClient.publishMany([
+      {
+        domain: 'users',
+        action: 'admin.user.status.updated',
+        entityId: userId,
+        scope: { roles: ['ADMIN'] },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN'] },
+      },
+    ]);
+    return updated;
   }
 
   async updateUserRole(userId: string, data: UpdateUserRoleDto, actorId?: string | null) {
-    return userRepository.updateUserRole(userId, data.role, actorId);
+    const updated = await userRepository.updateUserRole(userId, data.role, actorId);
+    void realtimeClient.publishMany([
+      {
+        domain: 'users',
+        action: 'admin.user.role.updated',
+        entityId: userId,
+        scope: { roles: ['ADMIN'] },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN'] },
+      },
+    ]);
+    return updated;
   }
 
   async listAuditLogs(actorUserId: string) {

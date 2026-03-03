@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Credential,
@@ -35,6 +35,7 @@ import {
   parseCsvStudents,
 } from './utils';
 import { useStepUp } from '../../hooks/useStepUp';
+import { realtimeService } from '../../services/realtime.service';
 
 const toStudentFormState = (student: User): StudentFormState => ({
   email: student.email,
@@ -70,6 +71,7 @@ export default function InstitutionDashboard() {
 
   const [requests, setRequests] = useState<CredentialRequest[]>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
+  const [hasLoadedRequests, setHasLoadedRequests] = useState(false);
   const [requestsError, setRequestsError] = useState<string | null>(null);
   const [requestsHint, setRequestsHint] = useState<string | null>(null);
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
@@ -82,8 +84,10 @@ export default function InstitutionDashboard() {
   const [issueCertificateCategoryByRequestId, setIssueCertificateCategoryByRequestId] = useState<Record<string, CertificateCategory>>({});
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
+  const [hasLoadedCredentials, setHasLoadedCredentials] = useState(false);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
+  const [hasLoadedAuditLogs, setHasLoadedAuditLogs] = useState(false);
   const [auditActionFilter, setAuditActionFilter] = useState<'ALL' | AuditAction>('ALL');
   const [auditSeverityFilter, setAuditSeverityFilter] = useState<'ALL' | AuditSeverity>('ALL');
   const [auditPage, setAuditPage] = useState(1);
@@ -91,6 +95,7 @@ export default function InstitutionDashboard() {
 
   const [students, setStudents] = useState<User[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
+  const [hasLoadedStudents, setHasLoadedStudents] = useState(false);
   const [studentsError, setStudentsError] = useState<string | null>(null);
   const [studentsHint, setStudentsHint] = useState<string | null>(null);
   const [createStudentError, setCreateStudentError] = useState<string | null>(null);
@@ -115,6 +120,13 @@ export default function InstitutionDashboard() {
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [notificationHint, setNotificationHint] = useState<string | null>(null);
   const { requestStepUpToken, stepUpModal } = useStepUp();
+  const refreshTimersRef = useRef<Record<'students' | 'requests' | 'credentials' | 'logs', number | null>>({
+    students: null,
+    requests: null,
+    credentials: null,
+    logs: null,
+  });
+  const hasInitializedRef = useRef(false);
 
   const createEvent = useCallback((type: ActivityEvent['type'], title: string, description: string) => {
     setActivityEvents(previous => [{ id: createClientId(), type, title, description, createdAt: new Date().toISOString() }, ...previous].slice(0, 100));
@@ -125,6 +137,7 @@ export default function InstitutionDashboard() {
     setRequestsError(null);
     try {
       setRequests(await CredentialService.listRequests());
+      setHasLoadedRequests(true);
     } catch (error) {
       setRequests([]);
       setRequestsError('Unable to load verification requests from the server.');
@@ -139,6 +152,7 @@ export default function InstitutionDashboard() {
     setStudentsError(null);
     try {
       setStudents(await UserService.listInstitutionStudents());
+      setHasLoadedStudents(true);
     } catch (error) {
       setStudents([]);
       setStudentsError('Unable to load students from the server.');
@@ -153,6 +167,7 @@ export default function InstitutionDashboard() {
     try {
       const data = await CredentialService.list();
       setCredentials(data);
+      setHasLoadedCredentials(true);
     } catch (error) {
       setCredentials([]);
       setRequestsError('Unable to load student credentials from the server.');
@@ -171,11 +186,32 @@ export default function InstitutionDashboard() {
   }, []);
 
   useEffect(() => {
-    void loadRequests();
-    void loadStudents();
-    void loadCredentials();
-    createEvent('SYSTEM', 'Institution workspace initialized', 'Institution frontend sections loaded.');
-  }, [createEvent, loadRequests, loadStudents, loadCredentials]);
+    if (section === 'students' && !hasLoadedStudents) {
+      void loadStudents();
+    }
+    if (section === 'requests') {
+      if (!hasLoadedRequests) void loadRequests();
+      if (!hasLoadedStudents) void loadStudents();
+    }
+    if (section === 'issue') {
+      if (!hasLoadedRequests) void loadRequests();
+      if (!hasLoadedStudents) void loadStudents();
+      if (!hasLoadedCredentials) void loadCredentials();
+    }
+    if (!hasInitializedRef.current) {
+      createEvent('SYSTEM', 'Institution workspace initialized', 'Institution frontend sections loaded.');
+      hasInitializedRef.current = true;
+    }
+  }, [
+    createEvent,
+    hasLoadedCredentials,
+    hasLoadedRequests,
+    hasLoadedStudents,
+    loadCredentials,
+    loadRequests,
+    loadStudents,
+    section,
+  ]);
 
   const pendingCount = requests.filter(request => request.status === 'PENDING').length;
   const studentCounts = useMemo(
@@ -749,6 +785,7 @@ export default function InstitutionDashboard() {
     try {
       const data = await AuditService.list();
       setAuditLogs(data);
+      setHasLoadedAuditLogs(true);
     } catch (error) {
       setAuditLogs([]);
       setRequestsError(getApiErrorMessage(error) || 'Unable to load audit logs.');
@@ -790,9 +827,56 @@ export default function InstitutionDashboard() {
   }, [auditActionFilter, auditSeverityFilter, auditPageSize]);
 
   useEffect(() => {
-    if (section !== 'logs') return;
+    if (section !== 'logs' || hasLoadedAuditLogs) return;
     void loadAuditLogs();
-  }, [loadAuditLogs, section]);
+  }, [hasLoadedAuditLogs, loadAuditLogs, section]);
+
+  const scheduleRefresh = useCallback((key: 'students' | 'requests' | 'credentials' | 'logs') => {
+    if (refreshTimersRef.current[key]) return;
+    refreshTimersRef.current[key] = window.setTimeout(() => {
+      refreshTimersRef.current[key] = null;
+      if (key === 'students' && section === 'students') {
+        void loadStudents();
+      }
+      if (key === 'requests' && (section === 'requests' || section === 'issue')) {
+        void loadRequests();
+      }
+      if (key === 'credentials' && section === 'issue') {
+        void loadCredentials();
+      }
+      if (key === 'logs' && section === 'logs') {
+        void loadAuditLogs();
+      }
+    }, 350);
+  }, [loadAuditLogs, loadCredentials, loadRequests, loadStudents, section]);
+
+  useEffect(() => {
+    const unsubscribe = realtimeService.subscribe(event => {
+      if (event.domain === 'users') {
+        scheduleRefresh('students');
+      }
+      if (event.domain === 'credentialRequests') {
+        scheduleRefresh('requests');
+      }
+      if (event.domain === 'credentials') {
+        scheduleRefresh('credentials');
+      }
+      if (event.domain === 'audit') {
+        scheduleRefresh('logs');
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      (Object.keys(refreshTimersRef.current) as Array<'students' | 'requests' | 'credentials' | 'logs'>).forEach(key => {
+        const timer = refreshTimersRef.current[key];
+        if (timer) {
+          window.clearTimeout(timer);
+          refreshTimersRef.current[key] = null;
+        }
+      });
+    };
+  }, [scheduleRefresh]);
 
   return (
     <div className="space-y-6">
@@ -829,7 +913,6 @@ export default function InstitutionDashboard() {
           onStudentSearchChange={setStudentSearch}
           onStudentStatusFilterChange={setStudentStatusFilter}
           onStudentDepartmentFilterChange={setStudentDepartmentFilter}
-          onRefreshStudents={loadStudents}
           updatingStudentId={updatingStudentId}
           onStartEditStudent={handleStartEditStudent}
           onStudentStatusUpdate={handleStudentStatusUpdate}
@@ -852,7 +935,6 @@ export default function InstitutionDashboard() {
           selectedRequestIds={selectedRequestIds}
           rejectionReasonByRequestId={rejectionReasonByRequestId}
           updatingRequestId={updatingRequestId}
-          onRefresh={loadRequests}
           onSearchChange={setRequestSearch}
           onFilterChange={setRequestStatusFilter}
           onToggleRequest={(requestId: string) => {
@@ -885,10 +967,6 @@ export default function InstitutionDashboard() {
           isLoadingCredentials={isLoadingCredentials}
           requests={requests}
           isLoadingRequests={isLoadingRequests}
-          onRefresh={() => {
-            void loadRequests();
-            void loadCredentials();
-          }}
           onDirectIssue={handleDirectIssueCredential}
           onCredentialStatusUpdate={handleCredentialStatusUpdate}
           onCredentialReissue={handleCredentialReissue}
@@ -928,14 +1006,6 @@ export default function InstitutionDashboard() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-slate-900">Institution Audit Logs</h2>
-            <button
-              onClick={() => {
-                void loadAuditLogs();
-              }}
-              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-            >
-              Refresh
-            </button>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <div>

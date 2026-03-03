@@ -17,6 +17,7 @@ import {
 import { notificationClient } from '../client/notification.client';
 import { blockchainClient } from '../client/blockchain.client';
 import { ENV } from '../config/env';
+import { realtimeClient } from '../client/realtime.client';
 
 const credentialRepository = new CredentialRepository();
 
@@ -483,6 +484,23 @@ export class CredentialService {
           status: created.status,
         },
       });
+      void realtimeClient.publishMany([
+        {
+          domain: 'credentials',
+          action: 'credential.created',
+          entityId: created.id,
+          scope: {
+            userIds: [created.studentId],
+            roles: ['ADMIN', 'INSTITUTION'],
+            institutionIds: created.student.institutionId ? [created.student.institutionId] : [],
+          },
+        },
+        {
+          domain: 'audit',
+          action: 'log.created',
+          scope: { roles: ['ADMIN', 'INSTITUTION'] },
+        },
+      ]);
       return created;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
@@ -724,6 +742,23 @@ export class CredentialService {
         institutionName,
         isReissue,
       });
+      void realtimeClient.publishMany([
+        {
+          domain: 'credentials',
+          action: 'credential.issued',
+          entityId: updated.id,
+          scope: {
+            userIds: [updated.studentId],
+            roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'],
+            institutionIds: updated.student.institutionId ? [updated.student.institutionId] : [],
+          },
+        },
+        {
+          domain: 'audit',
+          action: 'log.created',
+          scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+        },
+      ]);
       return updated;
     }
 
@@ -738,6 +773,23 @@ export class CredentialService {
         previousStatus: currentStatus,
         nextStatus,
       });
+      void realtimeClient.publishMany([
+        {
+          domain: 'credentials',
+          action: 'credential.status.updated',
+          entityId: updated.id,
+          scope: {
+            userIds: [updated.studentId],
+            roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'],
+            institutionIds: updated.student.institutionId ? [updated.student.institutionId] : [],
+          },
+        },
+        {
+          domain: 'audit',
+          action: 'log.created',
+          scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+        },
+      ]);
     }
 
     return updated;
@@ -845,6 +897,19 @@ export class CredentialService {
       },
       severity: 'INFO',
     });
+    void realtimeClient.publishMany([
+      {
+        domain: 'credentials',
+        action: 'credential.qr.generated',
+        entityId: scope.id,
+        scope: { userIds: [scope.studentId] },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+      },
+    ]);
 
     return {
       tokenId: tokenRecord.id,

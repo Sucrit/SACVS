@@ -7,7 +7,6 @@ import {
   HeartHandshake,
   MapPin,
   Phone,
-  RefreshCw,
   User as UserIcon,
   UserRound,
 } from 'lucide-react';
@@ -58,7 +57,6 @@ const valueOrDash = (value: string | number | null | undefined) => {
 interface StudentProfileSectionProps {
   user: User | null;
   isLoading: boolean;
-  onRefresh: () => void;
   onSavePersonalInfo: (payload: {
     street?: string;
     barangay?: string;
@@ -77,7 +75,6 @@ interface StudentProfileSectionProps {
 export default function StudentProfileSection({
   user,
   isLoading,
-  onRefresh,
   onSavePersonalInfo,
   isSavingPersonalInfo,
 }: StudentProfileSectionProps) {
@@ -141,19 +138,7 @@ export default function StudentProfileSection({
 
   if (!user) {
     return (
-      <Card
-        title="Student Profile"
-        action={(
-          <button
-            type="button"
-            onClick={onRefresh}
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-          >
-            <RefreshCw size={14} />
-            Refresh
-          </button>
-        )}
-      >
+      <Card title="Student Profile">
         <p className="text-sm text-slate-500">No profile data available for this account yet.</p>
       </Card>
     );
@@ -218,16 +203,6 @@ export default function StudentProfileSection({
     <Card
       title="Student Profile"
       className="rounded-3xl"
-      action={(
-        <button
-          type="button"
-          onClick={onRefresh}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-        >
-          <RefreshCw size={14} />
-          Refresh
-        </button>
-      )}
     >
       <div className="space-y-6">
         <div className="space-y-1">

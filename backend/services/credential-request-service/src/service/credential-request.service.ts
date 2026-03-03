@@ -19,6 +19,7 @@ import {
   UserContext,
 } from '../repository/credential-request.repository';
 import { notificationClient } from '../client/notification.client';
+import { realtimeClient } from '../client/realtime.client';
 
 const credentialRequestRepository = new CredentialRequestRepository();
 
@@ -387,6 +388,24 @@ export class CredentialRequestService {
           employerId: created.employerId,
         },
       });
+      void realtimeClient.publishMany([
+        {
+          domain: 'credentialRequests',
+          action: 'credential-request.created',
+          entityId: created.id,
+          scope: {
+            userIds: [created.studentId],
+            roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'],
+            institutionIds: created.institutionId ? [created.institutionId] : [],
+            employerIds: created.employerId ? [created.employerId] : [],
+          },
+        },
+        {
+          domain: 'audit',
+          action: 'log.created',
+          scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+        },
+      ]);
 
       return toCredentialRequestResponse(created);
     } catch (error) {
@@ -484,6 +503,23 @@ export class CredentialRequestService {
           requestId,
         },
       });
+      void realtimeClient.publishMany([
+        {
+          domain: 'credentialRequests',
+          action: 'credential-request.status.updated',
+          entityId: updatedByStudent.id,
+          scope: {
+            userIds: [updatedByStudent.studentId],
+            roles: ['ADMIN', 'INSTITUTION'],
+            institutionIds: updatedByStudent.institutionId ? [updatedByStudent.institutionId] : [],
+          },
+        },
+        {
+          domain: 'audit',
+          action: 'log.created',
+          scope: { roles: ['ADMIN', 'INSTITUTION'] },
+        },
+      ]);
 
       return toCredentialRequestResponse(updatedByStudent);
     }
@@ -561,6 +597,24 @@ export class CredentialRequestService {
         employerId: updated.employerId,
       },
     });
+    void realtimeClient.publishMany([
+      {
+        domain: 'credentialRequests',
+        action: 'credential-request.status.updated',
+        entityId: updated.id,
+        scope: {
+          userIds: [updated.studentId],
+          roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'],
+          institutionIds: updated.institutionId ? [updated.institutionId] : [],
+          employerIds: updated.employerId ? [updated.employerId] : [],
+        },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+      },
+    ]);
 
     return toCredentialRequestResponse(updated);
   }

@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertCircle, ShieldCheck } from 'lucide-react';
 import {
@@ -20,6 +20,7 @@ import StudentProfileSection from './components/StudentProfileSection';
 import StudentNotificationsSection from './components/StudentNotificationsSection';
 import { getApiErrorMessage, getStudentCredentialDetailId, getStudentSection } from './utils';
 import { useLegacyAuth } from '../../auth/auth-context';
+import { realtimeService } from '../../services/realtime.service';
 
 export default function StudentDashboard() {
   const location = useLocation();
@@ -37,6 +38,7 @@ export default function StudentDashboard() {
   const [requestDetailsFromQueryId, setRequestDetailsFromQueryId] = useState<string | null>(null);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
   const [credentialsError, setCredentialsError] = useState<string | null>(null);
+  const [hasLoadedCredentials, setHasLoadedCredentials] = useState(false);
 
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [cancelingRequestId, setCancelingRequestId] = useState<string | null>(null);
@@ -45,20 +47,29 @@ export default function StudentDashboard() {
   const [requests, setRequests] = useState<Array<CredentialRequest & { _uiKey?: string }>>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
   const [requestsError, setRequestsError] = useState<string | null>(null);
+  const [hasLoadedRequests, setHasLoadedRequests] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
+  const [hasLoadedNotifications, setHasLoadedNotifications] = useState(false);
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
   const [studentProfileUser, setStudentProfileUser] = useState<User | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isSavingProfilePersonalInfo, setIsSavingProfilePersonalInfo] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [hasLoadedProfile, setHasLoadedProfile] = useState(false);
   const [requestForm, setRequestForm] = useState<CreateCredentialRequestPayload>({
     type: 'TRANSCRIPT',
     title: '',
     description: '',
     purpose: '',
     deliveryMethod: 'DIGITAL',
+  });
+  const realtimeRefreshTimersRef = useRef<Record<'credentials' | 'requests' | 'notifications' | 'profile', number | null>>({
+    credentials: null,
+    requests: null,
+    notifications: null,
+    profile: null,
   });
 
   const sortRequestsByNewest = (
@@ -82,6 +93,7 @@ export default function StudentDashboard() {
     try {
       const data = await CredentialService.listMine();
       setCredentials(data);
+      setHasLoadedCredentials(true);
       if (!silent) {
         setCredentialsError(null);
       }
@@ -107,6 +119,7 @@ export default function StudentDashboard() {
     try {
       const data = await CredentialService.listRequests();
       setRequests(sortRequestsByNewest(data.map(item => ({ ...item, _uiKey: item.id }))));
+      setHasLoadedRequests(true);
       if (!silent) {
         setRequestsError(null);
       }
@@ -129,6 +142,7 @@ export default function StudentDashboard() {
     try {
       const me = await UserService.getMe();
       setStudentProfileUser(me);
+      setHasLoadedProfile(true);
     } catch (error) {
       console.error('Failed to load student profile:', error);
       setStudentProfileUser(null);
@@ -147,6 +161,7 @@ export default function StudentDashboard() {
     try {
       const data = await NotificationService.list({ page: 1, pageSize: 100 });
       setNotifications(data.items);
+      setHasLoadedNotifications(true);
       if (!silent) {
         setNotificationsError(null);
       }
@@ -163,6 +178,25 @@ export default function StudentDashboard() {
     }
   }, []);
 
+  const scheduleRealtimeRefresh = useCallback((key: 'credentials' | 'requests' | 'notifications' | 'profile') => {
+    if (realtimeRefreshTimersRef.current[key]) return;
+    realtimeRefreshTimersRef.current[key] = window.setTimeout(() => {
+      realtimeRefreshTimersRef.current[key] = null;
+      if (key === 'credentials' && shouldLoadCredentials) {
+        void loadCredentials({ silent: true });
+      }
+      if (key === 'requests' && shouldLoadRequests) {
+        void loadRequests({ silent: true });
+      }
+      if (key === 'notifications' && shouldLoadNotifications) {
+        void loadNotifications({ silent: true });
+      }
+      if (key === 'profile' && shouldLoadProfile) {
+        void loadProfile();
+      }
+    }, 350);
+  }, [loadCredentials, loadNotifications, loadProfile, loadRequests, shouldLoadCredentials, shouldLoadNotifications, shouldLoadProfile, shouldLoadRequests]);
+
   useEffect(() => {
     if (section === 'overview') {
       navigate('/student/credentials', { replace: true });
@@ -170,39 +204,60 @@ export default function StudentDashboard() {
   }, [navigate, section]);
 
   useEffect(() => {
-    if (shouldLoadCredentials) {
+    if (shouldLoadCredentials && !hasLoadedCredentials) {
       void loadCredentials();
     }
-    if (shouldLoadRequests) {
+    if (shouldLoadRequests && !hasLoadedRequests) {
       void loadRequests();
     }
-    if (shouldLoadNotifications) {
+    if (shouldLoadNotifications && !hasLoadedNotifications) {
       void loadNotifications();
     }
-    if (shouldLoadProfile) {
+    if (shouldLoadProfile && !hasLoadedProfile) {
       void loadProfile();
     }
-  }, [loadCredentials, loadNotifications, loadProfile, loadRequests, shouldLoadCredentials, shouldLoadNotifications, shouldLoadProfile, shouldLoadRequests]);
+  }, [
+    hasLoadedCredentials,
+    hasLoadedNotifications,
+    hasLoadedProfile,
+    hasLoadedRequests,
+    loadCredentials,
+    loadNotifications,
+    loadProfile,
+    loadRequests,
+    shouldLoadCredentials,
+    shouldLoadNotifications,
+    shouldLoadProfile,
+    shouldLoadRequests,
+  ]);
 
   useEffect(() => {
-    if (!shouldLoadCredentials && !shouldLoadRequests && !shouldLoadNotifications) {
-      return undefined;
-    }
+    const unsubscribe = realtimeService.subscribe(event => {
+      if (event.domain === 'credentials') {
+        scheduleRealtimeRefresh('credentials');
+      }
+      if (event.domain === 'credentialRequests') {
+        scheduleRealtimeRefresh('requests');
+      }
+      if (event.domain === 'notifications') {
+        scheduleRealtimeRefresh('notifications');
+      }
+      if (event.domain === 'users') {
+        scheduleRealtimeRefresh('profile');
+      }
+    });
 
-    const timer = window.setInterval(() => {
-      if (shouldLoadCredentials) {
-        void loadCredentials({ silent: true });
-      }
-      if (shouldLoadRequests) {
-        void loadRequests({ silent: true });
-      }
-      if (shouldLoadNotifications) {
-        void loadNotifications({ silent: true });
-      }
-    }, 15000);
-
-    return () => window.clearInterval(timer);
-  }, [loadCredentials, loadNotifications, loadRequests, shouldLoadCredentials, shouldLoadNotifications, shouldLoadRequests]);
+    return () => {
+      unsubscribe();
+      (Object.keys(realtimeRefreshTimersRef.current) as Array<'credentials' | 'requests' | 'notifications' | 'profile'>).forEach(key => {
+        const timer = realtimeRefreshTimersRef.current[key];
+        if (timer) {
+          window.clearTimeout(timer);
+          realtimeRefreshTimersRef.current[key] = null;
+        }
+      });
+    };
+  }, [scheduleRealtimeRefresh]);
 
   useEffect(() => {
     if (!shouldLoadCredentials) return;
@@ -533,7 +588,6 @@ export default function StudentDashboard() {
               onOpenDetails={(credentialId: string) =>
                 navigate(`/student/credentials/${encodeURIComponent(credentialId)}`)
               }
-              onRefresh={() => void loadCredentials()}
             />
           )}
         </>
@@ -543,7 +597,6 @@ export default function StudentDashboard() {
         <StudentRequestHistorySection
           requests={requests}
           isLoadingRequests={isLoadingRequests}
-          onRefresh={() => void loadRequests()}
           onViewIssuedCredential={handleViewIssuedCredential}
           onCancelRequest={(requestId: string) => void handleCancelRequest(requestId)}
           cancelingRequestId={cancelingRequestId}
@@ -576,7 +629,6 @@ export default function StudentDashboard() {
         <StudentProfileSection
           user={studentProfileUser}
           isLoading={isLoadingProfile}
-          onRefresh={() => void loadProfile()}
           onSavePersonalInfo={handleSaveStudentPersonalInfo}
           isSavingPersonalInfo={isSavingProfilePersonalInfo}
         />

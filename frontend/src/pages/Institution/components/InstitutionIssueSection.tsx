@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useState } from 'react';
-import { ClipboardCheck, RefreshCw, Upload } from 'lucide-react';
+import { ClipboardCheck, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import {
@@ -39,7 +39,6 @@ interface InstitutionIssueSectionProps {
   onIssueExpiryChange: (requestId: string, expiryDate: string) => void;
   onIssueCertificateCategoryChange: (requestId: string, value: CertificateCategory) => void;
   onRequestAction: (requestId: string, action: 'APPROVE' | 'REJECT' | 'ISSUE') => Promise<void>;
-  onRefresh: () => void;
   onDirectIssue: (payload: {
     studentId: string;
     type: CredentialType;
@@ -66,7 +65,6 @@ export default function InstitutionIssueSection({
   onIssueExpiryChange,
   onIssueCertificateCategoryChange,
   onRequestAction,
-  onRefresh,
   onDirectIssue,
   onCredentialStatusUpdate,
   onCredentialReissue,
@@ -189,18 +187,7 @@ export default function InstitutionIssueSection({
         </Card>
       </div>
 
-      <Card
-        title="Direct Credential Issuance"
-        action={
-          <button
-            onClick={onRefresh}
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-          >
-            <RefreshCw size={14} />
-            Refresh
-          </button>
-        }
-      >
+      <Card title="Direct Credential Issuance">
         <form className="space-y-3" onSubmit={handleSubmitDirectIssue}>
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             <select

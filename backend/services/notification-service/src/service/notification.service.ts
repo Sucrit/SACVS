@@ -8,6 +8,7 @@ import {
   UpdateNotificationReadDto,
 } from '../dto/notification.dto';
 import { NotificationRepository } from '../repository/notification.repository';
+import { realtimeClient } from '../client/realtime.client';
 
 const notificationRepository = new NotificationRepository();
 const VALID_NOTIFICATION_TYPES = new Set(Object.values(NotificationType));
@@ -32,13 +33,22 @@ export class NotificationService {
     const userExists = await notificationRepository.userExists(userId);
     if (!userExists) throw new Error('USER_NOT_FOUND');
 
-    return notificationRepository.createNotification({
+    const created = await notificationRepository.createNotification({
       userId,
       type: data.type,
       title,
       message,
       metadata: data.metadata === null ? Prisma.JsonNull : data.metadata,
     });
+    void realtimeClient.publishMany([
+      {
+        domain: 'notifications',
+        action: 'notification.created',
+        entityId: created.id,
+        scope: { userIds: [created.userId] },
+      },
+    ]);
+    return created;
   }
 
   async listUserNotifications(userId: string, query: ListNotificationsQueryDto) {
@@ -88,9 +98,18 @@ export class NotificationService {
       throw new Error('NOTIFICATION_NOT_FOUND');
     }
 
-    return notificationRepository.updateNotification(normalizedNotificationId, {
+    const updated = await notificationRepository.updateNotification(normalizedNotificationId, {
       read: payload.read,
     });
+    void realtimeClient.publishMany([
+      {
+        domain: 'notifications',
+        action: 'notification.updated',
+        entityId: updated.id,
+        scope: { userIds: [updated.userId] },
+      },
+    ]);
+    return updated;
   }
 
   async markAllAsRead(userId: string) {
@@ -98,6 +117,16 @@ export class NotificationService {
     if (!normalizedUserId) throw new Error('USER_ID_REQUIRED');
 
     const count = await notificationRepository.markAllAsRead(normalizedUserId);
+    if (count > 0) {
+      void realtimeClient.publishMany([
+        {
+          domain: 'notifications',
+          action: 'notification.all_read',
+          scope: { userIds: [normalizedUserId] },
+          payload: { updatedCount: count },
+        },
+      ]);
+    }
     return { updatedCount: count };
   }
 }

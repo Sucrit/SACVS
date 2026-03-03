@@ -3,8 +3,10 @@ import cors from 'cors';
 import crypto from 'node:crypto';
 import routes from './routes';
 import { ENV } from './config/env';
+import { hasInternalEventAuth, parseRealtimeEvents, realtimeHub } from './realtime/realtime.hub';
 
 const app = express();
+app.use(express.json({ limit: '256kb' }));
 
 // Security headers
 app.use((_req, res, next) => {
@@ -209,6 +211,19 @@ app.use((req, res, next) => {
     );
   });
   next();
+});
+
+app.post('/internal/realtime/events', (req, res) => {
+  if (!hasInternalEventAuth(req)) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const events = parseRealtimeEvents(req.body);
+  if (events.length === 0) {
+    return res.status(400).json({ error: 'Invalid event payload.' });
+  }
+
+  events.forEach(event => realtimeHub.publish(event));
+  return res.status(202).json({ accepted: events.length });
 });
 
 app.use('/', routes);

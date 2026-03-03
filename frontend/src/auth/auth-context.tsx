@@ -3,6 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { isAxiosError } from 'axios';
 import { setAuthTokenGetter } from '../api/client';
 import { User, UserService } from '../services/user.service';
+import { realtimeService } from '../services/realtime.service';
 
 interface LegacyAuthContextValue {
   user: User | null;
@@ -23,6 +24,7 @@ export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshUser = useCallback(async (): Promise<User | null> => {
     if (!isSignedIn) {
       setAuthTokenGetter(null);
+      realtimeService.stop();
       setUser(null);
       return null;
     }
@@ -53,6 +55,7 @@ export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (!isSignedIn) {
       setAuthTokenGetter(null);
+      realtimeService.stop();
       setUser(null);
       setIsLoading(false);
       return;
@@ -72,9 +75,22 @@ export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
     void initialize();
   }, [isLoaded, isSignedIn, refreshUser]);
 
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
+      realtimeService.stop();
+      return;
+    }
+    realtimeService.start(async () => {
+      const token = await getToken();
+      return token ?? null;
+    });
+    return () => realtimeService.stop();
+  }, [getToken, isLoaded, isSignedIn]);
+
   const logout = useCallback(async () => {
     await signOut({ redirectUrl: '/' });
     setAuthTokenGetter(null);
+    realtimeService.stop();
     setUser(null);
   }, [signOut]);
 

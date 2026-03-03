@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
@@ -9,7 +9,6 @@ import {
   Database,
   ListFilter,
   Mail,
-  RefreshCw,
   Search,
   Server,
   UserRoundCheck,
@@ -18,6 +17,7 @@ import {
 import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../services/audit.service';
 import { User, UserRole, UserService, UserStatus } from '../../services/user.service';
 import { useStepUp } from '../../hooks/useStepUp';
+import { realtimeService } from '../../services/realtime.service';
 
 type AdminSection = 'overview' | 'users' | 'logs' | 'settings';
 type RoleFilter = UserRole | 'ALL';
@@ -95,6 +95,7 @@ export default function AdminDashboard() {
   const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
+  const [hasLoadedAuditLogs, setHasLoadedAuditLogs] = useState(false);
   const [auditActionFilter, setAuditActionFilter] = useState<'ALL' | AuditAction>('ALL');
   const [auditSeverityFilter, setAuditSeverityFilter] = useState<'ALL' | AuditSeverity>('ALL');
   const [auditPage, setAuditPage] = useState(1);
@@ -105,6 +106,10 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const { requestStepUpToken, stepUpModal } = useStepUp();
+  const refreshTimersRef = useRef<Record<'users' | 'logs', number | null>>({
+    users: null,
+    logs: null,
+  });
 
   const loadUsers = useCallback(async () => {
     setIsLoadingUsers(true);
@@ -131,6 +136,7 @@ export default function AdminDashboard() {
     try {
       const data = await AuditService.list();
       setAuditLogs(data);
+      setHasLoadedAuditLogs(true);
     } catch (error) {
       setAuditLogs([]);
       setUsersError(getApiErrorMessage(error) || 'Unable to load admin audit logs.');
@@ -169,10 +175,44 @@ export default function AdminDashboard() {
   }, [auditActionFilter, auditSeverityFilter, auditPageSize]);
 
   useEffect(() => {
-    if (section === 'logs') {
+    if (section === 'logs' && !hasLoadedAuditLogs) {
       void loadAuditLogs();
     }
-  }, [loadAuditLogs, section]);
+  }, [hasLoadedAuditLogs, loadAuditLogs, section]);
+
+  const scheduleRefresh = useCallback((key: 'users' | 'logs') => {
+    if (refreshTimersRef.current[key]) return;
+    refreshTimersRef.current[key] = window.setTimeout(() => {
+      refreshTimersRef.current[key] = null;
+      if (key === 'users' && section !== 'logs') {
+        void loadUsers();
+      }
+      if (key === 'logs' && section === 'logs') {
+        void loadAuditLogs();
+      }
+    }, 350);
+  }, [loadAuditLogs, loadUsers, section]);
+
+  useEffect(() => {
+    const unsubscribe = realtimeService.subscribe(event => {
+      if (event.domain === 'users' || event.domain === 'system') {
+        scheduleRefresh('users');
+      }
+      if (event.domain === 'audit') {
+        scheduleRefresh('logs');
+      }
+    });
+    return () => {
+      unsubscribe();
+      (Object.keys(refreshTimersRef.current) as Array<'users' | 'logs'>).forEach(key => {
+        const timer = refreshTimersRef.current[key];
+        if (timer) {
+          window.clearTimeout(timer);
+          refreshTimersRef.current[key] = null;
+        }
+      });
+    };
+  }, [scheduleRefresh]);
 
   const totalUsers = users.length;
   const approvedUsers = users.filter(user => user.status === 'APPROVED').length;
@@ -450,15 +490,6 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       <Card
         title="User Management"
-        action={
-          <button
-            onClick={loadUsers}
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-          >
-            <RefreshCw size={14} />
-            Refresh
-          </button>
-        }
       >
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
           <div className="lg:col-span-2">
@@ -696,15 +727,6 @@ export default function AdminDashboard() {
     <div className="space-y-4">
       <Card
         title="Admin Governance Audit Logs"
-        action={
-          <button
-            onClick={() => void loadAuditLogs()}
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-          >
-            <RefreshCw size={14} />
-            Refresh
-          </button>
-        }
       >
         <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
           <div>
