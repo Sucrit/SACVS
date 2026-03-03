@@ -9,6 +9,16 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 1
 fi
 
+configure_ai_env() {
+  export AI_ENABLED="${AI_ENABLED:-true}"
+  export AI_ENFORCE_GATE="${AI_ENFORCE_GATE:-true}"
+  export AI_PROVIDER="${AI_PROVIDER:-ml}"
+  export AI_SERVICE_URL="${AI_SERVICE_URL:-http://localhost:5500}"
+  export AI_MODEL_SERVICE_URL="${AI_MODEL_SERVICE_URL:-http://localhost:5001}"
+  export AI_SCORE_CLEAR_THRESHOLD="${AI_SCORE_CLEAR_THRESHOLD:-0.35}"
+  export AI_SCORE_BLOCK_THRESHOLD="${AI_SCORE_BLOCK_THRESHOLD:-0.70}"
+}
+
 SERVICES=(
   "frontend:frontend"
   "gateway:backend/gateway"
@@ -60,6 +70,43 @@ start_service() {
   PIDS+=("$!")
 }
 
+start_ai_model_service() {
+  local name="ai-model-service"
+  local rel_path="backend/ai-model-service"
+  local abs_path="$ROOT_DIR/$rel_path"
+  local python_exec=()
+
+  if [[ ! -d "$abs_path" ]]; then
+    echo "[$name] Missing directory: $rel_path"
+    exit 1
+  fi
+
+  if [[ ! -f "$abs_path/app.py" ]]; then
+    echo "[$name] Missing app.py: $rel_path/app.py"
+    exit 1
+  fi
+
+  if [[ -x "$abs_path/.venv/Scripts/python.exe" ]]; then
+    python_exec=("$abs_path/.venv/Scripts/python.exe")
+  elif command -v python >/dev/null 2>&1; then
+    python_exec=("python")
+  elif command -v py >/dev/null 2>&1; then
+    python_exec=("py" "-3")
+  else
+    echo "[$name] Python is not installed or not in PATH."
+    echo "[$name] Install Python dependencies with: pip install -r backend/ai-model-service/requirements.txt"
+    exit 1
+  fi
+
+  (
+    cd "$abs_path"
+    echo "[$name] starting (${python_exec[*]} -m uvicorn app:app --host 0.0.0.0 --port 5001 --reload)"
+    "${python_exec[@]}" -m uvicorn app:app --host 0.0.0.0 --port 5001 --reload 2>&1 | sed "s/^/[$name] /"
+  ) &
+
+  PIDS+=("$!")
+}
+
 generate_shared_prisma_client() {
   local prisma_service_path="$ROOT_DIR/backend/services/user-service"
   local prisma_client_path="$ROOT_DIR/backend/db/node_modules/.prisma/client"
@@ -78,6 +125,8 @@ generate_shared_prisma_client() {
 }
 
 generate_shared_prisma_client
+configure_ai_env
+start_ai_model_service
 
 for entry in "${SERVICES[@]}"; do
   name="${entry%%:*}"

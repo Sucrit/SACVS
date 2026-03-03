@@ -453,6 +453,19 @@ export class CredentialService {
 
     try {
       const created = await credentialRepository.createCredential(createData);
+      await this.createAuditEntry({
+        action: 'CREDENTIAL_CREATED',
+        actorId: actor.userId,
+        actorRole: actor.role,
+        targetType: 'Credential',
+        targetId: created.id,
+        description: `Credential "${created.title}" created`,
+        metadata: {
+          studentId: created.studentId,
+          type: created.type,
+          status: created.status,
+        },
+      });
       if (ENV.AI_ENABLED && hasFile) {
         await this.queueAiAnalysis(created.id, 'CREATE');
         if (created.student?.institutionId) {
@@ -723,7 +736,7 @@ export class CredentialService {
 
     if (nextStatus === CredentialStatus.ISSUED) {
       await this.createAuditEntry({
-        action: 'CREDENTIAL_VERIFIED_BY_AI',
+        action: 'CREDENTIAL_ISSUED',
         actorId: actor.userId,
         actorRole: actor.role,
         targetType: 'Credential',
@@ -732,6 +745,26 @@ export class CredentialService {
           updateData.aiReviewStatus === AiReviewStatus.OVERRIDDEN
             ? 'Credential issued with AI override'
             : 'Credential issued after AI validation',
+      });
+    }
+
+    if (currentStatus !== nextStatus && nextStatus !== CredentialStatus.ISSUED) {
+      await this.createAuditEntry({
+        action:
+          nextStatus === CredentialStatus.REVOKED
+            ? 'CREDENTIAL_REVOKED'
+            : nextStatus === CredentialStatus.PENDING || nextStatus === CredentialStatus.AI_REVIEW
+              ? 'SETTINGS_CHANGED'
+              : 'CREDENTIAL_VERIFIED',
+        actorId: actor.userId,
+        actorRole: actor.role,
+        targetType: 'Credential',
+        targetId: updated.id,
+        description: `Credential status changed from ${currentStatus} to ${nextStatus}`,
+        metadata: {
+          previousStatus: currentStatus,
+          nextStatus,
+        },
       });
     }
 

@@ -1,6 +1,6 @@
 import express from 'express';
 import { UserController } from '../controller/user.controller';
-import { requireAuth, requireRoles } from '../middleware/auth.middleware';
+import { requireApprovedAccount, requireAuth, requireRoles } from '../middleware/auth.middleware';
 
 const router = express.Router();
 const userController = new UserController();
@@ -44,6 +44,13 @@ router.put(
   requireAuth,
   requireRoles('INSTITUTION'),
   userController.updateInstitutionStudentStatus.bind(userController),
+);
+router.get(
+  '/audit',
+  requireAuth,
+  requireApprovedAccount,
+  requireRoles('ADMIN', 'INSTITUTION', 'EMPLOYER'),
+  userController.listAuditLogs.bind(userController),
 );
 
 router.get(

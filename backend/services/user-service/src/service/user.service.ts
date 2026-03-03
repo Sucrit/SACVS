@@ -178,6 +178,11 @@ export class UserService {
   async createInstitutionStudent(actorUserId: string, data: CreateInstitutionStudentDto) {
     const actor = await this.getInstitutionActorContext(actorUserId);
     const student = await this.createInstitutionStudentForContext(actor.institutionId, actor.id, data);
+    try {
+      await userRepository.createInstitutionStudentAudit(actor.id, student.id, student.email);
+    } catch (error) {
+      console.error('Failed to write institution student creation audit entry:', error);
+    }
     return this.addApproverName(student);
   }
 
@@ -192,7 +197,16 @@ export class UserService {
     for (let index = 0; index < students.length; index += 1) {
       const student = students[index];
       try {
-        await this.createInstitutionStudentForContext(actor.institutionId, actor.id, student);
+        const createdStudent = await this.createInstitutionStudentForContext(
+          actor.institutionId,
+          actor.id,
+          student,
+        );
+        try {
+          await userRepository.createInstitutionStudentAudit(actor.id, createdStudent.id, createdStudent.email);
+        } catch (error) {
+          console.error('Failed to write bulk student creation audit entry:', error);
+        }
         created += 1;
       } catch (error) {
         failed.push({
@@ -309,7 +323,11 @@ export class UserService {
       }
     }
 
-    const deleted = await userRepository.deleteInstitutionStudentAccount(actor.institutionId, studentUserId);
+    const deleted = await userRepository.deleteInstitutionStudentAccount(
+      actor.institutionId,
+      studentUserId,
+      actor.id,
+    );
     if (!deleted) {
       throw new Error('STUDENT_NOT_FOUND_OR_FORBIDDEN');
     }
@@ -321,7 +339,20 @@ export class UserService {
     return userRepository.updateUserStatus(userId, data.status, actorId);
   }
 
-  async updateUserRole(userId: string, data: UpdateUserRoleDto) {
-    return userRepository.updateUserRole(userId, data.role);
+  async updateUserRole(userId: string, data: UpdateUserRoleDto, actorId?: string | null) {
+    return userRepository.updateUserRole(userId, data.role, actorId);
+  }
+
+  async listAuditLogs(actorUserId: string) {
+    const actor = await userRepository.getUserContextById(actorUserId);
+    if (!actor) {
+      throw new Error('ACTOR_NOT_FOUND');
+    }
+
+    if (actor.role === 'STUDENT') {
+      throw new Error('FORBIDDEN_ROLE');
+    }
+
+    return userRepository.listAuditLogsForRoleScope(actor);
   }
 }

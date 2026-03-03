@@ -10,6 +10,7 @@ import {
   CredentialStatus,
   CredentialType,
 } from '../../services/credential.service';
+import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../services/audit.service';
 import {
   InstitutionStudentPayload,
   User,
@@ -89,6 +90,12 @@ export default function InstitutionDashboard() {
   const [selectedAiReport, setSelectedAiReport] = useState<CredentialAiReport | null>(null);
   const [isLoadingAiReport, setIsLoadingAiReport] = useState(false);
   const [aiActionCredentialId, setAiActionCredentialId] = useState<string | null>(null);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
+  const [auditActionFilter, setAuditActionFilter] = useState<'ALL' | AuditAction>('ALL');
+  const [auditSeverityFilter, setAuditSeverityFilter] = useState<'ALL' | AuditSeverity>('ALL');
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditPageSize, setAuditPageSize] = useState(20);
 
   const [students, setStudents] = useState<User[]>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(true);
@@ -825,6 +832,56 @@ export default function InstitutionDashboard() {
     createEvent('NOTIFICATION', 'Notification queued', `${entry.target}: ${entry.title}`);
   };
 
+  const loadAuditLogs = useCallback(async () => {
+    setIsLoadingAuditLogs(true);
+    try {
+      const data = await AuditService.list();
+      setAuditLogs(data);
+    } catch (error) {
+      setAuditLogs([]);
+      setRequestsError(getApiErrorMessage(error) || 'Unable to load audit logs.');
+    } finally {
+      setIsLoadingAuditLogs(false);
+    }
+  }, []);
+
+  const institutionAuditActionOptions = useMemo(
+    () =>
+      ['ALL', ...Array.from(new Set(auditLogs.map(log => log.action))).sort()] as Array<
+        'ALL' | AuditAction
+      >,
+    [auditLogs],
+  );
+
+  const filteredInstitutionAuditLogs = useMemo(
+    () =>
+      auditLogs.filter(log => {
+        if (auditActionFilter !== 'ALL' && log.action !== auditActionFilter) return false;
+        if (auditSeverityFilter !== 'ALL' && log.severity !== auditSeverityFilter) return false;
+        return true;
+      }),
+    [auditActionFilter, auditLogs, auditSeverityFilter],
+  );
+
+  const totalInstitutionAuditPages = Math.max(
+    1,
+    Math.ceil(filteredInstitutionAuditLogs.length / auditPageSize),
+  );
+  const currentInstitutionAuditPage = Math.min(auditPage, totalInstitutionAuditPages);
+  const pagedInstitutionAuditLogs = useMemo(() => {
+    const start = (currentInstitutionAuditPage - 1) * auditPageSize;
+    return filteredInstitutionAuditLogs.slice(start, start + auditPageSize);
+  }, [auditPageSize, currentInstitutionAuditPage, filteredInstitutionAuditLogs]);
+
+  useEffect(() => {
+    setAuditPage(1);
+  }, [auditActionFilter, auditSeverityFilter, auditPageSize]);
+
+  useEffect(() => {
+    if (section !== 'logs') return;
+    void loadAuditLogs();
+  }, [loadAuditLogs, section]);
+
   return (
     <div className="space-y-6">
       {(requestsError || requestsHint) && (section === 'requests' || section === 'issue') && (
@@ -976,6 +1033,135 @@ export default function InstitutionDashboard() {
           onMessageChange={setNotificationMessage}
           onSubmit={handleNotificationSubmit}
         />
+      )}
+
+      {section === 'logs' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-slate-900">Institution Audit Logs</h2>
+            <button
+              onClick={() => {
+                void loadAuditLogs();
+              }}
+              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              Refresh
+            </button>
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Action</label>
+              <select
+                value={auditActionFilter}
+                onChange={event => setAuditActionFilter(event.target.value as 'ALL' | AuditAction)}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+              >
+                {institutionAuditActionOptions.map(action => (
+                  <option key={action} value={action}>
+                    {action}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Severity</label>
+              <select
+                value={auditSeverityFilter}
+                onChange={event => setAuditSeverityFilter(event.target.value as 'ALL' | AuditSeverity)}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+              >
+                {(['ALL', 'INFO', 'WARNING', 'CRITICAL'] as const).map(severity => (
+                  <option key={severity} value={severity}>
+                    {severity}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Page Size</label>
+              <select
+                value={auditPageSize}
+                onChange={event => setAuditPageSize(Number(event.target.value))}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+              >
+                {[10, 20, 50].map(size => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                {filteredInstitutionAuditLogs.length} entries
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Timestamp</th>
+                  <th className="px-4 py-3">Action</th>
+                  <th className="px-4 py-3">Severity</th>
+                  <th className="px-4 py-3">Actor</th>
+                  <th className="px-4 py-3">Description</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {isLoadingAuditLogs && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
+                      Loading audit logs...
+                    </td>
+                  </tr>
+                )}
+                {!isLoadingAuditLogs && filteredInstitutionAuditLogs.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
+                      No audit logs found for institution scope.
+                    </td>
+                  </tr>
+                )}
+                {!isLoadingAuditLogs &&
+                  pagedInstitutionAuditLogs.map(log => (
+                    <tr key={log.id} className="hover:bg-slate-50/70">
+                      <td className="px-4 py-3 text-xs text-slate-600">{new Date(log.createdAt).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-xs font-semibold text-slate-800">{log.action}</td>
+                      <td className="px-4 py-3 text-xs text-slate-700">{log.severity}</td>
+                      <td className="px-4 py-3 text-xs text-slate-600">{log.actorEmail || '-'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">{log.description || '-'}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+          {!isLoadingAuditLogs && filteredInstitutionAuditLogs.length > 0 && (
+            <div className="mt-3 flex items-center justify-between">
+              <p className="text-xs text-slate-500">
+                Page {currentInstitutionAuditPage} of {totalInstitutionAuditPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setAuditPage(previous => Math.max(1, previous - 1))}
+                  disabled={currentInstitutionAuditPage <= 1}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() =>
+                    setAuditPage(previous => Math.min(totalInstitutionAuditPages, previous + 1))
+                  }
+                  disabled={currentInstitutionAuditPage >= totalInstitutionAuditPages}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

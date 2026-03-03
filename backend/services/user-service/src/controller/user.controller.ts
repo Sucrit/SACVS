@@ -465,6 +465,28 @@ export class UserController {
     }
   }
 
+  async listAuditLogs(req: Request, res: Response): Promise<Response> {
+    const actorId = getAuthUserId(req);
+    if (!actorId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+      const logs = await userService.listAuditLogs(actorId);
+      return res.status(200).json(logs);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
+        return res.status(404).json({ error: 'Authenticated user record was not found.' });
+      }
+      if (error instanceof Error && error.message === 'FORBIDDEN_ROLE') {
+        return res.status(403).json({ error: 'Students do not have audit logging access.' });
+      }
+
+      console.error('Error listing audit logs:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
   async listMyInstitutionStudents(req: Request, res: Response): Promise<Response> {
     const actorId = getAuthUserId(req);
     if (!actorId) {
@@ -723,6 +745,7 @@ export class UserController {
 
   async updateUserRole(req: Request, res: Response): Promise<Response> {
     const userId: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const actorId = getAuthUserId(req);
     const { role }: UpdateUserRoleDto = req.body;
     const validRoles = ['STUDENT', 'ADMIN', 'EMPLOYER', 'INSTITUTION'];
     if (!validRoles.includes(role)) {
@@ -730,7 +753,7 @@ export class UserController {
     }
 
     try {
-      const updatedUser = await userService.updateUserRole(userId, { role });
+      const updatedUser = await userService.updateUserRole(userId, { role }, actorId);
       return res.status(200).json(updatedUser);
     } catch (error) {
       console.error('Error updating user role:', error);

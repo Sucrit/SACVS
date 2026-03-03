@@ -1,4 +1,13 @@
-import { PrismaClient, Prisma, User, Status, Role, Sex } from '../../../../db/node_modules/@prisma/client';
+import {
+  PrismaClient,
+  Prisma,
+  User,
+  Status,
+  Role,
+  Sex,
+  AuditAction,
+  AuditSeverity,
+} from '../../../../db/node_modules/@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
   CreateInstitutionStudentDto,
@@ -53,6 +62,11 @@ const normalizeOptionalProfileString = (value?: string | null): string | null | 
   return trimmed.length > 0 ? trimmed : null;
 };
 
+const normalizeRequiredProfileString = (value?: string | null): string => {
+  if (typeof value === 'undefined' || value === null) return '';
+  return value.trim();
+};
+
 const toPrismaSex = (value?: StudentSex | null): Sex | null | undefined => {
   if (typeof value === 'undefined') return undefined;
   if (value === null) return null;
@@ -75,7 +89,7 @@ const INSTITUTION_MANAGED_PROFILE_DEFAULTS = {
   city: '',
   province: '',
   zipCode: 0,
-  phone: null,
+  phone: '',
 } as const;
 
 const buildStudentProfileWriteData = (
@@ -87,7 +101,7 @@ const buildStudentProfileWriteData = (
   city: data.city.trim(),
   province: data.province.trim(),
   zipCode: data.zipCode,
-  phone: normalizeOptionalProfileString(data.phone),
+  phone: normalizeRequiredProfileString(data.phone),
   courseOfStudy: data.courseOfStudy.trim(),
   yearLevel: data.yearLevel.trim(),
   department: data.department.trim(),
@@ -138,11 +152,63 @@ const toPrismaRole = (role?: UserRole): Role => {
 const toPrismaStatus = (status: UserStatus): Status => Status[status];
 
 export class UserRepository {
+  private async getActorAuditIdentity(
+    actorId: string | null | undefined,
+    tx: Prisma.TransactionClient | PrismaClient = prisma,
+  ): Promise<{ actorEmail: string | null; actorRole: Role | null }> {
+    if (!actorId) {
+      return { actorEmail: null, actorRole: null };
+    }
+
+    const actor = await tx.user.findUnique({
+      where: { id: actorId },
+      select: {
+        email: true,
+        role: true,
+      },
+    });
+
+    return {
+      actorEmail: actor?.email ?? null,
+      actorRole: actor?.role ?? null,
+    };
+  }
+
+  private async createAuditLogEntry(
+    data: {
+      action: AuditAction;
+      severity?: AuditSeverity;
+      actorId?: string | null;
+      targetType?: string | null;
+      targetId?: string | null;
+      description?: string | null;
+      metadata?: Prisma.InputJsonValue | null;
+    },
+    tx: Prisma.TransactionClient | PrismaClient = prisma,
+  ): Promise<void> {
+    const actorIdentity = await this.getActorAuditIdentity(data.actorId, tx);
+
+    await tx.auditLog.create({
+      data: {
+        action: data.action,
+        severity: data.severity ?? AuditSeverity.INFO,
+        actorId: data.actorId ?? null,
+        actorEmail: actorIdentity.actorEmail,
+        actorRole: actorIdentity.actorRole,
+        targetType: data.targetType ?? null,
+        targetId: data.targetId ?? null,
+        description: data.description ?? null,
+        metadata: data.metadata ?? undefined,
+      },
+    });
+  }
+
   async getUserContextById(userId: string): Promise<{
     id: string;
     role: Role;
     status: Status;
     institutionId: string | null;
+    employerId: string | null;
   } | null> {
     return prisma.user.findUnique({
       where: { id: userId },
@@ -151,6 +217,7 @@ export class UserRepository {
         role: true,
         status: true,
         institutionId: true,
+        employerId: true,
       },
     });
   }
@@ -519,24 +586,86 @@ export class UserRepository {
   async updateUserStatus(userId: string, status: UserStatus, actorId?: string | null): Promise<User> {
     const normalizedActorId = actorId ?? null;
     const approvedAt = status === 'APPROVED' ? new Date() : null;
+    const actionByStatus: Record<UserStatus, AuditAction> = {
+      APPROVED: AuditAction.USER_APPROVED,
+      REJECTED: AuditAction.USER_REJECTED,
+      SUSPENDED: AuditAction.USER_SUSPENDED,
+      PENDING: AuditAction.SETTINGS_CHANGED,
+    };
 
-    return prisma.user.update({
-      where: { id: userId },
-      data: {
-        status: toPrismaStatus(status),
-        approvedById: status === 'APPROVED' ? normalizedActorId : null,
-        approvedAt,
-      },
+    return prisma.$transaction(async tx => {
+      const previous = await tx.user.findUnique({
+        where: { id: userId },
+        select: {
+          status: true,
+        },
+      });
+
+      const updated = await tx.user.update({
+        where: { id: userId },
+        data: {
+          status: toPrismaStatus(status),
+          approvedById: status === 'APPROVED' ? normalizedActorId : null,
+          approvedAt,
+        },
+      });
+
+      await this.createAuditLogEntry(
+        {
+          action: actionByStatus[status],
+          actorId: normalizedActorId,
+          targetType: 'User',
+          targetId: userId,
+          description: `User status changed from ${previous?.status ?? 'UNKNOWN'} to ${status}`,
+          metadata: {
+            previousStatus: previous?.status ?? null,
+            nextStatus: status,
+          },
+        },
+        tx,
+      );
+
+      return updated;
     });
   }
 
-  async updateUserRole(userId: string, role: UserRole): Promise<AdminUserWithRelations> {
-    return prisma.user.update({
-      where: { id: userId },
-      data: {
-        role: toPrismaRole(role),
-      },
-      include: adminUserInclude,
+  async updateUserRole(
+    userId: string,
+    role: UserRole,
+    actorId?: string | null,
+  ): Promise<AdminUserWithRelations> {
+    return prisma.$transaction(async tx => {
+      const previous = await tx.user.findUnique({
+        where: { id: userId },
+        select: {
+          role: true,
+        },
+      });
+
+      const updated = await tx.user.update({
+        where: { id: userId },
+        data: {
+          role: toPrismaRole(role),
+        },
+        include: adminUserInclude,
+      });
+
+      await this.createAuditLogEntry(
+        {
+          action: AuditAction.ROLE_CHANGED,
+          actorId: actorId ?? null,
+          targetType: 'User',
+          targetId: userId,
+          description: `User role changed from ${previous?.role ?? 'UNKNOWN'} to ${role}`,
+          metadata: {
+            previousRole: previous?.role ?? null,
+            nextRole: role,
+          },
+        },
+        tx,
+      );
+
+      return updated;
     });
   }
 
@@ -561,14 +690,47 @@ export class UserRepository {
 
     const approvedAt = status === 'APPROVED' ? new Date() : null;
 
-    return prisma.user.update({
-      where: { id: studentUserId },
-      data: {
-        status: toPrismaStatus(status),
-        approvedById: status === 'APPROVED' ? actorId ?? null : null,
-        approvedAt,
-      },
-      include: userInclude,
+    return prisma.$transaction(async tx => {
+      const previous = await tx.user.findUnique({
+        where: { id: studentUserId },
+        select: {
+          status: true,
+        },
+      });
+
+      const updated = await tx.user.update({
+        where: { id: studentUserId },
+        data: {
+          status: toPrismaStatus(status),
+          approvedById: status === 'APPROVED' ? actorId ?? null : null,
+          approvedAt,
+        },
+        include: userInclude,
+      });
+
+      await this.createAuditLogEntry(
+        {
+          action:
+            status === 'APPROVED'
+              ? AuditAction.USER_APPROVED
+              : status === 'REJECTED'
+                ? AuditAction.USER_REJECTED
+                : status === 'SUSPENDED'
+                  ? AuditAction.USER_SUSPENDED
+                  : AuditAction.SETTINGS_CHANGED,
+          actorId: actorId ?? null,
+          targetType: 'User',
+          targetId: studentUserId,
+          description: `Institution updated student status from ${previous?.status ?? 'UNKNOWN'} to ${status}`,
+          metadata: {
+            previousStatus: previous?.status ?? null,
+            nextStatus: status,
+          },
+        },
+        tx,
+      );
+
+      return updated;
     });
   }
 
@@ -595,33 +757,53 @@ export class UserRepository {
     const status = toPrismaStatus(data.status ?? 'PENDING');
     const approvedAt = status === Status.APPROVED ? new Date() : null;
 
-    return prisma.user.update({
-      where: { id: studentUserId },
-      data: {
-        email: normalizedEmail,
-        firstName: data.firstName.trim(),
-        middleName: normalizeOptionalString(data.middleName),
-        lastName: data.lastName.trim(),
-        role: Role.STUDENT,
-        status,
-        institutionId,
-        employerId: null,
-        approvedById: status === Status.APPROVED ? actorId ?? null : null,
-        approvedAt,
-        profile: {
-          upsert: {
-            create: buildInstitutionManagedStudentProfileCreateData(data),
-            update: buildInstitutionManagedStudentProfileUpdateData(data),
+    return prisma.$transaction(async tx => {
+      const updated = await tx.user.update({
+        where: { id: studentUserId },
+        data: {
+          email: normalizedEmail,
+          firstName: data.firstName.trim(),
+          middleName: normalizeOptionalString(data.middleName),
+          lastName: data.lastName.trim(),
+          role: Role.STUDENT,
+          status,
+          institutionId,
+          employerId: null,
+          approvedById: status === Status.APPROVED ? actorId ?? null : null,
+          approvedAt,
+          profile: {
+            upsert: {
+              create: buildInstitutionManagedStudentProfileCreateData(data),
+              update: buildInstitutionManagedStudentProfileUpdateData(data),
+            },
           },
         },
-      },
-      include: userInclude,
+        include: userInclude,
+      });
+
+      await this.createAuditLogEntry(
+        {
+          action: AuditAction.SETTINGS_CHANGED,
+          actorId: actorId ?? null,
+          targetType: 'User',
+          targetId: studentUserId,
+          description: 'Institution updated student profile',
+          metadata: {
+            email: normalizedEmail,
+            status,
+          },
+        },
+        tx,
+      );
+
+      return updated;
     });
   }
 
   async deleteInstitutionStudentAccount(
     institutionId: string,
     studentUserId: string,
+    actorId?: string | null,
   ): Promise<{ id: string; email: string } | null> {
     const target = await this.getInstitutionStudentIdentity(institutionId, studentUserId);
     if (!target) {
@@ -652,14 +834,137 @@ export class UserRepository {
         where: { actorId: studentUserId },
       });
 
-      return tx.user.delete({
+      const deleted = await tx.user.delete({
         where: { id: studentUserId },
         select: {
           id: true,
           email: true,
         },
       });
+
+      await this.createAuditLogEntry(
+        {
+          action: AuditAction.USER_DELETED,
+          actorId: actorId ?? null,
+          targetType: 'User',
+          targetId: deleted.id,
+          description: `Institution deleted student account ${deleted.email}`,
+          metadata: {
+            email: deleted.email,
+          },
+        },
+        tx,
+      );
+
+      return deleted;
     });
+  }
+
+  async createInstitutionStudentAudit(
+    actorId: string,
+    studentId: string,
+    studentEmail: string,
+  ): Promise<void> {
+    await this.createAuditLogEntry({
+      action: AuditAction.USER_CREATED,
+      actorId,
+      targetType: 'User',
+      targetId: studentId,
+      description: `Institution created student account ${studentEmail}`,
+      metadata: {
+        email: studentEmail,
+      },
+    });
+  }
+
+  async listAuditLogsForRoleScope(actor: {
+    id: string;
+    role: Role;
+    institutionId: string | null;
+    employerId: string | null;
+  }): Promise<Array<{
+    id: string;
+    action: AuditAction;
+    severity: AuditSeverity;
+    actorId: string | null;
+    actorEmail: string | null;
+    actorRole: Role | null;
+    targetType: string | null;
+    targetId: string | null;
+    description: string | null;
+    metadata: Prisma.JsonValue | null;
+    createdAt: Date;
+  }>> {
+    const baseSelect = {
+      id: true,
+      action: true,
+      severity: true,
+      actorId: true,
+      actorEmail: true,
+      actorRole: true,
+      targetType: true,
+      targetId: true,
+      description: true,
+      metadata: true,
+      createdAt: true,
+    } satisfies Prisma.AuditLogSelect;
+
+    if (actor.role === Role.ADMIN) {
+      return prisma.auditLog.findMany({
+        where: {
+          OR: [
+            { actorRole: Role.ADMIN },
+            {
+              action: {
+                in: [
+                  AuditAction.USER_APPROVED,
+                  AuditAction.USER_REJECTED,
+                  AuditAction.USER_SUSPENDED,
+                  AuditAction.ROLE_CHANGED,
+                  AuditAction.ROLE_ASSIGNED,
+                  AuditAction.ROLE_REMOVED,
+                  AuditAction.USER_PERMISSIONS_UPDATED,
+                  AuditAction.SETTINGS_CHANGED,
+                  AuditAction.SECURITY_ALERT,
+                  AuditAction.SECURITY_INCIDENT,
+                ],
+              },
+            },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 250,
+        select: baseSelect,
+      });
+    }
+
+    if (actor.role === Role.INSTITUTION && actor.institutionId) {
+      return prisma.auditLog.findMany({
+        where: {
+          actor: {
+            institutionId: actor.institutionId,
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 250,
+        select: baseSelect,
+      });
+    }
+
+    if (actor.role === Role.EMPLOYER && actor.employerId) {
+      return prisma.auditLog.findMany({
+        where: {
+          actor: {
+            employerId: actor.employerId,
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 250,
+        select: baseSelect,
+      });
+    }
+
+    return [];
   }
 
 }

@@ -1,4 +1,5 @@
 import {
+  AuditAction,
   CredentialRequest as PrismaCredentialRequest,
   CredentialRequestStatus,
   DeliveryMethod,
@@ -54,6 +55,28 @@ const toCredentialRequestResponse = (
 });
 
 export class CredentialRequestService {
+  private async createAuditEntry(payload: {
+    action: AuditAction;
+    actorId?: string | null;
+    targetType?: string;
+    targetId?: string;
+    description?: string;
+    metadata?: Prisma.InputJsonValue | null;
+  }): Promise<void> {
+    try {
+      await credentialRequestRepository.createAuditLog({
+        action: payload.action,
+        actorId: payload.actorId,
+        targetType: payload.targetType,
+        targetId: payload.targetId,
+        description: payload.description,
+        metadata: payload.metadata,
+      });
+    } catch (error) {
+      console.error('Failed to write credential-request audit entry:', error);
+    }
+  }
+
   private formatEnumLabel(value: string): string {
     return value
       .toLowerCase()
@@ -349,6 +372,22 @@ export class CredentialRequestService {
         void this.notifyInstitutionAboutStudentRequest(institutionId, actor, created);
       }
 
+      await this.createAuditEntry({
+        action: AuditAction.CREDENTIAL_REQUESTED,
+        actorId: actor.id,
+        targetType: 'CredentialRequest',
+        targetId: created.id,
+        description: `${actor.role} created credential request "${created.title}"`,
+        metadata: {
+          requestId: created.id,
+          requestType: created.type,
+          requesterType: created.requesterType,
+          studentId: created.studentId,
+          institutionId: created.institutionId,
+          employerId: created.employerId,
+        },
+      });
+
       return toCredentialRequestResponse(created);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
@@ -434,6 +473,18 @@ export class CredentialRequestService {
         rejectionReason: null,
       });
 
+      await this.createAuditEntry({
+        action: AuditAction.CREDENTIAL_REQUEST_REJECTED,
+        actorId: actor.id,
+        targetType: 'CredentialRequest',
+        targetId: requestId,
+        description: `Student cancelled credential request "${updatedByStudent.title}"`,
+        metadata: {
+          status: updatedByStudent.status,
+          requestId,
+        },
+      });
+
       return toCredentialRequestResponse(updatedByStudent);
     }
 
@@ -487,6 +538,29 @@ export class CredentialRequestService {
     if (actor.role === Role.ADMIN || this.isInstitutionScopedRole(actor.role)) {
       void this.notifyStudentAboutRequestStatusUpdate(updated, target.status, actor);
     }
+
+    const auditActionByStatus: Partial<Record<CredentialRequestStatus, AuditAction>> = {
+      APPROVED: AuditAction.CREDENTIAL_REQUEST_APPROVED,
+      COMPLETED: AuditAction.CREDENTIAL_REQUEST_COMPLETED,
+      REJECTED: AuditAction.CREDENTIAL_REQUEST_REJECTED,
+      CANCELLED: AuditAction.CREDENTIAL_REQUEST_REJECTED,
+    };
+
+    await this.createAuditEntry({
+      action: auditActionByStatus[updated.status] ?? AuditAction.SETTINGS_CHANGED,
+      actorId: actor.id,
+      targetType: 'CredentialRequest',
+      targetId: updated.id,
+      description: `${actor.role} changed request "${updated.title}" status from ${target.status} to ${updated.status}`,
+      metadata: {
+        requestId: updated.id,
+        previousStatus: target.status,
+        nextStatus: updated.status,
+        studentId: updated.studentId,
+        institutionId: updated.institutionId,
+        employerId: updated.employerId,
+      },
+    });
 
     return toCredentialRequestResponse(updated);
   }

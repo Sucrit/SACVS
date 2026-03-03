@@ -1,4 +1,6 @@
 import {
+  AuditAction,
+  AuditSeverity,
   CredentialRequest,
   CredentialRequestStatus,
   Prisma,
@@ -42,6 +44,45 @@ export interface CredentialRequestScope {
 }
 
 export class CredentialRequestRepository {
+  async createAuditLog(data: {
+    action: AuditAction;
+    actorId?: string | null;
+    severity?: AuditSeverity;
+    targetType?: string | null;
+    targetId?: string | null;
+    description?: string | null;
+    metadata?: Prisma.InputJsonValue | null;
+  }): Promise<void> {
+    let actorEmail: string | null = null;
+    let actorRole: Role | null = null;
+
+    if (data.actorId) {
+      const actor = await prisma.user.findUnique({
+        where: { id: data.actorId },
+        select: {
+          email: true,
+          role: true,
+        },
+      });
+      actorEmail = actor?.email ?? null;
+      actorRole = actor?.role ?? null;
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        action: data.action,
+        severity: data.severity ?? AuditSeverity.INFO,
+        actorId: data.actorId ?? null,
+        actorEmail,
+        actorRole,
+        targetType: data.targetType ?? null,
+        targetId: data.targetId ?? null,
+        description: data.description ?? null,
+        metadata: data.metadata ?? undefined,
+      },
+    });
+  }
+
   async getUserContextById(userId: string): Promise<UserContext | null> {
     return prisma.user.findUnique({
       where: { id: userId },

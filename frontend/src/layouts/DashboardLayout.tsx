@@ -45,6 +45,7 @@ const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string }>> = {
     { to: '/employer/requests', label: 'My Requests' },
     { to: '/employer/verifications', label: 'Verifications' },
     { to: '/employer/partners', label: 'Institutions' },
+    { to: '/employer/logs', label: 'Audit Logs' },
   ],
   ADMIN: [
     { to: '/admin/users', label: 'User Management' },
@@ -65,6 +66,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   '/employer/requests': FileText,
   '/employer/verifications': Shield,
   '/employer/partners': Building2,
+  '/employer/logs': History,
   '/admin': LayoutGrid,
   '/admin/users': Users,
   '/admin/logs': History,
