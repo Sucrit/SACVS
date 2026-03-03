@@ -37,8 +37,6 @@ export const shortenHash = (value: string | null | undefined) => {
 
 export const getStatusLabel = (status: Credential['status']) => {
   switch (status) {
-    case 'AI_REVIEW':
-      return 'AI review in progress';
     case 'ISSUED':
       return 'Credential issued';
     case 'REVOKED':

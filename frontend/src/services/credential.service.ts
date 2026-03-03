@@ -1,35 +1,9 @@
 import { api } from '../api/client';
 
 export type CredentialType = 'TRANSCRIPT' | 'DIPLOMA' | 'CERTIFICATE' | 'DEGREE' | 'LICENSE';
-export type CredentialStatus = 'PENDING' | 'AI_REVIEW' | 'ISSUED' | 'REVOKED' | 'EXPIRED';
+export type CredentialStatus = 'PENDING' | 'ISSUED' | 'REVOKED' | 'EXPIRED';
 export type CredentialRequestStatus = 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
 export type DeliveryMethod = 'DIGITAL' | 'PHYSICAL' | 'BOTH';
-export type AiDecision = 'PENDING' | 'CLEAR' | 'REVIEW_REQUIRED' | 'BLOCK' | 'FAILED';
-export type AiReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'OVERRIDDEN';
-export type FraudReviewLabel = 'CLEAN' | 'FRAUD' | 'UNSURE';
-
-export interface AiSignal {
-  signalId: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | string;
-  confidence: number;
-  evidence: string;
-}
-
-export interface CredentialAiReport {
-  id: string;
-  aiDecision: AiDecision | null;
-  aiReviewStatus: AiReviewStatus | null;
-  aiStatus: string | null;
-  aiScore: number | null;
-  aiModel: string | null;
-  aiModelVersion: string | null;
-  aiValidatedAt: string | null;
-  aiReviewedById: string | null;
-  aiReviewedAt: string | null;
-  aiOverrideReason: string | null;
-  aiSignals: AiSignal[] | Record<string, unknown> | null;
-  aiReport: Record<string, unknown> | null;
-}
 
 export interface Credential {
   id: string;
@@ -44,18 +18,6 @@ export interface Credential {
   storageKey: string | null;
   fileHash: string | null;
   metadata: Record<string, unknown> | null;
-  aiStatus: string | null;
-  aiScore: number | null;
-  aiReport: Record<string, unknown> | null;
-  aiValidatedAt: string | null;
-  aiDecision: AiDecision | null;
-  aiReviewStatus: AiReviewStatus | null;
-  aiModel: string | null;
-  aiModelVersion: string | null;
-  aiSignals: AiSignal[] | Record<string, unknown> | null;
-  aiReviewedById: string | null;
-  aiReviewedAt: string | null;
-  aiOverrideReason: string | null;
   chain: string | null;
   txHash: string | null;
   blockNumber: number | null;
@@ -91,7 +53,6 @@ export interface CredentialRequest {
   rejectionReason: string | null;
   notes: string | null;
   metadata?: Record<string, unknown> | null;
-  aiScore?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -140,18 +101,6 @@ export interface CredentialRequestListQuery {
   studentId?: string;
   page?: number;
   pageSize?: number;
-}
-
-export interface CredentialAiQueueQuery {
-  decision?: AiDecision;
-  page?: number;
-  pageSize?: number;
-}
-
-export interface ReviewCredentialAiPayload {
-  action: 'APPROVE' | 'REJECT' | 'OVERRIDE';
-  reason?: string;
-  label?: FraudReviewLabel;
 }
 
 export interface GeneratedQrTokenResponse {
@@ -284,34 +233,6 @@ export const CredentialService = {
       notes,
       credentialId,
     });
-    return response.data;
-  },
-
-  getAiReport: async (credentialId: string) => {
-    const response = await api.get<CredentialAiReport>(
-      `/credentials/${encodeURIComponent(credentialId)}/ai-report`,
-    );
-    return response.data;
-  },
-
-  reviewAi: async (credentialId: string, payload: ReviewCredentialAiPayload) => {
-    const response = await api.post<Credential>(
-      `/credentials/${encodeURIComponent(credentialId)}/ai-review`,
-      payload,
-    );
-    return response.data;
-  },
-
-  reanalyzeAi: async (credentialId: string) => {
-    const response = await api.post<Credential>(
-      `/credentials/${encodeURIComponent(credentialId)}/ai-reanalyze`,
-      {},
-    );
-    return response.data;
-  },
-
-  listAiQueue: async (query: CredentialAiQueueQuery = {}) => {
-    const response = await api.get<Credential[]>('/credentials/ai/queue', { params: query });
     return response.data;
   },
 

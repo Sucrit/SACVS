@@ -2,7 +2,7 @@
 - API Gateway
 - User Service
 - Credential Service
-- AI Validation & Fraud Detection Service
+- Credential Request Service
 - Blockchain Interface Service
 - Audit Service
 - Notification Service

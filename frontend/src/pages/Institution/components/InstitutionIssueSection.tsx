@@ -3,9 +3,7 @@ import { ClipboardCheck, RefreshCw, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import {
-  AiDecision,
   Credential,
-  CredentialAiReport,
   CredentialRequest,
   CredentialStatus,
   CredentialType,
@@ -14,7 +12,7 @@ import { User } from '../../../services/user.service';
 import { formatDateTime, getStudentFullName } from '../utils';
 
 const CREDENTIAL_TYPES: CredentialType[] = ['TRANSCRIPT', 'DIPLOMA', 'CERTIFICATE', 'DEGREE', 'LICENSE'];
-const CREDENTIAL_STATUSES: CredentialStatus[] = ['PENDING', 'AI_REVIEW', 'ISSUED', 'REVOKED', 'EXPIRED'];
+const CREDENTIAL_STATUSES: CredentialStatus[] = ['PENDING', 'ISSUED', 'REVOKED', 'EXPIRED'];
 const EXPIRY_ALLOWED_TYPES: CredentialType[] = ['CERTIFICATE', 'LICENSE'];
 type CertificateCategory = 'ACADEMIC' | 'PROFESSIONAL';
 const DEFAULT_CERTIFICATE_CATEGORY: CertificateCategory = 'ACADEMIC';
@@ -30,22 +28,6 @@ interface InstitutionIssueSectionProps {
   students: User[];
   credentials: Credential[];
   isLoadingCredentials: boolean;
-  aiQueue: Credential[];
-  isLoadingAiQueue: boolean;
-  aiDecisionFilter: 'ALL' | AiDecision;
-  onAiDecisionFilterChange: (value: 'ALL' | AiDecision) => void;
-  selectedAiCredentialId: string | null;
-  selectedAiReport: CredentialAiReport | null;
-  isLoadingAiReport: boolean;
-  aiActionCredentialId: string | null;
-  onSelectAiCredential: (credentialId: string) => void;
-  onAiReviewAction: (
-    credentialId: string,
-    action: 'APPROVE' | 'REJECT' | 'OVERRIDE',
-    reason?: string,
-    label?: 'CLEAN' | 'FRAUD' | 'UNSURE',
-  ) => void;
-  onAiReanalyze: (credentialId: string) => void;
   requests: CredentialRequest[];
   isLoadingRequests: boolean;
   issueFileByRequestId: Record<string, File | null>;
@@ -73,17 +55,6 @@ export default function InstitutionIssueSection({
   students,
   credentials,
   isLoadingCredentials,
-  aiQueue,
-  isLoadingAiQueue,
-  aiDecisionFilter,
-  onAiDecisionFilterChange,
-  selectedAiCredentialId,
-  selectedAiReport,
-  isLoadingAiReport,
-  aiActionCredentialId,
-  onSelectAiCredential,
-  onAiReviewAction,
-  onAiReanalyze,
   requests,
   isLoadingRequests,
   issueFileByRequestId,
@@ -114,10 +85,6 @@ export default function InstitutionIssueSection({
   const [reissueFileByCredentialId, setReissueFileByCredentialId] = useState<Record<string, File | null>>({});
   const [updatingCredentialId, setUpdatingCredentialId] = useState<string | null>(null);
   const [reissuingCredentialId, setReissuingCredentialId] = useState<string | null>(null);
-  const [overrideReasonByCredentialId, setOverrideReasonByCredentialId] = useState<Record<string, string>>({});
-  const [labelByCredentialId, setLabelByCredentialId] = useState<
-    Record<string, 'CLEAN' | 'FRAUD' | 'UNSURE'>
-  >({});
 
   const studentNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -136,25 +103,6 @@ export default function InstitutionIssueSection({
     () => [...credentials].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
     [credentials],
   );
-
-  const normalizedSignals = useMemo(() => {
-    const rawSignals = selectedAiReport?.aiSignals;
-    if (!rawSignals) return [];
-    if (Array.isArray(rawSignals)) {
-      return rawSignals
-        .filter(entry => Boolean(entry && typeof entry === 'object'))
-        .map(entry => ({
-          signalId: (entry as { signalId?: string }).signalId || 'unknown_signal',
-          severity: (entry as { severity?: string }).severity || 'UNKNOWN',
-          confidence:
-            typeof (entry as { confidence?: number }).confidence === 'number'
-              ? ((entry as { confidence?: number }).confidence as number)
-              : 0,
-          evidence: (entry as { evidence?: string }).evidence || 'No evidence provided.',
-        }));
-    }
-    return [];
-  }, [selectedAiReport?.aiSignals]);
 
   const readyToIssue = useMemo(
     () =>
@@ -476,232 +424,6 @@ export default function InstitutionIssueSection({
                 ))}
             </tbody>
           </table>
-        </div>
-      </Card>
-
-      <Card title="AI Review Queue">
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs uppercase tracking-[0.08em] text-slate-500">
-              Credentials currently waiting on AI validation review controls.
-            </p>
-            <select
-              value={aiDecisionFilter}
-              onChange={event => onAiDecisionFilterChange(event.target.value as 'ALL' | AiDecision)}
-              className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none"
-            >
-              <option value="ALL">All decisions</option>
-              <option value="PENDING">PENDING</option>
-              <option value="CLEAR">CLEAR</option>
-              <option value="REVIEW_REQUIRED">REVIEW_REQUIRED</option>
-              <option value="BLOCK">BLOCK</option>
-              <option value="FAILED">FAILED</option>
-            </select>
-          </div>
-
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Credential</th>
-                  <th className="px-4 py-3">Student</th>
-                  <th className="px-4 py-3">AI Decision</th>
-                  <th className="px-4 py-3">Review Status</th>
-                  <th className="px-4 py-3">Score</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {isLoadingAiQueue && (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-500">
-                      Loading AI queue...
-                    </td>
-                  </tr>
-                )}
-                {!isLoadingAiQueue && aiQueue.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-500">
-                      No credentials in AI queue for the selected filter.
-                    </td>
-                  </tr>
-                )}
-                {!isLoadingAiQueue &&
-                  aiQueue.map(credential => (
-                    <tr
-                      key={credential.id}
-                      className={`hover:bg-slate-50/70 ${
-                        selectedAiCredentialId === credential.id ? 'bg-cyan-50/60' : ''
-                      }`}
-                    >
-                      <td className="px-4 py-3">
-                        <p className="text-sm font-semibold text-slate-900">{credential.title}</p>
-                        <p className="mt-1 text-xs text-slate-500">{credential.type}</p>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-700">
-                        {studentNameById.get(credential.studentId) || credential.studentId}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge status={credential.aiDecision || 'PENDING'} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge status={credential.aiReviewStatus || 'PENDING'} />
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-slate-700">
-                        {typeof credential.aiScore === 'number' ? credential.aiScore.toFixed(2) : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => onSelectAiCredential(credential.id)}
-                            className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-                          >
-                            View Report
-                          </button>
-                          <button
-                            onClick={() => onAiReanalyze(credential.id)}
-                            disabled={aiActionCredentialId === credential.id}
-                            className="inline-flex h-9 items-center rounded-lg border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
-                          >
-                            {aiActionCredentialId === credential.id ? 'Requeueing...' : 'Reanalyze'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-            {isLoadingAiReport && (
-              <p className="text-sm text-slate-600">Loading AI report...</p>
-            )}
-            {!isLoadingAiReport && !selectedAiReport && (
-              <p className="text-sm text-slate-600">
-                Select a credential in the AI queue to inspect signals and perform review actions.
-              </p>
-            )}
-            {!isLoadingAiReport && selectedAiReport && selectedAiCredentialId && (
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Badge status={selectedAiReport.aiDecision || 'PENDING'} />
-                    <Badge status={selectedAiReport.aiReviewStatus || 'PENDING'} />
-                  </div>
-                  <p className="text-xs font-medium uppercase tracking-[0.08em] text-slate-500">
-                    Model {selectedAiReport.aiModel || 'unknown'} {selectedAiReport.aiModelVersion || ''}
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-slate-200 bg-white p-3">
-                  <p className="text-xs uppercase tracking-[0.08em] text-slate-500">AI Summary</p>
-                  <p className="mt-1 text-sm text-slate-700">
-                    {(selectedAiReport.aiReport?.summary as string) || 'No summary available.'}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  <div className="rounded-lg border border-slate-200 bg-white p-3">
-                    <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Top Signals</p>
-                    {normalizedSignals.length === 0 && (
-                      <p className="mt-2 text-sm text-slate-600">No structured signals available.</p>
-                    )}
-                    {normalizedSignals.length > 0 && (
-                      <div className="mt-2 space-y-2">
-                        {normalizedSignals.slice(0, 4).map(signal => (
-                          <div key={`${signal.signalId}-${signal.evidence}`} className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2">
-                            <p className="text-xs font-semibold text-slate-700">
-                              {signal.signalId} ({signal.severity})
-                            </p>
-                            <p className="mt-1 text-xs text-slate-600">{signal.evidence}</p>
-                            <p className="mt-1 text-[11px] text-slate-500">
-                              Confidence: {Math.max(0, Math.min(1, signal.confidence)).toFixed(2)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="rounded-lg border border-slate-200 bg-white p-3">
-                    <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Review Controls</p>
-                    <div className="mt-2 space-y-2">
-                      <select
-                        value={labelByCredentialId[selectedAiCredentialId] || 'UNSURE'}
-                        onChange={event =>
-                          setLabelByCredentialId(previous => ({
-                            ...previous,
-                            [selectedAiCredentialId]: event.target.value as 'CLEAN' | 'FRAUD' | 'UNSURE',
-                          }))
-                        }
-                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none"
-                      >
-                        <option value="UNSURE">UNSURE</option>
-                        <option value="CLEAN">CLEAN</option>
-                        <option value="FRAUD">FRAUD</option>
-                      </select>
-                      <input
-                        value={overrideReasonByCredentialId[selectedAiCredentialId] || ''}
-                        onChange={event =>
-                          setOverrideReasonByCredentialId(previous => ({
-                            ...previous,
-                            [selectedAiCredentialId]: event.target.value,
-                          }))
-                        }
-                        placeholder="Reason (required for OVERRIDE)"
-                        className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none"
-                      />
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          onClick={() =>
-                            onAiReviewAction(
-                              selectedAiCredentialId,
-                              'APPROVE',
-                              undefined,
-                              labelByCredentialId[selectedAiCredentialId] || 'UNSURE',
-                            )
-                          }
-                          disabled={aiActionCredentialId === selectedAiCredentialId}
-                          className="inline-flex h-9 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() =>
-                            onAiReviewAction(
-                              selectedAiCredentialId,
-                              'REJECT',
-                              overrideReasonByCredentialId[selectedAiCredentialId],
-                              labelByCredentialId[selectedAiCredentialId] || 'FRAUD',
-                            )
-                          }
-                          disabled={aiActionCredentialId === selectedAiCredentialId}
-                          className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:opacity-50"
-                        >
-                          Reject
-                        </button>
-                        <button
-                          onClick={() =>
-                            onAiReviewAction(
-                              selectedAiCredentialId,
-                              'OVERRIDE',
-                              overrideReasonByCredentialId[selectedAiCredentialId],
-                              labelByCredentialId[selectedAiCredentialId] || 'UNSURE',
-                            )
-                          }
-                          disabled={aiActionCredentialId === selectedAiCredentialId}
-                          className="inline-flex h-9 items-center rounded-lg border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
-                        >
-                          Override
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </Card>
 

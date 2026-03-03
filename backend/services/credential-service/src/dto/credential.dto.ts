@@ -9,25 +9,9 @@ export type CredentialTypeValue =
 
 export type CredentialStatusValue =
   | 'PENDING'
-  | 'AI_REVIEW'
   | 'ISSUED'
   | 'REVOKED'
   | 'EXPIRED';
-
-export type AiDecisionValue =
-  | 'PENDING'
-  | 'CLEAR'
-  | 'REVIEW_REQUIRED'
-  | 'BLOCK'
-  | 'FAILED';
-
-export type AiReviewStatusValue =
-  | 'PENDING'
-  | 'APPROVED'
-  | 'REJECTED'
-  | 'OVERRIDDEN';
-
-export type FraudLabelValue = 'CLEAN' | 'FRAUD' | 'UNSURE';
 
 export interface CreateCredentialDto {
   studentId: string;
@@ -41,18 +25,6 @@ export interface CreateCredentialDto {
   storageKey?: string;
   fileHash?: string;
   metadata?: Prisma.InputJsonValue | null;
-  aiStatus?: string;
-  aiScore?: number;
-  aiReport?: Prisma.InputJsonValue | null;
-  aiValidatedAt?: string;
-  aiDecision?: AiDecisionValue;
-  aiReviewStatus?: AiReviewStatusValue;
-  aiModel?: string;
-  aiModelVersion?: string;
-  aiSignals?: Prisma.InputJsonValue | null;
-  aiReviewedById?: string;
-  aiReviewedAt?: string;
-  aiOverrideReason?: string;
   chain?: string;
   txHash?: string;
   blockNumber?: number;
@@ -79,18 +51,6 @@ export interface UpdateCredentialStatusDto {
   storageKey?: string;
   fileHash?: string;
   metadata?: Prisma.InputJsonValue | null;
-  aiStatus?: string;
-  aiScore?: number;
-  aiReport?: Prisma.InputJsonValue | null;
-  aiValidatedAt?: string;
-  aiDecision?: AiDecisionValue;
-  aiReviewStatus?: AiReviewStatusValue;
-  aiModel?: string;
-  aiModelVersion?: string;
-  aiSignals?: Prisma.InputJsonValue | null;
-  aiReviewedById?: string;
-  aiReviewedAt?: string;
-  aiOverrideReason?: string;
   chain?: string;
   txHash?: string;
   blockNumber?: number;
@@ -106,71 +66,12 @@ export interface IssueCredentialDto {
   storageKey?: string;
   fileHash?: string;
   metadata?: Prisma.InputJsonValue | null;
-  aiStatus?: string;
-  aiScore?: number;
-  aiReport?: Prisma.InputJsonValue | null;
-  aiValidatedAt?: string;
-  aiDecision?: AiDecisionValue;
-  aiReviewStatus?: AiReviewStatusValue;
-  aiModel?: string;
-  aiModelVersion?: string;
-  aiSignals?: Prisma.InputJsonValue | null;
-  aiReviewedById?: string;
-  aiReviewedAt?: string;
-  aiOverrideReason?: string;
   chain?: string;
   txHash?: string;
   blockNumber?: number;
   anchoredAt?: string;
   issuedDate?: string;
   expiryDate?: string;
-}
-
-export interface AiReviewCredentialDto {
-  action: 'APPROVE' | 'REJECT' | 'OVERRIDE';
-  reason?: string;
-  label?: FraudLabelValue;
-}
-
-export interface QueueAiReanalyzeDto {
-  reason?: 'REANALYZE';
-}
-
-export interface CredentialAiReportDto {
-  id: string;
-  aiDecision: AiDecisionValue | null;
-  aiReviewStatus: AiReviewStatusValue | null;
-  aiStatus: string | null;
-  aiScore: number | null;
-  aiModel: string | null;
-  aiModelVersion: string | null;
-  aiValidatedAt: string | null;
-  aiReviewedById: string | null;
-  aiReviewedAt: string | null;
-  aiOverrideReason: string | null;
-  aiSignals: Prisma.JsonValue | null;
-  aiReport: Prisma.JsonValue | null;
-}
-
-export interface CredentialAiQueueQueryDto {
-  decision?: AiDecisionValue;
-  page?: number;
-  pageSize?: number;
-}
-
-export interface InternalAiResultDto {
-  credentialId: string;
-  aiStatus?: string;
-  aiScore?: number;
-  aiReport?: Prisma.InputJsonValue | null;
-  aiSignals?: Prisma.InputJsonValue | null;
-  aiDecision: AiDecisionValue;
-  aiModel?: string;
-  aiModelVersion?: string;
-  aiValidatedAt?: string;
-  provider?: string;
-  raw?: Prisma.InputJsonValue | null;
-  error?: string;
 }
 
 export interface GenerateQrTokenDto {

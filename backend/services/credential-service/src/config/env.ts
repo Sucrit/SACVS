@@ -4,14 +4,6 @@ import path from 'node:path';
 dotenv.config();
 dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
-const parseBoolean = (value: string | undefined, fallback: boolean): boolean => {
-  if (typeof value !== 'string') return fallback;
-  const normalized = value.trim().toLowerCase();
-  if (normalized === 'true') return true;
-  if (normalized === 'false') return false;
-  return fallback;
-};
-
 const parseNumber = (value: string | undefined, fallback: number): number => {
   if (typeof value !== 'string') return fallback;
   const parsed = Number(value);
@@ -28,11 +20,6 @@ export const ENV = {
     BLOCKCHAIN_INTERFACE_SERVICE_URL:
       process.env.BLOCKCHAIN_INTERFACE_SERVICE_URL || 'http://localhost:5400',
     INTERNAL_SERVICE_TOKEN: process.env.INTERNAL_SERVICE_TOKEN,
-    AI_ENABLED: parseBoolean(process.env.AI_ENABLED, true),
-    AI_ENFORCE_GATE: parseBoolean(process.env.AI_ENFORCE_GATE, true),
-    AI_SERVICE_URL: process.env.AI_SERVICE_URL || 'http://localhost:5500',
-    AI_SCORE_CLEAR_THRESHOLD: parseNumber(process.env.AI_SCORE_CLEAR_THRESHOLD, 0.35),
-    AI_SCORE_BLOCK_THRESHOLD: parseNumber(process.env.AI_SCORE_BLOCK_THRESHOLD, 0.7),
     FILE_ENCRYPTION_KEY: process.env.FILE_ENCRYPTION_KEY,
     QR_TOKEN_TTL_SECONDS: parseNumber(process.env.QR_TOKEN_TTL_SECONDS, 300),
     QR_TOKEN_PEPPER: process.env.QR_TOKEN_PEPPER,

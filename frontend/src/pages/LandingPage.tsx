@@ -1,4 +1,4 @@
-import { Bot, Globe2, ShieldCheck } from 'lucide-react';
+import { Globe2, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -7,7 +7,7 @@ import { UserRole } from '../services/user.service';
 import studentsGraduateImage from '../assets/students-graduates.jpg';
 import logo2 from '../assets/logo2.png';
 
-const platformLinks = ['How it works', 'Blockchain', 'AI Security', 'Verification'];
+const platformLinks = ['How it works', 'Blockchain', 'Verification', 'Security'];
 const audienceLinks = ['For Institutions', 'For Students', 'For Employers'];
 const companyLinks = ['About Us', 'Privacy Policy', 'Terms of Service', 'Contact Support'];
 
@@ -23,10 +23,10 @@ const features: Array<{
       'Our decentralized ledger technology ensures academic records can never be altered, forged, or deleted once issued.',
   },
   {
-    icon: Bot,
-    title: 'AI-Driven Verification',
+    icon: ShieldCheck,
+    title: 'Trusted Verification',
     description:
-      'Advanced neural networks automatically scan and validate credentials, providing instant results with 99.9% accuracy.',
+      'Institution-issued records are validated through secure, auditable workflows before sharing.',
   },
   {
     icon: Globe2,
@@ -156,8 +156,7 @@ export default function LandingPage() {
           </div>
           <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center px-6 text-center md:px-20">
             <h1 className="mb-6 max-w-4xl text-5xl font-extrabold leading-[1.1] tracking-tight text-slate-900 md:text-7xl">
-              Securing Academic Excellence with <span className="text-slate-500">Blockchain</span> and{' '}
-              <span className="text-slate-500">AI</span>
+              Securing Academic Excellence with <span className="text-slate-500">Blockchain</span>
             </h1>
             <p className="mb-10 max-w-2xl text-lg leading-relaxed text-slate-500 md:text-xl">
               The standard for immutable, instantly verifiable academic credentials. Own your achievement,
@@ -198,7 +197,7 @@ export default function LandingPage() {
             <div className="mb-16">
               <h2 className="mb-4 text-3xl font-black md:text-4xl">The Future of Academic Integrity</h2>
               <p className="mb-8 text-lg leading-relaxed text-slate-500">
-                Leveraging cutting-edge technology to create a seamless, fraud-free ecosystem for academic
+                Leveraging secure technology to create a seamless, trusted ecosystem for academic
                 credentials.
               </p>
             </div>
@@ -308,7 +307,7 @@ export default function LandingPage() {
             <div className="col-span-2 lg:col-span-2">
               <img alt="Credence logo" className="mb-6 h-7 w-auto" src={logo2} />
               <p className="mb-6 max-w-sm text-slate-500">
-                Decentralizing credential verification to eliminate fraud and empower lifetime learning achievements.
+                Decentralizing credential verification to empower lifetime learning achievements.
               </p>
               <div className="flex gap-4">
                 <a

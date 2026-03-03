@@ -1,10 +1,6 @@
 import {
-  AiDecision,
-  AiReviewStatus,
   CredentialType,
   CredentialStatus,
-  FraudLabel,
-  FraudLabelSource,
   Prisma,
   PrismaClient,
   Role,
@@ -157,8 +153,6 @@ export class CredentialRepository {
     title: string;
     type: CredentialType;
     status: CredentialStatus;
-    aiDecision: AiDecision | null;
-    aiReviewStatus: AiReviewStatus | null;
     issuedById: string;
     studentId: string;
     fileHash: string | null;
@@ -169,9 +163,6 @@ export class CredentialRepository {
     issuedDate: Date | null;
     expiryDate: Date | null;
     metadata: Prisma.JsonValue | null;
-    aiReviewedById: string | null;
-    aiReviewedAt: Date | null;
-    aiOverrideReason: string | null;
     student: {
       institutionId: string | null;
     };
@@ -183,8 +174,6 @@ export class CredentialRepository {
         title: true,
         type: true,
         status: true,
-        aiDecision: true,
-        aiReviewStatus: true,
         issuedById: true,
         studentId: true,
         fileHash: true,
@@ -195,9 +184,6 @@ export class CredentialRepository {
         issuedDate: true,
         expiryDate: true,
         metadata: true,
-        aiReviewedById: true,
-        aiReviewedAt: true,
-        aiOverrideReason: true,
         student: {
           select: {
             institutionId: true,
@@ -215,38 +201,6 @@ export class CredentialRepository {
       where: { id: credentialId },
       data,
       include: credentialWithIssuerInclude,
-    });
-  }
-
-  async listAiReviewQueue(
-    where: Prisma.CredentialWhereInput,
-    skip: number,
-    take: number,
-  ): Promise<CredentialWithIssuer[]> {
-    return prisma.credential.findMany({
-      where,
-      orderBy: { updatedAt: 'desc' },
-      skip,
-      take,
-      include: credentialWithIssuerInclude,
-    });
-  }
-
-  async createFraudReviewLabel(data: {
-    credentialId: string;
-    reviewedById: string;
-    label: FraudLabel;
-    source: FraudLabelSource;
-    notes?: string | null;
-  }): Promise<void> {
-    await prisma.fraudReviewLabel.create({
-      data: {
-        credentialId: data.credentialId,
-        reviewedById: data.reviewedById,
-        label: data.label,
-        source: data.source,
-        notes: data.notes ?? null,
-      },
     });
   }
 

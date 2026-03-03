@@ -84,23 +84,6 @@ router.use(
 );
 
 router.use(
-  '/ai',
-  createProxyMiddleware({
-    target: ENV.AI_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: path => (path.startsWith('/ai') ? path : `/ai${path}`),
-    on: {
-      error: (err, _req, res: any) => {
-        console.error('[PROXY] AI service error:', err.message);
-        if (!res.headersSent) {
-          res.status(502).json({ error: 'AI service unavailable' });
-        }
-      },
-    },
-  }),
-);
-
-router.use(
   '/blockchain',
   createProxyMiddleware({
     target: ENV.BLOCKCHAIN_INTERFACE_SERVICE_URL,

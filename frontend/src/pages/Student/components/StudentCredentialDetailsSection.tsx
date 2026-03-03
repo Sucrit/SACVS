@@ -44,20 +44,17 @@ const formatCredentialTypeLabel = (value: string | null | undefined) => {
     .join(' ');
 };
 
-const getStudentAiSummary = (credential: Credential) => {
-  if (credential.status === 'AI_REVIEW') {
-    return 'Under AI review by your institution.';
+const getStudentVerificationSummary = (credential: Credential) => {
+  if (credential.status === 'ISSUED') {
+    return 'Verification completed.';
   }
-  if (credential.aiDecision === 'CLEAR') {
-    return 'AI validation completed.';
+  if (credential.status === 'REVOKED') {
+    return 'Credential has been revoked.';
   }
-  if (credential.aiDecision === 'BLOCK' || credential.aiDecision === 'REVIEW_REQUIRED') {
-    return 'Institution review is in progress.';
+  if (credential.status === 'EXPIRED') {
+    return 'Credential has expired.';
   }
-  if (credential.aiDecision === 'FAILED') {
-    return 'Automated review unavailable. Manual institution review required.';
-  }
-  return 'Verification state unavailable.';
+  return 'Pending institution verification.';
 };
 
 export default function StudentCredentialDetailsSection({
@@ -335,7 +332,7 @@ export default function StudentCredentialDetailsSection({
                 <Sparkles size={14} />
                 Verification
               </p>
-              <p className="font-semibold text-slate-900">{getStudentAiSummary(selectedCredential)}</p>
+              <p className="font-semibold text-slate-900">{getStudentVerificationSummary(selectedCredential)}</p>
 
               <p className="inline-flex items-center gap-2 font-medium text-slate-500">
                 <Link2 size={14} />

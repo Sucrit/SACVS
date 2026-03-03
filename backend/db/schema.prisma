@@ -28,43 +28,9 @@ enum Status {
 
 enum CredentialStatus {
   PENDING
-  AI_REVIEW
   ISSUED
   REVOKED
   EXPIRED
-}
-
-enum AiDecision {
-  PENDING
-  CLEAR
-  REVIEW_REQUIRED
-  BLOCK
-  FAILED
-}
-
-enum AiReviewStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  OVERRIDDEN
-}
-
-enum FraudAnalysisJobStatus {
-  QUEUED
-  PROCESSING
-  COMPLETED
-  FAILED
-}
-
-enum FraudLabel {
-  CLEAN
-  FRAUD
-  UNSURE
-}
-
-enum FraudLabelSource {
-  INSTITUTION
-  ADMIN
 }
 
 enum CredentialRequestStatus {
@@ -122,9 +88,7 @@ enum AuditAction {
   CREDENTIAL_REQUEST_PENDING
   CREDENTIAL_REQUEST_COMPLETED
 
-  // AI and Blockchain Validation Actions
-  AI_VALIDATION_RUN
-  AI_VALIDATION_FAILED
+  // Blockchain Validation Actions
   BLOCKCHAIN_ANCHORED
   BLOCKCHAIN_ANCHORING_FAILED
 
@@ -136,7 +100,6 @@ enum AuditAction {
 
   // Credential verification
   CREDENTIAL_REQUEST_VERIFIED
-  CREDENTIAL_VERIFIED_BY_AI
   CREDENTIAL_VERIFIED_BY_BLOCKCHAIN
 
   // Security events
@@ -204,7 +167,6 @@ model User {
   institution        Institution?        @relation("InstitutionUsers", fields: [institutionId], references: [id])
   auditLogs          AuditLog[]
   notifications      Notification[]
-  fraudReviewLabels  FraudReviewLabel[]
   qrTokens           CredentialQrToken[]
 
   @@index([role])
@@ -271,19 +233,6 @@ model Credential {
   fileHash   String?
   metadata   Json?
 
-  aiStatus      String?
-  aiScore       Float?
-  aiReport      Json?
-  aiValidatedAt DateTime?
-  aiDecision    AiDecision?
-  aiReviewStatus AiReviewStatus?
-  aiModel        String?
-  aiModelVersion String?
-  aiSignals      Json?
-  aiReviewedById String?
-  aiReviewedAt   DateTime?
-  aiOverrideReason String?
-
   chain       String?
   txHash      String?
   blockNumber Int?
@@ -296,8 +245,6 @@ model Credential {
   updatedAt DateTime @updatedAt
 
   requests CredentialRequest[]
-  fraudAnalysisJobs FraudAnalysisJob[]
-  fraudReviewLabels FraudReviewLabel[]
   qrTokens          CredentialQrToken[]
   qrDocumentTokens  CredentialQrDocumentToken[]
 
@@ -305,7 +252,6 @@ model Credential {
   @@index([issuedById])
   @@index([status])
   @@index([type])
-  @@index([aiDecision, status])
 }
 
 
@@ -517,37 +463,4 @@ model Institution {
   credentialRequests CredentialRequest[] @relation("InstitutionCredentialRequests")
 
   @@index([email])
-}
-
-model FraudAnalysisJob {
-  id          String                 @id @default(uuid())
-  credentialId String
-  credential  Credential             @relation(fields: [credentialId], references: [id], onDelete: Cascade)
-  status      FraudAnalysisJobStatus @default(QUEUED)
-  attempts    Int                    @default(0)
-  provider    String?
-  requestedAt DateTime               @default(now())
-  completedAt DateTime?
-  error       String?
-  payload     Json?
-
-  @@index([status, requestedAt])
-  @@index([credentialId])
-}
-
-model FraudReviewLabel {
-  id           String           @id @default(uuid())
-  credentialId String
-  credential   Credential       @relation(fields: [credentialId], references: [id], onDelete: Cascade)
-  reviewedById String
-  reviewedBy   User             @relation(fields: [reviewedById], references: [id])
-  label        FraudLabel
-  source       FraudLabelSource
-  notes        String?
-  reviewedAt   DateTime         @default(now())
-  createdAt    DateTime         @default(now())
-
-  @@index([label, reviewedAt])
-  @@index([credentialId])
-  @@index([reviewedById])
 }
