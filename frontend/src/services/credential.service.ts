@@ -154,6 +154,32 @@ export interface ReviewCredentialAiPayload {
   label?: FraudReviewLabel;
 }
 
+export interface GeneratedQrTokenResponse {
+  tokenId: string;
+  verificationUrl: string;
+  expiresAt: string;
+  ttlSeconds: number;
+}
+
+export interface QrVerificationCredentialView {
+  id: string;
+  title: string;
+  type: CredentialType;
+  status: CredentialStatus;
+  issuedDate: string | null;
+  expiryDate: string | null;
+  institutionName: string;
+  chain: string | null;
+  txHash: string | null;
+  blockNumber: number | null;
+}
+
+export interface QrVerificationResult {
+  valid: boolean;
+  credential: QrVerificationCredentialView | null;
+  reason?: 'INVALID' | 'EXPIRED' | 'USED';
+}
+
 const toMultipartPayload = (data: CreateCredentialPayload | IssueCredentialPayload) => {
   const formData = new FormData();
 
@@ -275,6 +301,30 @@ export const CredentialService = {
 
   listAiQueue: async (query: CredentialAiQueueQuery = {}) => {
     const response = await api.get<Credential[]>('/credentials/ai/queue', { params: query });
+    return response.data;
+  },
+
+  getDocumentBlob: async (credentialId: string) => {
+    const response = await api.get<Blob>(`/credentials/${encodeURIComponent(credentialId)}/document`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  generateQrToken: async (credentialId: string) => {
+    const response = await api.post<GeneratedQrTokenResponse>(
+      `/credentials/${encodeURIComponent(credentialId)}/qr-token`,
+    );
+    return response.data;
+  },
+
+  verifyQrPublic: async (token: string) => {
+    const response = await api.post<QrVerificationResult>('/credentials/verify/qr', { token });
+    return response.data;
+  },
+
+  verifyQrEmployer: async (token: string) => {
+    const response = await api.post<QrVerificationResult>('/credentials/verify/qr/employer', { token });
     return response.data;
   },
 };

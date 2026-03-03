@@ -148,6 +148,10 @@ enum AuditAction {
   // System and configuration changes
   SETTINGS_CHANGED
   SECURITY_ALERT
+  QR_TOKEN_GENERATED
+  QR_TOKEN_CONSUMED
+  QR_TOKEN_INVALID
+  QR_TOKEN_EXPIRED
 }
 
 enum AuditSeverity {
@@ -201,6 +205,7 @@ model User {
   auditLogs          AuditLog[]
   notifications      Notification[]
   fraudReviewLabels  FraudReviewLabel[]
+  qrTokens           CredentialQrToken[]
 
   @@index([role])
   @@index([status])
@@ -290,12 +295,35 @@ model Credential {
   requests CredentialRequest[]
   fraudAnalysisJobs FraudAnalysisJob[]
   fraudReviewLabels FraudReviewLabel[]
+  qrTokens          CredentialQrToken[]
 
   @@index([studentId])
   @@index([issuedById])
   @@index([status])
   @@index([type])
   @@index([aiDecision, status])
+}
+
+model CredentialQrToken {
+  id            String   @id @default(uuid())
+  credentialId  String
+  studentId     String
+  tokenHash     String   @unique
+  expiresAt     DateTime
+  usedAt        DateTime?
+  usedByType    String?
+  usedById      String?
+  usedByIp      String?
+  invalidatedAt DateTime?
+  createdAt     DateTime @default(now())
+
+  credential Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  student    User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([credentialId, studentId, expiresAt])
+  @@index([studentId, createdAt])
+  @@index([usedAt])
+  @@index([invalidatedAt])
 }
 
 

@@ -10,13 +10,13 @@ import {
 } from 'lucide-react';
 import Badge from '../../../components/common/Badge';
 import Card from '../../../components/common/Card';
-import { Credential, CredentialRequest } from '../../../services/credential.service';
+import { Credential, CredentialRequest, CredentialService } from '../../../services/credential.service';
 import {
   AppNotification,
   getNotificationDisplayMessage,
 } from '../../../services/notification.service';
 import { User } from '../../../services/user.service';
-import { formatDate, formatDateTime, getCredentialFileUrl } from '../utils';
+import { formatDate, formatDateTime } from '../utils';
 
 interface StudentHomeSectionProps {
   credentials: Credential[];
@@ -115,11 +115,6 @@ export default function StudentHomeSection({
       return bTime - aTime;
     })[0];
   }, [credentials]);
-
-  const latestCredentialFileUrl = useMemo(
-    () => getCredentialFileUrl(mostRecentCredential?.storageKey ?? null),
-    [mostRecentCredential?.storageKey],
-  );
 
   const summaryCounts = useMemo(() => {
     const pendingRequests = requests.filter(request => request.status === 'PENDING').length;
@@ -273,14 +268,14 @@ export default function StudentHomeSection({
   };
 
   const handleShareLatestCredential = async () => {
-    if (!mostRecentCredential || !latestCredentialFileUrl) return;
+    if (!mostRecentCredential) return;
 
     if (navigator.share) {
       try {
         await navigator.share({
           title: mostRecentCredential.title,
           text: `Credential: ${mostRecentCredential.title}`,
-          url: latestCredentialFileUrl,
+          url: `${window.location.origin}/student/credentials/${encodeURIComponent(mostRecentCredential.id)}`,
         });
         return;
       } catch {
@@ -288,7 +283,24 @@ export default function StudentHomeSection({
       }
     }
 
-    await copyText(latestCredentialFileUrl);
+    await copyText(`${window.location.origin}/student/credentials/${encodeURIComponent(mostRecentCredential.id)}`);
+  };
+
+  const handleDownloadLatestCredential = async () => {
+    if (!mostRecentCredential || mostRecentCredential.status === 'REVOKED') return;
+    try {
+      const blob = await CredentialService.getDocumentBlob(mostRecentCredential.id);
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = mostRecentCredential.filename || `${mostRecentCredential.title}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      // No-op in compact home widget.
+    }
   };
 
   if (isLoading) {
@@ -366,20 +378,18 @@ export default function StudentHomeSection({
                   <ShieldCheck size={13} />
                   Open Credential
                 </button>
-                {latestCredentialFileUrl && (
-                  <a
-                    href={latestCredentialFileUrl}
-                    download={mostRecentCredential.filename || `${mostRecentCredential.title}.pdf`}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                  >
-                    <Download size={13} />
-                    Download
-                  </a>
-                )}
+                <button
+                  type="button"
+                  onClick={() => void handleDownloadLatestCredential()}
+                  disabled={mostRecentCredential.status === 'REVOKED'}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Download size={13} />
+                  Download
+                </button>
                 <button
                   type="button"
                   onClick={() => void handleShareLatestCredential()}
-                  disabled={!latestCredentialFileUrl}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Share2 size={13} />

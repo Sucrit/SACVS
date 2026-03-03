@@ -54,6 +54,24 @@ router.get(
   credentialController.getCredentialDocument.bind(credentialController),
 );
 router.post(
+  '/verify/qr',
+  credentialController.verifyCredentialQrPublic.bind(credentialController),
+);
+router.post(
+  '/verify/qr/employer',
+  requireAuth,
+  requireApprovedAccount,
+  requireRoles('EMPLOYER'),
+  credentialController.verifyCredentialQrEmployer.bind(credentialController),
+);
+router.post(
+  '/:id/qr-token',
+  requireAuth,
+  requireApprovedAccount,
+  requireRoles('STUDENT'),
+  credentialController.generateCredentialQrToken.bind(credentialController),
+);
+router.post(
   '/:id/ai-review',
   requireAuth,
   requireApprovedAccount,

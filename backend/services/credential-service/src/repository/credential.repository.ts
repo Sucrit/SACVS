@@ -280,4 +280,159 @@ export class CredentialRepository {
       },
     });
   }
+
+  async invalidateActiveQrTokens(credentialId: string, studentId: string, now: Date): Promise<number> {
+    const result = await prisma.credentialQrToken.updateMany({
+      where: {
+        credentialId,
+        studentId,
+        usedAt: null,
+        invalidatedAt: null,
+        expiresAt: {
+          gt: now,
+        },
+      },
+      data: {
+        invalidatedAt: now,
+      },
+    });
+    return result.count;
+  }
+
+  async createQrToken(data: {
+    credentialId: string;
+    studentId: string;
+    tokenHash: string;
+    expiresAt: Date;
+  }): Promise<{ id: string; expiresAt: Date }> {
+    const created = await prisma.credentialQrToken.create({
+      data: {
+        credentialId: data.credentialId,
+        studentId: data.studentId,
+        tokenHash: data.tokenHash,
+        expiresAt: data.expiresAt,
+      },
+      select: {
+        id: true,
+        expiresAt: true,
+      },
+    });
+    return created;
+  }
+
+  async consumeQrTokenAtomically(
+    tokenHash: string,
+    now: Date,
+    consumer: {
+      consumerType: 'PUBLIC' | 'EMPLOYER';
+      consumerId?: string | null;
+      ipAddress?: string | null;
+    },
+  ): Promise<
+    | {
+        outcome: 'CONSUMED';
+        credentialId: string;
+      }
+    | {
+        outcome: 'INVALID' | 'EXPIRED' | 'USED';
+      }
+  > {
+    return prisma.$transaction(async tx => {
+      const candidate = await tx.credentialQrToken.findUnique({
+        where: {
+          tokenHash,
+        },
+        select: {
+          id: true,
+          credentialId: true,
+          expiresAt: true,
+          usedAt: true,
+          invalidatedAt: true,
+        },
+      });
+
+      if (!candidate || candidate.invalidatedAt) {
+        return { outcome: 'INVALID' as const };
+      }
+
+      if (candidate.usedAt) {
+        return { outcome: 'USED' as const };
+      }
+
+      if (candidate.expiresAt <= now) {
+        return { outcome: 'EXPIRED' as const };
+      }
+
+      const updated = await tx.credentialQrToken.updateMany({
+        where: {
+          id: candidate.id,
+          usedAt: null,
+          invalidatedAt: null,
+          expiresAt: {
+            gt: now,
+          },
+        },
+        data: {
+          usedAt: now,
+          usedByType: consumer.consumerType,
+          usedById: consumer.consumerId ?? null,
+          usedByIp: consumer.ipAddress ?? null,
+        },
+      });
+
+      if (updated.count !== 1) {
+        return { outcome: 'USED' as const };
+      }
+
+      return {
+        outcome: 'CONSUMED' as const,
+        credentialId: candidate.credentialId,
+      };
+    });
+  }
+
+  async getCredentialVerificationView(credentialId: string): Promise<{
+    id: string;
+    title: string;
+    type: CredentialType;
+    status: CredentialStatus;
+    issuedDate: Date | null;
+    expiryDate: Date | null;
+    chain: string | null;
+    txHash: string | null;
+    blockNumber: number | null;
+    issuedBy: {
+      institution: {
+        institutionName: string;
+      } | null;
+      firstName: string;
+      lastName: string;
+    };
+  } | null> {
+    return prisma.credential.findUnique({
+      where: { id: credentialId },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        status: true,
+        issuedDate: true,
+        expiryDate: true,
+        chain: true,
+        txHash: true,
+        blockNumber: true,
+        issuedBy: {
+          select: {
+            firstName: true,
+            lastName: true,
+            institution: {
+              select: {
+                institutionName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 }

@@ -1,8 +1,9 @@
-import { MouseEvent, useMemo, useState } from 'react';
+import { MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Download, FileText, MoreHorizontal, Plus, Search, Share2 } from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import Card from '../../../components/common/Card';
-import { Credential, CredentialType } from '../../../services/credential.service';
-import { getCredentialFileUrl } from '../utils';
+import { Credential, CredentialService, CredentialType } from '../../../services/credential.service';
 
 type CredentialTypeFilter = 'ALL' | CredentialType;
 type DateRangeFilter = 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH';
@@ -31,16 +32,136 @@ const paperTextureStyle = {
     "url(\"data:image/svg+xml,%3Csvg width='90' height='90' viewBox='0 0 90 90' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%230f172a' fill-opacity='0.04'%3E%3Ccircle cx='10' cy='10' r='1.3'/%3E%3Ccircle cx='45' cy='25' r='1.3'/%3E%3Ccircle cx='75' cy='52' r='1.3'/%3E%3Ccircle cx='20' cy='70' r='1.3'/%3E%3C/g%3E%3C/svg%3E\")",
 };
 
-const isImageFile = (credential: Credential) => {
-  if (credential.mimeType?.startsWith('image/')) return true;
-  const source = `${credential.filename || ''} ${credential.storageKey || ''}`.toLowerCase();
-  return /\.(png|jpe?g|webp|gif|bmp|svg)$/.test(source);
-};
-
 const isPdfFile = (credential: Credential) => {
   if (credential.mimeType === 'application/pdf') return true;
   const source = `${credential.filename || ''} ${credential.storageKey || ''}`.toLowerCase();
   return /\.pdf$/.test(source);
+};
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
+const CredentialPreview = ({
+  credential,
+  isRevoked,
+}: {
+  credential: Credential;
+  isRevoked: boolean;
+}) => {
+  const isImage = credential.mimeType?.startsWith('image/') ?? false;
+  const isPdf = isPdfFile(credential);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [pdfThumbnailDataUrl, setPdfThumbnailDataUrl] = useState<string | null>(null);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    const loadPreview = async () => {
+      if (!isImage || isRevoked || !credential.storageKey) {
+        setPreviewUrl(null);
+        return;
+      }
+      try {
+        const blob = await CredentialService.getDocumentBlob(credential.id);
+        if (cancelled) return;
+        if (isImage) {
+          objectUrl = URL.createObjectURL(blob);
+          setPreviewUrl(objectUrl);
+          setPdfThumbnailDataUrl(null);
+          return;
+        }
+
+        if (isPdf) {
+          setIsPdfLoading(true);
+          const bytes = new Uint8Array(await blob.arrayBuffer());
+          const pdfDoc = await pdfjsLib.getDocument({ data: bytes }).promise;
+          const firstPage = await pdfDoc.getPage(1);
+          const viewport = firstPage.getViewport({ scale: 1 });
+          const targetWidth = 520;
+          const scale = targetWidth / Math.max(1, viewport.width);
+          const scaledViewport = firstPage.getViewport({ scale });
+          const canvas = canvasRef.current || document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          if (!context) {
+            setPdfThumbnailDataUrl(null);
+            return;
+          }
+          canvas.width = Math.ceil(scaledViewport.width);
+          canvas.height = Math.ceil(scaledViewport.height);
+          await firstPage.render({ canvas, canvasContext: context, viewport: scaledViewport }).promise;
+          if (cancelled) return;
+          setPdfThumbnailDataUrl(canvas.toDataURL('image/jpeg', 0.84));
+          setPreviewUrl(null);
+          return;
+        }
+
+        setPreviewUrl(null);
+        setPdfThumbnailDataUrl(null);
+      } catch {
+        if (!cancelled) setPreviewUrl(null);
+        if (!cancelled) setPdfThumbnailDataUrl(null);
+      } finally {
+        if (!cancelled) setIsPdfLoading(false);
+      }
+    };
+
+    void loadPreview();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [credential.id, credential.storageKey, isImage, isPdf, isRevoked]);
+
+  if (isRevoked) {
+    return (
+      <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500">
+        <FileText size={24} />
+        <p className="text-xs font-semibold uppercase tracking-[0.08em]">This credential has been revoked.</p>
+      </div>
+    );
+  }
+
+  if (isImage && previewUrl) {
+    return (
+      <img
+        src={previewUrl}
+        alt={credential.title}
+        className="h-36 w-full bg-white object-contain"
+        loading="lazy"
+      />
+    );
+  }
+
+  if (isPdf) {
+    if (pdfThumbnailDataUrl) {
+      return (
+        <img
+          src={pdfThumbnailDataUrl}
+          alt={`${credential.title} first page`}
+          className="h-36 w-full bg-white object-cover object-top"
+          loading="lazy"
+        />
+      );
+    }
+    if (isPdfLoading) {
+      return (
+        <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500">
+          <FileText size={24} />
+          <p className="text-xs font-medium">Rendering PDF Preview...</p>
+        </div>
+      );
+    }
+  }
+
+  return (
+    <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500">
+      <FileText size={24} />
+      <p className="text-xs font-medium">{isPdf ? 'PDF Document' : 'No Preview Available'}</p>
+      <canvas ref={canvasRef} className="hidden" />
+    </div>
+  );
 };
 
 export default function StudentCredentialsSection({
@@ -101,6 +222,25 @@ export default function StudentCredentialsSection({
       }
     } catch {
       // Ignore share/copy errors in unsupported contexts.
+    }
+  };
+
+  const handleDownload = async (credential: Credential, event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    if (credential.status === 'REVOKED') return;
+
+    try {
+      const blob = await CredentialService.getDocumentBlob(credential.id);
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = credential.filename || `${credential.title}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      // Ignore client-side download errors to avoid breaking card interactions.
     }
   };
 
@@ -201,10 +341,7 @@ export default function StudentCredentialsSection({
         {!isLoadingCredentials && filteredCredentials.length > 0 && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filteredCredentials.map(credential => {
-              const fileUrl = getCredentialFileUrl(credential.storageKey);
               const isSelected = credential.id === selectedCredentialId;
-              const showImagePreview = Boolean(fileUrl) && isImageFile(credential);
-              const showPdfPreview = Boolean(fileUrl) && isPdfFile(credential);
               const isRevoked = credential.status === 'REVOKED';
 
               return (
@@ -242,58 +379,29 @@ export default function StudentCredentialsSection({
                         </button>
                         <button
                           type="button"
-                          onClick={event => void handleShare(fileUrl, event)}
-                          disabled={!fileUrl || isRevoked}
+                          onClick={event => void handleShare(window.location.href, event)}
+                          disabled={isRevoked}
                           className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
                           title={isRevoked ? 'Revoked credentials cannot be shared' : 'Share'}
                           aria-label="Share"
                         >
                           <Share2 size={14} />
                         </button>
-                        {fileUrl && !isRevoked ? (
-                          <a
-                            href={fileUrl}
-                            download={credential.filename || `${credential.title}.pdf`}
-                            onClick={event => event.stopPropagation()}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                            title="Download"
-                            aria-label="Download"
-                          >
-                            <Download size={14} />
-                          </a>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled
-                            className="inline-flex h-7 w-7 cursor-not-allowed items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 opacity-40"
-                            title={isRevoked ? 'Revoked credentials cannot be downloaded' : 'Download'}
-                            aria-label="Download"
-                          >
-                            <Download size={14} />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={event => void handleDownload(credential, event)}
+                          disabled={isRevoked}
+                          className={`inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 ${isRevoked ? 'cursor-not-allowed opacity-40' : ''}`}
+                          title={isRevoked ? 'Revoked credentials cannot be downloaded' : 'Download'}
+                          aria-label="Download"
+                        >
+                          <Download size={14} />
+                        </button>
                       </div>
                     </div>
 
                     <div className="relative mb-3 overflow-hidden rounded-xl bg-slate-50">
-                      {isRevoked ? (
-                        <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500">
-                          <FileText size={24} />
-                          <p className="text-xs font-semibold uppercase tracking-[0.08em]">This credential has been revoked.</p>
-                        </div>
-                      ) : showImagePreview ? (
-                        <img
-                          src={fileUrl as string}
-                          alt={credential.title}
-                          className="h-36 w-full bg-white object-contain"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500">
-                          <FileText size={24} />
-                          <p className="text-xs font-medium">{showPdfPreview ? 'PDF Document' : 'No Preview Available'}</p>
-                        </div>
-                      )}
+                      <CredentialPreview credential={credential} isRevoked={isRevoked} />
                     </div>
                     <h3 className="line-clamp-2 text-center text-xl font-semibold leading-tight text-slate-900">{credential.title}</h3>
                     {credential.status === 'AI_REVIEW' && (

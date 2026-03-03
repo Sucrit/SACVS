@@ -1,9 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
-import { BriefcaseBusiness, Clock3, ClipboardList, RefreshCw, AlertCircle } from 'lucide-react';
-import { CredentialRequest, CredentialService } from '../../services/credential.service';
+import {
+  BriefcaseBusiness,
+  Clock3,
+  ClipboardList,
+  RefreshCw,
+  AlertCircle,
+  QrCode,
+  Camera,
+  CameraOff,
+} from 'lucide-react';
+import {
+  CredentialRequest,
+  CredentialService,
+  QrVerificationResult,
+} from '../../services/credential.service';
 import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../services/audit.service';
 
 const formatDate = (value: string | null | undefined) => {
@@ -33,6 +46,108 @@ export default function EmployerDashboard() {
   const [auditSeverityFilter, setAuditSeverityFilter] = useState<'ALL' | AuditSeverity>('ALL');
   const [auditPage, setAuditPage] = useState(1);
   const [auditPageSize, setAuditPageSize] = useState(20);
+  const [qrInput, setQrInput] = useState('');
+  const [isVerifyingQr, setIsVerifyingQr] = useState(false);
+  const [qrVerificationResult, setQrVerificationResult] = useState<QrVerificationResult | null>(null);
+  const [qrVerificationError, setQrVerificationError] = useState<string | null>(null);
+  const [isScannerActive, setIsScannerActive] = useState(false);
+  const [scannerError, setScannerError] = useState<string | null>(null);
+  const scannerRef = useRef<any>(null);
+
+  const extractToken = (value: string): string => {
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    try {
+      const parsed = new URL(trimmed);
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      const token = parts[parts.length - 1] || '';
+      return decodeURIComponent(token);
+    } catch {
+      return decodeURIComponent(trimmed);
+    }
+  };
+
+  const handleVerifyQr = useCallback(
+    async (value?: string) => {
+      const source = typeof value === 'string' ? value : qrInput;
+      const token = extractToken(source);
+      if (!token) {
+        setQrVerificationError('Enter a QR verification URL or token.');
+        setQrVerificationResult(null);
+        return;
+      }
+
+      setIsVerifyingQr(true);
+      setQrVerificationError(null);
+      try {
+        const result = await CredentialService.verifyQrEmployer(token);
+        setQrVerificationResult(result);
+      } catch (error: any) {
+        const message =
+          error?.response?.data?.error ||
+          error?.message ||
+          'Unable to verify one-time QR token.';
+        setQrVerificationError(message);
+        setQrVerificationResult(null);
+      } finally {
+        setIsVerifyingQr(false);
+      }
+    },
+    [qrInput],
+  );
+
+  const stopScanner = useCallback(async () => {
+    const scanner = scannerRef.current;
+    if (!scanner) return;
+    try {
+      await scanner.stop();
+      await scanner.clear();
+    } catch {
+      // Ignore scanner stop/clear failures.
+    } finally {
+      scannerRef.current = null;
+      setIsScannerActive(false);
+    }
+  }, []);
+
+  const startScanner = useCallback(async () => {
+    setScannerError(null);
+    if (isScannerActive) {
+      await stopScanner();
+      return;
+    }
+
+    try {
+      const moduleName = 'html5-qrcode';
+      const scannerModule: any = await import(/* @vite-ignore */ moduleName);
+      const Html5Qrcode = scannerModule.Html5Qrcode;
+      const scanner = new Html5Qrcode('employer-qr-scanner');
+      scannerRef.current = scanner;
+      await scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: 220 },
+        async (decodedText: string) => {
+          setQrInput(decodedText);
+          await handleVerifyQr(decodedText);
+          await stopScanner();
+        },
+        () => {
+          // no-op decode error callback
+        },
+      );
+      setIsScannerActive(true);
+    } catch {
+      setScannerError('Camera scan unavailable. You can still paste token or URL.');
+      setIsScannerActive(false);
+      scannerRef.current = null;
+    }
+  }, [handleVerifyQr, isScannerActive, stopScanner]);
+
+  useEffect(() => {
+    return () => {
+      void stopScanner();
+    };
+  }, [stopScanner]);
 
   const loadRequests = useCallback(async () => {
     setIsLoadingRequests(true);
@@ -300,6 +415,74 @@ export default function EmployerDashboard() {
           </div>
         </Card>
       </div>
+
+      <Card title="Verify Student Credential via One-Time QR">
+        <div className="space-y-3">
+          <div className="flex flex-col gap-2 md:flex-row">
+            <input
+              type="text"
+              value={qrInput}
+              onChange={event => setQrInput(event.target.value)}
+              placeholder="Paste one-time QR URL or raw token"
+              className="h-10 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+            />
+            <button
+              onClick={() => void handleVerifyQr()}
+              disabled={isVerifyingQr}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+            >
+              <QrCode size={16} />
+              {isVerifyingQr ? 'Verifying...' : 'Verify'}
+            </button>
+            <button
+              onClick={() => void startScanner()}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              {isScannerActive ? <CameraOff size={16} /> : <Camera size={16} />}
+              {isScannerActive ? 'Stop Camera' : 'Scan with Camera'}
+            </button>
+          </div>
+
+          <div
+            id="employer-qr-scanner"
+            className={`${isScannerActive ? 'min-h-[260px]' : 'h-0'} overflow-hidden rounded-lg border border-slate-200 bg-slate-50`}
+          />
+
+          {scannerError && (
+            <p className="text-xs text-amber-700">{scannerError}</p>
+          )}
+          {qrVerificationError && (
+            <p className="text-sm text-rose-700">{qrVerificationError}</p>
+          )}
+
+          {qrVerificationResult && (
+            <div
+              className={`rounded-xl border px-4 py-3 text-sm ${
+                qrVerificationResult.valid
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                  : 'border-amber-200 bg-amber-50 text-amber-900'
+              }`}
+            >
+              {qrVerificationResult.valid && qrVerificationResult.credential ? (
+                <div className="space-y-1">
+                  <p className="font-semibold">Credential is valid.</p>
+                  <p>{qrVerificationResult.credential.title}</p>
+                  <p>Type: {qrVerificationResult.credential.type}</p>
+                  <p>Status: {qrVerificationResult.credential.status}</p>
+                  <p>Institution: {qrVerificationResult.credential.institutionName}</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <p className="font-semibold">
+                    {qrVerificationResult.reason === 'EXPIRED' ? 'Token expired' : 'Token invalid or already used'}
+                  </p>
+                  <p>Ask the student to generate a new one-time QR code.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </Card>
 
       <Card title="Recent Employer Requests">
         <div className="overflow-x-auto rounded-xl border border-slate-200">

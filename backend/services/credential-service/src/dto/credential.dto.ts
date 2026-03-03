@@ -172,3 +172,43 @@ export interface InternalAiResultDto {
   raw?: Prisma.InputJsonValue | null;
   error?: string;
 }
+
+export interface GenerateQrTokenDto {
+  credentialId: string;
+}
+
+export interface ConsumeQrTokenDto {
+  token: string;
+}
+
+export interface QrTokenConsumerContext {
+  consumerType: 'PUBLIC' | 'EMPLOYER';
+  consumerId?: string | null;
+  ipAddress?: string | null;
+}
+
+export interface GeneratedQrTokenResponseDto {
+  tokenId: string;
+  verificationUrl: string;
+  expiresAt: string;
+  ttlSeconds: number;
+}
+
+export interface QrVerificationCredentialViewDto {
+  id: string;
+  title: string;
+  type: CredentialTypeValue;
+  status: CredentialStatusValue;
+  issuedDate: string | null;
+  expiryDate: string | null;
+  institutionName: string;
+  chain: string | null;
+  txHash: string | null;
+  blockNumber: number | null;
+}
+
+export interface ConsumeQrTokenResponseDto {
+  valid: boolean;
+  credential: QrVerificationCredentialViewDto | null;
+  reason?: 'INVALID' | 'EXPIRED' | 'USED';
+}

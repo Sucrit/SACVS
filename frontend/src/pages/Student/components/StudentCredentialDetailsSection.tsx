@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -9,10 +10,17 @@ import {
   Link2,
   Share2,
   Sparkles,
+  QrCode,
+  X,
 } from 'lucide-react';
+import QRCode from 'qrcode';
 import Card from '../../../components/common/Card';
-import { Credential } from '../../../services/credential.service';
-import { formatDateTime, getCredentialFileUrl, shortenHash } from '../utils';
+import {
+  Credential,
+  CredentialService,
+  GeneratedQrTokenResponse,
+} from '../../../services/credential.service';
+import { formatDateTime, shortenHash } from '../utils';
 
 interface StudentCredentialDetailsSectionProps {
   selectedCredential: Credential | null;
@@ -56,7 +64,100 @@ export default function StudentCredentialDetailsSection({
   selectedCredential,
   onBack,
 }: StudentCredentialDetailsSectionProps) {
-  const selectedCredentialFileUrl = getCredentialFileUrl(selectedCredential?.storageKey ?? null);
+  const [selectedCredentialFileUrl, setSelectedCredentialFileUrl] = useState<string | null>(null);
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [isGeneratingQr, setIsGeneratingQr] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [qrToken, setQrToken] = useState<GeneratedQrTokenResponse | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrSecondsRemaining, setQrSecondsRemaining] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    const loadFile = async () => {
+      if (!selectedCredential || !selectedCredential.storageKey || selectedCredential.status === 'REVOKED') {
+        setSelectedCredentialFileUrl(null);
+        setFileError(null);
+        return;
+      }
+
+      setIsLoadingFile(true);
+      setFileError(null);
+      try {
+        const blob = await CredentialService.getDocumentBlob(selectedCredential.id);
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSelectedCredentialFileUrl(objectUrl);
+      } catch {
+        if (!cancelled) {
+          setSelectedCredentialFileUrl(null);
+          setFileError('Unable to load credential document.');
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingFile(false);
+        }
+      }
+    };
+
+    void loadFile();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedCredential]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const renderQr = async () => {
+      if (!qrToken?.verificationUrl) {
+        setQrDataUrl(null);
+        return;
+      }
+
+      try {
+        const dataUrl = await QRCode.toDataURL(qrToken.verificationUrl, {
+          width: 280,
+          margin: 1,
+        });
+        if (!cancelled) {
+          setQrDataUrl(dataUrl);
+        }
+      } catch {
+        if (!cancelled) {
+          setQrDataUrl(null);
+          setQrError('Unable to render QR code.');
+        }
+      }
+    };
+
+    void renderQr();
+    return () => {
+      cancelled = true;
+    };
+  }, [qrToken?.verificationUrl]);
+
+  useEffect(() => {
+    if (!qrToken?.expiresAt) {
+      setQrSecondsRemaining(0);
+      return;
+    }
+
+    const updateRemaining = () => {
+      const diff = Math.max(0, Math.floor((new Date(qrToken.expiresAt).getTime() - Date.now()) / 1000));
+      setQrSecondsRemaining(diff);
+    };
+
+    updateRemaining();
+    const timer = window.setInterval(updateRemaining, 1000);
+    return () => window.clearInterval(timer);
+  }, [qrToken?.expiresAt]);
+
   const selectedCredentialHasImage = selectedCredential?.mimeType?.startsWith('image/') ?? false;
   const isRevoked = selectedCredential?.status === 'REVOKED';
   const isAnchored = Boolean(
@@ -67,6 +168,36 @@ export default function StudentCredentialDetailsSection({
   );
   const issuerInstitutionName =
     selectedCredential?.issuedBy?.institution?.institutionName?.trim() || 'Your institution';
+  const canGenerateQr =
+    selectedCredential?.status === 'ISSUED' &&
+    selectedCredential?.status !== 'REVOKED';
+
+  const handleGenerateQr = async () => {
+    if (!selectedCredential) return;
+    setIsGeneratingQr(true);
+    setQrError(null);
+    setQrDataUrl(null);
+    try {
+      const generated = await CredentialService.generateQrToken(selectedCredential.id);
+      setQrToken(generated);
+    } catch {
+      setQrToken(null);
+      setQrError('Unable to generate one-time QR. Please try again.');
+    } finally {
+      setIsGeneratingQr(false);
+    }
+  };
+
+  const handleCopyQrLink = async () => {
+    if (!qrToken?.verificationUrl) return;
+    await copyText(qrToken.verificationUrl);
+  };
+
+  const formatQrCountdown = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
 
   const handleShare = async () => {
     if (!selectedCredential || !selectedCredentialFileUrl) return;
@@ -158,7 +289,7 @@ export default function StudentCredentialDetailsSection({
               </>
             ) : (
               <div className="rounded-xl border border-slate-200 bg-white px-3 py-8 text-center text-sm text-slate-600">
-                No file is attached to this credential.
+                {isLoadingFile ? 'Loading credential document...' : fileError || 'No file is attached to this credential.'}
               </div>
             )}
 
@@ -276,9 +407,92 @@ export default function StudentCredentialDetailsSection({
                   </div>
                 </>
               )}
+              {canGenerateQr && (
+                <>
+                  <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+                    <QrCode size={14} />
+                    Verification QR
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleGenerateQr()}
+                      disabled={isGeneratingQr}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <QrCode size={13} />
+                      {isGeneratingQr ? 'Generating...' : qrToken ? 'Regenerate One-Time QR' : 'Generate One-Time QR'}
+                    </button>
+                    {qrToken && (
+                      <span className="text-xs font-semibold text-amber-700">
+                        Expires in {formatQrCountdown(qrSecondsRemaining)}
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </section>
       </div>
+      {qrToken && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-lg font-semibold text-slate-900">One-Time Verification QR</p>
+              <button
+                type="button"
+                onClick={() => setQrToken(null)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
+              >
+                <X size={15} />
+              </button>
+            </div>
+            <p className="text-sm text-slate-600">
+              This QR can be used once and expires in{' '}
+              <span className="font-semibold text-amber-700">{formatQrCountdown(qrSecondsRemaining)}</span>.
+            </p>
+            <div className="mt-4 flex justify-center rounded-xl border border-slate-200 bg-slate-50 p-4">
+              {qrDataUrl ? (
+                <img src={qrDataUrl} alt="One-time credential verification QR" className="h-64 w-64" />
+              ) : (
+                <p className="text-sm text-slate-500">Rendering QR...</p>
+              )}
+            </div>
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              Security notice: this link is short-lived and single-use. If leaked, regenerate immediately.
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void handleCopyQrLink()}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                <Link2 size={13} />
+                Copy Link
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleGenerateQr()}
+                disabled={isGeneratingQr}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+              >
+                <RefreshIcon />
+                {isGeneratingQr ? 'Regenerating...' : 'Regenerate'}
+              </button>
+            </div>
+            {qrError && <p className="mt-3 text-xs text-rose-700">{qrError}</p>}
+          </div>
+        </div>
+      )}
     </Card>
+  );
+}
+
+function RefreshIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <path d="M21 3v6h-6" />
+    </svg>
   );
 }

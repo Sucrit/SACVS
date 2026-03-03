@@ -34,4 +34,7 @@ export const ENV = {
     AI_SCORE_CLEAR_THRESHOLD: parseNumber(process.env.AI_SCORE_CLEAR_THRESHOLD, 0.35),
     AI_SCORE_BLOCK_THRESHOLD: parseNumber(process.env.AI_SCORE_BLOCK_THRESHOLD, 0.7),
     FILE_ENCRYPTION_KEY: process.env.FILE_ENCRYPTION_KEY,
+    QR_TOKEN_TTL_SECONDS: parseNumber(process.env.QR_TOKEN_TTL_SECONDS, 300),
+    QR_TOKEN_PEPPER: process.env.QR_TOKEN_PEPPER,
+    QR_VERIFY_BASE_URL: process.env.QR_VERIFY_BASE_URL || 'http://localhost:5173',
 };

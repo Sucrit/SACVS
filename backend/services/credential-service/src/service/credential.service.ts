@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import {
   AiDecision,
   AiReviewStatus,
@@ -17,6 +18,8 @@ import {
   InternalAiResultDto,
   IssueCredentialDto,
   ListCredentialsQueryDto,
+  QrTokenConsumerContext,
+  QrVerificationCredentialViewDto,
   UpdateCredentialStatusDto,
 } from '../dto/credential.dto';
 import { notificationClient } from '../client/notification.client';
@@ -117,6 +120,61 @@ interface UpdateCredentialStatusOptions {
 }
 
 export class CredentialService {
+  private getQrTokenPepperOrThrow(): string {
+    const pepper = ENV.QR_TOKEN_PEPPER?.trim();
+    if (!pepper) {
+      throw new Error('QR_TOKEN_PEPPER_MISSING');
+    }
+    return pepper;
+  }
+
+  private hashQrToken(rawToken: string): string {
+    const pepper = this.getQrTokenPepperOrThrow();
+    return crypto.createHash('sha256').update(`${rawToken}:${pepper}`).digest('hex');
+  }
+
+  private buildVerificationUrl(rawToken: string): string {
+    const baseUrl = ENV.QR_VERIFY_BASE_URL.replace(/\/+$/, '');
+    return `${baseUrl}/verify/qr/${encodeURIComponent(rawToken)}`;
+  }
+
+  private mapCredentialVerificationView(view: {
+    id: string;
+    title: string;
+    type: CredentialType;
+    status: CredentialStatus;
+    issuedDate: Date | null;
+    expiryDate: Date | null;
+    chain: string | null;
+    txHash: string | null;
+    blockNumber: number | null;
+    issuedBy: {
+      institution: {
+        institutionName: string;
+      } | null;
+      firstName: string;
+      lastName: string;
+    };
+  }): QrVerificationCredentialViewDto {
+    const institutionName =
+      view.issuedBy?.institution?.institutionName?.trim() ||
+      `${view.issuedBy?.firstName ?? ''} ${view.issuedBy?.lastName ?? ''}`.trim() ||
+      'Issuing institution';
+
+    return {
+      id: view.id,
+      title: view.title,
+      type: view.type,
+      status: view.status,
+      issuedDate: view.issuedDate ? view.issuedDate.toISOString() : null,
+      expiryDate: view.expiryDate ? view.expiryDate.toISOString() : null,
+      institutionName,
+      chain: view.chain,
+      txHash: view.txHash,
+      blockNumber: view.blockNumber,
+    };
+  }
+
   private isInstitutionScopedRole(role?: `${Role}`): boolean {
     return role === Role.INSTITUTION;
   }
@@ -1063,5 +1121,158 @@ export class CredentialService {
     return this.updateCredentialStatus(actor, credentialId, statusData, {
       notifyIssued: true,
     });
+  }
+
+  async generateStudentQrToken(actor: CredentialActor, credentialId: string): Promise<{
+    tokenId: string;
+    verificationUrl: string;
+    expiresAt: string;
+    ttlSeconds: number;
+  }> {
+    if (actor.role !== Role.STUDENT) {
+      throw new Error('FORBIDDEN_ROLE');
+    }
+
+    const scope = await credentialRepository.getCredentialScopeById(credentialId);
+    if (!scope) {
+      throw new Error('CREDENTIAL_NOT_FOUND');
+    }
+
+    if (!this.canAccessCredential(actor, scope)) {
+      throw new Error('FORBIDDEN_SCOPE');
+    }
+
+    if (scope.status !== CredentialStatus.ISSUED) {
+      throw new Error('CREDENTIAL_NOT_ISSUED');
+    }
+
+    const ttlSeconds = Math.max(30, Math.floor(ENV.QR_TOKEN_TTL_SECONDS));
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + ttlSeconds * 1000);
+    const rawToken = crypto.randomBytes(32).toString('base64url');
+    const tokenHash = this.hashQrToken(rawToken);
+
+    await credentialRepository.invalidateActiveQrTokens(scope.id, scope.studentId, now);
+    const tokenRecord = await credentialRepository.createQrToken({
+      credentialId: scope.id,
+      studentId: scope.studentId,
+      tokenHash,
+      expiresAt,
+    });
+
+    await this.createAuditEntry({
+      action: 'QR_TOKEN_GENERATED',
+      actorId: actor.userId,
+      actorRole: actor.role,
+      targetType: 'CredentialQrToken',
+      targetId: tokenRecord.id,
+      description: `One-time QR token generated for credential ${scope.id}`,
+      metadata: {
+        credentialId: scope.id,
+        studentId: scope.studentId,
+        expiresAt: tokenRecord.expiresAt.toISOString(),
+        ttlSeconds,
+      },
+      severity: 'INFO',
+    });
+
+    return {
+      tokenId: tokenRecord.id,
+      verificationUrl: this.buildVerificationUrl(rawToken),
+      expiresAt: tokenRecord.expiresAt.toISOString(),
+      ttlSeconds,
+    };
+  }
+
+  async consumeQrToken(
+    rawToken: string,
+    consumer: QrTokenConsumerContext,
+  ): Promise<{
+    valid: boolean;
+    credential: QrVerificationCredentialViewDto | null;
+    reason?: 'INVALID' | 'EXPIRED' | 'USED';
+  }> {
+    const normalizedToken = rawToken.trim();
+    if (!normalizedToken) {
+      throw new Error('QR_TOKEN_MALFORMED');
+    }
+    if (normalizedToken.length < 20 || normalizedToken.length > 512) {
+      throw new Error('QR_TOKEN_MALFORMED');
+    }
+
+    const now = new Date();
+    const tokenHash = this.hashQrToken(normalizedToken);
+    const consumeResult = await credentialRepository.consumeQrTokenAtomically(tokenHash, now, {
+      consumerType: consumer.consumerType,
+      consumerId: consumer.consumerId,
+      ipAddress: consumer.ipAddress,
+    });
+
+    if (consumeResult.outcome !== 'CONSUMED') {
+      const reason = consumeResult.outcome;
+      await this.createAuditEntry({
+        action: reason === 'EXPIRED' ? 'QR_TOKEN_EXPIRED' : 'QR_TOKEN_INVALID',
+        actorId: consumer.consumerId ?? null,
+        actorRole: consumer.consumerType === 'EMPLOYER' ? Role.EMPLOYER : undefined,
+        targetType: 'CredentialQrToken',
+        description: `QR token verification failed: ${reason}`,
+        metadata: {
+          outcome: reason,
+          consumerType: consumer.consumerType,
+          ipAddress: consumer.ipAddress ?? null,
+        },
+        severity: 'WARNING',
+      });
+
+      return {
+        valid: false,
+        credential: null,
+        reason,
+      };
+    }
+
+    const view = await credentialRepository.getCredentialVerificationView(consumeResult.credentialId);
+    if (!view) {
+      await this.createAuditEntry({
+        action: 'QR_TOKEN_INVALID',
+        actorId: consumer.consumerId ?? null,
+        actorRole: consumer.consumerType === 'EMPLOYER' ? Role.EMPLOYER : undefined,
+        targetType: 'CredentialQrToken',
+        description: 'QR token consumed but credential was not found',
+        metadata: {
+          credentialId: consumeResult.credentialId,
+          consumerType: consumer.consumerType,
+          ipAddress: consumer.ipAddress ?? null,
+        },
+        severity: 'WARNING',
+      });
+
+      return {
+        valid: false,
+        credential: null,
+        reason: 'INVALID',
+      };
+    }
+
+    const credential = this.mapCredentialVerificationView(view);
+    await this.createAuditEntry({
+      action: 'QR_TOKEN_CONSUMED',
+      actorId: consumer.consumerId ?? null,
+      actorRole: consumer.consumerType === 'EMPLOYER' ? Role.EMPLOYER : undefined,
+      targetType: 'Credential',
+      targetId: view.id,
+      description: 'One-time QR token consumed successfully',
+      metadata: {
+        credentialId: view.id,
+        consumerType: consumer.consumerType,
+        ipAddress: consumer.ipAddress ?? null,
+      },
+      severity: 'INFO',
+    });
+
+    return {
+      valid: true,
+      credential,
+    };
   }
 }

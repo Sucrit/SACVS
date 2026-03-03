@@ -9,6 +9,7 @@ import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import Unauthorized from './pages/Unauthorized';
 import { useLegacyAuth } from './auth/auth-context';
+import CredentialQrVerifyPage from './pages/Public/CredentialQrVerifyPage';
 
 function RequireAuth({ children }: { children: ReactElement }) {
   const { isAuthenticated, isLoading } = useLegacyAuth();
@@ -32,6 +33,7 @@ function App() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/:mode" element={<AuthPage />} />
         <Route path="/auth/:mode/*" element={<AuthPage />} />
+        <Route path="/verify/qr/:token" element={<CredentialQrVerifyPage />} />
         
         <Route
           path="/student/*"

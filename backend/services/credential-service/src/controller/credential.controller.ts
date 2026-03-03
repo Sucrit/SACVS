@@ -5,11 +5,14 @@ import { Prisma } from '../../../../db/node_modules/@prisma/client';
 import { CredentialService } from '../service/credential.service';
 import {
   AiReviewCredentialDto,
+  ConsumeQrTokenDto,
   CreateCredentialDto,
   CredentialAiQueueQueryDto,
+  GeneratedQrTokenResponseDto,
   InternalAiResultDto,
   IssueCredentialDto,
   ListCredentialsQueryDto,
+  ConsumeQrTokenResponseDto,
   UpdateCredentialStatusDto,
 } from '../dto/credential.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
@@ -301,6 +304,15 @@ export class CredentialController {
     };
   }
 
+  private parseConsumeQrTokenPayload(rawBody: unknown): ConsumeQrTokenDto {
+    const body = (rawBody ?? {}) as Record<string, unknown>;
+    const token = this.normalizeString(body.token);
+    if (!token) {
+      throw new Error('QR_TOKEN_MALFORMED');
+    }
+    return { token };
+  }
+
   private mapError(error: unknown, res: Response): Response | null {
     if (!(error instanceof Error)) {
       return null;
@@ -365,6 +377,10 @@ export class CredentialController {
         code: 400,
         error: 'Create credentials as pending and use the issue endpoint to issue them.',
       },
+      CREDENTIAL_NOT_ISSUED: {
+        code: 409,
+        error: 'Only issued credentials can be shared via one-time QR.',
+      },
       BLOCKCHAIN_ANCHOR_FAILED: {
         code: 502,
         error: 'Failed to anchor credential to blockchain.',
@@ -376,6 +392,26 @@ export class CredentialController {
       BLOCKCHAIN_INTERFACE_UNREACHABLE: {
         code: 503,
         error: 'Blockchain interface service is unreachable. Please try again in a moment.',
+      },
+      QR_TOKEN_INVALID: {
+        code: 400,
+        error: 'QR token is invalid.',
+      },
+      QR_TOKEN_EXPIRED: {
+        code: 410,
+        error: 'QR token has expired.',
+      },
+      QR_TOKEN_USED: {
+        code: 409,
+        error: 'QR token was already used.',
+      },
+      QR_TOKEN_MALFORMED: {
+        code: 400,
+        error: 'QR token payload is malformed.',
+      },
+      QR_TOKEN_PEPPER_MISSING: {
+        code: 500,
+        error: 'QR token secret is not configured.',
       },
     };
 
@@ -863,6 +899,75 @@ export class CredentialController {
       if (mapped) return mapped;
 
       console.error('Error issuing credential:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async generateCredentialQrToken(req: Request, res: Response): Promise<Response> {
+    const actor = this.getActor(req);
+    if (!actor.userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const credentialId: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+    try {
+      const generated: GeneratedQrTokenResponseDto = await credentialService.generateStudentQrToken(
+        {
+          userId: actor.userId,
+          role: actor.role,
+          institutionId: actor.institutionId,
+          employerId: actor.employerId,
+        },
+        credentialId,
+      );
+
+      return res.status(200).json(generated);
+    } catch (error) {
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error generating one-time credential QR token:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async verifyCredentialQrPublic(req: Request, res: Response): Promise<Response> {
+    try {
+      const payload = this.parseConsumeQrTokenPayload(req.body);
+      const result: ConsumeQrTokenResponseDto = await credentialService.consumeQrToken(payload.token, {
+        consumerType: 'PUBLIC',
+        ipAddress: req.ip || req.socket.remoteAddress || null,
+      });
+      return res.status(200).json(result);
+    } catch (error) {
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error verifying public one-time credential QR token:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async verifyCredentialQrEmployer(req: Request, res: Response): Promise<Response> {
+    const actor = this.getActor(req);
+    if (!actor.userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+      const payload = this.parseConsumeQrTokenPayload(req.body);
+      const result: ConsumeQrTokenResponseDto = await credentialService.consumeQrToken(payload.token, {
+        consumerType: 'EMPLOYER',
+        consumerId: actor.userId,
+        ipAddress: req.ip || req.socket.remoteAddress || null,
+      });
+      return res.status(200).json(result);
+    } catch (error) {
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error verifying employer one-time credential QR token:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }
