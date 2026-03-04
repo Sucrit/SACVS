@@ -59,19 +59,6 @@ const DATE_RANGE_OPTIONS: Array<{ value: DateRangePreset; label: string }> = [
   { value: 'LAST_180_DAYS', label: 'Last 6 months' },
   { value: 'ALL_TIME', label: 'All time' },
 ];
-const DATE_RANGE_LABEL_MAP = DATE_RANGE_OPTIONS.reduce<Record<DateRangePreset, string>>(
-  (accumulator, option) => {
-    accumulator[option.value] = option.label;
-    return accumulator;
-  },
-  {
-    LAST_7_DAYS: 'Last 7 days',
-    LAST_30_DAYS: 'Last 30 days',
-    LAST_90_DAYS: 'Last 3 months',
-    LAST_180_DAYS: 'Last 6 months',
-    ALL_TIME: 'All time',
-  },
-);
 
 const INITIAL_CARD_FILTERS: Record<ChartFilterKey, DateRangePreset> = {
   requestStatus: 'LAST_30_DAYS',
@@ -539,7 +526,7 @@ export default function InstitutionAnalyticsSection({
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Card
-          title={`${trendGranularity === 'day' ? 'Daily' : 'Monthly'} Trend (${DATE_RANGE_LABEL_MAP[monthlyTrendPreset]})`}
+          title={`${trendGranularity === 'day' ? 'Daily' : 'Monthly'} Credential Issuance Trend`}
           action={renderFilterAction('monthlyTrend')}
         >
           <div className="h-72">
@@ -547,7 +534,7 @@ export default function InstitutionAnalyticsSection({
           </div>
         </Card>
 
-        <Card title="Delivery Method Distribution" action={renderFilterAction('delivery')}>
+        <Card title="Requested Credential Delivery Distribution" action={renderFilterAction('delivery')}>
           <div className="h-72">
             <Doughnut data={deliveryChart} options={doughnutOptions} />
           </div>
@@ -558,7 +545,7 @@ export default function InstitutionAnalyticsSection({
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card title="Credential Types" action={renderFilterAction('credentialTypes')}>
+        <Card title="Issued Credential Types" action={renderFilterAction('credentialTypes')}>
           <div className="h-72">
             <Bar data={credentialTypesChart} options={barOptions} />
           </div>

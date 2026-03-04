@@ -36,6 +36,18 @@ export interface Credential {
       institutionName: string;
     } | null;
   } | null;
+  student?: {
+    id: string;
+    firstName: string;
+    middleName: string | null;
+    lastName: string;
+    email: string;
+    institutionId?: string | null;
+    profile?: {
+      studentNumber?: string | null;
+      courseOfStudy?: string | null;
+    } | null;
+  } | null;
 }
 
 export interface CredentialRequest {

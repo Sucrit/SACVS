@@ -400,6 +400,8 @@ export class CredentialService {
   async auditCredentialDocumentAccess(payload: {
     actorId?: string | null;
     actorRole?: `${Role}`;
+    institutionId?: string | null;
+    ipAddress?: string | null;
     credentialId: string;
     outcome: 'GRANTED' | 'DENIED';
     reason?: string;
@@ -415,6 +417,11 @@ export class CredentialService {
           ? `Credential document access granted for ${payload.credentialId}`
           : `Credential document access denied for ${payload.credentialId}${payload.reason ? ` (${payload.reason})` : ''}`,
       metadata: {
+        actorId: payload.actorId ?? null,
+        actorRole: payload.actorRole ?? null,
+        institutionId: payload.institutionId ?? null,
+        ipAddress: payload.ipAddress ?? null,
+        credentialId: payload.credentialId,
         outcome: payload.outcome,
         reason: payload.reason ?? null,
       },

@@ -347,7 +347,7 @@ export default function InstitutionReceiptVerifySection() {
               <XCircle size={40} className="mb-4 text-rose-500" />
               <p className="text-lg font-semibold text-slate-900">Receipt token invalid or used</p>
               <p className="mt-2 max-w-xl text-sm text-slate-600">
-                This one-time receipt token is invalid or already consumed. Ask the student for a new receipt.
+                This one-time receipt token is invalid or already consumed. Ask the student for a new receipt if you think this is a mistake.
               </p>
             </div>
           )}

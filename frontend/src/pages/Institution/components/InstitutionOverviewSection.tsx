@@ -203,7 +203,7 @@ export default function InstitutionOverviewSection({
               onClick={() => navigate('/institution/students')}
               className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
             >
-              See all
+              See More
             </button>
             <button
               type="button"

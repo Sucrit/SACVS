@@ -22,6 +22,7 @@ import InstitutionNotificationsSection from './components/InstitutionNotificatio
 import InstitutionOverviewSection from './components/InstitutionOverviewSection';
 import InstitutionAnalyticsSection from './components/InstitutionAnalyticsSection';
 import InstitutionReceiptVerifySection from './components/InstitutionReceiptVerifySection';
+import InstitutionCredentialDetailsDrawer from './components/InstitutionCredentialDetailsDrawer';
 import {
   ActivityEvent,
   DEFAULT_STUDENT_FORM,
@@ -60,6 +61,12 @@ const DEFAULT_CERTIFICATE_CATEGORY: CertificateCategory = 'ACADEMIC';
 const supportsExpiryDate = (type: CredentialType) => EXPIRY_ALLOWED_TYPES.includes(type);
 const requiresExpiryDate = (type: CredentialType, certificateCategory: CertificateCategory = DEFAULT_CERTIFICATE_CATEGORY) =>
   type === 'LICENSE' || (type === 'CERTIFICATE' && certificateCategory === 'PROFESSIONAL');
+const getRequestCertificateCategory = (request: CredentialRequest): CertificateCategory => {
+  const value = request.metadata && typeof request.metadata === 'object'
+    ? (request.metadata as Record<string, unknown>).certificateCategory
+    : undefined;
+  return value === 'PROFESSIONAL' ? 'PROFESSIONAL' : DEFAULT_CERTIFICATE_CATEGORY;
+};
 
 const toIsoDateFromInput = (value: string): string | undefined => {
   const trimmed = value.trim();
@@ -85,7 +92,6 @@ export default function InstitutionDashboard() {
   const [rejectionReasonByRequestId, setRejectionReasonByRequestId] = useState<Record<string, string>>({});
   const [issueFileByRequestId, setIssueFileByRequestId] = useState<Record<string, File | null>>({});
   const [issueExpiryByRequestId, setIssueExpiryByRequestId] = useState<Record<string, string>>({});
-  const [issueCertificateCategoryByRequestId, setIssueCertificateCategoryByRequestId] = useState<Record<string, CertificateCategory>>({});
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
   const [hasLoadedCredentials, setHasLoadedCredentials] = useState(false);
@@ -123,6 +129,8 @@ export default function InstitutionDashboard() {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [notificationHint, setNotificationHint] = useState<string | null>(null);
+  const [selectedCredentialId, setSelectedCredentialId] = useState<string | null>(null);
+  const [isCredentialDrawerOpen, setIsCredentialDrawerOpen] = useState(false);
   const { requestStepUpToken, stepUpModal } = useStepUp();
   const { showToast } = useToast();
   const refreshTimersRef = useRef<Record<'students' | 'requests' | 'credentials' | 'logs', number | null>>({
@@ -390,7 +398,10 @@ export default function InstitutionDashboard() {
       createEvent('STUDENT', 'Bulk student import', `${result.created} created, ${result.failed.length} failed.`);
       await loadStudents();
     } catch (error) {
-      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+      if (
+        error instanceof Error &&
+        (error.message === 'STEP_UP_CANCELLED' || error.message === 'STEP_UP_IN_PROGRESS')
+      ) {
         return;
       }
       setStudentsError('Unable to import students from CSV.');
@@ -509,6 +520,30 @@ export default function InstitutionDashboard() {
     }
   };
 
+  const findCredentialForRequest = useCallback(
+    (request: CredentialRequest): Credential | null => {
+      if (request.credentialId) {
+        const linked = credentials.find(entry => entry.id === request.credentialId);
+        if (linked) return linked;
+      }
+
+      const matched = credentials.find(entry => {
+        const metadata = entry.metadata;
+        if (!metadata || typeof metadata !== 'object') return false;
+        const data = metadata as Record<string, unknown>;
+        return (
+          data.source === 'CREDENTIAL_REQUEST' &&
+          data.requestId === request.id &&
+          entry.studentId === request.studentId &&
+          entry.type === request.type
+        );
+      });
+
+      return matched ?? null;
+    },
+    [credentials],
+  );
+
   const issueCredentialForRequest = async (request: CredentialRequest) => {
     if (request.deliveryMethod === 'PHYSICAL') {
       throw new Error('Digital issuance is blocked for PHYSICAL delivery requests.');
@@ -518,9 +553,7 @@ export default function InstitutionDashboard() {
     const selectedFile = issueFileByRequestId[request.id] ?? undefined;
     let uploadFileDuringIssue = selectedFile;
     const certificateCategory: CertificateCategory | undefined =
-      request.type === 'CERTIFICATE'
-        ? issueCertificateCategoryByRequestId[request.id] || DEFAULT_CERTIFICATE_CATEGORY
-        : undefined;
+      request.type === 'CERTIFICATE' ? getRequestCertificateCategory(request) : undefined;
     const rawExpiryDate = issueExpiryByRequestId[request.id] || '';
     const expiryDate = supportsExpiryDate(request.type) ? toIsoDateFromInput(rawExpiryDate) : undefined;
     if (requiresExpiryDate(request.type, certificateCategory || DEFAULT_CERTIFICATE_CATEGORY) && !expiryDate) {
@@ -533,6 +566,19 @@ export default function InstitutionDashboard() {
       purpose: request.purpose,
       ...(certificateCategory ? { certificateCategory } : {}),
     };
+
+    const existingCredential = findCredentialForRequest(request);
+    if (!credentialId && existingCredential) {
+      credentialId = existingCredential.id;
+      upsertCredentialState(existingCredential);
+    }
+
+    const stepUpToken = await requestStepUpToken({
+      action: 'CREDENTIAL_ISSUE',
+      targetId: credentialId || undefined,
+      title: 'Confirm Credential Issuance',
+      description: 'Enter the OTP sent to your email to issue this credential.',
+    });
 
     let createdCredential: Credential | null = null;
     if (!credentialId) {
@@ -554,13 +600,6 @@ export default function InstitutionDashboard() {
       }
 
     }
-
-    const stepUpToken = await requestStepUpToken({
-      action: 'CREDENTIAL_ISSUE',
-      targetId: credentialId,
-      title: 'Confirm Credential Issuance',
-      description: 'Enter the OTP sent to your email to issue this credential.',
-    });
 
     const issued = await CredentialService.issue(credentialId, {
       description: request.description || undefined,
@@ -609,11 +648,6 @@ export default function InstitutionDashboard() {
       delete next[request.id];
       return next;
     });
-    setIssueCertificateCategoryByRequestId(previous => {
-      const next = { ...previous };
-      delete next[request.id];
-      return next;
-    });
 
     return {
       credentialId,
@@ -654,29 +688,37 @@ export default function InstitutionDashboard() {
         throw new Error('Credential request not found.');
       }
 
-      const result = await issueCredentialForRequest(request);
-      if (result.completed) {
-        setRequestsHint('Credential issued and request marked as completed.');
-        createEvent(
-          'REQUEST',
-          'Credential issued',
-          `Request ${requestId} completed with credential ${result.credentialId}.`,
-        );
-      } else {
-        if (request.deliveryMethod === 'BOTH') {
-          setRequestsHint('Digital credential issued for BOTH delivery. Mark physical claim after pickup.');
+      setUpdatingRequestId(requestId);
+      try {
+        const result = await issueCredentialForRequest(request);
+        if (result.completed) {
+          setRequestsHint('Credential issued and request marked as completed.');
           createEvent(
             'REQUEST',
-            'Digital credential issued',
-            `Request ${requestId} issued digitally and remains approved until physical claim.`,
+            'Credential issued',
+            `Request ${requestId} completed with credential ${result.credentialId}.`,
           );
         } else {
-          setRequestsHint(`Request ${requestId} updated.`);
+          if (request.deliveryMethod === 'BOTH') {
+            setRequestsHint('Digital credential issued for BOTH delivery. Mark physical claim after pickup.');
+            createEvent(
+              'REQUEST',
+              'Digital credential issued',
+              `Request ${requestId} issued digitally and remains approved until physical claim.`,
+            );
+          } else {
+            setRequestsHint(`Request ${requestId} updated.`);
+          }
         }
+        await loadCredentials();
+      } finally {
+        setUpdatingRequestId(null);
       }
-      await loadCredentials();
     } catch (error) {
-      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+      if (
+        error instanceof Error &&
+        (error.message === 'STEP_UP_CANCELLED' || error.message === 'STEP_UP_IN_PROGRESS')
+      ) {
         return;
       }
       setRequestsError(getApiErrorMessage(error) || 'Unable to issue credential.');
@@ -711,7 +753,10 @@ export default function InstitutionDashboard() {
         await issueCredentialForRequest(request);
         results.push('fulfilled');
       } catch (error) {
-        if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+        if (
+          error instanceof Error &&
+          (error.message === 'STEP_UP_CANCELLED' || error.message === 'STEP_UP_IN_PROGRESS')
+        ) {
           results.push('rejected');
           continue;
         }
@@ -739,6 +784,12 @@ export default function InstitutionDashboard() {
     setRequestsError(null);
     setRequestsHint(null);
     try {
+      const stepUpToken = await requestStepUpToken({
+        action: 'CREDENTIAL_ISSUE',
+        title: 'Confirm Credential Issuance',
+        description: 'Enter the OTP sent to your email to issue this credential.',
+      });
+
       const certificateCategory: CertificateCategory | undefined =
         payload.type === 'CERTIFICATE'
           ? payload.certificateCategory || DEFAULT_CERTIFICATE_CATEGORY
@@ -771,12 +822,7 @@ export default function InstitutionDashboard() {
         description: payload.description,
         expiryDate: normalizedExpiryDate,
         metadata: directIssueMetadata,
-      }, await requestStepUpToken({
-        action: 'CREDENTIAL_ISSUE',
-        targetId: created.id,
-        title: 'Confirm Credential Issuance',
-        description: 'Enter the OTP sent to your email to issue this credential.',
-      }));
+      }, stepUpToken);
       upsertCredentialState(issued);
 
       setRequestsHint('Credential issued successfully.');
@@ -789,7 +835,10 @@ export default function InstitutionDashboard() {
       await loadCredentials();
       return issued;
     } catch (error) {
-      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+      if (
+        error instanceof Error &&
+        (error.message === 'STEP_UP_CANCELLED' || error.message === 'STEP_UP_IN_PROGRESS')
+      ) {
         throw error;
       }
       const message = getApiErrorMessage(error) || 'Unable to issue credential directly.';
@@ -829,7 +878,10 @@ export default function InstitutionDashboard() {
       setRequestsHint('Credential re-issued successfully.');
       createEvent('REQUEST', 'Credential re-issued', `Credential ${credentialId} re-issued.`);
     } catch (error) {
-      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
+      if (
+        error instanceof Error &&
+        (error.message === 'STEP_UP_CANCELLED' || error.message === 'STEP_UP_IN_PROGRESS')
+      ) {
         throw error;
       }
       setRequestsError(getApiErrorMessage(error) || 'Unable to re-issue credential.');
@@ -1039,15 +1091,11 @@ export default function InstitutionDashboard() {
           }}
           issueFileByRequestId={issueFileByRequestId}
           issueExpiryByRequestId={issueExpiryByRequestId}
-          issueCertificateCategoryByRequestId={issueCertificateCategoryByRequestId}
           onIssueFileChange={(requestId: string, file: File | null) => {
             setIssueFileByRequestId(previous => ({ ...previous, [requestId]: file }));
           }}
           onIssueExpiryChange={(requestId: string, expiryDate: string) => {
             setIssueExpiryByRequestId(previous => ({ ...previous, [requestId]: expiryDate }));
-          }}
-          onIssueCertificateCategoryChange={(requestId: string, value: CertificateCategory) => {
-            setIssueCertificateCategoryByRequestId(previous => ({ ...previous, [requestId]: value }));
           }}
           onRequestAction={handleRequestAction}
           onBulkAction={handleBulkRequestAction}
@@ -1065,22 +1113,23 @@ export default function InstitutionDashboard() {
           isLoadingCredentials={isLoadingCredentials}
           requests={requests}
           isLoadingRequests={isLoadingRequests}
+          updatingRequestId={updatingRequestId}
           onDirectIssue={handleDirectIssueCredential}
           onCredentialStatusUpdate={handleCredentialStatusUpdate}
           onCredentialReissue={handleCredentialReissue}
           issueFileByRequestId={issueFileByRequestId}
           issueExpiryByRequestId={issueExpiryByRequestId}
-          issueCertificateCategoryByRequestId={issueCertificateCategoryByRequestId}
           onIssueFileChange={(requestId: string, file: File | null) => {
             setIssueFileByRequestId(previous => ({ ...previous, [requestId]: file }));
           }}
           onIssueExpiryChange={(requestId: string, expiryDate: string) => {
             setIssueExpiryByRequestId(previous => ({ ...previous, [requestId]: expiryDate }));
           }}
-          onIssueCertificateCategoryChange={(requestId: string, value: CertificateCategory) => {
-            setIssueCertificateCategoryByRequestId(previous => ({ ...previous, [requestId]: value }));
-          }}
           onRequestAction={handleRequestAction}
+          onViewCredentialDetails={(credentialId: string) => {
+            setSelectedCredentialId(credentialId);
+            setIsCredentialDrawerOpen(true);
+          }}
         />
       )}
 
@@ -1221,6 +1270,12 @@ export default function InstitutionDashboard() {
         </div>
       )}
       {stepUpModal}
+      <InstitutionCredentialDetailsDrawer
+        credentialId={selectedCredentialId}
+        isOpen={isCredentialDrawerOpen}
+        onClose={() => setIsCredentialDrawerOpen(false)}
+        onExited={() => setSelectedCredentialId(null)}
+      />
     </div>
   );
 }

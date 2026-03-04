@@ -600,6 +600,8 @@ export class CredentialController {
         await credentialService.auditCredentialDocumentAccess({
           actorId: actor.userId,
           actorRole: actor.role,
+          institutionId: actor.institutionId,
+          ipAddress: req.ip || req.socket.remoteAddress || null,
           credentialId,
           outcome: 'DENIED',
           reason: 'CREDENTIAL_NOT_FOUND',
@@ -624,6 +626,8 @@ export class CredentialController {
       await credentialService.auditCredentialDocumentAccess({
         actorId: actor.userId,
         actorRole: actor.role,
+        institutionId: actor.institutionId,
+        ipAddress: req.ip || req.socket.remoteAddress || null,
         credentialId,
         outcome: 'GRANTED',
       });
@@ -643,6 +647,8 @@ export class CredentialController {
         await credentialService.auditCredentialDocumentAccess({
           actorId: actor.userId,
           actorRole: actor.role,
+          institutionId: actor.institutionId,
+          ipAddress: req.ip || req.socket.remoteAddress || null,
           credentialId,
           outcome: 'DENIED',
           reason: 'FORBIDDEN_SCOPE',

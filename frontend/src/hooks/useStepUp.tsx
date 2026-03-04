@@ -21,11 +21,15 @@ export function useStepUp() {
 
   const requestStepUpToken = useCallback((prompt: StepUpPrompt): Promise<string> => {
     return new Promise((resolve, reject) => {
+      if (resolveRef.current || rejectRef.current || pending) {
+        reject(new Error('STEP_UP_IN_PROGRESS'));
+        return;
+      }
       resolveRef.current = resolve;
       rejectRef.current = reject;
       setPending({ prompt });
     });
-  }, []);
+  }, [pending]);
 
   const handleVerified = useCallback((token: string) => {
     setPending(null);

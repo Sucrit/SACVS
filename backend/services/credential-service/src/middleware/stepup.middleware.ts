@@ -43,8 +43,8 @@ const consumeSession = async (data: {
     if (candidate.expiresAt <= data.now) return 'EXPIRED';
 
     if (candidate.userId !== data.userId || candidate.action !== data.action) return 'MISMATCH';
-    if ((candidate.targetId ?? null) !== (data.targetId ?? null)) return 'MISMATCH';
-    if ((candidate.payloadHash ?? null) !== (data.payloadHash ?? null)) return 'MISMATCH';
+    if (candidate.targetId && candidate.targetId !== (data.targetId ?? null)) return 'MISMATCH';
+    if (candidate.payloadHash && candidate.payloadHash !== (data.payloadHash ?? null)) return 'MISMATCH';
 
     const updated = await tx.stepUpSession.updateMany({
       where: {

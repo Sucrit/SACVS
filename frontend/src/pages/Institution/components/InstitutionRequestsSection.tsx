@@ -16,7 +16,6 @@ interface InstitutionRequestsSectionProps {
   rejectionReasonByRequestId: Record<string, string>;
   issueFileByRequestId: Record<string, File | null>;
   issueExpiryByRequestId: Record<string, string>;
-  issueCertificateCategoryByRequestId: Record<string, CertificateCategory>;
   updatingRequestId: string | null;
   onSearchChange: (value: string) => void;
   onFilterChange: (value: RequestStatusFilter) => void;
@@ -24,7 +23,6 @@ interface InstitutionRequestsSectionProps {
   onReasonChange: (requestId: string, reason: string) => void;
   onIssueFileChange: (requestId: string, file: File | null) => void;
   onIssueExpiryChange: (requestId: string, expiryDate: string) => void;
-  onIssueCertificateCategoryChange: (requestId: string, value: CertificateCategory) => void;
   onRequestAction: (
     requestId: string,
     action: 'APPROVE' | 'REJECT' | 'ISSUE' | 'MARK_PHYSICAL_CLAIMED',
@@ -35,12 +33,22 @@ interface InstitutionRequestsSectionProps {
 const EXPIRY_ALLOWED_TYPES: CredentialType[] = ['CERTIFICATE', 'LICENSE'];
 type CertificateCategory = 'ACADEMIC' | 'PROFESSIONAL';
 const DEFAULT_CERTIFICATE_CATEGORY: CertificateCategory = 'ACADEMIC';
-const CERTIFICATE_CATEGORIES: CertificateCategory[] = ['ACADEMIC', 'PROFESSIONAL'];
 const supportsExpiryDate = (type: CredentialType) => EXPIRY_ALLOWED_TYPES.includes(type);
 const requiresExpiryDate = (
   type: CredentialType,
   certificateCategory: CertificateCategory = DEFAULT_CERTIFICATE_CATEGORY,
 ) => type === 'LICENSE' || (type === 'CERTIFICATE' && certificateCategory === 'PROFESSIONAL');
+const getRequestCertificateCategory = (request: CredentialRequest): CertificateCategory => {
+  const value = request.metadata && typeof request.metadata === 'object'
+    ? (request.metadata as Record<string, unknown>).certificateCategory
+    : undefined;
+  return value === 'PROFESSIONAL' ? 'PROFESSIONAL' : DEFAULT_CERTIFICATE_CATEGORY;
+};
+
+const getRequestTypeLabel = (request: CredentialRequest): string => {
+  if (request.type !== 'CERTIFICATE') return request.type;
+  return `CERTIFICATE (${getRequestCertificateCategory(request)})`;
+};
 
 export default function InstitutionRequestsSection({
   requests,
@@ -52,7 +60,6 @@ export default function InstitutionRequestsSection({
   rejectionReasonByRequestId,
   issueFileByRequestId,
   issueExpiryByRequestId,
-  issueCertificateCategoryByRequestId,
   updatingRequestId,
   onSearchChange,
   onFilterChange,
@@ -60,7 +67,6 @@ export default function InstitutionRequestsSection({
   onReasonChange,
   onIssueFileChange,
   onIssueExpiryChange,
-  onIssueCertificateCategoryChange,
   onRequestAction,
   onBulkAction,
 }: InstitutionRequestsSectionProps) {
@@ -100,7 +106,7 @@ export default function InstitutionRequestsSection({
         </div>
       </Card>
 
-      <Card title="Credential Verification Requests">
+      <Card title="Student's Credential Requests">
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-left">
             <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
@@ -109,7 +115,6 @@ export default function InstitutionRequestsSection({
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Document</th>
                 <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Certificate Type</th>
                 <th className="px-4 py-3">Expiry Date</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Reason</th>
@@ -119,14 +124,14 @@ export default function InstitutionRequestsSection({
             <tbody className="divide-y divide-slate-100 bg-white">
               {isLoadingRequests && (
                 <tr>
-                  <td colSpan={9} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-500">
                     Loading verification requests...
                   </td>
                 </tr>
               )}
               {!isLoadingRequests && requests.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-500">
                     No requests available.
                   </td>
                 </tr>
@@ -135,9 +140,7 @@ export default function InstitutionRequestsSection({
                 <tr key={request.id} className="hover:bg-slate-50/70">
                   {(() => {
                     const requestCertificateCategory =
-                      request.type === 'CERTIFICATE'
-                        ? issueCertificateCategoryByRequestId[request.id] || DEFAULT_CERTIFICATE_CATEGORY
-                        : DEFAULT_CERTIFICATE_CATEGORY;
+                      request.type === 'CERTIFICATE' ? getRequestCertificateCategory(request) : DEFAULT_CERTIFICATE_CATEGORY;
                     const requestRequiresExpiry = requiresExpiryDate(request.type, requestCertificateCategory);
                     return (
                       <>
@@ -166,27 +169,10 @@ export default function InstitutionRequestsSection({
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700">
                       <FileText size={14} />
-                      {request.type}
+                      {getRequestTypeLabel(request)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-600">{formatDate(request.createdAt)}</td>
-                  <td className="px-4 py-3">
-                    {request.type === 'CERTIFICATE' ? (
-                      <select
-                        value={requestCertificateCategory}
-                        onChange={event => onIssueCertificateCategoryChange(request.id, event.target.value as CertificateCategory)}
-                        className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none"
-                      >
-                        {CERTIFICATE_CATEGORIES.map(category => (
-                          <option key={category} value={category}>
-                            {category}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="text-xs text-slate-400">Not applicable</span>
-                    )}
-                  </td>
                   <td className="px-4 py-3">
                     {supportsExpiryDate(request.type) ? (
                       <div className="space-y-1">
