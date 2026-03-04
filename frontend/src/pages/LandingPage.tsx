@@ -79,7 +79,7 @@ export default function LandingPage() {
     setVerifyInputError(null);
     const normalized = verifyInput.trim().toLowerCase();
     if (normalized.includes('/verify/receipt/')) {
-      navigate(`/verify/receipt/${encodeURIComponent(token)}`);
+      navigate(`/institution/receipt-verify?token=${encodeURIComponent(token)}`);
       return;
     }
     navigate(`/verify/qr/${encodeURIComponent(token)}`);

@@ -1,9 +1,10 @@
-import { BookCheck, Clock3, FileCheck2, GraduationCap, ShieldCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { AlertCircle, Boxes, Download, GraduationCap, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../../../components/common/Card';
+import Badge from '../../../components/common/Badge';
 import { Credential, CredentialRequest } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
-import { formatDateTime, getStudentFullName } from '../utils';
+import { getStudentFullName } from '../utils';
 
 interface InstitutionOverviewSectionProps {
   students: User[];
@@ -14,16 +15,39 @@ interface InstitutionOverviewSectionProps {
   isLoadingCredentials: boolean;
 }
 
-const isToday = (value: string | null | undefined) => {
-  if (!value) return false;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const formatPercent = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+
+const formatShortDate = (value: string | null | undefined) => {
+  if (!value) return '--';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return false;
-  const now = new Date();
-  return (
-    date.getFullYear() === now.getFullYear()
-    && date.getMonth() === now.getMonth()
-    && date.getDate() === now.getDate()
-  );
+  if (Number.isNaN(date.getTime())) return '--';
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+};
+
+const toCsvCell = (value: string | null | undefined) => {
+  const text = (value ?? '').replace(/"/g, '""');
+  return `"${text}"`;
+};
+
+const mapUserStatusLabel = (status: User['status']) => {
+  switch (status) {
+    case 'APPROVED':
+      return 'Approved';
+    case 'PENDING':
+      return 'Pending';
+    case 'REJECTED':
+      return 'Rejected';
+    case 'SUSPENDED':
+      return 'Suspended';
+    default:
+      return status;
+  }
 };
 
 export default function InstitutionOverviewSection({
@@ -34,222 +58,220 @@ export default function InstitutionOverviewSection({
   isLoadingRequests,
   isLoadingCredentials,
 }: InstitutionOverviewSectionProps) {
+  const navigate = useNavigate();
   const isLoading = isLoadingStudents || isLoadingRequests || isLoadingCredentials;
-  const studentById = new Map(students.map(student => [student.id, student] as const));
+  const now = Date.now();
 
-  const approvedStudents = students.filter(student => student.status === 'APPROVED').length;
-  const pendingStudents = students.filter(student => student.status === 'PENDING').length;
   const pendingRequests = requests.filter(request => request.status === 'PENDING').length;
-  const approvedRequests = requests.filter(request => request.status === 'APPROVED').length;
-  const completedRequests = requests.filter(request => request.status === 'COMPLETED').length;
-  const issuedCredentials = credentials.filter(credential => credential.status === 'ISSUED').length;
-  const requestsProcessedToday = requests.filter(request => isToday(request.processedAt || request.updatedAt)).length;
+  const activeStudents = students.filter(student => student.status === 'APPROVED').length;
+  const blockchainCredentials = credentials.filter(credential => credential.status === 'ISSUED').length;
 
-  const latestRequests = [...requests]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
+  const issuedWithin = (fromTs: number, toTs: number) =>
+    credentials.filter(credential => {
+      const ts = new Date(credential.issuedDate || credential.updatedAt).getTime();
+      return !Number.isNaN(ts) && ts >= fromTs && ts < toTs;
+    }).length;
 
-  const latestIssuedCredentials = credentials
+  const currentWindowStart = now - 30 * DAY_MS;
+  const previousWindowStart = now - 60 * DAY_MS;
+  const currentIssued = issuedWithin(currentWindowStart, now);
+  const previousIssued = issuedWithin(previousWindowStart, currentWindowStart);
+  const issuanceTrendPercent =
+    previousIssued === 0
+      ? (currentIssued > 0 ? 100 : 0)
+      : ((currentIssued - previousIssued) / previousIssued) * 100;
+
+  const lastIssuedByStudentId = new Map<string, string>();
+  credentials
     .filter(credential => credential.status === 'ISSUED')
+    .sort(
+      (a, b) =>
+        new Date(b.issuedDate || b.updatedAt).getTime() -
+        new Date(a.issuedDate || a.updatedAt).getTime(),
+    )
+    .forEach(credential => {
+      if (!lastIssuedByStudentId.has(credential.studentId)) {
+        lastIssuedByStudentId.set(credential.studentId, credential.issuedDate || credential.updatedAt);
+      }
+    });
+
+  const directoryRows = [...students]
     .sort((a, b) => {
-      const aTime = new Date(a.issuedDate || a.updatedAt).getTime();
-      const bTime = new Date(b.issuedDate || b.updatedAt).getTime();
-      return bTime - aTime;
+      const aTs = new Date(lastIssuedByStudentId.get(a.id) || a.updatedAt).getTime();
+      const bTs = new Date(lastIssuedByStudentId.get(b.id) || b.updatedAt).getTime();
+      if (Number.isNaN(aTs) && Number.isNaN(bTs)) return 0;
+      if (Number.isNaN(aTs)) return 1;
+      if (Number.isNaN(bTs)) return -1;
+      return bTs - aTs;
     })
-    .slice(0, 5);
+    .slice(0, 6);
+
+  const handleDownloadStudentDirectory = () => {
+    const rows = [...students]
+      .sort((a, b) => getStudentFullName(a).localeCompare(getStudentFullName(b)))
+      .map(student => {
+        const lastIssued = lastIssuedByStudentId.get(student.id) || '';
+        return [
+          getStudentFullName(student),
+          student.email,
+          student.profile?.studentNumber || '',
+          student.profile?.courseOfStudy || '',
+          student.profile?.department || '',
+          student.profile?.yearLevel || '',
+          mapUserStatusLabel(student.status),
+          formatShortDate(lastIssued),
+        ];
+      });
+
+    const header = [
+      'Student Name',
+      'Email',
+      'Student ID',
+      'Program',
+      'Department',
+      'Year Level',
+      'Status',
+      'Last Issued',
+    ];
+
+    const csv = [header, ...rows]
+      .map(columns => columns.map(value => toCsvCell(value)).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    anchor.href = url;
+    anchor.download = `institution-student-directory-${stamp}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="flex h-full flex-col border-slate-200 bg-white text-slate-900 shadow-[0_10px_28px_rgba(15,23,42,0.08)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.12)]">
-          <div className="flex items-center gap-2 text-slate-700">
-            <GraduationCap size={18} />
-            <p className="text-lg font-semibold">Students</p>
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              <AlertCircle size={18} />
+            </span>
           </div>
-          <p className="mt-3 text-sm text-slate-600">
-            Manage student records and onboarding from one place.
-          </p>
-          <p className="mt-4 text-3xl font-bold">{students.length}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.08em] text-slate-500">
-            {approvedStudents} approved · {pendingStudents} pending
-          </p>
-          <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">
-            <Link
-              to="/institution/students"
-              className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-900 px-3 text-sm font-semibold text-white transition hover:bg-black"
-            >
-              Add Student
-            </Link>
-            <Link
-              to="/institution/students"
-              className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Manage
-            </Link>
-          </div>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Pending Requests</p>
+          <p className="mt-2 text-4xl font-bold text-slate-900">{pendingRequests}</p>
         </Card>
 
-        <Card className="flex h-full flex-col border-slate-200 bg-white text-slate-900 shadow-[0_10px_28px_rgba(15,23,42,0.08)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.12)]">
-          <div className="flex items-center gap-2 text-slate-700">
-            <Clock3 size={18} />
-            <p className="text-lg font-semibold">Requests Queue</p>
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              <GraduationCap size={18} />
+            </span>
           </div>
-          <p className="mt-3 text-sm text-slate-600">
-            Review and process credential requests faster.
-          </p>
-          <p className="mt-4 text-3xl font-bold">{pendingRequests}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.08em] text-slate-500">
-            {approvedRequests} ready to issue
-          </p>
-          <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">
-            <Link
-              to="/institution/requests"
-              className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-900 px-3 text-sm font-semibold text-white transition hover:bg-black"
-            >
-              Review Requests
-            </Link>
-            <Link
-              to="/institution/requests"
-              className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Open Queue
-            </Link>
-          </div>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Total Authorized Students</p>
+          <p className="mt-2 text-4xl font-bold text-slate-900">{activeStudents.toLocaleString()}</p>
         </Card>
 
-        <Card className="flex h-full flex-col border-slate-200 bg-white text-slate-900 shadow-[0_10px_28px_rgba(15,23,42,0.08)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.12)]">
-          <div className="flex items-center gap-2 text-slate-700">
-            <FileCheck2 size={18} />
-            <p className="text-lg font-semibold">Credential Issuance</p>
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              <Boxes size={18} />
+            </span>
           </div>
-          <p className="mt-3 text-sm text-slate-600">
-            Issue and re-issue credentials for approved requests.
-          </p>
-          <p className="mt-4 text-3xl font-bold">{issuedCredentials}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.08em] text-slate-500">
-            {completedRequests} completed requests
-          </p>
-          <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">
-            <Link
-              to="/institution/issue"
-              className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-900 px-3 text-sm font-semibold text-white transition hover:bg-black"
-            >
-              Issue Credential
-            </Link>
-            <Link
-              to="/institution/issue"
-              className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Open Issuance
-            </Link>
-          </div>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Blockchain Credentials</p>
+          <p className="mt-2 text-4xl font-bold text-slate-900">{blockchainCredentials.toLocaleString()}</p>
         </Card>
 
-        <Card className="flex h-full flex-col border-slate-200 bg-white text-slate-900 shadow-[0_10px_28px_rgba(15,23,42,0.08)] hover:shadow-[0_14px_34px_rgba(15,23,42,0.12)]">
-          <div className="flex items-center gap-2 text-slate-700">
-            <BookCheck size={18} />
-            <p className="text-lg font-semibold">Operations</p>
+        <Card>
+          <div className="mb-3 flex items-center justify-between">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+              <TrendingUp size={18} />
+            </span>
           </div>
-          <p className="mt-3 text-sm text-slate-600">
-            Monitor today&apos;s processing and institution activity.
-          </p>
-          <p className="mt-4 text-3xl font-bold">{requestsProcessedToday}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.08em] text-slate-500">
-            Processed today · {requests.length} total requests
-          </p>
-          <div className="mt-auto flex flex-wrap items-center gap-2 pt-5">
-            <Link
-              to="/institution/analytics"
-              className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-900 px-3 text-sm font-semibold text-white transition hover:bg-black"
-            >
-              View Analytics
-            </Link>
-            <Link
-              to="/institution/logs"
-              className="inline-flex h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            >
-              Audit Logs
-            </Link>
-          </div>
+          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Issuance Trend</p>
+          <p className="mt-2 text-4xl font-bold text-slate-900">{formatPercent(issuanceTrendPercent)}</p>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card title="Latest Requests">
-          {isLoading && (
-            <div className="space-y-2">
-              {[1, 2, 3, 4].map(key => (
-                <div key={key} className="h-14 animate-pulse rounded-xl border border-slate-200 bg-slate-100" />
-              ))}
-            </div>
-          )}
-          {!isLoading && latestRequests.length === 0 && (
-            <p className="text-sm text-slate-500">No requests yet.</p>
-          )}
-          {!isLoading && latestRequests.length > 0 && (
-            <div className="space-y-2">
-              {latestRequests.map(request => {
-                const student = studentById.get(request.studentId);
-                return (
-                  <div key={request.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">{request.title}</p>
-                        <p className="text-xs text-slate-500">
-                          {student ? getStudentFullName(student) : request.studentId}
-                        </p>
-                      </div>
-                      <span className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-slate-700">
-                        {request.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-[11px] text-slate-500">{formatDateTime(request.createdAt)}</p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
+      <Card className="p-0">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <p className="text-xl font-semibold text-slate-900">Institution's Student Directory</p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate('/institution/students')}
+              className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+            >
+              See all
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadStudentDirectory}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+              aria-label="Download full student directory"
+              title="Download full student directory"
+            >
+              <Download size={16} />
+            </button>
+          </div>
+        </div>
 
-        <Card title="Recent Issued Credentials">
-          {isLoading && (
-            <div className="space-y-2">
-              {[1, 2, 3, 4].map(key => (
-                <div key={key} className="h-14 animate-pulse rounded-xl border border-slate-200 bg-slate-100" />
-              ))}
+        {isLoading && (
+          <div className="space-y-2 px-5 py-4">
+            {[1, 2, 3, 4, 5].map(key => (
+              <div key={key} className="h-12 animate-pulse rounded-xl border border-slate-200 bg-slate-100" />
+            ))}
+          </div>
+        )}
+
+        {!isLoading && directoryRows.length === 0 && (
+          <div className="px-5 py-10 text-sm text-slate-500">No students found.</div>
+        )}
+
+        {!isLoading && directoryRows.length > 0 && (
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-separate border-spacing-0">
+                <thead>
+                  <tr className="text-left text-[11px] uppercase tracking-[0.08em] text-slate-500">
+                    <th className="px-5 py-3 font-semibold">Student Name</th>
+                    <th className="px-5 py-3 font-semibold">Student ID</th>
+                    <th className="px-5 py-3 font-semibold">Program</th>
+                    <th className="px-5 py-3 font-semibold">Status</th>
+                    <th className="px-5 py-3 font-semibold">Last Issued</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {directoryRows.map(student => (
+                    <tr key={student.id} className="border-t border-slate-100 text-sm text-slate-700">
+                      <td className="px-5 py-3 align-top">
+                        <p className="font-semibold text-slate-900">{getStudentFullName(student)}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{student.email}</p>
+                      </td>
+                      <td className="px-5 py-3 align-top text-slate-600">
+                        {student.profile?.studentNumber || '--'}
+                      </td>
+                      <td className="px-5 py-3 align-top text-slate-600">
+                        {student.profile?.courseOfStudy || '--'}
+                      </td>
+                      <td className="px-5 py-3 align-top">
+                        <Badge status={student.status} />
+                      </td>
+                      <td className="px-5 py-3 align-top text-slate-600">
+                        {formatShortDate(lastIssuedByStudentId.get(student.id))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
-          {!isLoading && latestIssuedCredentials.length === 0 && (
-            <p className="text-sm text-slate-500">No issued credentials yet.</p>
-          )}
-          {!isLoading && latestIssuedCredentials.length > 0 && (
-            <div className="space-y-2">
-              {latestIssuedCredentials.map(credential => {
-                const student = studentById.get(credential.studentId);
-                return (
-                  <div key={credential.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">{credential.title}</p>
-                        <p className="text-xs text-slate-500">
-                          {student ? getStudentFullName(student) : credential.studentId}
-                        </p>
-                      </div>
-                      <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700">
-                        <ShieldCheck size={12} />
-                        ISSUED
-                      </span>
-                    </div>
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      {formatDateTime(credential.issuedDate || credential.updatedAt)}
-                    </p>
-                  </div>
-                );
-              })}
+            <div className="border-t border-slate-200 px-5 py-3 text-xs text-slate-500">
+              Showing {directoryRows.length} of {students.length.toLocaleString()} students
             </div>
-          )}
-        </Card>
-      </div>
+          </>
+        )}
+      </Card>
     </div>
   );
 }

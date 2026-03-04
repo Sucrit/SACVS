@@ -73,6 +73,7 @@ export default function StudentRequestHistorySection({
   const [activeReceipt, setActiveReceipt] = useState<ApprovalReceipt | null>(null);
   const [receiptQrDataUrl, setReceiptQrDataUrl] = useState<string | null>(null);
   const [loadingReceiptRequestId, setLoadingReceiptRequestId] = useState<string | null>(null);
+  const [showReceiptNote, setShowReceiptNote] = useState(false);
 
   const canOpenReceipt = (request: CredentialRequest) =>
     request.status === 'APPROVED' &&
@@ -151,6 +152,7 @@ export default function StudentRequestHistorySection({
       });
       setActiveReceipt(receipt);
       setReceiptQrDataUrl(qrDataUrl);
+      setShowReceiptNote(false);
       setReceiptModalOpen(true);
     } catch (error: any) {
       const message =
@@ -656,7 +658,10 @@ export default function StudentRequestHistorySection({
       {receiptModalOpen && activeReceipt && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
-          onClick={() => setReceiptModalOpen(false)}
+          onClick={() => {
+            setReceiptModalOpen(false);
+            setShowReceiptNote(false);
+          }}
         >
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.985 }}
@@ -673,7 +678,10 @@ export default function StudentRequestHistorySection({
               </div>
               <button
                 type="button"
-                onClick={() => setReceiptModalOpen(false)}
+                onClick={() => {
+                  setReceiptModalOpen(false);
+                  setShowReceiptNote(false);
+                }}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
               >
                 <X size={14} />
@@ -704,8 +712,20 @@ export default function StudentRequestHistorySection({
                 <p><span className="text-slate-500">Expires</span>: <span className="font-semibold text-slate-900">{formatDate(activeReceipt.expiresAt)}</span></p>
               </div>
             </div>
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              <p className="mt-1">Note: Proceed to your university registrar to claim this requested credential. Registrar fees may apply before credentials can be released. Please follow your university registrar working hours.</p>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setShowReceiptNote(prev => !prev)}
+                aria-expanded={showReceiptNote}
+                className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
+              >
+                <Info size={14} />
+              </button>
+              {showReceiptNote && (
+                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  <p>Note: Proceed to your university registrar to claim this requested credential. Registrar fees may apply before credentials can be released. Please follow your university registrar working hours.</p>
+                </div>
+              )}
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-end gap-2">

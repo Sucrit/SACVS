@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { clerkClient } from '@clerk/express';
-import { NotificationType, StepUpAction } from '../../../../db/node_modules/@prisma/client';
+import { StepUpAction } from '../../../../db/node_modules/@prisma/client';
 import {
   BulkCreateInstitutionStudentsResultDto,
   CreateStepUpChallengeDto,
@@ -15,7 +15,6 @@ import {
 } from '../dto/user.dto';
 import { UserRepository } from '../repository/user.repository';
 import { ENV } from '../config/env';
-import { notificationClient } from '../client/notification.client';
 import { emailClient } from '../client/email.client';
 import { realtimeClient } from '../client/realtime.client';
 
@@ -261,23 +260,6 @@ export class UserService {
       throw error instanceof Error && error.message === 'STEP_UP_DELIVERY_NOT_CONFIGURED'
         ? new Error('STEP_UP_DELIVERY_NOT_CONFIGURED')
         : new Error('STEP_UP_DELIVERY_FAILED');
-    }
-
-    try {
-      await notificationClient.createSystemNotification({
-        userId,
-        type: NotificationType.SECURITY_ALERT,
-        title: 'Security verification code',
-        message: `Your one-time security verification code is ${otpCode}. It expires in ${Math.floor(ttlSeconds / 60)} minute(s).`,
-        metadata: {
-          event: 'STEP_UP_OTP',
-          action,
-          challengeId: created.id,
-          expiresAt: created.expiresAt.toISOString(),
-        },
-      });
-    } catch (error) {
-      console.error('Failed to dispatch step-up OTP notification:', error);
     }
 
     await userRepository.createAuditLog({

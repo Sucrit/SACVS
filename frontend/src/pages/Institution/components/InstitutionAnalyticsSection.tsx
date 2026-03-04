@@ -27,7 +27,8 @@ interface InstitutionAnalyticsSectionProps {
   isLoadingCredentials: boolean;
 }
 
-type MonthBucket = { key: string; label: string; requests: number; issued: number };
+type TrendBucket = { key: string; label: string; requests: number; issued: number };
+type TrendGranularity = 'day' | 'month';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend);
 
@@ -54,10 +55,23 @@ type ChartFilterKey =
 const DATE_RANGE_OPTIONS: Array<{ value: DateRangePreset; label: string }> = [
   { value: 'LAST_7_DAYS', label: 'Last 7 days' },
   { value: 'LAST_30_DAYS', label: 'Last 30 days' },
-  { value: 'LAST_90_DAYS', label: 'Last 90 days' },
-  { value: 'LAST_180_DAYS', label: 'Last 180 days' },
+  { value: 'LAST_90_DAYS', label: 'Last 3 months' },
+  { value: 'LAST_180_DAYS', label: 'Last 6 months' },
   { value: 'ALL_TIME', label: 'All time' },
 ];
+const DATE_RANGE_LABEL_MAP = DATE_RANGE_OPTIONS.reduce<Record<DateRangePreset, string>>(
+  (accumulator, option) => {
+    accumulator[option.value] = option.label;
+    return accumulator;
+  },
+  {
+    LAST_7_DAYS: 'Last 7 days',
+    LAST_30_DAYS: 'Last 30 days',
+    LAST_90_DAYS: 'Last 3 months',
+    LAST_180_DAYS: 'Last 6 months',
+    ALL_TIME: 'All time',
+  },
+);
 
 const INITIAL_CARD_FILTERS: Record<ChartFilterKey, DateRangePreset> = {
   requestStatus: 'LAST_30_DAYS',
@@ -68,9 +82,20 @@ const INITIAL_CARD_FILTERS: Record<ChartFilterKey, DateRangePreset> = {
   departmentVolume: 'LAST_30_DAYS',
 };
 
-const buildRecentMonthBuckets = (months: number): MonthBucket[] => {
+const getMonthlyTrendBucketCount = (preset: DateRangePreset) => {
+  if (preset === 'LAST_7_DAYS') return 1;
+  if (preset === 'LAST_30_DAYS') return 1;
+  if (preset === 'LAST_90_DAYS') return 3;
+  if (preset === 'LAST_180_DAYS') return 6;
+  return 12;
+};
+
+const getTrendGranularity = (preset: DateRangePreset): TrendGranularity =>
+  preset === 'LAST_7_DAYS' || preset === 'LAST_30_DAYS' ? 'day' : 'month';
+
+const buildRecentMonthBuckets = (months: number): TrendBucket[] => {
   const now = new Date();
-  const buckets: MonthBucket[] = [];
+  const buckets: TrendBucket[] = [];
   for (let i = months - 1; i >= 0; i -= 1) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
@@ -80,11 +105,35 @@ const buildRecentMonthBuckets = (months: number): MonthBucket[] => {
   return buckets;
 };
 
-const bucketKeyFromDate = (value: string | null | undefined) => {
+const buildRecentDayBuckets = (days: number): TrendBucket[] => {
+  const now = new Date();
+  const buckets: TrendBucket[] = [];
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const date = new Date(now);
+    date.setDate(now.getDate() - i);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+      date.getDate(),
+    ).padStart(2, '0')}`;
+    const label = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    buckets.push({ key, label, requests: 0, issued: 0 });
+  }
+  return buckets;
+};
+
+const monthBucketKeyFromDate = (value: string | null | undefined) => {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const dayBucketKeyFromDate = (value: string | null | undefined) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate(),
+  ).padStart(2, '0')}`;
 };
 
 const buildDateRange = (preset: DateRangePreset): DateRange => {
@@ -198,6 +247,14 @@ const barOptions: ChartOptions<'bar'> = {
   scales: {
     x: {
       ticks: {
+        color: '#334155',
+        font: { size: 11, weight: 600 },
+      },
+      grid: { display: false },
+    },
+    y: {
+      beginAtZero: true,
+      ticks: {
         color: '#64748b',
         font: { size: 11, weight: 600 },
         stepSize: 1,
@@ -208,10 +265,6 @@ const barOptions: ChartOptions<'bar'> = {
         },
       },
       grid: { color: '#e2e8f0' },
-    },
-    y: {
-      ticks: { color: '#334155', font: { size: 11, weight: 600 } },
-      grid: { display: false },
     },
   },
 };
@@ -352,17 +405,28 @@ export default function InstitutionAnalyticsSection({
     return [department, count] as const;
   });
 
-  const monthBuckets = buildRecentMonthBuckets(6);
+  const monthlyTrendPreset = cardFilters.monthlyTrend;
+  const trendGranularity = getTrendGranularity(monthlyTrendPreset);
+  const monthBuckets =
+    trendGranularity === 'day'
+      ? buildRecentDayBuckets(monthlyTrendPreset === 'LAST_7_DAYS' ? 7 : 30)
+      : buildRecentMonthBuckets(getMonthlyTrendBucketCount(monthlyTrendPreset));
   const monthBucketMap = new Map(monthBuckets.map(bucket => [bucket.key, bucket]));
   monthTrendRequests.forEach(request => {
-    const key = bucketKeyFromDate(request.createdAt);
+    const key =
+      trendGranularity === 'day'
+        ? dayBucketKeyFromDate(request.createdAt)
+        : monthBucketKeyFromDate(request.createdAt);
     if (key && monthBucketMap.has(key)) {
       monthBucketMap.get(key)!.requests += 1;
     }
   });
   monthTrendCredentials.forEach(credential => {
     if (credential.status !== 'ISSUED') return;
-    const key = bucketKeyFromDate(credential.issuedDate || credential.updatedAt);
+    const key =
+      trendGranularity === 'day'
+        ? dayBucketKeyFromDate(credential.issuedDate || credential.updatedAt)
+        : monthBucketKeyFromDate(credential.issuedDate || credential.updatedAt);
     if (key && monthBucketMap.has(key)) {
       monthBucketMap.get(key)!.issued += 1;
     }
@@ -474,7 +538,10 @@ export default function InstitutionAnalyticsSection({
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card title="Monthly Trend (Last 6 Months)" action={renderFilterAction('monthlyTrend')}>
+        <Card
+          title={`${trendGranularity === 'day' ? 'Daily' : 'Monthly'} Trend (${DATE_RANGE_LABEL_MAP[monthlyTrendPreset]})`}
+          action={renderFilterAction('monthlyTrend')}
+        >
           <div className="h-72">
             <Line data={monthTrendChart} options={lineOptions} />
           </div>
@@ -493,13 +560,7 @@ export default function InstitutionAnalyticsSection({
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Card title="Credential Types" action={renderFilterAction('credentialTypes')}>
           <div className="h-72">
-            <Bar
-              data={credentialTypesChart}
-              options={{
-                ...barOptions,
-                indexAxis: 'y',
-              }}
-            />
+            <Bar data={credentialTypesChart} options={barOptions} />
           </div>
           {!isLoading && credentialTypeTotal === 0 && (
             <p className="mt-2 text-sm text-slate-500">No type data yet.</p>
@@ -512,7 +573,6 @@ export default function InstitutionAnalyticsSection({
               data={departmentChart}
               options={{
                 ...departmentBarOptions,
-                indexAxis: 'y',
                 plugins: {
                   ...departmentBarOptions.plugins,
                   tooltip: {

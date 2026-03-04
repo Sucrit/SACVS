@@ -109,7 +109,7 @@ export default function InstitutionRequestsSection({
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Document</th>
                 <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Certificate Mode</th>
+                <th className="px-4 py-3">Certificate Type</th>
                 <th className="px-4 py-3">Expiry Date</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Reason</th>

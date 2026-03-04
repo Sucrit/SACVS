@@ -1,4 +1,4 @@
-import { Routes, Route, BrowserRouter, Navigate } from 'react-router-dom';
+import { Routes, Route, BrowserRouter, Navigate, useParams } from 'react-router-dom';
 import type { ReactElement } from 'react';
 import DashboardLayout from './layouts/DashboardLayout';
 import StudentDashboard from './pages/Student/StudentDashboard';
@@ -10,7 +10,12 @@ import AuthPage from './pages/AuthPage';
 import Unauthorized from './pages/Unauthorized';
 import { useLegacyAuth } from './auth/auth-context';
 import CredentialQrVerifyPage from './pages/Public/CredentialQrVerifyPage';
-import RequestReceiptVerifyPage from './pages/Public/RequestReceiptVerifyPage';
+
+function ReceiptVerifyRedirect() {
+  const { token } = useParams<{ token: string }>();
+  const normalizedToken = token ? encodeURIComponent(token) : '';
+  return <Navigate to={`/institution/receipt-verify${normalizedToken ? `?token=${normalizedToken}` : ''}`} replace />;
+}
 
 function RequireAuth({ children }: { children: ReactElement }) {
   const { isAuthenticated, isLoading } = useLegacyAuth();
@@ -35,7 +40,7 @@ function App() {
         <Route path="/auth/:mode" element={<AuthPage />} />
         <Route path="/auth/:mode/*" element={<AuthPage />} />
         <Route path="/verify/qr/:token" element={<CredentialQrVerifyPage />} />
-        <Route path="/verify/receipt/:token" element={<RequestReceiptVerifyPage />} />
+        <Route path="/verify/receipt/:token" element={<ReceiptVerifyRedirect />} />
         
         <Route
           path="/student/*"

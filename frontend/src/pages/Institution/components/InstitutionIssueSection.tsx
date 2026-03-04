@@ -180,21 +180,6 @@ export default function InstitutionIssueSection({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        <Card title="Institution Students">
-          <p className="text-3xl font-bold text-slate-900">{eligibleStudents.length}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.08em] text-slate-500">Managed student accounts</p>
-        </Card>
-        <Card title="Ready To Issue">
-          <p className="text-3xl font-bold text-cyan-700">{readyToIssue.length}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.08em] text-slate-500">Approved requests</p>
-        </Card>
-        <Card title="Student Credentials">
-          <p className="text-3xl font-bold text-emerald-700">{institutionCredentials.length}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.08em] text-slate-500">Accessible in student dashboard</p>
-        </Card>
-      </div>
-
       <Card title="Direct Credential Issuance">
         <form className="space-y-3" onSubmit={handleSubmitDirectIssue}>
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -312,7 +297,7 @@ export default function InstitutionIssueSection({
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Request</th>
                 <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Certificate Mode</th>
+                <th className="px-4 py-3">Certificate Type</th>
                 <th className="px-4 py-3">Requested</th>
                 <th className="px-4 py-3">Expiry Date</th>
                 <th className="px-4 py-3">File</th>

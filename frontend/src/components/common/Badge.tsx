@@ -37,7 +37,6 @@ export default function Badge({ status, className }: BadgeProps) {
         className
       )}
     >
-      <span className={`w-1.5 h-1.5 rounded-full mr-2 ${status === 'REVOKED' ? 'bg-slate-400' : 'bg-current opacity-60'}`}></span>
       {status}
     </span>
   );

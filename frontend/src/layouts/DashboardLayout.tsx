@@ -12,6 +12,7 @@ import {
   LayoutGrid,
   LayoutDashboard,
   MoreHorizontal,
+  ReceiptText,
   Settings,
   Shield,
   User,
@@ -24,6 +25,7 @@ import {
   getNotificationDisplayMessage,
   NotificationService,
 } from '../services/notification.service';
+import { CredentialService } from '../services/credential.service';
 import { useLegacyAuth } from '../auth/auth-context';
 import { realtimeService } from '../services/realtime.service';
 import logoCompact from '../assets/c-version_logo.png';
@@ -37,12 +39,12 @@ const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string }>> = {
     { to: '/student/profile', label: 'Profile' },
   ],
   INSTITUTION: [
-    { to: '/institution', label: 'Dashboard' },
+    { to: '/institution', label: 'Overview' },
     { to: '/institution/issue', label: 'Student Credentials' },
     { to: '/institution/students', label: 'Students' },
     { to: '/institution/requests', label: 'Requests' },
     { to: '/institution/analytics', label: 'Analytics' },
-    { to: '/institution/receipt-verify', label: 'Receipt Verify' },
+    { to: '/institution/receipt-verify', label: 'Receipt Verification' },
     { to: '/institution/logs', label: 'Audit Logs' },
   ],
   EMPLOYER: [
@@ -68,7 +70,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   '/institution/analytics': ChartColumnBig,
   '/institution/students': Users,
   '/institution/requests': FileText,
-  '/institution/receipt-verify': Shield,
+  '/institution/receipt-verify': ReceiptText,
   '/employer': LayoutDashboard,
   '/employer/requests': FileText,
   '/employer/verifications': Shield,
@@ -106,11 +108,22 @@ const parseNotificationMetadataString = (
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 };
 
+const isStepUpOtpNotification = (notification: AppNotification): boolean => {
+  const event = parseNotificationMetadataString(notification.metadata, 'event');
+  const normalizedTitle = notification.title.trim().toLowerCase();
+  return event === 'STEP_UP_OTP' || normalizedTitle === 'security verification code';
+};
+
+const withoutStepUpOtpNotifications = (notifications: AppNotification[]): AppNotification[] =>
+  notifications.filter(notification => !isStepUpOtpNotification(notification));
+
+const INSTITUTION_REQUESTS_LAST_SEEN_KEY = 'institution_requests_last_seen_at';
+
 export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isLoading } = useLegacyAuth();
-  const [studentUnreadNotifications, setStudentUnreadNotifications] = useState(0);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState<'ALL' | 'UNREAD'>('ALL');
   const [headerNotifications, setHeaderNotifications] = useState<AppNotification[]>([]);
@@ -118,11 +131,13 @@ export default function DashboardLayout() {
   const [hasLoadedHeaderNotifications, setHasLoadedHeaderNotifications] = useState(false);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
+  const [hasNewInstitutionRequests, setHasNewInstitutionRequests] = useState(false);
   const bellButtonRef = useRef<HTMLButtonElement | null>(null);
   const bellPanelRef = useRef<HTMLDivElement | null>(null);
   const notificationMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const notificationMenuRef = useRef<HTMLDivElement | null>(null);
   const notificationRefreshTimerRef = useRef<number | null>(null);
+  const requestIndicatorRefreshTimerRef = useRef<number | null>(null);
 
   if (isLoading) {
     return <div className="h-screen flex items-center justify-center bg-white text-slate-700 font-medium">Loading session...</div>;
@@ -166,25 +181,22 @@ export default function DashboardLayout() {
     bellTargetRoute && (path === bellTargetRoute || path.startsWith(`${bellTargetRoute}/`)),
   );
 
-  const loadStudentUnreadNotifications = useCallback(async () => {
-    if (role !== 'STUDENT') {
-      setStudentUnreadNotifications(0);
-      return;
-    }
-
+  const loadUnreadNotificationsCount = useCallback(async () => {
     try {
-      const unreadCount = await NotificationService.getUnreadCount();
-      setStudentUnreadNotifications(unreadCount);
+      const unread = await NotificationService.list({ read: false, page: 1, pageSize: 200 });
+      setUnreadNotificationsCount(withoutStepUpOtpNotifications(unread.items).length);
     } catch (error) {
       console.error('Failed to load unread notifications:', error);
     }
-  }, [role]);
+  }, []);
 
   const loadHeaderNotifications = useCallback(async () => {
     setIsLoadingHeaderNotifications(true);
     try {
       const data = await NotificationService.list({ page: 1, pageSize: 20 });
       setHeaderNotifications(data.items);
+      const safeItems = withoutStepUpOtpNotifications(data.items);
+      setUnreadNotificationsCount(safeItems.filter(item => !item.read).length);
       setHasLoadedHeaderNotifications(true);
     } catch (error) {
       console.error('Failed to load header notifications:', error);
@@ -204,9 +216,7 @@ export default function DashboardLayout() {
       previous.map(item => (item.id === notificationId ? { ...item, read: true } : item)),
     );
 
-    if (role === 'STUDENT') {
-      setStudentUnreadNotifications(previous => Math.max(0, previous - 1));
-    }
+    setUnreadNotificationsCount(previous => Math.max(0, previous - 1));
 
     try {
       const updated = await NotificationService.markRead(notificationId, true);
@@ -218,36 +228,64 @@ export default function DashboardLayout() {
       setHeaderNotifications(previous =>
         previous.map(item => (item.id === notificationId ? target : item)),
       );
-      if (role === 'STUDENT') {
-        setStudentUnreadNotifications(previous => previous + 1);
-      }
+      setUnreadNotificationsCount(previous => previous + 1);
     } finally {
     }
-  }, [headerNotifications, role]);
+  }, [headerNotifications]);
 
   const markAllHeaderNotificationsRead = useCallback(async () => {
-    const hasUnread = headerNotifications.some(item => !item.read);
+    const visibleNotifications = withoutStepUpOtpNotifications(headerNotifications);
+    const hasUnread = visibleNotifications.some(item => !item.read);
     if (!hasUnread) return;
 
     const previousNotifications = headerNotifications;
     setIsMarkingAllRead(true);
     setHeaderNotifications(previous => previous.map(item => ({ ...item, read: true })));
-    if (role === 'STUDENT') {
-      setStudentUnreadNotifications(0);
-    }
+    const previousUnreadCount = unreadNotificationsCount;
+    setUnreadNotificationsCount(0);
 
     try {
       await NotificationService.markAllRead();
     } catch (error) {
       console.error('Failed to mark all header notifications as read:', error);
       setHeaderNotifications(previousNotifications);
-      if (role === 'STUDENT') {
-        setStudentUnreadNotifications(previousNotifications.filter(item => !item.read).length);
-      }
+      setUnreadNotificationsCount(previousUnreadCount);
     } finally {
       setIsMarkingAllRead(false);
     }
-  }, [headerNotifications, role]);
+  }, [headerNotifications, unreadNotificationsCount]);
+
+  const refreshInstitutionRequestIndicator = useCallback(async () => {
+    if (role !== 'INSTITUTION') {
+      setHasNewInstitutionRequests(false);
+      return;
+    }
+
+    try {
+      const pendingRequests = await CredentialService.listRequests({ status: 'PENDING' });
+      if (pendingRequests.length === 0) {
+        setHasNewInstitutionRequests(false);
+        return;
+      }
+
+      const newestPendingRequestTime = pendingRequests.reduce((latest, request) => {
+        const createdAtTime = new Date(request.createdAt).getTime();
+        if (Number.isNaN(createdAtTime)) return latest;
+        return Math.max(latest, createdAtTime);
+      }, 0);
+
+      if (!newestPendingRequestTime) {
+        setHasNewInstitutionRequests(false);
+        return;
+      }
+
+      const lastSeenRaw = window.localStorage.getItem(INSTITUTION_REQUESTS_LAST_SEEN_KEY);
+      const lastSeenTime = lastSeenRaw ? Number(lastSeenRaw) : 0;
+      setHasNewInstitutionRequests(newestPendingRequestTime > (Number.isNaN(lastSeenTime) ? 0 : lastSeenTime));
+    } catch (error) {
+      console.error('Failed to refresh institution request indicator:', error);
+    }
+  }, [role]);
 
   const buildNotificationTargetPath = useCallback((notification: AppNotification): string | null => {
     const credentialId = parseNotificationMetadataString(notification.metadata, 'credentialId');
@@ -291,13 +329,8 @@ export default function DashboardLayout() {
   }, [buildNotificationTargetPath, markNotificationRead, navigate]);
 
   useEffect(() => {
-    if (role !== 'STUDENT') {
-      setStudentUnreadNotifications(0);
-      return;
-    }
-
-    void loadStudentUnreadNotifications();
-  }, [loadStudentUnreadNotifications, role]);
+    void loadUnreadNotificationsCount();
+  }, [loadUnreadNotificationsCount]);
 
   useEffect(() => {
     if (!isNotificationOpen || hasLoadedHeaderNotifications) {
@@ -307,6 +340,15 @@ export default function DashboardLayout() {
 
     void loadHeaderNotifications();
   }, [hasLoadedHeaderNotifications, isNotificationOpen, loadHeaderNotifications]);
+
+  useEffect(() => {
+    if (role !== 'INSTITUTION') {
+      setHasNewInstitutionRequests(false);
+      return;
+    }
+
+    void refreshInstitutionRequestIndicator();
+  }, [refreshInstitutionRequestIndicator, role]);
 
   useEffect(() => {
     if (!isNotificationOpen) {
@@ -349,11 +391,19 @@ export default function DashboardLayout() {
       if (notificationRefreshTimerRef.current) return;
       notificationRefreshTimerRef.current = window.setTimeout(() => {
         notificationRefreshTimerRef.current = null;
-        if (role === 'STUDENT') {
-          void loadStudentUnreadNotifications();
-        }
+        void loadUnreadNotificationsCount();
         if (isNotificationOpen) {
           void loadHeaderNotifications();
+        }
+      }, 350);
+    };
+
+    const scheduleRequestIndicatorRefresh = () => {
+      if (requestIndicatorRefreshTimerRef.current) return;
+      requestIndicatorRefreshTimerRef.current = window.setTimeout(() => {
+        requestIndicatorRefreshTimerRef.current = null;
+        if (role === 'INSTITUTION') {
+          void refreshInstitutionRequestIndicator();
         }
       }, 350);
     };
@@ -361,6 +411,9 @@ export default function DashboardLayout() {
     const unsubscribe = realtimeService.subscribe(event => {
       if (event.domain === 'notifications') {
         scheduleNotificationRefresh();
+      }
+      if (event.domain === 'credentialRequests') {
+        scheduleRequestIndicatorRefresh();
       }
     });
 
@@ -370,8 +423,18 @@ export default function DashboardLayout() {
         window.clearTimeout(notificationRefreshTimerRef.current);
         notificationRefreshTimerRef.current = null;
       }
+      if (requestIndicatorRefreshTimerRef.current) {
+        window.clearTimeout(requestIndicatorRefreshTimerRef.current);
+        requestIndicatorRefreshTimerRef.current = null;
+      }
     };
-  }, [isNotificationOpen, loadHeaderNotifications, loadStudentUnreadNotifications, role]);
+  }, [
+    isNotificationOpen,
+    loadHeaderNotifications,
+    loadUnreadNotificationsCount,
+    refreshInstitutionRequestIndicator,
+    role,
+  ]);
 
   useEffect(() => {
     if (!isNotificationPageOpen) {
@@ -381,16 +444,26 @@ export default function DashboardLayout() {
     setIsNotificationMenuOpen(false);
   }, [isNotificationPageOpen]);
 
-  const filteredHeaderNotifications = useMemo(() => {
-    if (notificationFilter === 'UNREAD') {
-      return headerNotifications.filter(item => !item.read);
+  useEffect(() => {
+    if (role !== 'INSTITUTION' || !path.startsWith('/institution/requests')) {
+      return;
     }
-    return headerNotifications;
+    window.localStorage.setItem(INSTITUTION_REQUESTS_LAST_SEEN_KEY, String(Date.now()));
+    setHasNewInstitutionRequests(false);
+  }, [path, role]);
+
+  const filteredHeaderNotifications = useMemo(() => {
+    const safeNotifications = withoutStepUpOtpNotifications(headerNotifications);
+
+    if (notificationFilter === 'UNREAD') {
+      return safeNotifications.filter(item => !item.read);
+    }
+    return safeNotifications;
   }, [headerNotifications, notificationFilter]);
 
   const unreadHeaderCount = useMemo(
-    () => headerNotifications.filter(item => !item.read).length,
-    [headerNotifications],
+    () => filteredHeaderNotifications.filter(item => !item.read).length,
+    [filteredHeaderNotifications],
   );
 
   if (!expectedRoutePrefix) {
@@ -436,9 +509,9 @@ export default function DashboardLayout() {
                     size={22}
                     className={isNotificationPageOpen ? 'fill-slate-900 text-slate-900' : undefined}
                   />
-                  {role === 'STUDENT' && studentUnreadNotifications > 0 && (
+                  {unreadNotificationsCount > 0 && (
                     <span className="absolute -right-0.5 -top-0.5 inline-flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
-                      {studentUnreadNotifications > 99 ? '99+' : studentUnreadNotifications}
+                      {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
                     </span>
                   )}
                 </button>
@@ -637,17 +710,26 @@ export default function DashboardLayout() {
                   {(() => {
                     const useCredentialSvg = CREDENTIAL_ICON_ROUTES.has(link.to);
                     const Icon = NAV_ICONS[link.to];
+                    const showRequestAlert =
+                      role === 'INSTITUTION' &&
+                      link.to === '/institution/requests' &&
+                      hasNewInstitutionRequests;
                     return (
                       <>
-                        {useCredentialSvg && (
-                          <img
-                            src={credentialsIcon}
-                            alt=""
-                            aria-hidden="true"
-                            className="mr-1.5 h-[15px] w-[15px] shrink-0 object-contain"
-                          />
-                        )}
-                        {!useCredentialSvg && Icon && <Icon size={15} className="mr-1.5 shrink-0" />}
+                        <span className="relative mr-1.5 inline-flex shrink-0">
+                          {useCredentialSvg && (
+                            <img
+                              src={credentialsIcon}
+                              alt=""
+                              aria-hidden="true"
+                              className="h-[15px] w-[15px] object-contain"
+                            />
+                          )}
+                          {!useCredentialSvg && Icon && <Icon size={15} />}
+                          {showRequestAlert && (
+                            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-white bg-red-500" />
+                          )}
+                        </span>
                         {link.label}
                       </>
                     );
