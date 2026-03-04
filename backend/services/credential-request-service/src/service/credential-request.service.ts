@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import {
   AuditAction,
   CredentialRequest as PrismaCredentialRequest,
@@ -9,17 +10,21 @@ import {
   Role,
 } from '../../../../db/node_modules/@prisma/client';
 import {
+  ApprovalReceiptResponseDto,
+  ApprovalReceiptVerificationResultDto,
   CreateCredentialRequestDto,
   CredentialRequestResponseDto,
   ListCredentialRequestsQueryDto,
   UpdateCredentialRequestStatusDto,
 } from '../dto/credential-request.dto';
 import {
+  ApprovalReceiptVerificationView,
   CredentialRequestRepository,
   UserContext,
 } from '../repository/credential-request.repository';
 import { notificationClient } from '../client/notification.client';
 import { realtimeClient } from '../client/realtime.client';
+import { ENV } from '../config/env';
 
 const credentialRequestRepository = new CredentialRequestRepository();
 
@@ -28,6 +33,9 @@ const parseOptionalString = (value?: string): string | null => {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 };
+
+const RECEIPT_TOKEN_MIN_TTL_SECONDS = 30;
+const RECEIPT_TOKEN_MAX_TTL_SECONDS = 300;
 
 const toCredentialRequestResponse = (
   request: PrismaCredentialRequest,
@@ -56,6 +64,153 @@ const toCredentialRequestResponse = (
 });
 
 export class CredentialRequestService {
+  private getReceiptTokenPepperOrThrow(): string {
+    const pepper = ENV.REQUEST_RECEIPT_TOKEN_PEPPER?.trim();
+    if (!pepper) {
+      throw new Error('REQUEST_RECEIPT_TOKEN_PEPPER_MISSING');
+    }
+    return pepper;
+  }
+
+  private getReceiptVerifyBaseUrlOrThrow(): string {
+    const baseUrl = ENV.REQUEST_RECEIPT_VERIFY_BASE_URL?.trim();
+    if (!baseUrl) {
+      throw new Error('REQUEST_RECEIPT_VERIFY_BASE_URL_MISSING');
+    }
+    return baseUrl.replace(/\/+$/, '');
+  }
+
+  private getReceiptTokenTtlSeconds(): number {
+    const parsed = Number(ENV.REQUEST_RECEIPT_TOKEN_TTL_SECONDS || 300);
+    if (!Number.isFinite(parsed)) {
+      return RECEIPT_TOKEN_MAX_TTL_SECONDS;
+    }
+    return Math.max(
+      RECEIPT_TOKEN_MIN_TTL_SECONDS,
+      Math.min(RECEIPT_TOKEN_MAX_TTL_SECONDS, Math.floor(parsed)),
+    );
+  }
+
+  private hashReceiptToken(rawToken: string): string {
+    const pepper = this.getReceiptTokenPepperOrThrow();
+    return crypto.createHash('sha256').update(`${rawToken}:${pepper}`).digest('hex');
+  }
+
+  private generateReceiptToken(): string {
+    return crypto.randomBytes(32).toString('base64url');
+  }
+
+  private generateReceiptCode(): string {
+    return `APR-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+  }
+
+  private buildReceiptVerificationUrl(rawToken: string): string {
+    const base = this.getReceiptVerifyBaseUrlOrThrow();
+    return `${base}/verify/receipt/${encodeURIComponent(rawToken)}`;
+  }
+
+  private mapApprovalReceiptView(
+    receiptView: ApprovalReceiptVerificationView,
+    verificationUrl: string,
+    expiresAt: Date,
+    ttlSeconds: number,
+  ): ApprovalReceiptResponseDto {
+    return {
+      receiptId: receiptView.receiptId,
+      requestId: receiptView.requestId,
+      receiptCode: receiptView.receiptCode,
+      verificationUrl,
+      expiresAt: expiresAt.toISOString(),
+      ttlSeconds,
+      studentName: receiptView.studentName,
+      studentNumber: receiptView.studentNumber,
+      type: receiptView.type as ApprovalReceiptResponseDto['type'],
+      deliveryMethod: receiptView.deliveryMethod,
+      approvedAt: receiptView.approvedAt ? receiptView.approvedAt.toISOString() : null,
+      institutionName: receiptView.institutionName,
+    };
+  }
+
+  private async createApprovalReceiptTokenForRequest(
+    requestId: string,
+    actorId: string,
+  ): Promise<ApprovalReceiptResponseDto> {
+    const ttlSeconds = this.getReceiptTokenTtlSeconds();
+    const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+    let lastError: unknown = null;
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const rawToken = this.generateReceiptToken();
+      const tokenHash = this.hashReceiptToken(rawToken);
+      const receiptCode = this.generateReceiptCode();
+
+      try {
+        const created = await credentialRequestRepository.createApprovalReceiptForApprovedRequest({
+          requestId,
+          tokenHash,
+          receiptCode,
+          expiresAt,
+        });
+        const studentName = [
+          created.request.student.firstName,
+          created.request.student.middleName,
+          created.request.student.lastName,
+        ]
+          .filter(Boolean)
+          .join(' ');
+
+        const receiptView: ApprovalReceiptVerificationView = {
+          receiptId: created.receipt.id,
+          requestId: created.request.id,
+          receiptCode: created.receipt.receiptCode,
+          studentName,
+          studentNumber: created.request.student.profile?.studentNumber ?? null,
+          type: created.request.type,
+          deliveryMethod: created.request.deliveryMethod,
+          approvedAt: created.request.processedAt,
+          institutionName:
+            created.request.institution?.institutionName ||
+            'Issuing institution',
+        };
+
+        const mapped = this.mapApprovalReceiptView(
+          receiptView,
+          this.buildReceiptVerificationUrl(rawToken),
+          expiresAt,
+          ttlSeconds,
+        );
+
+        await this.createAuditEntry({
+          action: AuditAction.REQUEST_RECEIPT_GENERATED,
+          actorId,
+          targetType: 'CredentialRequest',
+          targetId: created.request.id,
+          description: `Approval receipt generated for request ${created.request.id}`,
+          metadata: {
+            requestId: created.request.id,
+            receiptId: created.receipt.id,
+            receiptCode: created.receipt.receiptCode,
+            deliveryMethod: created.request.deliveryMethod,
+            expiresAt: expiresAt.toISOString(),
+          },
+        });
+
+        return mapped;
+      } catch (error) {
+        lastError = error;
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2002'
+        ) {
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('RECEIPT_GENERATION_FAILED');
+  }
+
   private async createAuditEntry(payload: {
     action: AuditAction;
     actorId?: string | null;
@@ -469,6 +624,7 @@ export class CredentialRequestService {
 
     const status = data.status as CredentialRequestStatus;
     const providedCredentialId = parseOptionalString(data.credentialId);
+
     if (status === CredentialRequestStatus.PENDING) {
       throw new Error('INVALID_STATUS_TRANSITION');
     }
@@ -546,6 +702,7 @@ export class CredentialRequestService {
       status === CredentialRequestStatus.COMPLETED
         ? providedCredentialId ?? target.credentialId
         : null;
+
     if (status === CredentialRequestStatus.COMPLETED && !completionCredentialId) {
       throw new Error('CREDENTIAL_ID_REQUIRED_FOR_COMPLETION');
     }
@@ -570,6 +727,13 @@ export class CredentialRequestService {
           ? { credentialId: providedCredentialId }
           : {}),
     });
+
+    if (
+      updated.status === CredentialRequestStatus.APPROVED &&
+      (target.deliveryMethod === DeliveryMethod.PHYSICAL || target.deliveryMethod === DeliveryMethod.BOTH)
+    ) {
+      await this.createApprovalReceiptTokenForRequest(updated.id, actor.id);
+    }
 
     if (actor.role === Role.ADMIN || this.isInstitutionScopedRole(actor.role)) {
       void this.notifyStudentAboutRequestStatusUpdate(updated, target.status, actor);
@@ -617,5 +781,203 @@ export class CredentialRequestService {
     ]);
 
     return toCredentialRequestResponse(updated);
+  }
+
+  async markPhysicalClaimed(
+    actorUserId: string,
+    requestId: string,
+    notes?: string,
+  ): Promise<CredentialRequestResponseDto> {
+    const actor = await credentialRequestRepository.getUserContextById(actorUserId);
+    if (!actor) {
+      throw new Error('ACTOR_NOT_FOUND');
+    }
+
+    const target = await credentialRequestRepository.getCredentialRequestScopeById(requestId);
+    if (!target) {
+      throw new Error('REQUEST_NOT_FOUND');
+    }
+
+    if (actor.role !== Role.ADMIN && !this.isInstitutionScopedRole(actor.role)) {
+      throw new Error('FORBIDDEN_ROLE');
+    }
+
+    if (this.isInstitutionScopedRole(actor.role)) {
+      if (!actor.institutionId) {
+        throw new Error('INSTITUTION_CONTEXT_MISSING');
+      }
+      const targetInstitutionId = target.institutionId ?? target.student.institutionId;
+      if (!targetInstitutionId || targetInstitutionId !== actor.institutionId) {
+        throw new Error('FORBIDDEN_SCOPE');
+      }
+    }
+
+    if (target.deliveryMethod !== DeliveryMethod.PHYSICAL && target.deliveryMethod !== DeliveryMethod.BOTH) {
+      throw new Error('PHYSICAL_CLAIM_NOT_APPLICABLE');
+    }
+    if (target.status !== CredentialRequestStatus.APPROVED) {
+      throw new Error('REQUEST_NOT_APPROVED');
+    }
+    if (target.deliveryMethod === DeliveryMethod.BOTH && !target.credentialId) {
+      throw new Error('DIGITAL_ISSUANCE_REQUIRED_BEFORE_PHYSICAL_CLAIM');
+    }
+
+    const now = new Date();
+    const updated = await credentialRequestRepository.updateCredentialRequestStatus(requestId, {
+      status: CredentialRequestStatus.COMPLETED,
+      processedById: actor.id,
+      processedAt: now,
+      rejectionReason: null,
+    });
+
+    const invalidatedCount = await credentialRequestRepository.invalidateActiveApprovalReceiptsForRequest(
+      requestId,
+      now,
+    );
+
+    if (actor.role === Role.ADMIN || this.isInstitutionScopedRole(actor.role)) {
+      void this.notifyStudentAboutRequestStatusUpdate(updated, target.status, actor);
+    }
+
+    await this.createAuditEntry({
+      action: AuditAction.CREDENTIAL_REQUEST_COMPLETED,
+      actorId: actor.id,
+      targetType: 'CredentialRequest',
+      targetId: updated.id,
+      description: `${actor.role} marked request "${updated.title}" as physically claimed`,
+      metadata: {
+        requestId: updated.id,
+        previousStatus: target.status,
+        nextStatus: updated.status,
+        deliveryMethod: target.deliveryMethod,
+        credentialId: updated.credentialId,
+        notes: parseOptionalString(notes),
+        invalidatedReceiptTokens: invalidatedCount,
+      },
+    });
+
+    void realtimeClient.publishMany([
+      {
+        domain: 'credentialRequests',
+        action: 'credential-request.status.updated',
+        entityId: updated.id,
+        scope: {
+          userIds: [updated.studentId],
+          roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'],
+          institutionIds: updated.institutionId ? [updated.institutionId] : [],
+          employerIds: updated.employerId ? [updated.employerId] : [],
+        },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+      },
+    ]);
+
+    return toCredentialRequestResponse(updated);
+  }
+
+  async getApprovalReceipt(
+    actorUserId: string,
+    requestId: string,
+  ): Promise<ApprovalReceiptResponseDto> {
+    const actor = await credentialRequestRepository.getUserContextById(actorUserId);
+    if (!actor) {
+      throw new Error('ACTOR_NOT_FOUND');
+    }
+
+    const target = await credentialRequestRepository.getCredentialRequestScopeById(requestId);
+    if (!target) {
+      throw new Error('REQUEST_NOT_FOUND');
+    }
+    if (target.status !== CredentialRequestStatus.APPROVED) {
+      throw new Error('REQUEST_NOT_APPROVED');
+    }
+    if (target.deliveryMethod === DeliveryMethod.DIGITAL) {
+      throw new Error('RECEIPT_NOT_REQUIRED');
+    }
+
+    if (actor.role === Role.STUDENT && target.studentId !== actor.id) {
+      throw new Error('FORBIDDEN_SCOPE');
+    }
+    if (this.isInstitutionScopedRole(actor.role)) {
+      if (!actor.institutionId) {
+        throw new Error('INSTITUTION_CONTEXT_MISSING');
+      }
+      const targetInstitutionId = target.institutionId ?? target.student.institutionId;
+      if (!targetInstitutionId || targetInstitutionId !== actor.institutionId) {
+        throw new Error('FORBIDDEN_SCOPE');
+      }
+    }
+    if (actor.role !== Role.STUDENT && actor.role !== Role.ADMIN && !this.isInstitutionScopedRole(actor.role)) {
+      throw new Error('FORBIDDEN_ROLE');
+    }
+
+    return this.createApprovalReceiptTokenForRequest(requestId, actor.id);
+  }
+
+  async verifyApprovalReceiptToken(
+    rawToken: string,
+  ): Promise<ApprovalReceiptVerificationResultDto> {
+    const token = rawToken.trim();
+    if (!token || token.length < 20) {
+      await this.createAuditEntry({
+        action: AuditAction.REQUEST_RECEIPT_INVALID,
+        targetType: 'CredentialRequestApprovalReceipt',
+        description: 'Malformed receipt verification token',
+        metadata: { reason: 'MALFORMED' },
+      });
+      return { valid: false, reason: 'INVALID', receipt: null };
+    }
+
+    const now = new Date();
+    const tokenHash = this.hashReceiptToken(token);
+    const consumed = await credentialRequestRepository.consumeApprovalReceiptTokenAtomically(tokenHash, now);
+
+    if (consumed.outcome === 'VALID' && consumed.receipt) {
+      await this.createAuditEntry({
+        action: AuditAction.REQUEST_RECEIPT_VERIFIED,
+        targetType: 'CredentialRequestApprovalReceipt',
+        targetId: consumed.receipt.receiptId,
+        description: `Receipt ${consumed.receipt.receiptCode} verified`,
+        metadata: {
+          requestId: consumed.receipt.requestId,
+          receiptCode: consumed.receipt.receiptCode,
+        },
+      });
+      return {
+        valid: true,
+        receipt: {
+          requestId: consumed.receipt.requestId,
+          receiptCode: consumed.receipt.receiptCode,
+          studentName: consumed.receipt.studentName,
+          studentNumber: consumed.receipt.studentNumber,
+          type: consumed.receipt.type as ApprovalReceiptResponseDto['type'],
+          deliveryMethod: consumed.receipt.deliveryMethod,
+          approvedAt: consumed.receipt.approvedAt ? consumed.receipt.approvedAt.toISOString() : null,
+          institutionName: consumed.receipt.institutionName,
+        },
+      };
+    }
+
+    const auditAction =
+      consumed.outcome === 'EXPIRED'
+        ? AuditAction.REQUEST_RECEIPT_EXPIRED
+        : AuditAction.REQUEST_RECEIPT_INVALID;
+    await this.createAuditEntry({
+      action: auditAction,
+      targetType: 'CredentialRequestApprovalReceipt',
+      description: 'Failed receipt verification attempt',
+      metadata: {
+        reason: consumed.outcome,
+      },
+    });
+
+    return {
+      valid: false,
+      reason: consumed.outcome,
+      receipt: null,
+    };
   }
 }

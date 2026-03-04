@@ -42,4 +42,25 @@ router.patch(
   credentialRequestController.updateCredentialRequestStatus.bind(credentialRequestController),
 );
 
+router.post(
+  '/requests/:id/mark-physical-claimed',
+  requireAuth,
+  requireApprovedAccount,
+  requireRoles('ADMIN', 'INSTITUTION'),
+  credentialRequestController.markPhysicalClaimed.bind(credentialRequestController),
+);
+
+router.get(
+  '/requests/:id/approval-receipt',
+  requireAuth,
+  requireApprovedAccount,
+  requireRoles('STUDENT', 'INSTITUTION', 'ADMIN'),
+  credentialRequestController.getApprovalReceipt.bind(credentialRequestController),
+);
+
+router.post(
+  '/requests/verify-receipt',
+  credentialRequestController.verifyApprovalReceipt.bind(credentialRequestController),
+);
+
 export default router;

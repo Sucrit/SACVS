@@ -6,7 +6,22 @@ import { ENV } from './config/env';
 import { hasInternalEventAuth, parseRealtimeEvents, realtimeHub } from './realtime/realtime.hub';
 
 const app = express();
-app.use(express.json({ limit: '256kb' }));
+const jsonParser = express.json({ limit: '256kb' });
+app.use((req, res, next) => {
+  const path = req.path || '';
+  const isProxiedRoute =
+    path.startsWith('/users') ||
+    path.startsWith('/credentials') ||
+    path.startsWith('/notifications') ||
+    path.startsWith('/blockchain');
+
+  // Do not consume body on gateway for proxied service routes.
+  if (isProxiedRoute) {
+    return next();
+  }
+
+  return jsonParser(req, res, next);
+});
 
 // Security headers
 app.use((_req, res, next) => {

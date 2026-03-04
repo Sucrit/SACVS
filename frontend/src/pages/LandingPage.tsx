@@ -77,6 +77,11 @@ export default function LandingPage() {
       return;
     }
     setVerifyInputError(null);
+    const normalized = verifyInput.trim().toLowerCase();
+    if (normalized.includes('/verify/receipt/')) {
+      navigate(`/verify/receipt/${encodeURIComponent(token)}`);
+      return;
+    }
     navigate(`/verify/qr/${encodeURIComponent(token)}`);
   };
 
@@ -156,7 +161,7 @@ export default function LandingPage() {
           </div>
           <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center px-6 text-center md:px-20">
             <h1 className="mb-6 max-w-4xl text-5xl font-extrabold leading-[1.1] tracking-tight text-slate-900 md:text-7xl">
-              Securing Academic Excellence with <span className="text-slate-500">Blockchain</span>
+              Securing Academic Excellence with <span className="text-slate-500">Blockchain</span> and <span className="text-slate-500">AI</span>
             </h1>
             <p className="mb-10 max-w-2xl text-lg leading-relaxed text-slate-500 md:text-xl">
               The standard for immutable, instantly verifiable academic credentials. Own your achievement,

@@ -15,9 +15,16 @@ import {
   Truck,
   X,
 } from 'lucide-react';
+import QRCode from 'qrcode';
+import { jsPDF } from 'jspdf';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
-import { CredentialRequest, CredentialType } from '../../../services/credential.service';
+import {
+  ApprovalReceipt,
+  CredentialRequest,
+  CredentialService,
+  CredentialType,
+} from '../../../services/credential.service';
 import { formatDate } from '../utils';
 
 interface StudentRequestHistorySectionProps {
@@ -59,6 +66,101 @@ export default function StudentRequestHistorySection({
   const [dateFilter, setDateFilter] = useState<DateRangeFilter>('ALL');
   const [openMenuRequestId, setOpenMenuRequestId] = useState<string | null>(null);
   const [detailsRequest, setDetailsRequest] = useState<(CredentialRequest & { _uiKey?: string }) | null>(null);
+  const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [activeReceipt, setActiveReceipt] = useState<ApprovalReceipt | null>(null);
+  const [receiptQrDataUrl, setReceiptQrDataUrl] = useState<string | null>(null);
+  const [loadingReceiptRequestId, setLoadingReceiptRequestId] = useState<string | null>(null);
+  const [receiptActionError, setReceiptActionError] = useState<string | null>(null);
+
+  const canOpenReceipt = (request: CredentialRequest) =>
+    request.status === 'APPROVED' &&
+    (request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH');
+
+  const buildReceiptPdf = (receipt: ApprovalReceipt, qrDataUrl: string | null) => {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'a4',
+    });
+
+    const left = 48;
+    let y = 56;
+
+    const writeRow = (label: string, value: string) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(11);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`${label}:`, left, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(value || '-', left + 150, y);
+      y += 22;
+    };
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(21);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Request Approval Receipt', left, y);
+    y += 26;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Present this receipt to registrar for physical/both pickup verification.', left, y);
+    y += 30;
+
+    writeRow('Receipt Code', receipt.receiptCode);
+    writeRow('Student Name', receipt.studentName);
+    writeRow('Student Number', receipt.studentNumber || '-');
+    writeRow('Request ID', receipt.requestId);
+    writeRow('Credential Type', receipt.type);
+    writeRow('Delivery Method', receipt.deliveryMethod);
+    writeRow('Approved At', receipt.approvedAt ? formatDate(receipt.approvedAt) : '-');
+    writeRow('Institution', receipt.institutionName);
+    writeRow('Token Expires', formatDate(receipt.expiresAt));
+
+    y += 14;
+    if (qrDataUrl) {
+      doc.addImage(qrDataUrl, 'PNG', left, y, 170, 170);
+      y += 188;
+    }
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text('One-time verification token. Regenerate if leaked.', left, y);
+    y += 16;
+    doc.text('Proceed to your university registrar to claim the requested credential.', left, y);
+    y += 14;
+    doc.text('Registrar fees may apply before release.', left, y);
+    y += 14;
+    doc.text('Claiming must follow your university registrar working hours.', left, y);
+
+    doc.save(`approval-receipt-${receipt.receiptCode}.pdf`);
+  };
+
+  const handleOpenReceipt = async (requestId: string) => {
+    setLoadingReceiptRequestId(requestId);
+    setReceiptActionError(null);
+    try {
+      const receipt = await CredentialService.getApprovalReceipt(requestId);
+      const qrDataUrl = await QRCode.toDataURL(receipt.verificationUrl, {
+        margin: 1,
+        width: 260,
+      });
+      setActiveReceipt(receipt);
+      setReceiptQrDataUrl(qrDataUrl);
+      setReceiptModalOpen(true);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.error ||
+        error?.message ||
+        'Unable to load approval receipt.';
+      setReceiptActionError(message);
+    } finally {
+      setLoadingReceiptRequestId(null);
+    }
+  };
 
   useEffect(() => {
     if (!initialDetailsRequestId) {
@@ -217,6 +319,12 @@ export default function StudentRequestHistorySection({
         </div>
       )}
 
+      {receiptActionError && (
+        <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+          {receiptActionError}
+        </div>
+      )}
+
       {!isLoadingRequests && filteredRequests.length === 0 && (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-12 text-center text-sm text-slate-500">
           No requests match your current filter.
@@ -286,6 +394,19 @@ export default function StudentRequestHistorySection({
                               className="w-full px-3 py-2 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
                             >
                               View issued credential
+                            </button>
+                          )}
+                          {canOpenReceipt(request) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void handleOpenReceipt(request.id);
+                                setOpenMenuRequestId(null);
+                              }}
+                              disabled={loadingReceiptRequestId === request.id}
+                              className="w-full px-3 py-2 text-left text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {loadingReceiptRequestId === request.id ? 'Loading receipt...' : 'View receipt'}
                             </button>
                           )}
                           {request.status === 'PENDING' && onCancelRequest && (
@@ -498,8 +619,113 @@ export default function StudentRequestHistorySection({
                     </div>
                   </div>
                 )}
+
+              {canOpenReceipt(detailsRequest) && (
+                <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-start">
+                  <p className="flex items-center gap-2 pt-2 text-sm font-medium text-indigo-700">
+                    <Link2 size={14} />
+                    Receipt
+                  </p>
+                  <div className="min-h-[44px] rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-900">
+                    <p>Approval receipt is available for physical pickup verification.</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleOpenReceipt(detailsRequest.id)}
+                        className="inline-flex items-center rounded-md border border-indigo-300 bg-white px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+                      >
+                        View receipt
+                      </button>
+                      {activeReceipt?.requestId === detailsRequest.id && (
+                        <button
+                          type="button"
+                          onClick={() => buildReceiptPdf(activeReceipt, receiptQrDataUrl)}
+                          className="inline-flex items-center rounded-md border border-indigo-300 bg-white px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+                        >
+                          Download Receipt (PDF)
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
+          </motion.div>
+        </div>
+      )}
+
+      {receiptModalOpen && activeReceipt && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+          onClick={() => setReceiptModalOpen(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.985 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-lg font-semibold text-slate-900">Approval Receipt</p>
+                <p className="text-xs text-slate-500">Use this one-time QR at registrar check-in.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReceiptModalOpen(false)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                {receiptQrDataUrl ? (
+                  <img src={receiptQrDataUrl} alt="Approval receipt QR" className="h-auto w-full rounded-lg bg-white p-2" />
+                ) : (
+                  <div className="flex h-[260px] items-center justify-center rounded-lg bg-white text-xs text-slate-500">
+                    QR unavailable
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2 text-sm">
+                <p className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">
+                  Receipt Code: <span className="font-mono">{activeReceipt.receiptCode}</span>
+                </p>
+                <p><span className="text-slate-500">Student</span>: <span className="font-semibold text-slate-900">{activeReceipt.studentName}</span></p>
+                <p><span className="text-slate-500">Student Number</span>: <span className="font-semibold text-slate-900">{activeReceipt.studentNumber || '-'}</span></p>
+                <p><span className="text-slate-500">Request ID</span>: <span className="font-semibold text-slate-900">{activeReceipt.requestId}</span></p>
+                <p><span className="text-slate-500">Type</span>: <span className="font-semibold text-slate-900">{activeReceipt.type}</span></p>
+                <p><span className="text-slate-500">Delivery</span>: <span className="font-semibold text-slate-900">{activeReceipt.deliveryMethod}</span></p>
+                <p><span className="text-slate-500">Approved At</span>: <span className="font-semibold text-slate-900">{activeReceipt.approvedAt ? formatDate(activeReceipt.approvedAt) : '-'}</span></p>
+                <p><span className="text-slate-500">Institution</span>: <span className="font-semibold text-slate-900">{activeReceipt.institutionName}</span></p>
+                <p><span className="text-slate-500">Expires</span>: <span className="font-semibold text-slate-900">{formatDate(activeReceipt.expiresAt)}</span></p>
+              </div>
+            </div>
+            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <p className="mt-1">Note: Proceed to your university registrar to claim this requested credential. Registrar fees may apply before credentials can be released. Please follow your university registrar working hours.</p>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => void navigator.clipboard.writeText(activeReceipt.verificationUrl)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Copy verification URL
+              </button>
+              <button
+                type="button"
+                onClick={() => buildReceiptPdf(activeReceipt, receiptQrDataUrl)}
+                className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+              >
+                Download Receipt (PDF)
+              </button>
+            </div>
           </motion.div>
         </div>
       )}

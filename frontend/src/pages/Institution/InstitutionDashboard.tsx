@@ -458,6 +458,10 @@ export default function InstitutionDashboard() {
   };
 
   const issueCredentialForRequest = async (request: CredentialRequest) => {
+    if (request.deliveryMethod === 'PHYSICAL') {
+      throw new Error('Digital issuance is blocked for PHYSICAL delivery requests.');
+    }
+
     let credentialId = request.credentialId;
     const selectedFile = issueFileByRequestId[request.id] ?? undefined;
     let uploadFileDuringIssue = selectedFile;
@@ -522,13 +526,23 @@ export default function InstitutionDashboard() {
       };
     }
 
-    await updateRequestStatus(
-      request.id,
-      'COMPLETED',
-      undefined,
-      `Credential issued by institution. Credential ID: ${credentialId}.`,
-      credentialId,
-    );
+    if (request.deliveryMethod === 'DIGITAL') {
+      await updateRequestStatus(
+        request.id,
+        'COMPLETED',
+        undefined,
+        `Credential issued by institution. Credential ID: ${credentialId}.`,
+        credentialId,
+      );
+    } else {
+      await updateRequestStatus(
+        request.id,
+        'APPROVED',
+        undefined,
+        `Digital credential issued for BOTH delivery. Awaiting physical claim.`,
+        credentialId,
+      );
+    }
 
     setRequests(previous =>
       previous.map(entry => (entry.id === request.id ? { ...entry, credentialId } : entry)),
@@ -552,12 +566,15 @@ export default function InstitutionDashboard() {
     return {
       credentialId,
       status: issued.status,
-      completed: true,
+      completed: request.deliveryMethod === 'DIGITAL',
       createdCredential,
     };
   };
 
-  const handleRequestAction = async (requestId: string, action: 'APPROVE' | 'REJECT' | 'ISSUE') => {
+  const handleRequestAction = async (
+    requestId: string,
+    action: 'APPROVE' | 'REJECT' | 'ISSUE' | 'MARK_PHYSICAL_CLAIMED',
+  ) => {
     try {
       if (action === 'APPROVE') {
         await updateRequestStatus(requestId, 'APPROVED');
@@ -570,6 +587,13 @@ export default function InstitutionDashboard() {
         await updateRequestStatus(requestId, 'REJECTED', reason);
         setRequestsHint('Request rejected.');
         createEvent('REQUEST', 'Credential request rejected', `Request ${requestId} rejected.`);
+        return;
+      }
+      if (action === 'MARK_PHYSICAL_CLAIMED') {
+        await CredentialService.markPhysicalClaimed(requestId);
+        setRequestsHint('Physical credential claim recorded. Request marked as completed.');
+        createEvent('REQUEST', 'Physical claim recorded', `Request ${requestId} marked as physically claimed.`);
+        await loadCredentials();
         return;
       }
 
@@ -587,7 +611,16 @@ export default function InstitutionDashboard() {
           `Request ${requestId} completed with credential ${result.credentialId}.`,
         );
       } else {
-        setRequestsHint(`Request ${requestId} updated.`);
+        if (request.deliveryMethod === 'BOTH') {
+          setRequestsHint('Digital credential issued for BOTH delivery. Mark physical claim after pickup.');
+          createEvent(
+            'REQUEST',
+            'Digital credential issued',
+            `Request ${requestId} issued digitally and remains approved until physical claim.`,
+          );
+        } else {
+          setRequestsHint(`Request ${requestId} updated.`);
+        }
       }
       await loadCredentials();
     } catch (error) {

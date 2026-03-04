@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { isAxiosError } from 'axios';
 import { setAuthTokenGetter } from '../api/client';
@@ -20,6 +20,7 @@ export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
   const { isLoaded, isSignedIn, getToken, signOut } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const refreshInFlightRef = useRef<Promise<User | null> | null>(null);
 
   const refreshUser = useCallback(async (): Promise<User | null> => {
     if (!isSignedIn) {
@@ -29,23 +30,34 @@ export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
       return null;
     }
 
-    try {
-      setAuthTokenGetter(async () => {
-        const token = await getToken();
-        return token ?? null;
-      });
-
-      const currentUser = await UserService.getMe();
-      setUser(currentUser);
-      return currentUser;
-    } catch (error) {
-      if (isAxiosError(error) && error.response?.status === 404) {
-        setUser(null);
-        return null;
-      }
-
-      throw error;
+    if (refreshInFlightRef.current) {
+      return refreshInFlightRef.current;
     }
+
+    const request = (async (): Promise<User | null> => {
+      try {
+        setAuthTokenGetter(async () => {
+          const token = await getToken();
+          return token ?? null;
+        });
+
+        const currentUser = await UserService.getMe();
+        setUser(currentUser);
+        return currentUser;
+      } catch (error) {
+        if (isAxiosError(error) && error.response?.status === 404) {
+          setUser(null);
+          return null;
+        }
+
+        throw error;
+      } finally {
+        refreshInFlightRef.current = null;
+      }
+    })();
+
+    refreshInFlightRef.current = request;
+    return request;
   }, [getToken, isSignedIn]);
 
   useEffect(() => {

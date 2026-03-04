@@ -92,12 +92,6 @@ export interface UpsertStudentProfilePayload {
   guardianRelationship?: string | null;
 }
 
-export interface CompleteStudentOnboardingPayload extends UpsertStudentProfilePayload {
-  firstName: string;
-  middleName?: string | null;
-  lastName: string;
-}
-
 export type OrganizationRole = 'EMPLOYER' | 'INSTITUTION';
 
 interface CompleteOrganizationOnboardingBasePayload {
@@ -200,7 +194,7 @@ export const UserService = {
   },
 
   completeOrganizationOnboarding: async (data: CompleteOrganizationOnboardingPayload) => {
-    const response = await api.post<User>('/users/me/onboarding', data);
+    const response = await api.post<User>('/users/me/onboarding', data, { timeout: 15000 });
     return response.data;
   },
 

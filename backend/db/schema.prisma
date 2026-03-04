@@ -115,6 +115,10 @@ enum AuditAction {
   QR_TOKEN_CONSUMED
   QR_TOKEN_INVALID
   QR_TOKEN_EXPIRED
+  REQUEST_RECEIPT_GENERATED
+  REQUEST_RECEIPT_VERIFIED
+  REQUEST_RECEIPT_INVALID
+  REQUEST_RECEIPT_EXPIRED
 }
 
 enum AuditSeverity {
@@ -178,6 +182,7 @@ model User {
   qrTokens           CredentialQrToken[]
   stepUpChallenges   StepUpChallenge[]
   stepUpSessions     StepUpSession[]
+  requestApprovalReceipts CredentialRequestApprovalReceipt[] @relation("ReceiptStudent")
 
   @@index([role])
   @@index([status])
@@ -416,12 +421,43 @@ model CredentialRequest {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  approvalReceipts CredentialRequestApprovalReceipt[]
 
   @@index([studentId])
   @@index([status])
   @@index([processedById])
   @@index([employerId])
   @@index([institutionId])
+}
+
+
+
+
+
+
+
+// approved request receipt
+
+model CredentialRequestApprovalReceipt {
+  id            String   @id @default(uuid())
+  requestId      String
+  studentId      String
+  institutionId  String
+  receiptCode    String   @unique
+  tokenHash      String   @unique
+  expiresAt      DateTime
+  usedAt         DateTime?
+  invalidatedAt  DateTime?
+  createdAt      DateTime @default(now())
+
+  request      CredentialRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  student      User              @relation("ReceiptStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  institution  Institution       @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@index([requestId, studentId, expiresAt])
+  @@index([studentId, createdAt])
+  @@index([usedAt])
+  @@index([invalidatedAt])
 }
 
 
@@ -528,6 +564,7 @@ model Institution {
 
   users              User[]              @relation("InstitutionUsers")
   credentialRequests CredentialRequest[] @relation("InstitutionCredentialRequests")
+  requestApprovalReceipts CredentialRequestApprovalReceipt[]
 
   @@index([email])
 }

@@ -26,9 +26,6 @@ export const ENV = {
   HASH_HMAC_SECRET: parseRequired(process.env.BLOCKCHAIN_HASH_HMAC_SECRET, 'BLOCKCHAIN_HASH_HMAC_SECRET'),
 };
 
-if (
-  ENV.NODE_ENV === 'production' &&
-  (!ENV.INTERNAL_SERVICE_TOKEN || ENV.INTERNAL_SERVICE_TOKEN.trim().length === 0)
-) {
-  throw new Error('INTERNAL_SERVICE_TOKEN is required for blockchain-interface-service in production mode.');
+if (!ENV.INTERNAL_SERVICE_TOKEN || ENV.INTERNAL_SERVICE_TOKEN.trim().length === 0) {
+  throw new Error('INTERNAL_SERVICE_TOKEN is required for blockchain-interface-service.');
 }

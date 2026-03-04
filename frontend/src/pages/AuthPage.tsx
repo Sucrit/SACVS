@@ -87,6 +87,9 @@ const getApiErrorMessage = (error: unknown): string | null => {
   }
 
   if (typeof error.message === 'string' && error.message.trim().length > 0) {
+    if (error.code === 'ECONNABORTED' || error.message.toLowerCase().includes('timeout')) {
+      return 'Request timed out. Please try again.';
+    }
     return error.message;
   }
 
@@ -330,6 +333,10 @@ export default function AuthPage() {
 
     if (!phoneNumber.trim()) {
       return 'Phone number is required.';
+    }
+
+    if (!/^\+63\d{10}$/.test(phoneNumber.trim())) {
+      return 'Phone number must use +63 followed by 10 digits (e.g. +639123456789).';
     }
 
     if (selectedRole === 'EMPLOYER' && !taxId.trim()) {

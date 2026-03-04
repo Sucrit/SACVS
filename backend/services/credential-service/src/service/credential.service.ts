@@ -676,6 +676,9 @@ export class CredentialService {
         if (error instanceof Error && error.message === 'BLOCKCHAIN_INTERFACE_UNREACHABLE') {
           throw new Error('BLOCKCHAIN_INTERFACE_UNREACHABLE');
         }
+        if (error instanceof Error && error.message === 'INTERNAL_AUTH_MISCONFIGURED') {
+          throw new Error('INTERNAL_AUTH_MISCONFIGURED');
+        }
         throw new Error('BLOCKCHAIN_ANCHOR_FAILED');
       }
     }
@@ -692,6 +695,9 @@ export class CredentialService {
         console.error('Blockchain revoke failed:', error);
         if (error instanceof Error && error.message === 'BLOCKCHAIN_INTERFACE_UNREACHABLE') {
           throw new Error('BLOCKCHAIN_INTERFACE_UNREACHABLE');
+        }
+        if (error instanceof Error && error.message === 'INTERNAL_AUTH_MISCONFIGURED') {
+          throw new Error('INTERNAL_AUTH_MISCONFIGURED');
         }
         throw new Error('BLOCKCHAIN_REVOKE_FAILED');
       }

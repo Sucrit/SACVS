@@ -6,15 +6,6 @@ const parseNumber = (value: string | undefined, fallback: number): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const resolveStepUpPepper = (): string | undefined => {
-  const configured = process.env.STEP_UP_TOKEN_PEPPER?.trim();
-  if (configured) return configured;
-  if ((process.env.NODE_ENV || 'development') !== 'production') {
-    return 'local-dev-step-up-pepper';
-  }
-  return undefined;
-};
-
 export const ENV = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: process.env.PORT,
@@ -24,7 +15,7 @@ export const ENV = {
   CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
   NOTIFICATION_SERVICE_URL: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5300',
   INTERNAL_SERVICE_TOKEN: process.env.INTERNAL_SERVICE_TOKEN,
-  STEP_UP_TOKEN_PEPPER: resolveStepUpPepper(),
+  STEP_UP_TOKEN_PEPPER: process.env.STEP_UP_TOKEN_PEPPER?.trim(),
   STEP_UP_OTP_TTL_SECONDS: parseNumber(process.env.STEP_UP_OTP_TTL_SECONDS, 300),
   STEP_UP_SESSION_TTL_SECONDS: parseNumber(process.env.STEP_UP_SESSION_TTL_SECONDS, 300),
   STEP_UP_MAX_ATTEMPTS: parseNumber(process.env.STEP_UP_MAX_ATTEMPTS, 5),
@@ -38,15 +29,8 @@ export const ENV = {
   REALTIME_GATEWAY_URL: process.env.REALTIME_GATEWAY_URL || 'http://localhost:4900',
 };
 
-if (
-  ENV.NODE_ENV === 'production' &&
-  (!ENV.STEP_UP_TOKEN_PEPPER || ENV.STEP_UP_TOKEN_PEPPER.trim().length === 0)
-) {
-  throw new Error('STEP_UP_TOKEN_PEPPER is required for user-service in production mode.');
-}
-
-if ((ENV.NODE_ENV || 'development') !== 'production' && !process.env.STEP_UP_TOKEN_PEPPER) {
-  console.warn('[user-service] STEP_UP_TOKEN_PEPPER is not set. Using local development fallback pepper.');
+if (!ENV.STEP_UP_TOKEN_PEPPER || ENV.STEP_UP_TOKEN_PEPPER.trim().length === 0) {
+  throw new Error('STEP_UP_TOKEN_PEPPER is required for user-service.');
 }
 
 if (

@@ -140,6 +140,36 @@ export interface QrVerificationResult {
   reason?: 'INVALID' | 'EXPIRED' | 'USED';
 }
 
+export interface ApprovalReceipt {
+  receiptId: string;
+  requestId: string;
+  receiptCode: string;
+  verificationUrl: string;
+  expiresAt: string;
+  ttlSeconds: number;
+  studentName: string;
+  studentNumber: string | null;
+  type: CredentialType;
+  deliveryMethod: DeliveryMethod;
+  approvedAt: string | null;
+  institutionName: string;
+}
+
+export interface ApprovalReceiptVerificationResult {
+  valid: boolean;
+  reason?: 'INVALID' | 'EXPIRED' | 'USED';
+  receipt: null | {
+    requestId: string;
+    receiptCode: string;
+    studentName: string;
+    studentNumber: string | null;
+    type: CredentialType;
+    deliveryMethod: DeliveryMethod;
+    approvedAt: string | null;
+    institutionName: string;
+  };
+}
+
 const toMultipartPayload = (data: CreateCredentialPayload | IssueCredentialPayload) => {
   const formData = new FormData();
 
@@ -238,6 +268,24 @@ export const CredentialService = {
       notes,
       credentialId,
     });
+    return response.data;
+  },
+
+  markPhysicalClaimed: async (requestId: string, notes?: string) => {
+    const response = await api.post<CredentialRequest>(
+      `/credentials/requests/${encodeURIComponent(requestId)}/mark-physical-claimed`,
+      notes ? { notes } : {},
+    );
+    return response.data;
+  },
+
+  getApprovalReceipt: async (requestId: string) => {
+    const response = await api.get<ApprovalReceipt>(`/credentials/requests/${encodeURIComponent(requestId)}/approval-receipt`);
+    return response.data;
+  },
+
+  verifyApprovalReceipt: async (token: string) => {
+    const response = await api.post<ApprovalReceiptVerificationResult>('/credentials/requests/verify-receipt', { token });
     return response.data;
   },
 

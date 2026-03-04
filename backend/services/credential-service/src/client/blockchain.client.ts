@@ -32,6 +32,10 @@ export class BlockchainClient {
     if (!baseUrl) {
       throw new Error('BLOCKCHAIN_INTERFACE_UNAVAILABLE');
     }
+    const internalToken = ENV.INTERNAL_SERVICE_TOKEN?.trim();
+    if (!internalToken) {
+      throw new Error('INTERNAL_AUTH_MISCONFIGURED');
+    }
 
     let response: Response;
     try {
@@ -39,9 +43,7 @@ export class BlockchainClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(ENV.INTERNAL_SERVICE_TOKEN
-            ? { 'x-internal-service-token': ENV.INTERNAL_SERVICE_TOKEN }
-            : {}),
+          'x-internal-service-token': internalToken,
         },
         body: JSON.stringify(payload),
       });
@@ -64,6 +66,10 @@ export class BlockchainClient {
     if (!baseUrl) {
       throw new Error('BLOCKCHAIN_INTERFACE_UNAVAILABLE');
     }
+    const internalToken = ENV.INTERNAL_SERVICE_TOKEN?.trim();
+    if (!internalToken) {
+      throw new Error('INTERNAL_AUTH_MISCONFIGURED');
+    }
 
     let response: Response;
     try {
@@ -71,9 +77,7 @@ export class BlockchainClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(ENV.INTERNAL_SERVICE_TOKEN
-            ? { 'x-internal-service-token': ENV.INTERNAL_SERVICE_TOKEN }
-            : {}),
+          'x-internal-service-token': internalToken,
         },
         body: JSON.stringify(payload),
       });

@@ -220,4 +220,115 @@ export class CredentialRequestController {
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }
+
+  async getApprovalReceipt(req: Request, res: Response): Promise<Response> {
+    const userId = this.getAuthUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const requestId: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+    try {
+      const receipt = await credentialRequestService.getApprovalReceipt(userId, requestId);
+      return res.status(200).json(receipt);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
+        return res.status(404).json({ error: 'Authenticated user record was not found.' });
+      }
+      if (error instanceof Error && error.message === 'REQUEST_NOT_FOUND') {
+        return res.status(404).json({ error: 'Credential request not found.' });
+      }
+      if (error instanceof Error && error.message === 'REQUEST_NOT_APPROVED') {
+        return res.status(400).json({ error: 'Receipt is available only for approved requests.' });
+      }
+      if (error instanceof Error && error.message === 'RECEIPT_NOT_REQUIRED') {
+        return res.status(400).json({ error: 'Receipt is not required for DIGITAL delivery.' });
+      }
+      if (error instanceof Error && error.message === 'FORBIDDEN_SCOPE') {
+        return res.status(403).json({ error: 'Not allowed to access this approval receipt.' });
+      }
+      if (error instanceof Error && error.message === 'FORBIDDEN_ROLE') {
+        return res.status(403).json({ error: 'This account is not allowed to access approval receipts.' });
+      }
+      if (error instanceof Error && error.message === 'INSTITUTION_CONTEXT_MISSING') {
+        return res.status(403).json({ error: 'Institution context is missing for this account.' });
+      }
+      if (error instanceof Error && error.message === 'REQUEST_RECEIPT_TOKEN_PEPPER_MISSING') {
+        return res.status(500).json({ error: 'REQUEST_RECEIPT_TOKEN_PEPPER_MISSING' });
+      }
+      if (error instanceof Error && error.message === 'REQUEST_RECEIPT_VERIFY_BASE_URL_MISSING') {
+        return res.status(500).json({ error: 'REQUEST_RECEIPT_VERIFY_BASE_URL_MISSING' });
+      }
+
+      console.error('Error fetching request approval receipt:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async verifyApprovalReceipt(req: Request, res: Response): Promise<Response> {
+    const token = typeof req.body?.token === 'string' ? req.body.token : '';
+    if (!token.trim()) {
+      return res.status(400).json({ error: 'Missing token.' });
+    }
+
+    try {
+      const result = await credentialRequestService.verifyApprovalReceiptToken(token);
+      return res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'REQUEST_RECEIPT_TOKEN_PEPPER_MISSING') {
+        return res.status(500).json({ error: 'REQUEST_RECEIPT_TOKEN_PEPPER_MISSING' });
+      }
+
+      console.error('Error verifying request approval receipt:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async markPhysicalClaimed(req: Request, res: Response): Promise<Response> {
+    const userId = this.getAuthUserId(req);
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const requestId: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const notes = typeof req.body?.notes === 'string' ? req.body.notes : undefined;
+
+    try {
+      const updated = await credentialRequestService.markPhysicalClaimed(userId, requestId, notes);
+      return res.status(200).json(updated);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
+        return res.status(404).json({ error: 'Authenticated user record was not found.' });
+      }
+      if (error instanceof Error && error.message === 'REQUEST_NOT_FOUND') {
+        return res.status(404).json({ error: 'Credential request not found.' });
+      }
+      if (error instanceof Error && error.message === 'FORBIDDEN_ROLE') {
+        return res.status(403).json({ error: 'This account is not allowed to mark physical claims.' });
+      }
+      if (error instanceof Error && error.message === 'FORBIDDEN_SCOPE') {
+        return res.status(403).json({ error: 'Not allowed to modify this credential request.' });
+      }
+      if (error instanceof Error && error.message === 'INSTITUTION_CONTEXT_MISSING') {
+        return res.status(403).json({ error: 'Institution context is missing for this account.' });
+      }
+      if (error instanceof Error && error.message === 'PHYSICAL_CLAIM_NOT_APPLICABLE') {
+        return res.status(400).json({
+          error: 'Physical claim action applies only to PHYSICAL or BOTH delivery requests.',
+        });
+      }
+      if (error instanceof Error && error.message === 'REQUEST_NOT_APPROVED') {
+        return res.status(400).json({ error: 'Only approved requests can be marked as physically claimed.' });
+      }
+      if (error instanceof Error && error.message === 'DIGITAL_ISSUANCE_REQUIRED_BEFORE_PHYSICAL_CLAIM') {
+        return res.status(400).json({
+          error: 'For BOTH delivery, issue/link the digital credential before marking physical claim.',
+        });
+      }
+
+      console.error('Error marking physical claim:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
 }

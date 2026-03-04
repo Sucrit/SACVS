@@ -52,3 +52,33 @@ export interface CredentialRequestResponseDto {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface ApprovalReceiptResponseDto {
+  receiptId: string;
+  requestId: string;
+  receiptCode: string;
+  verificationUrl: string;
+  expiresAt: string;
+  ttlSeconds: number;
+  studentName: string;
+  studentNumber: string | null;
+  type: CredentialType;
+  deliveryMethod: DeliveryMethod;
+  approvedAt: string | null;
+  institutionName: string;
+}
+
+export interface ApprovalReceiptVerificationResultDto {
+  valid: boolean;
+  reason?: 'INVALID' | 'EXPIRED' | 'USED';
+  receipt: null | {
+    requestId: string;
+    receiptCode: string;
+    studentName: string;
+    studentNumber: string | null;
+    type: CredentialType;
+    deliveryMethod: DeliveryMethod;
+    approvedAt: string | null;
+    institutionName: string;
+  };
+}

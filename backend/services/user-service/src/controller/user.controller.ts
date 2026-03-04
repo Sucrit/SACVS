@@ -23,6 +23,11 @@ const getAuthUserId = (req: Request): string | null => {
   return authReq.auth?.sub ?? null;
 };
 
+const getAuthUserEmail = (req: Request): string | null => {
+  const authReq = req as AuthenticatedRequest;
+  return authReq.auth?.email ?? null;
+};
+
 export class UserController {
   private isValidPhilippinePhoneNumber(value: string): boolean {
     return PH_PHONE_REGEX.test(value.trim());
@@ -200,6 +205,7 @@ export class UserController {
 
   async completeOrganizationOnboarding(req: Request, res: Response): Promise<Response> {
     const userId = getAuthUserId(req);
+    const userEmail = getAuthUserEmail(req);
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -278,9 +284,15 @@ export class UserController {
     }
 
     try {
-      const user = await userService.completeOrganizationOnboarding(userId, data);
+      const user = await userService.completeOrganizationOnboarding(userId, data, userEmail ?? undefined);
       return res.status(200).json(user);
     } catch (error) {
+      if (error instanceof Error && error.message === 'CLERK_TIMEOUT') {
+        return res.status(504).json({ error: 'Identity provider timed out. Please try again.' });
+      }
+      if (error instanceof Error && error.message === 'CLERK_UNAVAILABLE') {
+        return res.status(502).json({ error: 'Identity provider is unavailable. Please try again.' });
+      }
       if (error instanceof Error && error.message === 'CLERK_EMAIL_NOT_AVAILABLE') {
         return res.status(400).json({ error: 'Authenticated account has no usable email.' });
       }

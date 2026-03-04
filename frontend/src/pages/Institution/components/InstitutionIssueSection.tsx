@@ -38,7 +38,10 @@ interface InstitutionIssueSectionProps {
   onIssueFileChange: (requestId: string, file: File | null) => void;
   onIssueExpiryChange: (requestId: string, expiryDate: string) => void;
   onIssueCertificateCategoryChange: (requestId: string, value: CertificateCategory) => void;
-  onRequestAction: (requestId: string, action: 'APPROVE' | 'REJECT' | 'ISSUE') => Promise<void>;
+  onRequestAction: (
+    requestId: string,
+    action: 'APPROVE' | 'REJECT' | 'ISSUE' | 'MARK_PHYSICAL_CLAIMED',
+  ) => Promise<void>;
   onDirectIssue: (payload: {
     studentId: string;
     type: CredentialType;
@@ -380,11 +383,23 @@ export default function InstitutionIssueSection({
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100">
+                      <label
+                        className={`inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ${
+                          request.deliveryMethod === 'PHYSICAL'
+                            ? 'cursor-not-allowed opacity-60'
+                            : 'cursor-pointer hover:bg-slate-100'
+                        }`}
+                        title={
+                          request.deliveryMethod === 'PHYSICAL'
+                            ? 'Digital attachment is blocked for PHYSICAL delivery requests.'
+                            : 'Attach file'
+                        }
+                      >
                         <input
                           type="file"
                           accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
                           className="hidden"
+                          disabled={request.deliveryMethod === 'PHYSICAL'}
                           onChange={event => onIssueFileChange(request.id, event.target.files?.[0] ?? null)}
                         />
                         <Upload size={12} />
@@ -394,13 +409,16 @@ export default function InstitutionIssueSection({
                     <td className="px-4 py-3 text-right">
                       <button
                         disabled={
+                          request.deliveryMethod === 'PHYSICAL' ||
                           (!request.credentialId && !issueFileByRequestId[request.id]) ||
                           (requestRequiresExpiry && !issueExpiryByRequestId[request.id])
                         }
                         onClick={() => void onRequestAction(request.id, 'ISSUE')}
                         className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
                         title={
-                          !request.credentialId && !issueFileByRequestId[request.id]
+                          request.deliveryMethod === 'PHYSICAL'
+                            ? 'Digital issuance is blocked for PHYSICAL delivery requests.'
+                            : !request.credentialId && !issueFileByRequestId[request.id]
                             ? 'Attach a file to issue this credential.'
                             : requestRequiresExpiry && !issueExpiryByRequestId[request.id]
                               ? 'Set an expiry date before issuing this credential.'
@@ -411,6 +429,20 @@ export default function InstitutionIssueSection({
                         Issue
                         <span className={OTP_BADGE_CLASS}>OTP</span>
                       </button>
+                      {(request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') && (
+                        <button
+                          disabled={request.deliveryMethod === 'BOTH' && !request.credentialId}
+                          onClick={() => void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED')}
+                          className="ml-2 inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                          title={
+                            request.deliveryMethod === 'BOTH' && !request.credentialId
+                              ? 'Issue/link the digital credential first for BOTH delivery.'
+                              : 'Mark physical credential as claimed and complete the request.'
+                          }
+                        >
+                          Mark Claimed
+                        </button>
+                      )}
                     </td>
                         </>
                       );

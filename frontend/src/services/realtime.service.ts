@@ -16,12 +16,17 @@ type RealtimeMessage =
 type Listener = (event: RealtimeEventEnvelope) => void;
 
 const parseGatewayBase = (): string => {
-  const configured = (import.meta.env.VITE_GATEWAY_URL || import.meta.env.VITE_API_URL || 'http://localhost:4900')
-    .trim()
-    .replace(/\/+$/, '');
-  if (configured.startsWith('https://')) return configured.replace('https://', 'wss://');
-  if (configured.startsWith('http://')) return configured.replace('http://', 'ws://');
-  return 'ws://localhost:4900';
+  const configured = [import.meta.env.VITE_GATEWAY_URL, import.meta.env.VITE_API_URL].find(
+    (value): value is string => typeof value === 'string' && value.trim().length > 0,
+  );
+  if (!configured) {
+    throw new Error('Missing realtime gateway URL: set VITE_GATEWAY_URL in frontend/.env');
+  }
+
+  const normalized = configured.trim().replace(/\/+$/, '');
+  if (normalized.startsWith('https://')) return normalized.replace('https://', 'wss://');
+  if (normalized.startsWith('http://')) return normalized.replace('http://', 'ws://');
+  throw new Error('Invalid realtime gateway URL: must start with http:// or https://');
 };
 
 export class RealtimeService {

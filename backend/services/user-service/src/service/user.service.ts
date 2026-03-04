@@ -22,6 +22,22 @@ import { realtimeClient } from '../client/realtime.client';
 const userRepository = new UserRepository();
 
 const normalizeEmail = (value: string): string => value.trim().toLowerCase();
+const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, errorCode: string): Promise<T> => {
+  let timeoutHandle: NodeJS.Timeout | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error(errorCode)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
+};
 const stepUpActionLabel = (action: StepUpAction): string => {
   if (action === 'ROLE_CHANGE') return 'Role change';
   if (action === 'STATUS_CHANGE') return 'Status change';
@@ -473,8 +489,21 @@ export class UserService {
     return updated;
   }
 
-  async completeOrganizationOnboarding(clerkUserId: string, data: CompleteOrganizationOnboardingDto) {
-    const clerkUser = await clerkClient.users.getUser(clerkUserId);
+  async completeOrganizationOnboarding(
+    clerkUserId: string,
+    data: CompleteOrganizationOnboardingDto,
+    _authenticatedEmail?: string | null,
+  ) {
+    let clerkUser;
+    try {
+      clerkUser = await withTimeout(clerkClient.users.getUser(clerkUserId), 8000, 'CLERK_TIMEOUT');
+    } catch (error) {
+      if (error instanceof Error && error.message === 'CLERK_TIMEOUT') {
+        throw error;
+      }
+      throw new Error('CLERK_UNAVAILABLE');
+    }
+
     const primaryEmail = clerkUser.emailAddresses.find(
       entry => entry.id === clerkUser.primaryEmailAddressId,
     )?.emailAddress;

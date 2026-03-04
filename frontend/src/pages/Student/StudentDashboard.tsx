@@ -570,7 +570,7 @@ export default function StudentDashboard() {
         <>
           {isCredentialsEmptyPage ? (
             <StudentEmptyStateSection
-              title="No Credentials Yet"
+              title="No Digital Credentials Yet"
               description="Credentials issued by your institution will appear here."
               icon={<ShieldCheck size={28} />}
             />
