@@ -2,6 +2,8 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { isAxiosError } from 'axios';
 import { StepUpAction, UserService } from '../../services/user.service';
+import ButtonLoadingContent from './ButtonLoadingContent';
+import { useToast } from '../../hooks/useToast';
 
 export interface StepUpPrompt {
   action: StepUpAction;
@@ -71,13 +73,13 @@ const formatRemaining = (seconds: number) => {
 };
 
 export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOtpModalProps) {
+  const { showToast } = useToast();
   const [challengeId, setChallengeId] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
   const [otpCode, setOtpCode] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const description = useMemo(() => {
     if (!prompt) return '';
@@ -90,7 +92,6 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
       setChallengeId(null);
       setExpiresAt(null);
       setOtpCode('');
-      setError(null);
       setIsSending(false);
       setIsVerifying(false);
       setSecondsRemaining(0);
@@ -100,7 +101,6 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
     let cancelled = false;
     const issueChallenge = async () => {
       setIsSending(true);
-      setError(null);
       setOtpCode('');
       try {
         const response = await UserService.createStepUpChallenge({
@@ -115,7 +115,10 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
         if (!cancelled) {
           setChallengeId(null);
           setExpiresAt(null);
-          setError(getApiErrorMessage(requestError));
+          showToast({
+            variant: 'error',
+            message: getApiErrorMessage(requestError),
+          });
         }
       } finally {
         if (!cancelled) {
@@ -128,7 +131,7 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
     return () => {
       cancelled = true;
     };
-  }, [prompt]);
+  }, [prompt, showToast]);
 
   useEffect(() => {
     if (!expiresAt || !prompt) {
@@ -155,7 +158,6 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
 
   const handleResend = async () => {
     setIsSending(true);
-    setError(null);
     setOtpCode('');
     try {
       const response = await UserService.createStepUpChallenge({
@@ -166,7 +168,10 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
       setChallengeId(response.challengeId);
       setExpiresAt(response.expiresAt);
     } catch (requestError) {
-      setError(getApiErrorMessage(requestError));
+      showToast({
+        variant: 'error',
+        message: getApiErrorMessage(requestError),
+      });
     } finally {
       setIsSending(false);
     }
@@ -176,18 +181,21 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
     event.preventDefault();
     const trimmed = otpCode.trim();
     if (!challengeId || trimmed.length === 0) {
-      setError('Enter the OTP code first.');
+      showToast({ variant: 'warning', message: 'Enter the OTP code first.' });
       return;
     }
 
     setIsVerifying(true);
-    setError(null);
     try {
       const result = await UserService.verifyStepUpChallenge(challengeId, trimmed);
       onVerified(result.stepUpToken);
       setOtpCode('');
+      showToast({ variant: 'success', message: 'OTP verified successfully.' });
     } catch (verifyError) {
-      setError(getApiErrorMessage(verifyError));
+      showToast({
+        variant: 'error',
+        message: getApiErrorMessage(verifyError),
+      });
     } finally {
       setIsVerifying(false);
     }
@@ -221,7 +229,7 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
           <p className="text-sm text-slate-600">{description}</p>
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
             {isSending
-              ? 'Sending OTP...'
+              ? 'Sending OTP'
               : hasChallenge
                 ? `OTP expires in ${formatRemaining(secondsRemaining)}.`
                 : 'No active OTP challenge. Click Resend Code.'}
@@ -240,12 +248,6 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
             />
           </label>
 
-          {error && (
-            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
-              {error}
-            </div>
-          )}
-
           <div className="flex flex-wrap items-center justify-between gap-2">
             <button
               type="button"
@@ -253,14 +255,14 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
               disabled={isSending || isVerifying}
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
-              {isSending ? 'Sending...' : 'Resend Code'}
+              {isSending ? <ButtonLoadingContent label="Sending" /> : 'Resend Code'}
             </button>
             <button
               type="submit"
               disabled={disableVerify}
               className="rounded-xl border border-slate-900 bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
             >
-              {isVerifying ? 'Verifying...' : 'Verify and Continue'}
+              {isVerifying ? <ButtonLoadingContent label="Verifying" /> : 'Verify and Continue'}
             </button>
           </div>
         </form>

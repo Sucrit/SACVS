@@ -11,7 +11,9 @@ import {
   UserRound,
 } from 'lucide-react';
 import Card from '../../../components/common/Card';
+import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import { StudentSex, User } from '../../../services/user.service';
+import { useToast } from '../../../hooks/useToast';
 
 const PH_LOCAL_PHONE_REGEX = /^9\d{9}$/;
 const GUARDIAN_RELATIONSHIP_OPTIONS = [
@@ -78,6 +80,7 @@ export default function StudentProfileSection({
   onSavePersonalInfo,
   isSavingPersonalInfo,
 }: StudentProfileSectionProps) {
+  const { showToast } = useToast();
   const [street, setStreet] = useState('');
   const [barangay, setBarangay] = useState('');
   const [city, setCity] = useState('');
@@ -90,7 +93,6 @@ export default function StudentProfileSection({
   const [guardianRelationship, setGuardianRelationship] = useState('');
   const [guardianRelationshipCustom, setGuardianRelationshipCustom] = useState('');
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveHint, setSaveHint] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.profile) {
@@ -152,7 +154,6 @@ export default function StudentProfileSection({
   const handleSavePersonalInfo = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaveError(null);
-    setSaveHint(null);
 
     const trimmedStreet = street.trim();
     const trimmedBarangay = barangay.trim();
@@ -193,9 +194,15 @@ export default function StudentProfileSection({
         guardianFullName: guardianFullName.trim() ? guardianFullName.trim() : null,
         guardianRelationship: resolvedGuardianRelationship ? resolvedGuardianRelationship : null,
       });
-      setSaveHint('Profile information updated.');
+      showToast({
+        variant: 'success',
+        message: 'Student profile updated successfully.',
+      });
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : 'Unable to update profile information.');
+      showToast({
+        variant: 'error',
+        message: error instanceof Error ? error.message : 'Unable to update profile information.',
+      });
     }
   };
 
@@ -423,19 +430,13 @@ export default function StudentProfileSection({
               {saveError}
             </div>
           )}
-          {saveHint && !saveError && (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-              {saveHint}
-            </div>
-          )}
-
           <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
             <button
               type="submit"
               disabled={isSavingPersonalInfo}
               className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSavingPersonalInfo ? 'Saving...' : 'Save Information'}
+              {isSavingPersonalInfo ? <ButtonLoadingContent label="Saving" /> : 'Save Information'}
             </button>
           </div>
         </form>

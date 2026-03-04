@@ -4,6 +4,7 @@ import App from './App.tsx'
 import './index.css'
 import { ClerkProvider } from '@clerk/clerk-react'
 import { LegacyAuthProvider } from './auth/auth-context'
+import { ToastProvider } from './components/common/ToastProvider'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 if (!PUBLISHABLE_KEY) {
@@ -21,7 +22,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       signUpFallbackRedirectUrl="/auth/signup"
     >
       <LegacyAuthProvider>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </LegacyAuthProvider>
     </ClerkProvider>
   </React.StrictMode>,

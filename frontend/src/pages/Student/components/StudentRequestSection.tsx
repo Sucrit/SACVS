@@ -11,7 +11,6 @@ import { CREDENTIAL_TYPES, DELIVERY_METHODS } from '../utils';
 interface StudentRequestSectionProps {
   requestForm: CreateCredentialRequestPayload;
   isSubmittingRequest: boolean;
-  requestError: string | null;
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<boolean>;
   onTypeChange: (value: CredentialType) => void;
   onTitleChange: (value: string) => void;
@@ -23,7 +22,6 @@ interface StudentRequestSectionProps {
 export default function StudentRequestSection({
   requestForm,
   isSubmittingRequest,
-  requestError,
   onSubmit,
   onTypeChange,
   onTitleChange,
@@ -155,8 +153,6 @@ export default function StudentRequestSection({
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {requestError && <p className="text-xs text-rose-700">{requestError}</p>}
 
               <div className="flex items-center justify-end gap-2">
                 <button

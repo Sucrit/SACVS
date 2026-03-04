@@ -2,9 +2,15 @@ import { ChangeEvent, FormEvent, useLayoutEffect, useMemo, useRef, useState } fr
 import { Check, ChevronDown, PauseCircle, Pencil, Search, Trash2, Upload, UserPlus, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
+import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import { User, UserStatus } from '../../../services/user.service';
 import { StudentFormState, StudentStatusFilter, STUDENT_STATUS_OPTIONS } from '../types';
 import { getStudentFullName } from '../utils';
+import {
+  DEFAULT_DEPARTMENT_OPTIONS,
+  OTHER_PHINMA_PROGRAMS,
+  PHINMA_DEPARTMENT_COURSE_MAP,
+} from '../constants';
 
 interface InstitutionStudentsSectionProps {
   studentForm: StudentFormState;
@@ -40,56 +46,6 @@ const formatDateTime = (value: string | null): string => {
   return date.toLocaleString();
 };
 
-const PHINMA_DEPARTMENT_COURSE_MAP: Record<string, string[]> = {
-  'College of Engineering and Architecture (CEA)': [
-    'Bachelor of Science in Civil Engineering',
-    'Bachelor of Science in Architecture',
-    'Bachelor of Science in Electronics Communication Engineering',
-    'Bachelor of Science in Computer Engineering',
-    'Bachelor of Science in Electrical Engineering',
-    'Certificate in Building Technology',
-  ],
-  'College of Information Technology Education (CITE)': [
-    'Bachelor of Science in Information Technology',
-    'Associate in Computer Technology',
-  ],
-  'College of Allied Health Sciences (CAHS)': [
-    'Bachelor of Science in Nursing',
-    'Bachelor of Science in Medical Laboratory Science',
-    'Bachelor of Science in Physical Therapy',
-    'Diploma in Midwifery',
-    'Diploma in Caregiving',
-  ],
-  'College of Management and Accountancy (CMA)': [
-    'Bachelor of Science in Business Administration (Financial Management)',
-    'Bachelor of Science in Business Administration (Marketing Management)',
-    'Bachelor of Science in Accountancy',
-    'Bachelor of Science in Accounting Technology',
-    'Bachelor of Science in Hotel and Restaurant Management',
-    'Bachelor of Science in Tourism Management',
-  ],
-  'College of Education and Liberal Arts (CELA)': [
-    'Bachelor of Elementary Education',
-    'Bachelor of Secondary Education (English)',
-    'Bachelor of Secondary Education (Mathematics)',
-    'Bachelor of Secondary Education (Biology)',
-    'Bachelor of Secondary Education (Filipino)',
-    'Bachelor of Arts in Mass Communication',
-    'Bachelor of Arts in Political Science',
-  ],
-  'College of Social Sciences (CSS)': [
-    'Bachelor of Arts in Political Science',
-    'Bachelor of Arts in Mass Communication',
-  ],
-  'College of Criminal Justice Education (CCJE)': [
-    'Bachelor of Science in Criminology',
-  ],
-};
-
-const OTHER_PHINMA_PROGRAMS = [
-  'Bachelor of Laws',
-];
-
 const DEFAULT_YEAR_LEVEL_OPTIONS = [
   '1st Year',
   '2nd Year',
@@ -99,7 +55,6 @@ const DEFAULT_YEAR_LEVEL_OPTIONS = [
   'Graduate',
 ];
 
-const DEFAULT_DEPARTMENT_OPTIONS = Object.keys(PHINMA_DEPARTMENT_COURSE_MAP);
 const OTP_BADGE_CLASS =
   'rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700';
 
@@ -268,7 +223,6 @@ export default function InstitutionStudentsSection({
         >
           <Upload size={14} />
           Bulk Account Import (CSV)
-          <span className={OTP_BADGE_CLASS}>OTP</span>
           <ChevronDown size={14} className={`transition-transform ${activePanel === 'bulk' ? 'rotate-180' : ''}`} />
         </button>
       </div>
@@ -311,10 +265,6 @@ export default function InstitutionStudentsSection({
                     </span>
                     <input required type="email" value={studentForm.email} onChange={event => onSetStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
                   </label>
-
-                  <p className="pt-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:col-span-2 xl:col-span-3">
-                    Student Record
-                  </p>
                   <label className="space-y-1.5">
                     <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
                       Student number <span className="text-rose-500">*</span>
@@ -383,7 +333,7 @@ export default function InstitutionStudentsSection({
                 </div>
                 <button type="submit" disabled={isSubmittingStudent} className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-black disabled:opacity-60">
                   <UserPlus size={14} />
-                  {isSubmittingStudent ? 'Creating...' : 'Create Student'}
+                  {isSubmittingStudent ? <ButtonLoadingContent label="Creating" /> : 'Create Student'}
                 </button>
               </form>
             </Card>
@@ -404,7 +354,7 @@ export default function InstitutionStudentsSection({
             </p>
             <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
               <Upload size={14} />
-              {isBulkImporting ? 'Importing...' : 'Upload CSV'}
+              {isBulkImporting ? <ButtonLoadingContent label="Importing" /> : 'Upload CSV'}
               {!isBulkImporting && <span className={OTP_BADGE_CLASS}>OTP Required</span>}
               <input type="file" accept=".csv,text/csv" onChange={event => { void onBulkCsvUpload(event); }} className="hidden" />
             </label>

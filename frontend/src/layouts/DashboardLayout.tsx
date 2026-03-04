@@ -3,6 +3,7 @@ import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-route
 import { UserButton } from '@clerk/clerk-react';
 import {
   Bell,
+  ChartColumnBig,
   Building2,
   CheckCheck,
   ChevronDown,
@@ -27,6 +28,7 @@ import { useLegacyAuth } from '../auth/auth-context';
 import { realtimeService } from '../services/realtime.service';
 import logoCompact from '../assets/c-version_logo.png';
 import credentialsIcon from '../assets/credentials.svg';
+import ButtonLoadingContent from '../components/common/ButtonLoadingContent';
 
 const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string }>> = {
   STUDENT: [
@@ -39,6 +41,8 @@ const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string }>> = {
     { to: '/institution/issue', label: 'Student Credentials' },
     { to: '/institution/students', label: 'Students' },
     { to: '/institution/requests', label: 'Requests' },
+    { to: '/institution/analytics', label: 'Analytics' },
+    { to: '/institution/receipt-verify', label: 'Receipt Verify' },
     { to: '/institution/logs', label: 'Audit Logs' },
   ],
   EMPLOYER: [
@@ -61,8 +65,10 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   '/student/requests': FileText,
   '/student/profile': User,
   '/institution': LayoutDashboard,
+  '/institution/analytics': ChartColumnBig,
   '/institution/students': Users,
   '/institution/requests': FileText,
+  '/institution/receipt-verify': Shield,
   '/employer': LayoutDashboard,
   '/employer/requests': FileText,
   '/employer/verifications': Shield,
@@ -478,7 +484,7 @@ export default function DashboardLayout() {
                                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                                   >
                                     <CheckCheck size={15} />
-                                    {isMarkingAllRead ? 'Marking...' : 'Mark all as read'}
+                                    {isMarkingAllRead ? <ButtonLoadingContent label="Marking" /> : 'Mark all as read'}
                                   </button>
                                   <button
                                     type="button"

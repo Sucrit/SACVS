@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Clock3, Download, Eye, ShieldCheck, XCircle } from 'lucide-react';
 import { CredentialService, QrVerificationResult } from '../../services/credential.service';
+import ButtonLoadingContent from '../../components/common/ButtonLoadingContent';
 
 const parseTokenInput = (raw: string): string => {
   const trimmed = raw.trim();
@@ -238,7 +239,7 @@ export default function CredentialQrVerifyPage() {
                         className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
                       >
                         <Eye size={13} />
-                        {isLoadingDocument ? 'Opening...' : 'Preview Document'}
+                        {isLoadingDocument ? <ButtonLoadingContent label="Opening" /> : 'Preview Document'}
                       </button>
                     )}
                     {result.documentAccess.downloadEnabled && (
@@ -249,7 +250,7 @@ export default function CredentialQrVerifyPage() {
                         className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
                       >
                         <Download size={13} />
-                        {isLoadingDocument ? 'Preparing...' : 'Download Document'}
+                        {isLoadingDocument ? <ButtonLoadingContent label="Preparing" /> : 'Download Document'}
                       </button>
                     )}
                   </div>

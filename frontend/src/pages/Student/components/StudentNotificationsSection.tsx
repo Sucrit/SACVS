@@ -6,6 +6,7 @@ import {
   Settings,
 } from 'lucide-react';
 import Card from '../../../components/common/Card';
+import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import {
   AppNotification,
   getNotificationDisplayMessage,
@@ -147,7 +148,7 @@ export default function StudentNotificationsSection({
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <CheckCheck size={15} />
-                    {isMarkingAllRead ? 'Marking...' : 'Mark all as read'}
+                    {isMarkingAllRead ? <ButtonLoadingContent label="Marking" /> : 'Mark all as read'}
                   </button>
                   <button
                     type="button"

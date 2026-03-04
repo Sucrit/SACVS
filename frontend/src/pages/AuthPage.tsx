@@ -6,7 +6,6 @@ import {
   SignedOut,
   useUser,
 } from '@clerk/clerk-react';
-import { isAxiosError } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useLegacyAuth } from '../auth/auth-context';
 import {
@@ -16,8 +15,11 @@ import {
   User,
   UserService,
 } from '../services/user.service';
+import ButtonLoadingContent from '../components/common/ButtonLoadingContent';
 import logo2 from '../assets/logo2.png';
 import heroBg from '../assets/hero_bg.jpg';
+import { useToast } from '../hooks/useToast';
+import { toErrorMessage } from '../utils/toast-message';
 
 type AuthMode = 'signin' | 'signup';
 const SIGNUP_ROLE_STORAGE_KEY = 'sacvs.signup.role';
@@ -62,45 +64,12 @@ const SignInBrand = memo(function SignInBrand() {
   );
 });
 
-const getApiErrorMessage = (error: unknown): string | null => {
-  if (!isAxiosError(error)) {
-    if (error instanceof Error && error.message.trim().length > 0) {
-      return error.message;
-    }
-    return null;
-  }
-
-  if (typeof error.response?.data === 'string' && error.response.data.trim().length > 0) {
-    return error.response.data;
-  }
-
-  const responseData = error.response?.data as
-    | { error?: string; message?: string }
-    | undefined;
-
-  if (typeof responseData?.error === 'string' && responseData.error.trim().length > 0) {
-    return responseData.error;
-  }
-
-  if (typeof responseData?.message === 'string' && responseData.message.trim().length > 0) {
-    return responseData.message;
-  }
-
-  if (typeof error.message === 'string' && error.message.trim().length > 0) {
-    if (error.code === 'ECONNABORTED' || error.message.toLowerCase().includes('timeout')) {
-      return 'Request timed out. Please try again.';
-    }
-    return error.message;
-  }
-
-  return null;
-};
-
 export default function AuthPage() {
   const navigate = useNavigate();
   const { mode } = useParams<{ mode: string }>();
   const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn } = useUser();
   const { refreshUser, user: localSessionUser } = useLegacyAuth();
+  const { showToast } = useToast();
 
   const normalizedMode: AuthMode = mode === 'signin' || mode === 'signup' ? mode : 'signup';
   const [authMode, setAuthMode] = useState<AuthMode>(normalizedMode);
@@ -248,7 +217,10 @@ export default function AuthPage() {
       } catch (error) {
         console.error('Failed to hydrate signup data:', error);
         if (!isCancelled) {
-          setAuthError('Unable to load your saved onboarding data right now.');
+          showToast({
+            variant: 'error',
+            message: toErrorMessage(error, 'Unable to load your saved onboarding data right now.'),
+          });
         }
       } finally {
         if (!isCancelled) {
@@ -262,7 +234,7 @@ export default function AuthPage() {
     return () => {
       isCancelled = true;
     };
-  }, [authMode, clerkUser, currentEmail, getRoleHomeRoute, isClerkLoaded, isSignedIn, navigate, refreshUser, setAndPersistRole]);
+  }, [authMode, clerkUser, currentEmail, getRoleHomeRoute, isClerkLoaded, isSignedIn, navigate, refreshUser, setAndPersistRole, showToast]);
 
   useEffect(() => {
     if (!isClerkLoaded || !isSignedIn || authMode !== 'signin') {
@@ -289,16 +261,22 @@ export default function AuthPage() {
           return;
         }
 
-        setAuthHint('Account found, but it is not approved yet.');
+        showToast({
+          variant: 'info',
+          message: 'Account found, but it is not approved yet.',
+        });
         navigate('/', { replace: true });
       } catch (error) {
         console.error('Failed to validate account after sign-in:', error);
-        setAuthError('Unable to validate your account right now. Please try again.');
+        showToast({
+          variant: 'error',
+          message: toErrorMessage(error, 'Unable to validate your account right now. Please try again.'),
+        });
       }
     };
 
     void syncAndRoute();
-  }, [authMode, getRoleHomeRoute, isClerkLoaded, isSignedIn, navigate, refreshUser]);
+  }, [authMode, getRoleHomeRoute, isClerkLoaded, isSignedIn, navigate, refreshUser, showToast]);
 
   useEffect(() => {
     if (!organizationEmail && currentEmail) {
@@ -407,10 +385,16 @@ export default function AuthPage() {
       await refreshUser();
 
       setOnboardingSubmitted(true);
-      setAuthHint('Your account creation request is now pending admin approval.');
+      showToast({
+        variant: 'success',
+        message: 'Your account creation request is now pending admin approval.',
+      });
     } catch (error) {
       console.error('Failed to submit onboarding:', error);
-      setAuthError(getApiErrorMessage(error) || 'Unable to submit onboarding. Please review your inputs and try again.');
+      showToast({
+        variant: 'error',
+        message: toErrorMessage(error, 'Unable to submit onboarding. Please review your inputs and try again.'),
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -859,7 +843,7 @@ export default function AuthPage() {
                     disabled={isSubmitting}
                     className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white transition hover:bg-black disabled:opacity-60"
                   >
-                    {isSubmitting ? 'Submitting...' : 'Submit for Approval'}
+                    {isSubmitting ? <ButtonLoadingContent label="Submitting" /> : 'Submit for Approval'}
                     <Icon className="text-base" name="send" />
                   </button>
                 </div>

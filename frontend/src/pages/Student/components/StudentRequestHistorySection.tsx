@@ -19,6 +19,7 @@ import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
+import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import {
   ApprovalReceipt,
   CredentialRequest,
@@ -26,6 +27,7 @@ import {
   CredentialType,
 } from '../../../services/credential.service';
 import { formatDate } from '../utils';
+import { useToast } from '../../../hooks/useToast';
 
 interface StudentRequestHistorySectionProps {
   requests: Array<CredentialRequest & { _uiKey?: string }>;
@@ -61,6 +63,7 @@ export default function StudentRequestHistorySection({
   initialDetailsRequestId = null,
   onDetailsRequestConsumed,
 }: StudentRequestHistorySectionProps) {
+  const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<RequestTypeFilter>('ALL');
   const [dateFilter, setDateFilter] = useState<DateRangeFilter>('ALL');
@@ -70,7 +73,6 @@ export default function StudentRequestHistorySection({
   const [activeReceipt, setActiveReceipt] = useState<ApprovalReceipt | null>(null);
   const [receiptQrDataUrl, setReceiptQrDataUrl] = useState<string | null>(null);
   const [loadingReceiptRequestId, setLoadingReceiptRequestId] = useState<string | null>(null);
-  const [receiptActionError, setReceiptActionError] = useState<string | null>(null);
 
   const canOpenReceipt = (request: CredentialRequest) =>
     request.status === 'APPROVED' &&
@@ -141,7 +143,6 @@ export default function StudentRequestHistorySection({
 
   const handleOpenReceipt = async (requestId: string) => {
     setLoadingReceiptRequestId(requestId);
-    setReceiptActionError(null);
     try {
       const receipt = await CredentialService.getApprovalReceipt(requestId);
       const qrDataUrl = await QRCode.toDataURL(receipt.verificationUrl, {
@@ -156,7 +157,10 @@ export default function StudentRequestHistorySection({
         error?.response?.data?.error ||
         error?.message ||
         'Unable to load approval receipt.';
-      setReceiptActionError(message);
+      showToast({
+        variant: 'error',
+        message,
+      });
     } finally {
       setLoadingReceiptRequestId(null);
     }
@@ -319,12 +323,6 @@ export default function StudentRequestHistorySection({
         </div>
       )}
 
-      {receiptActionError && (
-        <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
-          {receiptActionError}
-        </div>
-      )}
-
       {!isLoadingRequests && filteredRequests.length === 0 && (
         <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-12 text-center text-sm text-slate-500">
           No requests match your current filter.
@@ -406,7 +404,7 @@ export default function StudentRequestHistorySection({
                               disabled={loadingReceiptRequestId === request.id}
                               className="w-full px-3 py-2 text-left text-xs font-semibold text-indigo-700 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              {loadingReceiptRequestId === request.id ? 'Loading receipt...' : 'View receipt'}
+                              {loadingReceiptRequestId === request.id ? <ButtonLoadingContent label="Loading" /> : 'View receipt'}
                             </button>
                           )}
                           {request.status === 'PENDING' && onCancelRequest && (
@@ -419,7 +417,7 @@ export default function StudentRequestHistorySection({
                               disabled={cancelingRequestId === request.id}
                               className="w-full px-3 py-2 text-left text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                              {cancelingRequestId === request.id ? 'Cancelling...' : 'Cancel request'}
+                              {cancelingRequestId === request.id ? <ButtonLoadingContent label="Cancelling" /> : 'Cancel request'}
                             </button>
                           )}
                         </div>

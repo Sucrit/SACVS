@@ -19,6 +19,9 @@ import InstitutionStudentsSection from './components/InstitutionStudentsSection'
 import InstitutionRequestsSection from './components/InstitutionRequestsSection';
 import InstitutionIssueSection from './components/InstitutionIssueSection';
 import InstitutionNotificationsSection from './components/InstitutionNotificationsSection';
+import InstitutionOverviewSection from './components/InstitutionOverviewSection';
+import InstitutionAnalyticsSection from './components/InstitutionAnalyticsSection';
+import InstitutionReceiptVerifySection from './components/InstitutionReceiptVerifySection';
 import {
   ActivityEvent,
   DEFAULT_STUDENT_FORM,
@@ -36,6 +39,7 @@ import {
 } from './utils';
 import { useStepUp } from '../../hooks/useStepUp';
 import { realtimeService } from '../../services/realtime.service';
+import { useToast } from '../../hooks/useToast';
 
 const toStudentFormState = (student: User): StudentFormState => ({
   email: student.email,
@@ -120,6 +124,7 @@ export default function InstitutionDashboard() {
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [notificationHint, setNotificationHint] = useState<string | null>(null);
   const { requestStepUpToken, stepUpModal } = useStepUp();
+  const { showToast } = useToast();
   const refreshTimersRef = useRef<Record<'students' | 'requests' | 'credentials' | 'logs', number | null>>({
     students: null,
     requests: null,
@@ -131,6 +136,48 @@ export default function InstitutionDashboard() {
   const createEvent = useCallback((type: ActivityEvent['type'], title: string, description: string) => {
     setActivityEvents(previous => [{ id: createClientId(), type, title, description, createdAt: new Date().toISOString() }, ...previous].slice(0, 100));
   }, []);
+
+  useEffect(() => {
+    if (requestsError) {
+      showToast({ variant: 'error', message: requestsError });
+    }
+  }, [requestsError, showToast]);
+
+  useEffect(() => {
+    if (requestsHint) {
+      showToast({ variant: 'success', message: requestsHint });
+    }
+  }, [requestsHint, showToast]);
+
+  useEffect(() => {
+    if (studentsError || createStudentError || editStudentError) {
+      showToast({
+        variant: 'error',
+        message: studentsError || createStudentError || editStudentError || 'Unable to process student action.',
+      });
+    }
+  }, [createStudentError, editStudentError, showToast, studentsError]);
+
+  useEffect(() => {
+    if (studentsHint || createStudentHint || editStudentHint) {
+      showToast({
+        variant: 'success',
+        message: studentsHint || createStudentHint || editStudentHint || 'Student action completed successfully.',
+      });
+    }
+  }, [createStudentHint, editStudentHint, showToast, studentsHint]);
+
+  useEffect(() => {
+    if (notificationError) {
+      showToast({ variant: 'error', message: notificationError });
+    }
+  }, [notificationError, showToast]);
+
+  useEffect(() => {
+    if (notificationHint) {
+      showToast({ variant: 'info', message: notificationHint });
+    }
+  }, [notificationHint, showToast]);
 
   const loadRequests = useCallback(async () => {
     setIsLoadingRequests(true);
@@ -186,6 +233,11 @@ export default function InstitutionDashboard() {
   }, []);
 
   useEffect(() => {
+    if ((section === 'overview' || section === 'analytics')) {
+      if (!hasLoadedRequests) void loadRequests();
+      if (!hasLoadedStudents) void loadStudents();
+      if (!hasLoadedCredentials) void loadCredentials();
+    }
     if (section === 'students' && !hasLoadedStudents) {
       void loadStudents();
     }
@@ -871,10 +923,13 @@ export default function InstitutionDashboard() {
       if (key === 'students' && section === 'students') {
         void loadStudents();
       }
-      if (key === 'requests' && (section === 'requests' || section === 'issue')) {
+      if (key === 'students' && (section === 'overview' || section === 'analytics')) {
+        void loadStudents();
+      }
+      if (key === 'requests' && (section === 'requests' || section === 'issue' || section === 'overview' || section === 'analytics')) {
         void loadRequests();
       }
-      if (key === 'credentials' && section === 'issue') {
+      if (key === 'credentials' && (section === 'issue' || section === 'overview' || section === 'analytics')) {
         void loadCredentials();
       }
       if (key === 'logs' && section === 'logs') {
@@ -913,20 +968,26 @@ export default function InstitutionDashboard() {
 
   return (
     <div className="space-y-6">
-      {(requestsError || requestsHint) && (section === 'requests' || section === 'issue') && (
-        <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${requestsError ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
-          {requestsError || requestsHint}
-        </div>
+      {section === 'overview' && (
+        <InstitutionOverviewSection
+          students={students}
+          requests={requests}
+          credentials={credentials}
+          isLoadingStudents={isLoadingStudents}
+          isLoadingRequests={isLoadingRequests}
+          isLoadingCredentials={isLoadingCredentials}
+        />
       )}
-      {(studentsError || studentsHint || createStudentError || createStudentHint || editStudentError || editStudentHint) && section === 'students' && (
-        <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${(studentsError || createStudentError || editStudentError) ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
-          {studentsError || createStudentError || editStudentError || studentsHint || createStudentHint || editStudentHint}
-        </div>
-      )}
-      {(notificationError || notificationHint) && section === 'notifications' && (
-        <div className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${notificationError ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
-          {notificationError || notificationHint}
-        </div>
+
+      {section === 'analytics' && (
+        <InstitutionAnalyticsSection
+          students={students}
+          requests={requests}
+          credentials={credentials}
+          isLoadingStudents={isLoadingStudents}
+          isLoadingRequests={isLoadingRequests}
+          isLoadingCredentials={isLoadingCredentials}
+        />
       )}
 
       {section === 'students' && (
@@ -991,6 +1052,10 @@ export default function InstitutionDashboard() {
           onRequestAction={handleRequestAction}
           onBulkAction={handleBulkRequestAction}
         />
+      )}
+
+      {section === 'receipt-verify' && (
+        <InstitutionReceiptVerifySection />
       )}
 
       {section === 'issue' && (

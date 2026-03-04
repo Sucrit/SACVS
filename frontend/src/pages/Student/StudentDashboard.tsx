@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertCircle, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import {
   Credential,
   CredentialRequest,
@@ -21,6 +21,8 @@ import StudentNotificationsSection from './components/StudentNotificationsSectio
 import { getApiErrorMessage, getStudentCredentialDetailId, getStudentSection } from './utils';
 import { useLegacyAuth } from '../../auth/auth-context';
 import { realtimeService } from '../../services/realtime.service';
+import { useToast } from '../../hooks/useToast';
+import { toErrorMessage } from '../../utils/toast-message';
 
 export default function StudentDashboard() {
   const location = useLocation();
@@ -37,27 +39,23 @@ export default function StudentDashboard() {
   const [selectedCredentialId, setSelectedCredentialId] = useState<string | null>(null);
   const [requestDetailsFromQueryId, setRequestDetailsFromQueryId] = useState<string | null>(null);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
-  const [credentialsError, setCredentialsError] = useState<string | null>(null);
   const [hasLoadedCredentials, setHasLoadedCredentials] = useState(false);
 
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [cancelingRequestId, setCancelingRequestId] = useState<string | null>(null);
   const [animatedRequestIds, setAnimatedRequestIds] = useState<string[]>([]);
-  const [requestError, setRequestError] = useState<string | null>(null);
   const [requests, setRequests] = useState<Array<CredentialRequest & { _uiKey?: string }>>([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
-  const [requestsError, setRequestsError] = useState<string | null>(null);
   const [hasLoadedRequests, setHasLoadedRequests] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
-  const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const [hasLoadedNotifications, setHasLoadedNotifications] = useState(false);
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
   const [studentProfileUser, setStudentProfileUser] = useState<User | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isSavingProfilePersonalInfo, setIsSavingProfilePersonalInfo] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
   const [hasLoadedProfile, setHasLoadedProfile] = useState(false);
+  const { showToast } = useToast();
   const [requestForm, setRequestForm] = useState<CreateCredentialRequestPayload>({
     type: 'TRANSCRIPT',
     title: '',
@@ -87,21 +85,20 @@ export default function StudentDashboard() {
   const loadCredentials = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!silent) {
       setIsLoadingCredentials(true);
-      setCredentialsError(null);
     }
 
     try {
       const data = await CredentialService.listMine();
       setCredentials(data);
       setHasLoadedCredentials(true);
-      if (!silent) {
-        setCredentialsError(null);
-      }
     } catch (error) {
       console.error('Failed to load credentials:', error);
       if (!silent) {
         setCredentials([]);
-        setCredentialsError('Unable to load credentials from the server.');
+        showToast({
+          variant: 'error',
+          message: toErrorMessage(error, 'Unable to load credentials from the server.'),
+        });
       }
     } finally {
       if (!silent) {
@@ -113,21 +110,20 @@ export default function StudentDashboard() {
   const loadRequests = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!silent) {
       setIsLoadingRequests(true);
-      setRequestsError(null);
     }
 
     try {
       const data = await CredentialService.listRequests();
       setRequests(sortRequestsByNewest(data.map(item => ({ ...item, _uiKey: item.id }))));
       setHasLoadedRequests(true);
-      if (!silent) {
-        setRequestsError(null);
-      }
     } catch (error) {
       console.error('Failed to load requests:', error);
       if (!silent) {
         setRequests([]);
-        setRequestsError('Unable to load requests from the server.');
+        showToast({
+          variant: 'error',
+          message: toErrorMessage(error, 'Unable to load requests from the server.'),
+        });
       }
     } finally {
       if (!silent) {
@@ -138,7 +134,6 @@ export default function StudentDashboard() {
 
   const loadProfile = useCallback(async () => {
     setIsLoadingProfile(true);
-    setProfileError(null);
     try {
       const me = await UserService.getMe();
       setStudentProfileUser(me);
@@ -146,37 +141,39 @@ export default function StudentDashboard() {
     } catch (error) {
       console.error('Failed to load student profile:', error);
       setStudentProfileUser(null);
-      setProfileError('Unable to load profile information from the server.');
+      showToast({
+        variant: 'error',
+        message: toErrorMessage(error, 'Unable to load profile information from the server.'),
+      });
     } finally {
       setIsLoadingProfile(false);
     }
-  }, []);
+  }, [showToast]);
 
   const loadNotifications = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!silent) {
       setIsLoadingNotifications(true);
-      setNotificationsError(null);
     }
 
     try {
       const data = await NotificationService.list({ page: 1, pageSize: 100 });
       setNotifications(data.items);
       setHasLoadedNotifications(true);
-      if (!silent) {
-        setNotificationsError(null);
-      }
     } catch (error) {
       console.error('Failed to load notifications:', error);
       if (!silent) {
         setNotifications([]);
-        setNotificationsError(getApiErrorMessage(error) || 'Unable to load notifications from the server.');
+        showToast({
+          variant: 'error',
+          message: toErrorMessage(error, 'Unable to load notifications from the server.'),
+        });
       }
     } finally {
       if (!silent) {
         setIsLoadingNotifications(false);
       }
     }
-  }, []);
+  }, [showToast]);
 
   const scheduleRealtimeRefresh = useCallback((key: 'credentials' | 'requests' | 'notifications' | 'profile') => {
     if (realtimeRefreshTimersRef.current[key]) return;
@@ -352,7 +349,6 @@ export default function StudentDashboard() {
     <StudentRequestSection
       requestForm={requestForm}
       isSubmittingRequest={isSubmittingRequest}
-      requestError={requestError}
       onSubmit={handleRequestSubmit}
       onTypeChange={(value: CredentialType) => setRequestForm(previous => ({ ...previous, type: value }))}
       onTitleChange={(value: string) => setRequestForm(previous => ({ ...previous, title: value }))}
@@ -366,7 +362,6 @@ export default function StudentDashboard() {
 
   const handleRequestSubmit = async (event: FormEvent<HTMLFormElement>): Promise<boolean> => {
     event.preventDefault();
-    setRequestError(null);
     setIsSubmittingRequest(true);
 
     try {
@@ -401,11 +396,18 @@ export default function StudentDashboard() {
       window.setTimeout(() => {
         setAnimatedRequestIds(previous => previous.filter(id => id !== created.id));
       }, 900);
+      showToast({
+        variant: 'success',
+        message: 'Credential request submitted successfully.',
+      });
 
       return true;
     } catch (error) {
       console.error('Failed to submit credential request:', error);
-      setRequestError(getApiErrorMessage(error) || 'Unable to submit your request to the backend.');
+      showToast({
+        variant: 'error',
+        message: toErrorMessage(error, 'Unable to submit your request to the backend.'),
+      });
       return false;
     } finally {
       setIsSubmittingRequest(false);
@@ -413,7 +415,6 @@ export default function StudentDashboard() {
   };
 
   const handleCancelRequest = async (requestId: string): Promise<void> => {
-    setRequestsError(null);
     setCancelingRequestId(requestId);
 
     const previousRequest = requests.find(request => request.id === requestId) || null;
@@ -454,6 +455,10 @@ export default function StudentDashboard() {
       window.setTimeout(() => {
         setAnimatedRequestIds(previous => previous.filter(id => id !== requestId));
       }, 900);
+      showToast({
+        variant: 'success',
+        message: 'Request cancelled successfully.',
+      });
     } catch (error) {
       console.error('Failed to cancel credential request:', error);
       if (previousRequest) {
@@ -464,7 +469,10 @@ export default function StudentDashboard() {
         );
       }
       setAnimatedRequestIds(previous => previous.filter(id => id !== requestId));
-      setRequestsError(getApiErrorMessage(error) || 'Unable to cancel request right now.');
+      showToast({
+        variant: 'error',
+        message: toErrorMessage(error, 'Unable to cancel request right now.'),
+      });
     } finally {
       setCancelingRequestId(null);
     }
@@ -475,7 +483,6 @@ export default function StudentDashboard() {
   };
 
   const handleMarkNotificationRead = async (notificationId: string) => {
-    setNotificationsError(null);
     try {
       const updated = await NotificationService.markRead(notificationId, true);
       setNotifications(previous =>
@@ -483,19 +490,28 @@ export default function StudentDashboard() {
       );
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
-      setNotificationsError(getApiErrorMessage(error) || 'Unable to update notification state.');
+      showToast({
+        variant: 'error',
+        message: toErrorMessage(error, 'Unable to update notification state.'),
+      });
     }
   };
 
   const handleMarkAllNotificationsRead = async () => {
     setIsMarkingAllNotificationsRead(true);
-    setNotificationsError(null);
     try {
       await NotificationService.markAllRead();
       setNotifications(previous => previous.map(item => ({ ...item, read: true })));
+      showToast({
+        variant: 'success',
+        message: 'All notifications marked as read.',
+      });
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
-      setNotificationsError(getApiErrorMessage(error) || 'Unable to mark all notifications as read.');
+      showToast({
+        variant: 'error',
+        message: toErrorMessage(error, 'Unable to mark all notifications as read.'),
+      });
     } finally {
       setIsMarkingAllNotificationsRead(false);
     }
@@ -518,7 +534,6 @@ export default function StudentDashboard() {
     }
 
     setIsSavingProfilePersonalInfo(true);
-    setProfileError(null);
     try {
       const profile = studentProfileUser.profile;
       const updated = await UserService.upsertMyProfile({
@@ -540,7 +555,6 @@ export default function StudentDashboard() {
       setStudentProfileUser(updated);
     } catch (error) {
       const message = getApiErrorMessage(error) || 'Unable to update personal information.';
-      setProfileError(message);
       throw new Error(message);
     } finally {
       setIsSavingProfilePersonalInfo(false);
@@ -549,23 +563,6 @@ export default function StudentDashboard() {
 
   return (
     <div className="space-y-6">
-      {(credentialsError || requestsError || notificationsError) &&
-        (section === 'credentials' ||
-          section === 'requests' ||
-          section === 'notifications' ||
-          section === 'overview') && (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          <AlertCircle size={16} />
-          {credentialsError || requestsError || notificationsError}
-        </div>
-      )}
-      {profileError && (section === 'profile' || section === 'overview') && (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          <AlertCircle size={16} />
-          {profileError}
-        </div>
-      )}
-
       {section === 'credentials' && (
         <>
           {isCredentialsEmptyPage ? (

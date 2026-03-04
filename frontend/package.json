@@ -17,6 +17,7 @@
   "dependencies": {
     "@clerk/clerk-react": "^5.61.0",
     "axios": "^1.13.5",
+    "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.34.1",
@@ -26,6 +27,7 @@
     "pdfjs-dist": "^5.5.207",
     "qrcode": "^1.5.4",
     "react": "^19.2.4",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.0",
     "tailwind-merge": "^3.4.1"

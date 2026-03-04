@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import Card from '../../../components/common/Card';
+import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import {
   Credential,
   CredentialService,
@@ -11,6 +12,7 @@ import {
   GeneratedQrTokenResponse,
 } from '../../../services/credential.service';
 import { useStepUp } from '../../../hooks/useStepUp';
+import { useToast } from '../../../hooks/useToast';
 
 type CredentialTypeFilter = 'ALL' | CredentialType;
 type DateRangeFilter = 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH';
@@ -185,11 +187,11 @@ export default function StudentCredentialsSection({
   const [qrToken, setQrToken] = useState<GeneratedQrTokenResponse | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
-  const [qrError, setQrError] = useState<string | null>(null);
   const [qrSecondsRemaining, setQrSecondsRemaining] = useState(0);
   const [allowDocumentPreview, setAllowDocumentPreview] = useState(false);
   const [allowDocumentDownload, setAllowDocumentDownload] = useState(false);
   const { requestStepUpToken, stepUpModal } = useStepUp();
+  const { showToast } = useToast();
 
   const matchesDateRange = (value: string | null | undefined, range: DateRangeFilter) => {
     if (range === 'ALL') return true;
@@ -237,7 +239,7 @@ export default function StudentCredentialsSection({
       } catch {
         if (!cancelled) {
           setQrDataUrl(null);
-          setQrError('Unable to render QR code.');
+          showToast({ variant: 'error', message: 'Unable to render QR code.' });
         }
       }
     };
@@ -246,7 +248,7 @@ export default function StudentCredentialsSection({
     return () => {
       cancelled = true;
     };
-  }, [qrToken?.verificationUrl]);
+  }, [qrToken?.verificationUrl, showToast]);
 
   useEffect(() => {
     if (!qrToken?.expiresAt) {
@@ -271,7 +273,6 @@ export default function StudentCredentialsSection({
     setAllowDocumentPreview(false);
     setAllowDocumentDownload(false);
     setIsGeneratingQr(true);
-    setQrError(null);
     setQrDataUrl(null);
     try {
       const generated = await CredentialService.generateQrToken(credential.id, {
@@ -281,7 +282,7 @@ export default function StudentCredentialsSection({
       setQrToken(generated);
     } catch {
       setQrToken(null);
-      setQrError('Unable to generate one-time QR. Please try again.');
+      showToast({ variant: 'error', message: 'Unable to generate one-time QR. Please try again.' });
     } finally {
       setIsGeneratingQr(false);
     }
@@ -299,7 +300,6 @@ export default function StudentCredentialsSection({
   const handleRegenerateQr = async () => {
     if (!shareCredential) return;
     setIsGeneratingQr(true);
-    setQrError(null);
     setQrDataUrl(null);
     try {
       const stepUpToken = allowDocumentDownload
@@ -319,7 +319,7 @@ export default function StudentCredentialsSection({
       if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
         return;
       }
-      setQrError('Unable to regenerate one-time QR. Please try again.');
+      showToast({ variant: 'error', message: 'Unable to regenerate one-time QR. Please try again.' });
     } finally {
       setIsGeneratingQr(false);
     }
@@ -421,12 +421,6 @@ export default function StudentCredentialsSection({
             </select>
           </div>
         </div>
-        {!qrToken && qrError && (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
-            {qrError}
-          </div>
-        )}
-
         {isLoadingCredentials && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {[1, 2, 3, 4].map(key => (
@@ -528,7 +522,6 @@ export default function StudentCredentialsSection({
             setShareCredential(null);
             setQrToken(null);
             setQrDataUrl(null);
-            setQrError(null);
           }}
         >
           <div
@@ -544,7 +537,6 @@ export default function StudentCredentialsSection({
                   setShareCredential(null);
                   setQrToken(null);
                   setQrDataUrl(null);
-                  setQrError(null);
                 }}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
               >
@@ -611,7 +603,7 @@ export default function StudentCredentialsSection({
                 className="inline-flex items-center gap-1.5 rounded-xl border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
                 title={allowDocumentDownload ? 'OTP required when regenerating with download enabled' : 'Regenerate one-time QR'}
               >
-                {isGeneratingQr ? 'Regenerating...' : 'Regenerate'}
+                {isGeneratingQr ? <ButtonLoadingContent label="Regenerating" /> : 'Regenerate'}
                 {allowDocumentDownload && (
                   <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
                     OTP
@@ -619,7 +611,6 @@ export default function StudentCredentialsSection({
                 )}
               </button>
             </div>
-            {qrError && <p className="mt-3 text-xs text-rose-700">{qrError}</p>}
             </div>
           </div>
         </div>

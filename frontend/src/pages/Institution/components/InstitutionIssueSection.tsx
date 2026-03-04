@@ -2,6 +2,8 @@ import { FormEvent, useMemo, useState } from 'react';
 import { ClipboardCheck, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
+import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import { useToast } from '../../../hooks/useToast';
 import {
   Credential,
   CredentialRequest,
@@ -72,6 +74,7 @@ export default function InstitutionIssueSection({
   onCredentialStatusUpdate,
   onCredentialReissue,
 }: InstitutionIssueSectionProps) {
+  const { showToast } = useToast();
   const [directForm, setDirectForm] = useState({
     studentId: '',
     type: 'TRANSCRIPT' as CredentialType,
@@ -81,7 +84,6 @@ export default function InstitutionIssueSection({
     certificateCategory: DEFAULT_CERTIFICATE_CATEGORY as CertificateCategory,
   });
   const [directFile, setDirectFile] = useState<File | null>(null);
-  const [directIssueError, setDirectIssueError] = useState<string | null>(null);
   const [isDirectIssuing, setIsDirectIssuing] = useState(false);
 
   const [statusByCredentialId, setStatusByCredentialId] = useState<Record<string, CredentialStatus>>({});
@@ -117,26 +119,28 @@ export default function InstitutionIssueSection({
 
   const handleSubmitDirectIssue = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setDirectIssueError(null);
 
     const studentId = directForm.studentId.trim();
     const title = directForm.title.trim();
     const description = directForm.description.trim();
 
     if (!studentId) {
-      setDirectIssueError('Select a student.');
+      showToast({ variant: 'warning', message: 'Select a student.' });
       return;
     }
     if (!title) {
-      setDirectIssueError('Title is required.');
+      showToast({ variant: 'warning', message: 'Title is required.' });
       return;
     }
     if (!directFile) {
-      setDirectIssueError('Attach a credential file before issuing.');
+      showToast({ variant: 'warning', message: 'Attach a credential file before issuing.' });
       return;
     }
     if (requiresExpiryDate(directForm.type, directForm.certificateCategory) && !directForm.expiryDate) {
-      setDirectIssueError('Expiry date is required for license and professional certificate credentials.');
+      showToast({
+        variant: 'warning',
+        message: 'Expiry date is required for license and professional certificate credentials.',
+      });
       return;
     }
 
@@ -160,6 +164,7 @@ export default function InstitutionIssueSection({
         certificateCategory: DEFAULT_CERTIFICATE_CATEGORY,
       });
       setDirectFile(null);
+      showToast({ variant: 'success', message: 'Credential issued successfully.' });
     } catch (error) {
       if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
         return;
@@ -167,7 +172,7 @@ export default function InstitutionIssueSection({
       const message = error instanceof Error && error.message.trim().length > 0
         ? error.message
         : 'Unable to issue credential directly.';
-      setDirectIssueError(message);
+      showToast({ variant: 'error', message });
     } finally {
       setIsDirectIssuing(false);
     }
@@ -292,11 +297,10 @@ export default function InstitutionIssueSection({
               title="OTP required before this action is applied"
             >
               <ClipboardCheck size={13} />
-              {isDirectIssuing ? 'Issuing...' : 'Issue Credential'}
+              {isDirectIssuing ? <ButtonLoadingContent label="Issuing" /> : 'Issue Credential'}
               {!isDirectIssuing && <span className={OTP_BADGE_CLASS}>OTP</span>}
             </button>
           </div>
-          {directIssueError && <p className="text-xs text-rose-700">{directIssueError}</p>}
         </form>
       </Card>
 

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import Card from '../../components/common/Card';
+import ButtonLoadingContent from '../../components/common/ButtonLoadingContent';
 import Badge from '../../components/common/Badge';
 import {
   BriefcaseBusiness,
   Clock3,
   ClipboardList,
-  AlertCircle,
   QrCode,
   Camera,
   CameraOff,
@@ -18,6 +18,8 @@ import {
 } from '../../services/credential.service';
 import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../services/audit.service';
 import { realtimeService } from '../../services/realtime.service';
+import { useToast } from '../../hooks/useToast';
+import { toErrorMessage } from '../../utils/toast-message';
 
 const formatDate = (value: string | null | undefined) => {
   if (!value) return '-';
@@ -54,11 +56,30 @@ export default function EmployerDashboard() {
   const [qrVerificationError, setQrVerificationError] = useState<string | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
+  const { showToast } = useToast();
   const scannerRef = useRef<any>(null);
   const refreshTimersRef = useRef<Record<'requests' | 'logs', number | null>>({
     requests: null,
     logs: null,
   });
+
+  useEffect(() => {
+    if (requestsError) {
+      showToast({ variant: 'error', message: requestsError });
+    }
+  }, [requestsError, showToast]);
+
+  useEffect(() => {
+    if (qrVerificationError) {
+      showToast({ variant: 'error', message: qrVerificationError });
+    }
+  }, [qrVerificationError, showToast]);
+
+  useEffect(() => {
+    if (scannerError) {
+      showToast({ variant: 'warning', message: scannerError });
+    }
+  }, [scannerError, showToast]);
 
   const extractToken = (value: string): string => {
     const trimmed = value.trim();
@@ -89,10 +110,7 @@ export default function EmployerDashboard() {
         const result = await CredentialService.verifyQrEmployer(token);
         setQrVerificationResult(result);
       } catch (error: any) {
-        const message =
-          error?.response?.data?.error ||
-          error?.message ||
-          'Unable to verify one-time QR token.';
+        const message = toErrorMessage(error, 'Unable to verify one-time QR token.');
         setQrVerificationError(message);
         setQrVerificationResult(null);
       } finally {
@@ -166,7 +184,7 @@ export default function EmployerDashboard() {
     } catch (error) {
       console.error('Failed to load employer requests:', error);
       setRequests([]);
-      setRequestsError('Unable to load employer request activity from the server.');
+      setRequestsError(toErrorMessage(error, 'Unable to load employer request activity from the server.'));
     } finally {
       setIsLoadingRequests(false);
     }
@@ -187,7 +205,7 @@ export default function EmployerDashboard() {
     } catch (error) {
       console.error('Failed to load employer audit logs:', error);
       setAuditLogs([]);
-      setRequestsError('Unable to load employer audit logs from the server.');
+      setRequestsError(toErrorMessage(error, 'Unable to load employer audit logs from the server.'));
     } finally {
       setIsLoadingAuditLogs(false);
     }
@@ -276,13 +294,6 @@ export default function EmployerDashboard() {
   if (section === 'logs') {
     return (
       <div className="space-y-6">
-        {requestsError && (
-          <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            <AlertCircle size={16} />
-            {requestsError}
-          </div>
-        )}
-
         <Card
           title="Employer Audit Logs"
         >
@@ -412,13 +423,6 @@ export default function EmployerDashboard() {
         </div>
       </Card>
 
-      {requestsError && (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          <AlertCircle size={16} />
-          {requestsError}
-        </div>
-      )}
-
       <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         <Card title="Total Requests">
           <div className="flex items-center justify-between">
@@ -458,7 +462,7 @@ export default function EmployerDashboard() {
               className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
             >
               <QrCode size={16} />
-              {isVerifyingQr ? 'Verifying...' : 'Verify'}
+              {isVerifyingQr ? <ButtonLoadingContent label="Verifying" /> : 'Verify'}
             </button>
             <button
               onClick={() => void startScanner()}
@@ -473,13 +477,6 @@ export default function EmployerDashboard() {
             id="employer-qr-scanner"
             className={`${isScannerActive ? 'min-h-[260px]' : 'h-0'} overflow-hidden rounded-lg border border-slate-200 bg-slate-50`}
           />
-
-          {scannerError && (
-            <p className="text-xs text-amber-700">{scannerError}</p>
-          )}
-          {qrVerificationError && (
-            <p className="text-sm text-rose-700">{qrVerificationError}</p>
-          )}
 
           {qrVerificationResult && (
             <div

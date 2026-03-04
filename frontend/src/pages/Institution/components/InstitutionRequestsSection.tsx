@@ -1,5 +1,4 @@
 import { Check, ClipboardCheck, FileText, Search, X } from 'lucide-react';
-import { useState } from 'react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import { CredentialRequest, CredentialType } from '../../../services/credential.service';
@@ -65,22 +64,9 @@ export default function InstitutionRequestsSection({
   onRequestAction,
   onBulkAction,
 }: InstitutionRequestsSectionProps) {
-  const [receiptTokenInput, setReceiptTokenInput] = useState('');
   const studentById = new Map(
     students.map(student => [student.id, student] as const),
   );
-
-  const openReceiptVerifier = () => {
-    const raw = receiptTokenInput.trim();
-    if (!raw) return;
-    try {
-      const parsed = new URL(raw);
-      const token = parsed.pathname.split('/').filter(Boolean).pop() || '';
-      window.open(`/verify/receipt/${encodeURIComponent(decodeURIComponent(token))}`, '_blank');
-    } catch {
-      window.open(`/verify/receipt/${encodeURIComponent(raw)}`, '_blank');
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -111,25 +97,6 @@ export default function InstitutionRequestsSection({
             <button onClick={() => void onBulkAction('REJECT')} className="inline-flex h-10 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-800 hover:bg-rose-100">Bulk Reject</button>
             <button onClick={() => void onBulkAction('ISSUE')} className="inline-flex h-10 items-center justify-center rounded-xl border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-800 hover:bg-cyan-100">Bulk Issue</button>
           </div>
-        </div>
-      </Card>
-
-      <Card title="Registrar Receipt Verify">
-        <div className="flex flex-col gap-2 md:flex-row">
-          <input
-            value={receiptTokenInput}
-            onChange={event => setReceiptTokenInput(event.target.value)}
-            placeholder="Paste approval receipt URL or token"
-            className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
-          />
-          <button
-            type="button"
-            onClick={openReceiptVerifier}
-            disabled={!receiptTokenInput.trim()}
-            className="inline-flex h-10 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-xs font-semibold text-indigo-800 hover:bg-indigo-100 disabled:opacity-50"
-          >
-            Verify receipt
-          </button>
         </div>
       </Card>
 

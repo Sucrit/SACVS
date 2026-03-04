@@ -3,8 +3,10 @@ import { InstitutionStudentPayload, User } from '../../services/user.service';
 import { InstitutionSection } from './types';
 
 export const getInstitutionSection = (pathname: string): InstitutionSection => {
+  if (pathname.startsWith('/institution/analytics')) return 'analytics';
   if (pathname.startsWith('/institution/students')) return 'students';
   if (pathname.startsWith('/institution/requests')) return 'requests';
+  if (pathname.startsWith('/institution/receipt-verify')) return 'receipt-verify';
   if (pathname.startsWith('/institution/issue')) return 'issue';
   if (pathname.startsWith('/institution/notifications')) return 'notifications';
   if (pathname.startsWith('/institution/logs')) return 'logs';

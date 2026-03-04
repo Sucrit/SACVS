@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import {
-  AlertCircle,
   ArrowRight,
   Clock3,
   Database,
@@ -18,6 +17,8 @@ import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../s
 import { User, UserRole, UserService, UserStatus } from '../../services/user.service';
 import { useStepUp } from '../../hooks/useStepUp';
 import { realtimeService } from '../../services/realtime.service';
+import ButtonLoadingContent from '../../components/common/ButtonLoadingContent';
+import { useToast } from '../../hooks/useToast';
 
 type AdminSection = 'overview' | 'users' | 'logs' | 'settings';
 type RoleFilter = UserRole | 'ALL';
@@ -106,10 +107,17 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const { requestStepUpToken, stepUpModal } = useStepUp();
+  const { showToast } = useToast();
   const refreshTimersRef = useRef<Record<'users' | 'logs', number | null>>({
     users: null,
     logs: null,
   });
+
+  useEffect(() => {
+    if (usersError) {
+      showToast({ variant: 'error', message: usersError });
+    }
+  }, [showToast, usersError]);
 
   const loadUsers = useCallback(async () => {
     setIsLoadingUsers(true);
@@ -309,6 +317,7 @@ export default function AdminDashboard() {
       });
       const updated = await UserService.updateStatus(userId, status, stepUpToken);
       setUsers(previous => previous.map(user => (user.id === userId ? { ...user, ...updated } : user)));
+      showToast({ variant: 'success', message: 'User status updated successfully.' });
     } catch (error) {
       if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
         return;
@@ -318,7 +327,7 @@ export default function AdminDashboard() {
     } finally {
       setIsUpdatingStatus(null);
     }
-  }, [requestStepUpToken]);
+  }, [requestStepUpToken, showToast]);
 
   const handleRoleUpdate = useCallback(async (userId: string, role: UserRole) => {
     setIsUpdatingRole(userId);
@@ -333,6 +342,7 @@ export default function AdminDashboard() {
       });
       const updated = await UserService.updateRole(userId, role, stepUpToken);
       setUsers(previous => previous.map(user => (user.id === userId ? { ...user, ...updated } : user)));
+      showToast({ variant: 'success', message: 'User role updated successfully.' });
     } catch (error) {
       if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
         return;
@@ -342,7 +352,7 @@ export default function AdminDashboard() {
     } finally {
       setIsUpdatingRole(null);
     }
-  }, [requestStepUpToken]);
+  }, [requestStepUpToken, showToast]);
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -677,7 +687,9 @@ export default function AdminDashboard() {
                         title="OTP required before this action is applied"
                       >
                         <span className="inline-flex items-center gap-1.5">
-                          {isUpdatingRole === selectedUser.id && selectedUser.role !== nextRole ? 'Updating...' : nextRole}
+                          {isUpdatingRole === selectedUser.id && selectedUser.role !== nextRole
+                            ? <ButtonLoadingContent label="Updating" />
+                            : nextRole}
                           {selectedUser.role !== nextRole && <span className={OTP_BADGE_CLASS}>OTP</span>}
                         </span>
                       </button>
@@ -704,7 +716,9 @@ export default function AdminDashboard() {
                         title="OTP required before this action is applied"
                       >
                         <span className="inline-flex items-center gap-1.5">
-                          {isUpdatingStatus === selectedUser.id && selectedUser.status !== nextStatus ? 'Updating...' : nextStatus}
+                          {isUpdatingStatus === selectedUser.id && selectedUser.status !== nextStatus
+                            ? <ButtonLoadingContent label="Updating" />
+                            : nextStatus}
                           {selectedUser.status !== nextStatus && <span className={OTP_BADGE_CLASS}>OTP</span>}
                         </span>
                       </button>
@@ -856,13 +870,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {usersError && (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          <AlertCircle size={16} />
-          {usersError}
-        </div>
-      )}
-
       {section === 'overview' && renderOverview()}
       {section === 'users' && renderUserManagement()}
       {section === 'logs' && renderLogsPlaceholder()}

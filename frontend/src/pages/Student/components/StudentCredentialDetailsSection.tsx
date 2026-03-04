@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import Card from '../../../components/common/Card';
+import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import {
   Credential,
   CredentialService,
@@ -22,6 +23,7 @@ import {
 } from '../../../services/credential.service';
 import { useStepUp } from '../../../hooks/useStepUp';
 import { formatDateTime, shortenHash } from '../utils';
+import { useToast } from '../../../hooks/useToast';
 
 interface StudentCredentialDetailsSectionProps {
   selectedCredential: Credential | null;
@@ -62,11 +64,10 @@ export default function StudentCredentialDetailsSection({
   selectedCredential,
   onBack,
 }: StudentCredentialDetailsSectionProps) {
+  const { showToast } = useToast();
   const [selectedCredentialFileUrl, setSelectedCredentialFileUrl] = useState<string | null>(null);
   const [isLoadingFile, setIsLoadingFile] = useState(false);
-  const [fileError, setFileError] = useState<string | null>(null);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
-  const [qrError, setQrError] = useState<string | null>(null);
   const [qrToken, setQrToken] = useState<GeneratedQrTokenResponse | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrSecondsRemaining, setQrSecondsRemaining] = useState(0);
@@ -81,12 +82,10 @@ export default function StudentCredentialDetailsSection({
     const loadFile = async () => {
       if (!selectedCredential || !selectedCredential.storageKey || selectedCredential.status === 'REVOKED') {
         setSelectedCredentialFileUrl(null);
-        setFileError(null);
         return;
       }
 
       setIsLoadingFile(true);
-      setFileError(null);
       try {
         const blob = await CredentialService.getDocumentBlob(selectedCredential.id);
         if (cancelled) return;
@@ -95,7 +94,7 @@ export default function StudentCredentialDetailsSection({
       } catch {
         if (!cancelled) {
           setSelectedCredentialFileUrl(null);
-          setFileError('Unable to load credential document.');
+          showToast({ variant: 'error', message: 'Unable to load credential document.' });
         }
       } finally {
         if (!cancelled) {
@@ -110,7 +109,7 @@ export default function StudentCredentialDetailsSection({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [selectedCredential]);
+  }, [selectedCredential, showToast]);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,7 +131,7 @@ export default function StudentCredentialDetailsSection({
       } catch {
         if (!cancelled) {
           setQrDataUrl(null);
-          setQrError('Unable to render QR code.');
+          showToast({ variant: 'error', message: 'Unable to render QR code.' });
         }
       }
     };
@@ -141,7 +140,7 @@ export default function StudentCredentialDetailsSection({
     return () => {
       cancelled = true;
     };
-  }, [qrToken?.verificationUrl]);
+  }, [qrToken?.verificationUrl, showToast]);
 
   useEffect(() => {
     if (!qrToken?.expiresAt) {
@@ -177,7 +176,6 @@ export default function StudentCredentialDetailsSection({
   }) => {
     if (!selectedCredential) return;
     setIsGeneratingQr(true);
-    setQrError(null);
     setQrDataUrl(null);
     const previewEnabled =
       typeof options?.allowDocumentPreview === 'boolean'
@@ -206,7 +204,7 @@ export default function StudentCredentialDetailsSection({
         return;
       }
       setQrToken(null);
-      setQrError('Unable to generate one-time QR. Please try again.');
+      showToast({ variant: 'error', message: 'Unable to generate one-time QR. Please try again.' });
     } finally {
       setIsGeneratingQr(false);
     }
@@ -304,7 +302,7 @@ export default function StudentCredentialDetailsSection({
               </>
             ) : (
               <div className="rounded-xl border border-slate-200 bg-white px-3 py-8 text-center text-sm text-slate-600">
-                {isLoadingFile ? 'Loading credential document...' : fileError || 'No file is attached to this credential.'}
+                {isLoadingFile ? 'Loading credential document...' : 'No file is attached to this credential.'}
               </div>
             )}
 
@@ -399,7 +397,7 @@ export default function StudentCredentialDetailsSection({
                       title="Share one-time QR (OTP required only if document download is enabled)"
                     >
                       <Share2 size={13} />
-                      {isGeneratingQr ? 'Generating QR...' : 'Share'}
+                      {isGeneratingQr ? <ButtonLoadingContent label="Generating" /> : 'Share'}
                     </button>
                     {isRevoked ? (
                       <button
@@ -432,15 +430,6 @@ export default function StudentCredentialDetailsSection({
                   <p className="text-xs font-semibold text-amber-700">
                     Expires in {formatQrCountdown(qrSecondsRemaining)}
                   </p>
-                </>
-              )}
-              {!qrToken && qrError && (
-                <>
-                  <p className="inline-flex items-center gap-2 font-medium text-slate-500">
-                    <AlertTriangle size={14} />
-                    QR Error
-                  </p>
-                  <p className="text-xs font-semibold text-rose-700">{qrError}</p>
                 </>
               )}
             </div>
@@ -527,7 +516,7 @@ export default function StudentCredentialDetailsSection({
                 title={allowDocumentDownload ? 'OTP required when regenerating with download enabled' : 'Regenerate one-time QR'}
               >
                 <RefreshIcon />
-                {isGeneratingQr ? 'Regenerating...' : 'Regenerate'}
+                {isGeneratingQr ? <ButtonLoadingContent label="Regenerating" /> : 'Regenerate'}
                 {allowDocumentDownload && (
                   <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
                     OTP
@@ -535,7 +524,6 @@ export default function StudentCredentialDetailsSection({
                 )}
               </button>
             </div>
-            {qrError && <p className="mt-3 text-xs text-rose-700">{qrError}</p>}
             </div>
           </div>
         </div>
