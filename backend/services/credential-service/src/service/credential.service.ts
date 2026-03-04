@@ -18,16 +18,17 @@ import { notificationClient } from '../client/notification.client';
 import { blockchainClient } from '../client/blockchain.client';
 import { ENV } from '../config/env';
 import { realtimeClient } from '../client/realtime.client';
+import type { RealtimeEvent } from '../client/realtime.client';
 
 const credentialRepository = new CredentialRepository();
 
 const NO_RESULTS_SCOPE = '__no_results__';
 
 const VALID_TRANSITIONS: Record<CredentialStatus, CredentialStatus[]> = {
-  PENDING: ['ISSUED', 'REVOKED', 'EXPIRED'],
-  ISSUED: ['REVOKED', 'EXPIRED'],
+  PENDING: ['ISSUED', 'REVOKED'],
+  ISSUED: ['REVOKED'],
   REVOKED: [],
-  EXPIRED: [],
+  EXPIRED: ['ISSUED'],
 };
 
 const NON_EXPIRING_TYPES = new Set<CredentialType>([
@@ -106,9 +107,96 @@ export interface CredentialActor {
 
 interface UpdateCredentialStatusOptions {
   notifyIssued?: boolean;
+  allowNoopStatus?: boolean;
+  allowExpiredReissue?: boolean;
 }
 
 export class CredentialService {
+  private static autoExpirySweepInFlight = false;
+  private static lastAutoExpirySweepAt = 0;
+
+  private async maybeRunAutoExpirySweep(): Promise<void> {
+    const nowMs = Date.now();
+    if (nowMs - CredentialService.lastAutoExpirySweepAt < 15_000) {
+      return;
+    }
+    await this.runAutoExpirySweep();
+  }
+
+  async runAutoExpirySweep(batchSize = 200): Promise<number> {
+    if (CredentialService.autoExpirySweepInFlight) {
+      return 0;
+    }
+
+    CredentialService.autoExpirySweepInFlight = true;
+    try {
+      const now = new Date();
+      const dueCredentials = await credentialRepository.listDueIssuedCredentialsForAutoExpiry(now, batchSize);
+      if (dueCredentials.length === 0) {
+        CredentialService.lastAutoExpirySweepAt = Date.now();
+        return 0;
+      }
+
+      const expired: Array<{
+        id: string;
+        studentId: string;
+        issuedById: string;
+        institutionId: string | null;
+      }> = [];
+
+      for (const credential of dueCredentials) {
+        const updated = await credentialRepository.markCredentialAsExpiredIfDue(credential.id, now);
+        if (!updated) continue;
+
+        expired.push({
+          id: credential.id,
+          studentId: credential.studentId,
+          issuedById: credential.issuedById,
+          institutionId: credential.student.institutionId,
+        });
+
+        await this.createAuditEntry({
+          action: 'SETTINGS_CHANGED',
+          actorId: null,
+          targetType: 'Credential',
+          targetId: credential.id,
+          description: 'Credential status auto-updated to EXPIRED based on expiryDate.',
+          metadata: {
+            previousStatus: CredentialStatus.ISSUED,
+            nextStatus: CredentialStatus.EXPIRED,
+            source: 'AUTO_EXPIRY_SWEEP',
+          },
+        });
+      }
+
+      if (expired.length > 0) {
+        const credentialEvents: RealtimeEvent[] = expired.map(item => ({
+          domain: 'credentials' as const,
+          action: 'credential.expired',
+          entityId: item.id,
+          scope: {
+            userIds: [item.studentId],
+            roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'],
+            institutionIds: item.institutionId ? [item.institutionId] : [],
+          },
+        }));
+
+        credentialEvents.push({
+          domain: 'audit',
+          action: 'log.created',
+          scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+        });
+
+        void realtimeClient.publishMany(credentialEvents);
+      }
+
+      CredentialService.lastAutoExpirySweepAt = Date.now();
+      return expired.length;
+    } finally {
+      CredentialService.autoExpirySweepInFlight = false;
+    }
+  }
+
   private getQrTokenPepperOrThrow(): string {
     const pepper = ENV.QR_TOKEN_PEPPER?.trim();
     if (!pepper) {
@@ -393,6 +481,7 @@ export class CredentialService {
   }
 
   async listCredentials(actor: CredentialActor, query: ListCredentialsQueryDto) {
+    await this.maybeRunAutoExpirySweep();
     const page = Math.max(1, Number(query.page) || 1);
     const pageSize = Math.min(200, Math.max(1, Number(query.pageSize) || 100));
     const skip = (page - 1) * pageSize;
@@ -446,6 +535,9 @@ export class CredentialService {
 
     const requestedStatus = (data.status ?? CredentialStatus.PENDING) as CredentialStatus;
     const status = requestedStatus;
+    if (status === CredentialStatus.EXPIRED) {
+      throw new Error('EXPIRED_STATUS_SYSTEM_MANAGED');
+    }
     if (status === CredentialStatus.ISSUED) {
       throw new Error('DIRECT_ISSUED_CREATE_NOT_ALLOWED');
     }
@@ -511,6 +603,7 @@ export class CredentialService {
   }
 
   async getCredentialById(actor: CredentialActor, credentialId: string) {
+    await this.maybeRunAutoExpirySweep();
     const scope = await credentialRepository.getCredentialScopeById(credentialId);
     if (!scope) {
       return null;
@@ -529,6 +622,7 @@ export class CredentialService {
     statusData: UpdateCredentialStatusDto,
     options?: UpdateCredentialStatusOptions,
   ) {
+    await this.maybeRunAutoExpirySweep();
     this.ensureCanManageCredentials(actor);
 
     const scope = await credentialRepository.getCredentialScopeById(credentialId);
@@ -542,6 +636,21 @@ export class CredentialService {
 
     const currentStatus = scope.status;
     const nextStatus = statusData.status as CredentialStatus;
+
+    if (currentStatus === nextStatus && !options?.allowNoopStatus) {
+      throw new Error('STATUS_UNCHANGED');
+    }
+
+    if (nextStatus === CredentialStatus.EXPIRED) {
+      throw new Error('EXPIRED_STATUS_SYSTEM_MANAGED');
+    }
+
+    if (
+      currentStatus === CredentialStatus.EXPIRED &&
+      !(options?.allowExpiredReissue && nextStatus === CredentialStatus.ISSUED)
+    ) {
+      throw new Error('CREDENTIAL_EXPIRED_IMMUTABLE');
+    }
 
     if (currentStatus === CredentialStatus.REVOKED) {
       throw new Error('CREDENTIAL_REVOKED_IMMUTABLE');
@@ -822,6 +931,8 @@ export class CredentialService {
 
     return this.updateCredentialStatus(actor, credentialId, statusData, {
       notifyIssued: true,
+      allowNoopStatus: true,
+      allowExpiredReissue: true,
     });
   }
 

@@ -242,8 +242,26 @@ export default function InstitutionStudentsSection({
                   </td>
                   <td className="px-4 py-3 text-right"><div className="inline-flex gap-2">
                     <button onClick={() => onStartEditStudent(student)} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-700 hover:bg-slate-100" title="Edit student profile"><Pencil size={14} /></button>
-                    <button disabled={updatingStudentId === student.id} onClick={() => void onStudentStatusUpdate(student.id, 'APPROVED')} className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50" title="Approve"><Check size={14} /></button>
-                    <button disabled={updatingStudentId === student.id} onClick={() => void onStudentStatusUpdate(student.id, 'SUSPENDED')} className="rounded-lg border border-orange-200 bg-orange-50 p-2 text-orange-700 hover:bg-orange-100 disabled:opacity-50" title="Deactivate"><PauseCircle size={14} /></button>
+                    {student.status !== 'APPROVED' && (
+                      <button
+                        disabled={updatingStudentId === student.id}
+                        onClick={() => void onStudentStatusUpdate(student.id, 'APPROVED')}
+                        className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                        title="Approve"
+                      >
+                        <Check size={14} />
+                      </button>
+                    )}
+                    {student.status !== 'SUSPENDED' && (
+                      <button
+                        disabled={updatingStudentId === student.id}
+                        onClick={() => void onStudentStatusUpdate(student.id, 'SUSPENDED')}
+                        className="rounded-lg border border-orange-200 bg-orange-50 p-2 text-orange-700 hover:bg-orange-100 disabled:opacity-50"
+                        title="Deactivate"
+                      >
+                        <PauseCircle size={14} />
+                      </button>
+                    )}
                     <button onClick={() => void onRemoveStudent(student)} className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-700 hover:bg-rose-100" title="Delete student account"><Trash2 size={14} /></button>
                   </div></td>
                 </tr>

@@ -718,6 +718,9 @@ export class UserController {
       const updated = await userService.updateInstitutionStudentStatus(actorId, studentId, status);
       return res.status(200).json(updated);
     } catch (error) {
+      if (error instanceof Error && error.message === 'STATUS_UNCHANGED') {
+        return res.status(409).json({ error: `Student is already ${status}.` });
+      }
       if (
         error instanceof Error &&
         (error.message === 'FORBIDDEN_ROLE' || error.message === 'INSTITUTION_CONTEXT_MISSING')
@@ -828,6 +831,9 @@ export class UserController {
       const updatedUser = await userService.updateUserStatus(userId, { status }, actorId);
       return res.status(200).json(updatedUser);
     } catch (error) {
+      if (error instanceof Error && error.message === 'STATUS_UNCHANGED') {
+        return res.status(409).json({ error: `User is already ${status}.` });
+      }
       console.error('Error updating user status:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }

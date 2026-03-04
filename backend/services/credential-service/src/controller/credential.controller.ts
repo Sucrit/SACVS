@@ -253,7 +253,13 @@ export class CredentialController {
       INSTITUTION_CONTEXT_MISSING: { code: 403, error: 'Institution context is missing for this account.' },
       FOREIGN_KEY_CONSTRAINT: { code: 400, error: 'One or more referenced records do not exist.' },
       INVALID_STATUS_TRANSITION: { code: 400, error: 'Invalid credential status transition.' },
+      STATUS_UNCHANGED: { code: 409, error: 'Credential is already in the selected status.' },
+      EXPIRED_STATUS_SYSTEM_MANAGED: {
+        code: 400,
+        error: 'EXPIRED status is system-managed and cannot be set manually.',
+      },
       CREDENTIAL_REVOKED_IMMUTABLE: { code: 409, error: 'Revoked credentials are immutable and cannot be updated.' },
+      CREDENTIAL_EXPIRED_IMMUTABLE: { code: 409, error: 'Expired credentials are locked. Use Re-issue to renew.' },
       INVALID_ANCHORED_AT: { code: 400, error: 'Invalid anchoredAt value.' },
       INVALID_ISSUED_DATE: { code: 400, error: 'Invalid issuedDate value.' },
       INVALID_EXPIRY_DATE: { code: 400, error: 'Invalid expiryDate value.' },

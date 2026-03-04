@@ -148,6 +148,59 @@ export class CredentialRepository {
     });
   }
 
+  async listDueIssuedCredentialsForAutoExpiry(
+    now: Date,
+    take: number,
+  ): Promise<
+    Array<{
+      id: string;
+      studentId: string;
+      issuedById: string;
+      student: {
+        institutionId: string | null;
+      };
+    }>
+  > {
+    return prisma.credential.findMany({
+      where: {
+        status: CredentialStatus.ISSUED,
+        expiryDate: {
+          lte: now,
+        },
+      },
+      orderBy: {
+        expiryDate: 'asc',
+      },
+      take,
+      select: {
+        id: true,
+        studentId: true,
+        issuedById: true,
+        student: {
+          select: {
+            institutionId: true,
+          },
+        },
+      },
+    });
+  }
+
+  async markCredentialAsExpiredIfDue(credentialId: string, now: Date): Promise<boolean> {
+    const result = await prisma.credential.updateMany({
+      where: {
+        id: credentialId,
+        status: CredentialStatus.ISSUED,
+        expiryDate: {
+          lte: now,
+        },
+      },
+      data: {
+        status: CredentialStatus.EXPIRED,
+      },
+    });
+    return result.count === 1;
+  }
+
   async getCredentialScopeById(credentialId: string): Promise<{
     id: string;
     title: string;

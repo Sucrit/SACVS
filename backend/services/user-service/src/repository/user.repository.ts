@@ -587,6 +587,7 @@ export class UserRepository {
   async updateUserStatus(userId: string, status: UserStatus, actorId?: string | null): Promise<User> {
     const normalizedActorId = actorId ?? null;
     const approvedAt = status === 'APPROVED' ? new Date() : null;
+    const nextStatus = toPrismaStatus(status);
     const actionByStatus: Record<UserStatus, AuditAction> = {
       APPROVED: AuditAction.USER_APPROVED,
       REJECTED: AuditAction.USER_REJECTED,
@@ -601,11 +602,14 @@ export class UserRepository {
           status: true,
         },
       });
+      if (previous?.status === nextStatus) {
+        throw new Error('STATUS_UNCHANGED');
+      }
 
       const updated = await tx.user.update({
         where: { id: userId },
         data: {
-          status: toPrismaStatus(status),
+          status: nextStatus,
           approvedById: status === 'APPROVED' ? normalizedActorId : null,
           approvedAt,
         },
@@ -690,6 +694,7 @@ export class UserRepository {
     }
 
     const approvedAt = status === 'APPROVED' ? new Date() : null;
+    const nextStatus = toPrismaStatus(status);
 
     return prisma.$transaction(async tx => {
       const previous = await tx.user.findUnique({
@@ -698,11 +703,14 @@ export class UserRepository {
           status: true,
         },
       });
+      if (previous?.status === nextStatus) {
+        throw new Error('STATUS_UNCHANGED');
+      }
 
       const updated = await tx.user.update({
         where: { id: studentUserId },
         data: {
-          status: toPrismaStatus(status),
+          status: nextStatus,
           approvedById: status === 'APPROVED' ? actorId ?? null : null,
           approvedAt,
         },

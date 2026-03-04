@@ -14,7 +14,7 @@ import { User } from '../../../services/user.service';
 import { formatDateTime, getStudentFullName } from '../utils';
 
 const CREDENTIAL_TYPES: CredentialType[] = ['TRANSCRIPT', 'DIPLOMA', 'CERTIFICATE', 'DEGREE', 'LICENSE'];
-const CREDENTIAL_STATUSES: CredentialStatus[] = ['PENDING', 'ISSUED', 'REVOKED', 'EXPIRED'];
+const CREDENTIAL_STATUSES: CredentialStatus[] = ['PENDING', 'ISSUED', 'REVOKED'];
 const EXPIRY_ALLOWED_TYPES: CredentialType[] = ['CERTIFICATE', 'LICENSE'];
 type CertificateCategory = 'ACADEMIC' | 'PROFESSIONAL';
 const DEFAULT_CERTIFICATE_CATEGORY: CertificateCategory = 'ACADEMIC';
@@ -476,6 +476,10 @@ export default function InstitutionIssueSection({
                   <tr key={credential.id} className="hover:bg-slate-50/70">
                     {(() => {
                       const isRevoked = credential.status === 'REVOKED';
+                      const isExpired = credential.status === 'EXPIRED';
+                      const isLockedForStatusUpdate = isRevoked || isExpired;
+                      const targetStatus = statusByCredentialId[credential.id] || credential.status;
+                      const isStatusUnchanged = targetStatus === credential.status;
                       return (
                         <>
                     <td className="px-4 py-3 text-sm text-slate-700">
@@ -509,14 +513,14 @@ export default function InstitutionIssueSection({
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <select
-                          value={statusByCredentialId[credential.id] || credential.status}
+                          value={targetStatus}
                           onChange={event =>
                             setStatusByCredentialId(previous => ({
                               ...previous,
                               [credential.id]: event.target.value as CredentialStatus,
                             }))
                           }
-                          disabled={isRevoked}
+                          disabled={isLockedForStatusUpdate}
                           className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {CREDENTIAL_STATUSES.map(status => (
@@ -527,7 +531,6 @@ export default function InstitutionIssueSection({
                         </select>
                         <button
                           onClick={() => {
-                            const targetStatus = statusByCredentialId[credential.id] || credential.status;
                             setUpdatingCredentialId(credential.id);
                             void onCredentialStatusUpdate(credential.id, targetStatus)
                               .catch(() => undefined)
@@ -535,7 +538,7 @@ export default function InstitutionIssueSection({
                                 setUpdatingCredentialId(current => (current === credential.id ? null : current)),
                               );
                           }}
-                          disabled={updatingCredentialId === credential.id || isRevoked}
+                          disabled={updatingCredentialId === credential.id || isLockedForStatusUpdate || isStatusUnchanged}
                           className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
                         >
                           Save
@@ -565,7 +568,7 @@ export default function InstitutionIssueSection({
                           Re-issue
                           <span className={OTP_BADGE_CLASS}>OTP</span>
                         </button>
-                        {isRevoked && (
+                        {isLockedForStatusUpdate && (
                           <span className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-rose-700">
                             Locked
                           </span>
