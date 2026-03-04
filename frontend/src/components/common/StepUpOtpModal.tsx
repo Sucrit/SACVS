@@ -226,10 +226,10 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
             className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
           <div>
-            <p className="text-lg font-semibold text-slate-900">{prompt.title || 'Security Verification'}</p>
-            <p className="mt-1 text-xs font-medium uppercase tracking-[0.08em] text-slate-500">Email OTP</p>
+            <p className="text-sm font-semibold text-slate-900">{prompt.title || 'Security Verification'}</p>
+            <p className="mt-1 text-xs text-slate-500">Email OTP confirmation is required before continuing.</p>
           </div>
           <button
             type="button"

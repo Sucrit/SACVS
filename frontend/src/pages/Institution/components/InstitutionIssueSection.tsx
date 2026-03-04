@@ -237,11 +237,16 @@ export default function InstitutionIssueSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-slate-900">Direct Credential Issuance</h3>
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Direct Credential Issuance</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Issue a credential directly to a selected student account.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsDirectIssueModalOpen(false)}
@@ -252,7 +257,7 @@ export default function InstitutionIssueSection({
               </button>
             </div>
 
-            <form className="space-y-3" onSubmit={handleSubmitDirectIssue}>
+            <form className="space-y-3 p-5" onSubmit={handleSubmitDirectIssue}>
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <select
                   value={directForm.studentId}

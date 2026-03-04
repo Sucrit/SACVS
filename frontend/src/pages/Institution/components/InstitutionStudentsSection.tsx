@@ -294,11 +294,16 @@ export default function InstitutionStudentsSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-slate-900">Add Student Account</h3>
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Add Student Account</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Create a new student profile under your institution.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
@@ -308,7 +313,7 @@ export default function InstitutionStudentsSection({
                 <X size={16} />
               </button>
             </div>
-            <form className="space-y-3" onSubmit={onCreateStudent}>
+            <form className="space-y-3 p-5" onSubmit={onCreateStudent}>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:col-span-2 xl:col-span-3">
                   Personal Info
@@ -440,11 +445,16 @@ export default function InstitutionStudentsSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+            className="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-slate-900">Bulk Student Account Import (CSV)</h3>
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Bulk Student Account Import (CSV)</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Upload a CSV file to create multiple student accounts at once.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
@@ -454,6 +464,7 @@ export default function InstitutionStudentsSection({
                 <X size={16} />
               </button>
             </div>
+            <div className="p-5">
             <p className="text-sm text-slate-600">
               Use headers:
               <span className="mt-2 block max-w-full break-all rounded-lg bg-slate-50 p-2 text-xs text-slate-700">
@@ -466,6 +477,7 @@ export default function InstitutionStudentsSection({
               {!isBulkImporting && <span className={OTP_BADGE_CLASS}>OTP Required</span>}
               <input type="file" accept=".csv,text/csv" onChange={event => { void onBulkCsvUpload(event); }} className="hidden" />
             </label>
+            </div>
           </motion.div>
         </motion.div>
       )}
@@ -488,11 +500,16 @@ export default function InstitutionStudentsSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-slate-900">Edit Student Profile</h3>
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Edit Student Profile</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Update student profile, academic metadata, and account status.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={onCancelEditStudent}
@@ -502,7 +519,7 @@ export default function InstitutionStudentsSection({
                 <X size={16} />
               </button>
             </div>
-            <form className="space-y-3" onSubmit={onSaveEditedStudent}>
+            <form className="space-y-3 p-5" onSubmit={onSaveEditedStudent}>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <input required value={editStudentForm.firstName} onChange={event => onSetEditStudentFormValue('firstName', event.target.value)} placeholder="First name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
                 <input value={editStudentForm.middleName} onChange={event => onSetEditStudentFormValue('middleName', event.target.value)} placeholder="Middle name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />

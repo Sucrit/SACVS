@@ -546,6 +546,7 @@ export default function StudentCredentialDetailsSection({
               </button>
             </div>
             </div>
+            </div>
           </motion.div>
         </motion.div>
       )}
