@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ClipboardCheck, Eye, Upload, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
@@ -32,6 +33,8 @@ const DEFAULT_CERTIFICATE_CATEGORY: CertificateCategory = 'ACADEMIC';
 const CERTIFICATE_CATEGORIES: CertificateCategory[] = ['ACADEMIC', 'PROFESSIONAL'];
 const OTP_BADGE_CLASS =
   'rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700';
+const DIRECT_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+const DIRECT_UPLOAD_ACCEPTED_MIME = new Set(['application/pdf', 'image/png', 'image/jpeg']);
 
 const supportsExpiryDate = (type: CredentialType) => EXPIRY_ALLOWED_TYPES.includes(type);
 const requiresExpiryDate = (
@@ -107,6 +110,7 @@ export default function InstitutionIssueSection({
     certificateCategory: DEFAULT_CERTIFICATE_CATEGORY as CertificateCategory,
   });
   const [directFile, setDirectFile] = useState<File | null>(null);
+  const [isDirectFileDragActive, setIsDirectFileDragActive] = useState(false);
   const [isDirectIssuing, setIsDirectIssuing] = useState(false);
   const [isDirectIssueModalOpen, setIsDirectIssueModalOpen] = useState(false);
 
@@ -140,6 +144,7 @@ export default function InstitutionIssueSection({
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [requests],
   );
+  const modalRoot = typeof document !== 'undefined' ? document.body : null;
 
   const handleSubmitDirectIssue = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -206,6 +211,31 @@ export default function InstitutionIssueSection({
     }
   };
 
+  const handleDirectFileSelection = (file: File | null) => {
+    if (!file) {
+      setDirectFile(null);
+      return;
+    }
+
+    if (!DIRECT_UPLOAD_ACCEPTED_MIME.has(file.type)) {
+      showToast({
+        variant: 'warning',
+        message: 'Unsupported file type. Please upload PDF, PNG, or JPG.',
+      });
+      return;
+    }
+
+    if (file.size > DIRECT_UPLOAD_MAX_BYTES) {
+      showToast({
+        variant: 'warning',
+        message: 'File is too large. Maximum file size is 10MB.',
+      });
+      return;
+    }
+
+    setDirectFile(file);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
@@ -220,8 +250,9 @@ export default function InstitutionIssueSection({
         </button>
       </div>
 
+      {modalRoot && createPortal(
       <AnimatePresence>
-        {isDirectIssueModalOpen && (
+        {isDirectIssueModalOpen ? (
         <motion.div
           initial="initial"
           animate="animate"
@@ -339,16 +370,50 @@ export default function InstitutionIssueSection({
                 )}
               </div>
 
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100">
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
-                  className="hidden"
-                  onChange={event => setDirectFile(event.target.files?.[0] ?? null)}
-                />
-                <Upload size={12} />
-                {directFile?.name || 'Attach credential file'}
-              </label>
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-slate-800">Upload student credential</p>
+                <label
+                  className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-4 py-6 text-center transition-colors ${
+                    isDirectFileDragActive
+                      ? 'border-sky-300 bg-sky-50'
+                      : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
+                  }`}
+                  onDragOver={event => {
+                    event.preventDefault();
+                    setIsDirectFileDragActive(true);
+                  }}
+                  onDragEnter={event => {
+                    event.preventDefault();
+                    setIsDirectFileDragActive(true);
+                  }}
+                  onDragLeave={event => {
+                    event.preventDefault();
+                    setIsDirectFileDragActive(false);
+                  }}
+                  onDrop={event => {
+                    event.preventDefault();
+                    setIsDirectFileDragActive(false);
+                    handleDirectFileSelection(event.dataTransfer.files?.[0] ?? null);
+                  }}
+                >
+                  <input
+                    type="file"
+                    accept="application/pdf,image/png,image/jpeg"
+                    className="hidden"
+                    onChange={event => handleDirectFileSelection(event.target.files?.[0] ?? null)}
+                  />
+                  <Upload size={20} className="mb-3 mt-15 text-slate-400" />
+                  <p className="text-sm text-slate-700">
+                    <span className="font-semibold text-sky-600">Upload a file</span> or drag and drop
+                  </p>
+                  <p className="mt-1 mb-15 text-xs text-slate-500">PDF, PNG, JPG up to 10MB</p>
+                </label>
+                {directFile && (
+                  <p className="text-xs text-slate-600">
+                    Selected: <span className="font-semibold text-slate-800">{directFile.name}</span>
+                  </p>
+                )}
+              </div>
 
               <div className="flex items-center gap-2">
                 <button
@@ -373,8 +438,9 @@ export default function InstitutionIssueSection({
             </form>
           </motion.div>
         </motion.div>
-      )}
+      ) : null}
       </AnimatePresence>
+      , modalRoot)}
 
       <Card title="Issue From Approved Requests">
         <div className="overflow-x-auto rounded-xl border border-slate-200">

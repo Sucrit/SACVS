@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AlertCircle, Camera, CameraOff, CheckCircle2, Clock3, QrCode, ReceiptText, XCircle } from 'lucide-react';
+import { AlertCircle, Camera, CameraOff, CheckCircle2, Clock3, FileSearch, QrCode, XCircle } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import { useToast } from '../../../hooks/useToast';
@@ -260,7 +260,7 @@ export default function InstitutionReceiptVerifySection() {
         <div className="mt-4 min-h-90">
           {!isVerifying && !verifyError && !result && (
             <div className="flex min-h-82 flex-col items-center justify-center px-6 text-center">
-              <ReceiptText size={40} className="mb-4 text-slate-400" />
+              <FileSearch size={40} className="mb-4 text-slate-400" />
               <p className="mt-2 max-w-xl text-sm text-slate-600">
                 Verify student approval receipts for physical pickup by scanning the QR code
                 or pasting the one-time receipt token/URL above.

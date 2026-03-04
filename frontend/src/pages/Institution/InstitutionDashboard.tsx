@@ -473,7 +473,7 @@ export default function InstitutionDashboard() {
   };
 
   const handleRemoveStudent = async (student: User) => {
-    if (!window.confirm(`Delete ${student.email}?\n\nThis will delete the student account in both database and Clerk.`)) {
+    if (!window.confirm(`Delete ${student.email}?\n\nThis will delete permanently delete the student account from the system and cannot be undone.`)) {
       return;
     }
 

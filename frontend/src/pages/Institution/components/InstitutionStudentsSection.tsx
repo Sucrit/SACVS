@@ -180,7 +180,7 @@ export default function InstitutionStudentsSection({
   }, [departmentOptions, students]);
 
   return (
-    <div className="h-[calc(100vh-220px)] overflow-y-scroll pr-1 space-y-4">
+    <div className="min-h-[calc(100vh-220px)] space-y-4 pb-4">
       <Card
         title="Institution's Student Management"
         action={(
@@ -338,7 +338,7 @@ export default function InstitutionStudentsSection({
                 </label>
                 <label className="space-y-1.5">
                   <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Email <span className="text-rose-500">*</span>
+                    University Issued Email<span className="text-rose-500">*</span>
                   </span>
                   <input required type="email" value={studentForm.email} onChange={event => onSetStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
                 </label>
@@ -352,6 +352,29 @@ export default function InstitutionStudentsSection({
                 <p className="pt-2 text-xs font-semibold uppercase tracking-widest text-slate-500 md:col-span-2 xl:col-span-3">
                   Academic Info
                 </p>
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    Department <span className="text-rose-500">*</span>
+                  </span>
+                  <select
+                    required
+                    value={studentForm.department}
+                    onChange={event => {
+                      const nextDepartment = event.target.value;
+                      onSetStudentFormValue('department', nextDepartment);
+                      const allowedCourses = new Set(PHINMA_DEPARTMENT_COURSE_MAP[nextDepartment] ?? []);
+                      if (studentForm.courseOfStudy && !allowedCourses.has(studentForm.courseOfStudy)) {
+                        onSetStudentFormValue('courseOfStudy', '');
+                      }
+                    }}
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  >
+                    <option value="" disabled>Select department</option>
+                    {addFormDepartmentOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </label>
                 <label className="space-y-1.5">
                   <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
                     Course of study <span className="text-rose-500">*</span>
@@ -380,29 +403,6 @@ export default function InstitutionStudentsSection({
                   >
                     <option value="" disabled>Select year level</option>
                     {addFormYearLevelOptions.map(option => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Department <span className="text-rose-500">*</span>
-                  </span>
-                  <select
-                    required
-                    value={studentForm.department}
-                    onChange={event => {
-                      const nextDepartment = event.target.value;
-                      onSetStudentFormValue('department', nextDepartment);
-                      const allowedCourses = new Set(PHINMA_DEPARTMENT_COURSE_MAP[nextDepartment] ?? []);
-                      if (studentForm.courseOfStudy && !allowedCourses.has(studentForm.courseOfStudy)) {
-                        onSetStudentFormValue('courseOfStudy', '');
-                      }
-                    }}
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
-                  >
-                    <option value="" disabled>Select department</option>
-                    {addFormDepartmentOptions.map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
                   </select>
@@ -466,7 +466,7 @@ export default function InstitutionStudentsSection({
             </div>
             <div className="p-5">
             <p className="text-sm text-slate-600">
-              Use headers:
+              Strictly use the header format below:
               <span className="mt-2 block max-w-full break-all rounded-lg bg-slate-50 p-2 text-xs text-slate-700">
                 email,firstName,middleName,lastName,studentNumber,courseOfStudy,yearLevel,department
               </span>
@@ -520,55 +520,129 @@ export default function InstitutionStudentsSection({
               </button>
             </div>
             <form className="space-y-3 p-5" onSubmit={onSaveEditedStudent}>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <input required value={editStudentForm.firstName} onChange={event => onSetEditStudentFormValue('firstName', event.target.value)} placeholder="First name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                <input value={editStudentForm.middleName} onChange={event => onSetEditStudentFormValue('middleName', event.target.value)} placeholder="Middle name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                <input required value={editStudentForm.lastName} onChange={event => onSetEditStudentFormValue('lastName', event.target.value)} placeholder="Last name" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                <input required value={editStudentForm.studentNumber} onChange={event => onSetEditStudentFormValue('studentNumber', event.target.value)} placeholder="Student number" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                <select
-                  required
-                  value={editStudentForm.courseOfStudy}
-                  onChange={event => onSetEditStudentFormValue('courseOfStudy', event.target.value)}
-                  className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
-                >
-                  <option value="" disabled>Select course of study</option>
-                  {editFormCourseOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-                <select
-                  required
-                  value={editStudentForm.yearLevel}
-                  onChange={event => onSetEditStudentFormValue('yearLevel', event.target.value)}
-                  className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
-                >
-                  <option value="" disabled>Select year level</option>
-                  {addFormYearLevelOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-                <select
-                  required
-                  value={editStudentForm.department}
-                  onChange={event => {
-                    const nextDepartment = event.target.value;
-                    onSetEditStudentFormValue('department', nextDepartment);
-                    const allowedCourses = new Set(PHINMA_DEPARTMENT_COURSE_MAP[nextDepartment] ?? []);
-                    if (editStudentForm.courseOfStudy && !allowedCourses.has(editStudentForm.courseOfStudy)) {
-                      onSetEditStudentFormValue('courseOfStudy', '');
-                    }
-                  }}
-                  className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
-                >
-                  <option value="" disabled>Select department</option>
-                  {addFormDepartmentOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-                <input required type="email" value={editStudentForm.email} onChange={event => onSetEditStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
-                <select value={editStudentForm.status} onChange={event => onSetEditStudentFormValue('status', event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none">
-                  {STUDENT_STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
-                </select>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 md:col-span-2 xl:col-span-3">
+                  Personal Info
+                </p>
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    First name <span className="text-rose-500">*</span>
+                  </span>
+                  <input
+                    required
+                    value={editStudentForm.firstName}
+                    onChange={event => onSetEditStudentFormValue('firstName', event.target.value)}
+                    placeholder="First name"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  />
+                </label>
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    Middle name
+                  </span>
+                  <input
+                    value={editStudentForm.middleName}
+                    onChange={event => onSetEditStudentFormValue('middleName', event.target.value)}
+                    placeholder="Middle name (optional)"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  />
+                </label>
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    Last name <span className="text-rose-500">*</span>
+                  </span>
+                  <input
+                    required
+                    value={editStudentForm.lastName}
+                    onChange={event => onSetEditStudentFormValue('lastName', event.target.value)}
+                    placeholder="Last name"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  />
+                </label>
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    Email <span className="text-rose-500">*</span>
+                  </span>
+                  <input
+                    required
+                    type="email"
+                    value={editStudentForm.email}
+                    onChange={event => onSetEditStudentFormValue('email', event.target.value)}
+                    placeholder="Email"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  />
+                </label>
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    Student number <span className="text-rose-500">*</span>
+                  </span>
+                  <input
+                    required
+                    value={editStudentForm.studentNumber}
+                    onChange={event => onSetEditStudentFormValue('studentNumber', event.target.value)}
+                    placeholder="Student number"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  />
+                </label>
+
+                <p className="pt-2 text-xs font-semibold uppercase tracking-widest text-slate-500 md:col-span-2 xl:col-span-3">
+                  Academic Info
+                </p>
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    Course of study <span className="text-rose-500">*</span>
+                  </span>
+                  <select
+                    required
+                    value={editStudentForm.courseOfStudy}
+                    onChange={event => onSetEditStudentFormValue('courseOfStudy', event.target.value)}
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  >
+                    <option value="" disabled>Select course of study</option>
+                    {editFormCourseOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    Year level <span className="text-rose-500">*</span>
+                  </span>
+                  <select
+                    required
+                    value={editStudentForm.yearLevel}
+                    onChange={event => onSetEditStudentFormValue('yearLevel', event.target.value)}
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  >
+                    <option value="" disabled>Select year level</option>
+                    {addFormYearLevelOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    Department <span className="text-rose-500">*</span>
+                  </span>
+                  <select
+                    required
+                    value={editStudentForm.department}
+                    onChange={event => {
+                      const nextDepartment = event.target.value;
+                      onSetEditStudentFormValue('department', nextDepartment);
+                      const allowedCourses = new Set(PHINMA_DEPARTMENT_COURSE_MAP[nextDepartment] ?? []);
+                      if (editStudentForm.courseOfStudy && !allowedCourses.has(editStudentForm.courseOfStudy)) {
+                        onSetEditStudentFormValue('courseOfStudy', '');
+                      }
+                    }}
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  >
+                    <option value="" disabled>Select department</option>
+                    {addFormDepartmentOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </label>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-black"><Check size={14} />Save Changes</button>
