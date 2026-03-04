@@ -361,7 +361,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-3xl font-bold text-white">{totalUsers}</p>
-              <p className="mt-1 text-xs uppercase tracking-[0.1em] text-slate-300">All accounts</p>
+              <p className="mt-1 text-xs uppercase tracking-widest text-slate-300">All accounts</p>
             </div>
             <Users size={22} className="text-white" />
           </div>
@@ -371,7 +371,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-3xl font-bold text-emerald-700">{approvedUsers}</p>
-              <p className="mt-1 text-xs uppercase tracking-[0.1em] text-slate-500">Active users</p>
+              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Active users</p>
             </div>
             <UserRoundCheck size={22} className="text-emerald-700" />
           </div>
@@ -381,7 +381,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-3xl font-bold text-amber-700">{pendingUsers}</p>
-              <p className="mt-1 text-xs uppercase tracking-[0.1em] text-slate-500">Needs approval</p>
+              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Needs approval</p>
             </div>
             <Clock3 size={22} className="text-amber-700" />
           </div>
@@ -391,7 +391,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-3xl font-bold text-slate-900">{studentAccounts}</p>
-              <p className="mt-1 text-xs uppercase tracking-[0.1em] text-slate-500">Role-level count</p>
+              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Role-level count</p>
             </div>
             <Database size={22} className="text-slate-700" />
           </div>
@@ -414,7 +414,7 @@ export default function AdminDashboard() {
           >
             <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
                   <tr>
                     <th className="px-5 py-3">Name</th>
                     <th className="px-5 py-3">Email</th>
@@ -503,7 +503,7 @@ export default function AdminDashboard() {
       >
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
           <div className="lg:col-span-2">
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Search</label>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-slate-500">Search</label>
             <div className="relative">
               <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -516,7 +516,7 @@ export default function AdminDashboard() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Role</label>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-slate-500">Role</label>
             <select
               value={roleFilter}
               onChange={event => setRoleFilter(event.target.value as RoleFilter)}
@@ -531,7 +531,7 @@ export default function AdminDashboard() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Status</label>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-slate-500">Status</label>
             <select
               value={statusFilter}
               onChange={event => setStatusFilter(event.target.value as StatusFilter)}
@@ -557,7 +557,7 @@ export default function AdminDashboard() {
           <Card title="Accounts">
             <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
                   <tr>
                     <th className="px-5 py-3">User</th>
                     <th className="px-5 py-3">Role</th>
@@ -638,38 +638,38 @@ export default function AdminDashboard() {
 
                   <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <p className="uppercase tracking-[0.1em] text-slate-500">User ID</p>
+                      <p className="uppercase tracking-widest text-slate-500">User ID</p>
                       <p className="mt-1 break-all font-semibold text-slate-700">{selectedUser.id}</p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-[0.1em] text-slate-500">Role</p>
+                      <p className="uppercase tracking-widest text-slate-500">Role</p>
                       <p className="mt-1 font-semibold text-slate-700">{selectedUser.role}</p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-[0.1em] text-slate-500">Organization</p>
+                      <p className="uppercase tracking-widest text-slate-500">Organization</p>
                       <p className="mt-1 font-semibold text-slate-700">{getLinkedOrganizationLabel(selectedUser)}</p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-[0.1em] text-slate-500">Created</p>
+                      <p className="uppercase tracking-widest text-slate-500">Created</p>
                       <p className="mt-1 font-semibold text-slate-700">{formatDateTime(selectedUser.createdAt)}</p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-[0.1em] text-slate-500">Updated</p>
+                      <p className="uppercase tracking-widest text-slate-500">Updated</p>
                       <p className="mt-1 font-semibold text-slate-700">{formatDateTime(selectedUser.updatedAt)}</p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-[0.1em] text-slate-500">Approved At</p>
+                      <p className="uppercase tracking-widest text-slate-500">Approved At</p>
                       <p className="mt-1 font-semibold text-slate-700">{formatDateTime(selectedUser.approvedAt)}</p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-[0.1em] text-slate-500">Approved By ID</p>
+                      <p className="uppercase tracking-widest text-slate-500">Approved By ID</p>
                       <p className="mt-1 break-all font-semibold text-slate-700">{selectedUser.approvedById || '-'}</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+                  <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
                     Role Actions
                     <span className={OTP_BADGE_CLASS}>OTP Required</span>
                   </p>
@@ -698,7 +698,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+                  <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
                     Status Actions
                     <span className={OTP_BADGE_CLASS}>OTP Required</span>
                   </p>
@@ -744,7 +744,7 @@ export default function AdminDashboard() {
       >
         <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Action</label>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Action</label>
             <select
               value={auditActionFilter}
               onChange={event => setAuditActionFilter(event.target.value as 'ALL' | AuditAction)}
@@ -758,7 +758,7 @@ export default function AdminDashboard() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Severity</label>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Severity</label>
             <select
               value={auditSeverityFilter}
               onChange={event => setAuditSeverityFilter(event.target.value as 'ALL' | AuditSeverity)}
@@ -772,7 +772,7 @@ export default function AdminDashboard() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Page Size</label>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Page Size</label>
             <select
               value={auditPageSize}
               onChange={event => setAuditPageSize(Number(event.target.value))}
@@ -794,7 +794,7 @@ export default function AdminDashboard() {
 
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
               <tr>
                 <th className="px-4 py-3">Timestamp</th>
                 <th className="px-4 py-3">Action</th>

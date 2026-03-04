@@ -378,7 +378,7 @@ export default function StudentRequestHistorySection({
                       </button>
 
                       {openMenuRequestId === request.id && (
-                        <div className="absolute right-0 top-9 z-20 min-w-[150px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+                        <div className="absolute right-0 top-9 z-20 min-w-37.5 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
                           <button
                             type="button"
                             onClick={() => {
@@ -433,7 +433,7 @@ export default function StudentRequestHistorySection({
                   </div>
 
                   <p className="mb-2 text-xs font-semibold uppercase tracking-[0.09em] text-slate-500">{request.type}</p>
-                  <p className="line-clamp-2 min-h-[2.5rem] text-sm text-slate-600">
+                  <p className="line-clamp-2 min-h-10 text-sm text-slate-600">
                     {request.purpose?.trim() || request.description?.trim() || 'No purpose provided.'}
                   </p>
 
@@ -557,7 +557,7 @@ export default function StudentRequestHistorySection({
                   <Info size={14} />
                   Purpose
                 </p>
-                <div className="min-h-[44px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <div className="min-h-11 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                   {detailsRequest.purpose || 'No purpose provided.'}
                 </div>
               </div>
@@ -566,7 +566,7 @@ export default function StudentRequestHistorySection({
                   <FileText size={14} />
                   Description
                 </p>
-                <div className="min-h-[44px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <div className="min-h-11 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                   {detailsRequest.description || 'No description provided.'}
                 </div>
               </div>
@@ -589,7 +589,7 @@ export default function StudentRequestHistorySection({
                     <MessageSquare size={14} />
                     Institution Note
                   </p>
-                  <div className="min-h-[44px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  <div className="min-h-11 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                     {detailsRequest.notes}
                   </div>
                 </div>
@@ -601,7 +601,7 @@ export default function StudentRequestHistorySection({
                     <AlertCircle size={14} />
                     Rejection
                   </p>
-                  <div className="min-h-[44px] rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                  <div className="min-h-11 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
                     {detailsRequest.rejectionReason}
                   </div>
                 </div>
@@ -614,7 +614,7 @@ export default function StudentRequestHistorySection({
                       <Link2 size={14} />
                       Credential
                     </p>
-                    <div className="min-h-[44px] rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                    <div className="min-h-11 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
                       <p>A credential has been linked to this request.</p>
                       {onViewIssuedCredential && (
                         <button
@@ -638,7 +638,7 @@ export default function StudentRequestHistorySection({
                     <Link2 size={14} />
                     Receipt
                   </p>
-                  <div className="min-h-[44px] rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-900">
+                  <div className="min-h-11 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm text-indigo-900">
                     <p>Approval receipt is available for physical pickup verification.</p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <button

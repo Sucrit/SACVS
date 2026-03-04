@@ -228,7 +228,7 @@ export default function InstitutionIssueSection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-90 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
           onClick={() => setIsDirectIssueModalOpen(false)}
         >
           <motion.div
@@ -379,7 +379,7 @@ export default function InstitutionIssueSection({
       <Card title="Issue From Approved Requests">
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
               <tr>
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Request</th>
@@ -514,7 +514,7 @@ export default function InstitutionIssueSection({
       <Card title="Manage Student Credentials">
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
               <tr>
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Credential</th>

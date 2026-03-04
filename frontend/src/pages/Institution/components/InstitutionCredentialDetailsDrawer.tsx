@@ -229,7 +229,7 @@ export default function InstitutionCredentialDetailsDrawer({
             {!isLoading && credential && (
               <>
                 <section className="pb-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Document Preview</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Document Preview</p>
                   <div className="mt-3 rounded-lg border border-slate-200 bg-white p-2">
                     {credential.storageKey && isLoadingDocument && (
                       <div className="min-h-[240px] space-y-3 rounded-lg bg-slate-50 p-4">
@@ -263,7 +263,7 @@ export default function InstitutionCredentialDetailsDrawer({
                 </section>
 
                 <section className="border-t border-slate-200 pt-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Credential</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Credential</p>
                   <h4 className="mt-2 text-xl font-semibold text-slate-900">{credential.title}</h4>
                   <div className="mt-2 flex items-center gap-2">
                     <span className="text-sm text-slate-500">{credential.type}</span>

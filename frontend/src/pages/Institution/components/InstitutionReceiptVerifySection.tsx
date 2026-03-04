@@ -257,9 +257,9 @@ export default function InstitutionReceiptVerifySection() {
           </button>
         </div>
 
-        <div className="mt-4 min-h-[360px]">
+        <div className="mt-4 min-h-90">
           {!isVerifying && !verifyError && !result && (
-            <div className="flex min-h-[328px] flex-col items-center justify-center px-6 text-center">
+            <div className="flex min-h-82 flex-col items-center justify-center px-6 text-center">
               <ReceiptText size={40} className="mb-4 text-slate-400" />
               <p className="mt-2 max-w-xl text-sm text-slate-600">
                 Verify student approval receipts for physical pickup by scanning the QR code
@@ -269,7 +269,7 @@ export default function InstitutionReceiptVerifySection() {
           )}
 
           {isVerifying && (
-            <div className="flex min-h-[328px] flex-col items-center justify-center px-6 text-center">
+            <div className="flex min-h-82 flex-col items-center justify-center px-6 text-center">
               <span
                 className="mb-4 inline-flex h-12 w-12 animate-spin rounded-full border-4 border-slate-300 border-t-slate-700"
                 aria-hidden="true"
@@ -343,7 +343,7 @@ export default function InstitutionReceiptVerifySection() {
           )}
 
           {!isVerifying && !verifyError && result && !result.valid && result.reason !== 'EXPIRED' && (
-            <div className="flex min-h-[328px] flex-col items-center justify-center px-6 text-center">
+            <div className="flex min-h-82 flex-col items-center justify-center px-6 text-center">
               <XCircle size={40} className="mb-4 text-rose-500" />
               <p className="text-lg font-semibold text-slate-900">Receipt token invalid or used</p>
               <p className="mt-2 max-w-xl text-sm text-slate-600">

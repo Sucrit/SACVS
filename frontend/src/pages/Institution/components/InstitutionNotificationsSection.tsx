@@ -86,7 +86,7 @@ export default function InstitutionNotificationsSection({
       <Card title="Notification Activity Log">
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
               <tr>
                 <th className="px-4 py-3">Target</th>
                 <th className="px-4 py-3">Title</th>

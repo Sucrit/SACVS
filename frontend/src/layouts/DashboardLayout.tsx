@@ -510,7 +510,7 @@ export default function DashboardLayout() {
                     className={isNotificationPageOpen ? 'fill-slate-900 text-slate-900' : undefined}
                   />
                   {unreadNotificationsCount > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 inline-flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                    <span className="absolute -right-0.5 -top-0.5 inline-flex min-h-4.5 min-w-4.5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
                       {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
                     </span>
                   )}
@@ -519,7 +519,7 @@ export default function DashboardLayout() {
                 {isNotificationOpen && (
                   <div
                     ref={bellPanelRef}
-                    className="absolute -right-3 top-12 z-50 w-[340px] sm:top-14 sm:w-[360px]"
+                    className="absolute -right-3 top-12 z-50 w-85 sm:top-14 sm:w-90"
                   >
                     <div className="pointer-events-none absolute -top-3 right-8 h-3.5 w-3.5 border-r border-t border-slate-200 bg-white [clip-path:polygon(0_100%,100%_0,100%_100%)]" />
                     <div className="max-h-[75vh] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_22px_45px_rgba(15,23,42,0.2)]">
@@ -543,7 +543,7 @@ export default function DashboardLayout() {
                             {isNotificationMenuOpen && (
                               <div
                                 ref={notificationMenuRef}
-                                className="absolute right-0 top-9 z-10 min-w-[220px]"
+                                className="absolute right-0 top-9 z-10 min-w-55"
                               >
                                 <div className="pointer-events-none absolute -top-3 right-3 h-3.5 w-3.5 border-r border-t border-slate-200 bg-white [clip-path:polygon(0_100%,100%_0,100%_100%)]" />
                                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-[0_14px_30px_rgba(15,23,42,0.18)]">
@@ -722,7 +722,7 @@ export default function DashboardLayout() {
                               src={credentialsIcon}
                               alt=""
                               aria-hidden="true"
-                              className="h-[15px] w-[15px] object-contain"
+                              className="h-3.75 w-3.75 object-contain"
                             />
                           )}
                           {!useCredentialSvg && Icon && <Icon size={15} />}

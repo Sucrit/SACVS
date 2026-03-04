@@ -299,7 +299,7 @@ export default function EmployerDashboard() {
         >
           <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Action</label>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Action</label>
               <select
                 value={auditActionFilter}
                 onChange={event => setAuditActionFilter(event.target.value as 'ALL' | AuditAction)}
@@ -313,7 +313,7 @@ export default function EmployerDashboard() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Severity</label>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Severity</label>
               <select
                 value={auditSeverityFilter}
                 onChange={event => setAuditSeverityFilter(event.target.value as 'ALL' | AuditSeverity)}
@@ -327,7 +327,7 @@ export default function EmployerDashboard() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Page Size</label>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Page Size</label>
               <select
                 value={auditPageSize}
                 onChange={event => setAuditPageSize(Number(event.target.value))}
@@ -349,7 +349,7 @@ export default function EmployerDashboard() {
 
           <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="w-full text-left">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
                 <tr>
                   <th className="px-5 py-3">Timestamp</th>
                   <th className="px-5 py-3">Action</th>
@@ -510,7 +510,7 @@ export default function EmployerDashboard() {
       <Card title="Recent Employer Requests">
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
               <tr>
                 <th className="px-5 py-3">Title</th>
                 <th className="px-5 py-3">Type</th>

@@ -221,7 +221,7 @@ export default function InstitutionStudentsSection({
 
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
+            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
               <tr>
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Student #</th>
@@ -285,7 +285,7 @@ export default function InstitutionStudentsSection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-90 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
           onClick={() => setActiveModal(null)}
         >
           <motion.div
@@ -315,7 +315,7 @@ export default function InstitutionStudentsSection({
             </div>
             <form className="space-y-3 p-5" onSubmit={onCreateStudent}>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:col-span-2 xl:col-span-3">
+                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 md:col-span-2 xl:col-span-3">
                   Personal Info
                 </p>
                 <label className="space-y-1.5">
@@ -349,7 +349,7 @@ export default function InstitutionStudentsSection({
                   <input required value={studentForm.studentNumber} onChange={event => onSetStudentFormValue('studentNumber', event.target.value)} placeholder="Student number" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
                 </label>
 
-                <p className="pt-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-500 md:col-span-2 xl:col-span-3">
+                <p className="pt-2 text-xs font-semibold uppercase tracking-widest text-slate-500 md:col-span-2 xl:col-span-3">
                   Academic Info
                 </p>
                 <label className="space-y-1.5">
@@ -436,7 +436,7 @@ export default function InstitutionStudentsSection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-90 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
           onClick={() => setActiveModal(null)}
         >
           <motion.div
@@ -491,7 +491,7 @@ export default function InstitutionStudentsSection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-90 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
           onClick={onCancelEditStudent}
         >
           <motion.div

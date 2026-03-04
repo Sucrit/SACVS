@@ -282,7 +282,7 @@ export default function StudentCredentialDetailsSection({
               </button>
               <div className="flex items-center gap-2">
                 <FileBadge2 size={14} className="text-slate-500" />
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Document Preview</p>
+                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Document Preview</p>
               </div>
             </div>
 
@@ -316,7 +316,7 @@ export default function StudentCredentialDetailsSection({
 
           <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
             <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">Credential Details</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Credential Details</p>
               <p className="mt-1 text-2xl font-semibold leading-tight text-slate-900">{selectedCredential.title}</p>
               <p className="mt-2 text-sm font-medium text-slate-600">
                 <span className="text-slate-500">Type:</span>{' '}
