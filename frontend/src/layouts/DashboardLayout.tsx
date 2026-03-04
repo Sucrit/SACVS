@@ -482,7 +482,7 @@ export default function DashboardLayout() {
     <div className="min-h-screen bg-white font-sans selection:bg-slate-900 selection:text-white">
       <div className="relative flex min-h-screen flex-1 flex-col">
         <div className="bg-slate-50 border-b border-slate-200">
-          <div className="flex h-12 items-center justify-between pl-2 pr-4 sm:h-[52px] sm:pl-4 sm:pr-6 lg:h-[52px] lg:pl-5 lg:pr-8">
+          <div className="flex h-12 items-center justify-between pl-2 pr-4 sm:h-13 sm:pl-4 sm:pr-6 lg:h-13 lg:pl-5 lg:pr-8">
             <div className="flex items-center gap-2 sm:gap-2.5">
               <img src={logoCompact} alt="Credence logo" className="block h-6 w-6 object-contain sm:h-7 sm:w-7" />
               <div className="h-6 w-px bg-slate-200 sm:h-7" />

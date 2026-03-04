@@ -135,6 +135,26 @@ enum StepUpAction {
   QR_DOWNLOAD_ENABLE
 }
 
+enum RiskBand {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum RiskReviewStatus {
+  PENDING_REVIEW
+  CONFIRMED_ABUSE
+  BENIGN
+  UNCERTAIN
+}
+
+enum RiskModelType {
+  SUPERVISED
+  ANOMALY
+  ENSEMBLE
+}
+
 enum NotificationType {
   ACCOUNT_APPROVED
   ACCOUNT_REJECTED
@@ -274,7 +294,7 @@ model Credential {
 
 
 
-
+// Credential Qr token
 
 model CredentialQrToken {
   id            String   @id @default(uuid())
@@ -307,7 +327,7 @@ model CredentialQrToken {
 
 
 
-
+// Credentiel document token
 
 model CredentialQrDocumentToken {
   id           String   @id @default(uuid())
@@ -332,7 +352,7 @@ model CredentialQrDocumentToken {
 
 
 
-
+// Step up challenge
 
 model StepUpChallenge {
   id          String       @id @default(uuid())
@@ -362,7 +382,7 @@ model StepUpChallenge {
 
 
 
-
+// Step up session
 
 model StepUpSession {
   id          String          @id @default(uuid())
@@ -436,7 +456,7 @@ model CredentialRequest {
 
 
 
-// approved request receipt
+// Approved request receipt
 
 model CredentialRequestApprovalReceipt {
   id            String   @id @default(uuid())
@@ -458,6 +478,106 @@ model CredentialRequestApprovalReceipt {
   @@index([studentId, createdAt])
   @@index([usedAt])
   @@index([invalidatedAt])
+}
+
+
+
+
+
+
+
+
+
+
+model RiskModelVersion {
+  id            String        @id @default(uuid())
+  modelVersion  String        @unique
+  modelType     RiskModelType
+  description   String?
+  featureSchema Json?
+  metrics       Json?
+  artifactPath  String?
+  isActive      Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  riskEvents RiskEventRecord[]
+
+  @@index([modelType, createdAt])
+  @@index([isActive])
+}
+
+
+
+
+
+
+
+
+
+
+model RiskFeatureSnapshot {
+  id                 String     @id @default(uuid())
+  eventId            String?
+  correlationId      String?
+  actorId            String?
+  actorRole          Role?
+  institutionId      String?
+  action             String
+  targetType         String?
+  targetId           String?
+  ipHash             String?
+  userAgentHash      String?
+  features           Json
+  featuresWindowStart DateTime?
+  featuresWindowEnd   DateTime?
+  observedAt         DateTime
+  createdAt          DateTime   @default(now())
+
+  riskEvents RiskEventRecord[]
+
+  @@index([eventId])
+  @@index([correlationId, observedAt])
+  @@index([actorId, observedAt])
+  @@index([action, observedAt])
+  @@index([createdAt])
+}
+
+
+
+
+
+
+
+
+
+model RiskEventRecord {
+  id                  String           @id @default(uuid())
+  eventId             String?
+  correlationId       String?
+  actorId             String?
+  action              String
+  featuresSnapshotRef String
+  featuresSnapshot    RiskFeatureSnapshot @relation(fields: [featuresSnapshotRef], references: [id], onDelete: Cascade)
+  riskScore           Float
+  riskBand            RiskBand
+  topSignals          Json?
+  modelVersionId      String?
+  modelVersionRef     RiskModelVersion?  @relation(fields: [modelVersionId], references: [id], onDelete: SetNull)
+  modelVersion        String
+  inferenceTs         DateTime
+  reviewStatus        RiskReviewStatus @default(PENDING_REVIEW)
+  reviewedById        String?
+  reviewedAt          DateTime?
+  reviewNotes         String?
+  createdAt           DateTime         @default(now())
+
+  @@index([eventId])
+  @@index([correlationId, inferenceTs])
+  @@index([actorId, inferenceTs])
+  @@index([riskBand, inferenceTs])
+  @@index([reviewStatus, inferenceTs])
+  @@index([createdAt])
 }
 
 

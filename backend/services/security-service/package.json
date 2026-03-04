@@ -1,0 +1,24 @@
+{
+  "name": "security-service",
+  "version": "1.0.0",
+  "description": "Offline ML security shadow pipeline for SACVS.",
+  "main": "index.js",
+  "scripts": {
+    "db:generate": "prisma generate",
+    "typecheck": "tsc --noEmit",
+    "dataset:extract": "ts-node src/scripts/extract-risk-dataset.ts",
+    "shadow:score": "ts-node src/scripts/run-shadow-risk.ts",
+    "model:register": "ts-node src/scripts/register-model-version.ts"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.4.0",
+    "@prisma/client": "^7.4.0",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "prisma": "^7.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
