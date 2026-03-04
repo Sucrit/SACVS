@@ -190,7 +190,7 @@ export default function InstitutionCredentialDetailsDrawer({
     <div className={`fixed inset-0 z-[95] transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
       <button
         type="button"
-        className={`absolute inset-0 bg-slate-900/35 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
         aria-label="Close credential details"
       />
@@ -205,7 +205,7 @@ export default function InstitutionCredentialDetailsDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+              className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
               aria-label="Close drawer"
             >
               <X size={16} />

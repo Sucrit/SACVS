@@ -1,4 +1,5 @@
 import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Check, PauseCircle, Pencil, Search, Trash2, Upload, UserPlus, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
@@ -11,6 +12,11 @@ import {
   OTHER_PHINMA_PROGRAMS,
   PHINMA_DEPARTMENT_COURSE_MAP,
 } from '../constants';
+import {
+  MODAL_BACKDROP_VARIANTS,
+  MODAL_PANEL_VARIANTS,
+  MODAL_TRANSITION,
+} from '../../../components/common/modal-motion';
 
 interface InstitutionStudentsSectionProps {
   studentForm: StudentFormState;
@@ -271,12 +277,23 @@ export default function InstitutionStudentsSection({
         </div>
       </Card>
 
-      {activeModal === 'add' && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/35 p-4"
+      <AnimatePresence>
+        {activeModal === 'add' && (
+        <motion.div
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          variants={MODAL_BACKDROP_VARIANTS}
+          transition={MODAL_TRANSITION}
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
           onClick={() => setActiveModal(null)}
         >
-          <div
+          <motion.div
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={MODAL_PANEL_VARIANTS}
+            transition={MODAL_TRANSITION}
             className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
@@ -285,7 +302,7 @@ export default function InstitutionStudentsSection({
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
                 aria-label="Close modal"
               >
                 <X size={16} />
@@ -401,16 +418,28 @@ export default function InstitutionStudentsSection({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-      {activeModal === 'bulk' && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/35 p-4"
+      <AnimatePresence>
+        {activeModal === 'bulk' && (
+        <motion.div
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          variants={MODAL_BACKDROP_VARIANTS}
+          transition={MODAL_TRANSITION}
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
           onClick={() => setActiveModal(null)}
         >
-          <div
+          <motion.div
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={MODAL_PANEL_VARIANTS}
+            transition={MODAL_TRANSITION}
             className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
@@ -419,7 +448,7 @@ export default function InstitutionStudentsSection({
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
                 aria-label="Close modal"
               >
                 <X size={16} />
@@ -437,16 +466,28 @@ export default function InstitutionStudentsSection({
               {!isBulkImporting && <span className={OTP_BADGE_CLASS}>OTP Required</span>}
               <input type="file" accept=".csv,text/csv" onChange={event => { void onBulkCsvUpload(event); }} className="hidden" />
             </label>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-      {editingStudentId && (
-        <div
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/35 p-4"
+      <AnimatePresence>
+        {editingStudentId && (
+        <motion.div
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          variants={MODAL_BACKDROP_VARIANTS}
+          transition={MODAL_TRANSITION}
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
           onClick={onCancelEditStudent}
         >
-          <div
+          <motion.div
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={MODAL_PANEL_VARIANTS}
+            transition={MODAL_TRANSITION}
             className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
@@ -455,7 +496,7 @@ export default function InstitutionStudentsSection({
               <button
                 type="button"
                 onClick={onCancelEditStudent}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
                 aria-label="Close modal"
               >
                 <X size={16} />
@@ -517,9 +558,10 @@ export default function InstitutionStudentsSection({
                 <button type="button" onClick={onCancelEditStudent} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100"><X size={14} />Cancel</button>
               </div>
             </form>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

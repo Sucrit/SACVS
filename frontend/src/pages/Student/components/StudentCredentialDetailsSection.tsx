@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -24,6 +25,11 @@ import {
 import { useStepUp } from '../../../hooks/useStepUp';
 import { formatDateTime, shortenHash } from '../utils';
 import { useToast } from '../../../hooks/useToast';
+import {
+  MODAL_BACKDROP_VARIANTS,
+  MODAL_PANEL_VARIANTS,
+  MODAL_TRANSITION,
+} from '../../../components/common/modal-motion';
 
 interface StudentCredentialDetailsSectionProps {
   selectedCredential: Credential | null;
@@ -435,26 +441,41 @@ export default function StudentCredentialDetailsSection({
             </div>
           </section>
       </div>
-      {qrToken && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 px-4 py-4 sm:items-center"
+      <AnimatePresence>
+        {qrToken && (
+        <motion.div
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          variants={MODAL_BACKDROP_VARIANTS}
+          transition={MODAL_TRANSITION}
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 px-4 py-4 backdrop-blur-[1px] sm:items-center"
           onClick={() => setQrToken(null)}
         >
-          <div
+          <motion.div
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={MODAL_PANEL_VARIANTS}
+            transition={MODAL_TRANSITION}
             className="max-h-[92vh] w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
-            <div className="max-h-[92vh] overflow-y-auto p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-lg font-semibold text-slate-900">One-Time Verification QR</p>
+            <div className="max-h-[92vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">One-Time Verification QR</p>
+                <p className="mt-1 text-xs text-slate-500">Share this one-time token for external credential verification.</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setQrToken(null)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
+                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
               >
                 <X size={15} />
               </button>
             </div>
+            <div className="p-5">
             <p className="text-sm text-slate-600">
               This QR can be used once and expires in{' '}
               <span className="font-semibold text-amber-700">{formatQrCountdown(qrSecondsRemaining)}</span>.
@@ -525,9 +546,10 @@ export default function StudentCredentialDetailsSection({
               </button>
             </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
       {stepUpModal}
     </Card>
   );

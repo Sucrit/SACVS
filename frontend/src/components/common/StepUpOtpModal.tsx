@@ -1,9 +1,15 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { isAxiosError } from 'axios';
 import { StepUpAction, UserService } from '../../services/user.service';
 import ButtonLoadingContent from './ButtonLoadingContent';
 import { useToast } from '../../hooks/useToast';
+import {
+  MODAL_BACKDROP_VARIANTS,
+  MODAL_PANEL_VARIANTS,
+  MODAL_TRANSITION,
+} from './modal-motion';
 
 export interface StepUpPrompt {
   action: StepUpAction;
@@ -148,15 +154,12 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
     return () => window.clearInterval(timer);
   }, [expiresAt, prompt]);
 
-  if (!prompt) {
-    return null;
-  }
-
   const hasChallenge = Boolean(challengeId && expiresAt);
   const isExpired = hasChallenge && secondsRemaining <= 0;
   const disableVerify = isSending || isVerifying || !hasChallenge || isExpired;
 
   const handleResend = async () => {
+    if (!prompt) return;
     setIsSending(true);
     setOtpCode('');
     try {
@@ -202,16 +205,28 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 p-4"
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl"
-        onClick={event => event.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+    <AnimatePresence>
+      {prompt && (
+        <motion.div
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          variants={MODAL_BACKDROP_VARIANTS}
+          transition={MODAL_TRANSITION}
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+          onClick={onClose}
+          role="presentation"
+        >
+          <motion.div
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={MODAL_PANEL_VARIANTS}
+            transition={MODAL_TRANSITION}
+            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            onClick={event => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <div>
             <p className="text-lg font-semibold text-slate-900">{prompt.title || 'Security Verification'}</p>
             <p className="mt-1 text-xs font-medium uppercase tracking-[0.08em] text-slate-500">Email OTP</p>
@@ -219,13 +234,13 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
+            className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
           >
             <X size={15} />
           </button>
-        </div>
+            </div>
 
-        <form onSubmit={handleVerify} className="space-y-4 p-5">
+            <form onSubmit={handleVerify} className="space-y-4 p-5">
           <p className="text-sm text-slate-600">{description}</p>
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
             {isSending
@@ -265,8 +280,10 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
               {isVerifying ? <ButtonLoadingContent label="Verifying" /> : 'Verify and Continue'}
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

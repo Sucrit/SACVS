@@ -1,4 +1,5 @@
 import { MouseEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Download, FileText, Link2, MoreHorizontal, Search, Share2, X } from 'lucide-react';
 import QRCode from 'qrcode';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -13,6 +14,11 @@ import {
 } from '../../../services/credential.service';
 import { useStepUp } from '../../../hooks/useStepUp';
 import { useToast } from '../../../hooks/useToast';
+import {
+  MODAL_BACKDROP_VARIANTS,
+  MODAL_PANEL_VARIANTS,
+  MODAL_TRANSITION,
+} from '../../../components/common/modal-motion';
 
 type CredentialTypeFilter = 'ALL' | CredentialType;
 type DateRangeFilter = 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH';
@@ -515,22 +521,36 @@ export default function StudentCredentialsSection({
           </div>
         )}
       </div>
-      {shareCredential && qrToken && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 px-4 py-4 sm:items-center"
+      <AnimatePresence>
+        {shareCredential && qrToken && (
+        <motion.div
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          variants={MODAL_BACKDROP_VARIANTS}
+          transition={MODAL_TRANSITION}
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 px-4 py-4 backdrop-blur-[1px] sm:items-center"
           onClick={() => {
             setShareCredential(null);
             setQrToken(null);
             setQrDataUrl(null);
           }}
         >
-          <div
+          <motion.div
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={MODAL_PANEL_VARIANTS}
+            transition={MODAL_TRANSITION}
             className="max-h-[92vh] w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
-            <div className="max-h-[92vh] overflow-y-auto p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-lg font-semibold text-slate-900">Share One-Time QR</p>
+            <div className="max-h-[92vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Share One-Time QR</p>
+                <p className="mt-1 text-xs text-slate-500">Generate a short-lived, single-use verification QR for this credential.</p>
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -538,11 +558,12 @@ export default function StudentCredentialsSection({
                   setQrToken(null);
                   setQrDataUrl(null);
                 }}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50"
+                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
               >
                 <X size={15} />
               </button>
             </div>
+            <div className="p-5">
             <p className="text-sm text-slate-600">
               <span className="font-semibold text-slate-900">{shareCredential.title}</span> verification QR expires in{' '}
               <span className="font-semibold text-amber-700">{formatQrCountdown(qrSecondsRemaining)}</span>.
@@ -612,9 +633,10 @@ export default function StudentCredentialsSection({
               </button>
             </div>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
       {stepUpModal}
     </Card>
   );

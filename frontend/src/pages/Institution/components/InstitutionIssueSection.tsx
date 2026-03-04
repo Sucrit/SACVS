@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ClipboardCheck, Eye, Upload, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
@@ -12,6 +13,11 @@ import {
 } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
 import { formatDateTime, getStudentFullName } from '../utils';
+import {
+  MODAL_BACKDROP_VARIANTS,
+  MODAL_PANEL_VARIANTS,
+  MODAL_TRANSITION,
+} from '../../../components/common/modal-motion';
 
 const CREDENTIAL_TYPES: CredentialType[] = ['TRANSCRIPT', 'DIPLOMA', 'CERTIFICATE', 'DEGREE', 'LICENSE'];
 const CREDENTIAL_STATUS_OPTIONS: Record<CredentialStatus, CredentialStatus[]> = {
@@ -214,12 +220,23 @@ export default function InstitutionIssueSection({
         </button>
       </div>
 
-      {isDirectIssueModalOpen && (
-        <div
+      <AnimatePresence>
+        {isDirectIssueModalOpen && (
+        <motion.div
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          variants={MODAL_BACKDROP_VARIANTS}
+          transition={MODAL_TRANSITION}
           className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
           onClick={() => setIsDirectIssueModalOpen(false)}
         >
-          <div
+          <motion.div
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={MODAL_PANEL_VARIANTS}
+            transition={MODAL_TRANSITION}
             className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
@@ -228,7 +245,7 @@ export default function InstitutionIssueSection({
               <button
                 type="button"
                 onClick={() => setIsDirectIssueModalOpen(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
                 aria-label="Close modal"
               >
                 <X size={16} />
@@ -349,9 +366,10 @@ export default function InstitutionIssueSection({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <Card title="Issue From Approved Requests">
         <div className="overflow-x-auto rounded-xl border border-slate-200">

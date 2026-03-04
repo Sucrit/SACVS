@@ -28,6 +28,11 @@ import {
 } from '../../../services/credential.service';
 import { formatDate } from '../utils';
 import { useToast } from '../../../hooks/useToast';
+import {
+  MODAL_BACKDROP_VARIANTS,
+  MODAL_PANEL_VARIANTS,
+  MODAL_TRANSITION,
+} from '../../../components/common/modal-motion';
 
 interface StudentRequestHistorySectionProps {
   requests: Array<CredentialRequest & { _uiKey?: string }>;
@@ -455,19 +460,26 @@ export default function StudentRequestHistorySection({
         </div>
       )}
 
-      {detailsRequest && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
-          onClick={() => setDetailsRequest(null)}
-        >
+      <AnimatePresence>
+        {detailsRequest && (
           <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.985 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.985 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-            onClick={event => event.stopPropagation()}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={MODAL_BACKDROP_VARIANTS}
+            transition={MODAL_TRANSITION}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+            onClick={() => setDetailsRequest(null)}
           >
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={MODAL_PANEL_VARIANTS}
+              transition={MODAL_TRANSITION}
+              className="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+              onClick={event => event.stopPropagation()}
+            >
             <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
               <div>
                 <p className="text-sm font-semibold text-slate-900">Request Details</p>
@@ -478,7 +490,7 @@ export default function StudentRequestHistorySection({
               <button
                 type="button"
                 onClick={() => setDetailsRequest(null)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
                 aria-label="Close details"
               >
                 <X size={14} />
@@ -651,30 +663,38 @@ export default function StudentRequestHistorySection({
               )}
             </div>
 
+            </motion.div>
           </motion.div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
-      {receiptModalOpen && activeReceipt && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+      <AnimatePresence>
+        {receiptModalOpen && activeReceipt && (
+        <motion.div
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          variants={MODAL_BACKDROP_VARIANTS}
+          transition={MODAL_TRANSITION}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
           onClick={() => {
             setReceiptModalOpen(false);
             setShowReceiptNote(false);
           }}
         >
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.985 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.985 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={MODAL_PANEL_VARIANTS}
+            transition={MODAL_TRANSITION}
+            className="max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
               <div>
-                <p className="text-lg font-semibold text-slate-900">Approval Receipt</p>
-                <p className="text-xs text-slate-500">Use this one-time QR at registrar check-in.</p>
+                <p className="text-sm font-semibold text-slate-900">Approval Receipt</p>
+                <p className="mt-1 text-xs text-slate-500">Use this one-time QR at registrar check-in.</p>
               </div>
               <button
                 type="button"
@@ -682,13 +702,13 @@ export default function StudentRequestHistorySection({
                   setReceiptModalOpen(false);
                   setShowReceiptNote(false);
                 }}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
               >
                 <X size={14} />
               </button>
             </div>
-
-            <div className="mt-4 grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+            <div className="space-y-4 p-5">
+            <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                 {receiptQrDataUrl ? (
                   <img src={receiptQrDataUrl} alt="Approval receipt QR" className="h-auto w-full rounded-lg bg-white p-2" />
@@ -744,9 +764,11 @@ export default function StudentRequestHistorySection({
                 Download Receipt (PDF)
               </button>
             </div>
+            </div>
           </motion.div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </Card>
   );
 }

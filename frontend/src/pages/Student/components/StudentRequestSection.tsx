@@ -7,6 +7,11 @@ import {
   DeliveryMethod,
 } from '../../../services/credential.service';
 import { CREDENTIAL_TYPES, DELIVERY_METHODS } from '../utils';
+import {
+  MODAL_BACKDROP_VARIANTS,
+  MODAL_PANEL_VARIANTS,
+  MODAL_TRANSITION,
+} from '../../../components/common/modal-motion';
 
 interface StudentRequestSectionProps {
   requestForm: CreateCredentialRequestPayload;
@@ -51,28 +56,44 @@ export default function StudentRequestSection({
         New Credential Request
       </button>
 
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4"
+      <AnimatePresence>
+        {isModalOpen && (
+        <motion.div
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          variants={MODAL_BACKDROP_VARIANTS}
+          transition={MODAL_TRANSITION}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
           onClick={() => setIsModalOpen(false)}
         >
-          <div
-            className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+          <motion.div
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={MODAL_PANEL_VARIANTS}
+            transition={MODAL_TRANSITION}
+            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
-            <div className="mb-4 flex items-center justify-between">
-              <p className="text-base font-semibold text-slate-900">Submit Credential Request</p>
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Submit Credential Request</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Fill in the details below to send a new request for institution review.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
                 aria-label="Close modal"
               >
                 <X size={14} />
               </button>
             </div>
 
-            <form className="space-y-4" onSubmit={event => void handleSubmit(event)}>
+            <form className="space-y-4 p-5" onSubmit={event => void handleSubmit(event)}>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <label className="space-y-1">
                   <span className="text-xs font-medium text-slate-600">Credential Type</span>
@@ -178,9 +199,10 @@ export default function StudentRequestSection({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </>
   );
 }
