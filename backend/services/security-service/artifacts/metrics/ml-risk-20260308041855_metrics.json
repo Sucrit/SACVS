@@ -1,0 +1,19 @@
+{
+  "valid_pr_auc": 0.0,
+  "test_pr_auc": 0.0,
+  "precision_at_top5pct": 0.0,
+  "recall_at_top5pct": 0.0,
+  "train_rows": 209,
+  "valid_rows": 45,
+  "test_rows": 45,
+  "train_positive_count": 7,
+  "valid_positive_count": 0,
+  "test_positive_count": 0,
+  "threshold_high": 0.11477054661327814,
+  "threshold_critical": 0.16477054661327814,
+  "data_warnings": [
+    "low_positive_count_train",
+    "no_positive_labels_in_validation_split",
+    "no_positive_labels_in_test_split"
+  ]
+}

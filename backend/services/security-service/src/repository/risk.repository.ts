@@ -65,7 +65,7 @@ export class RiskRepository {
           userId: actorId,
           createdAt: {
             gte: window15m,
-            lte: eventAt,
+            lt: eventAt,
           },
         },
       }),
@@ -74,7 +74,7 @@ export class RiskRepository {
           userId: actorId,
           createdAt: {
             gte: window15m,
-            lte: eventAt,
+            lt: eventAt,
           },
           verifiedAt: null,
           attempts: {
@@ -87,7 +87,7 @@ export class RiskRepository {
           userId: actorId,
           lockedAt: {
             gte: window24h,
-            lte: eventAt,
+            lt: eventAt,
           },
         },
       }),
@@ -131,6 +131,37 @@ export class RiskRepository {
       }
     }
     return ids;
+  }
+
+  async listReviewedLabelsSince(since: Date): Promise<Map<string, RiskReviewStatus>> {
+    const rows = await prisma.riskEventRecord.findMany({
+      where: {
+        inferenceTs: {
+          gte: since,
+        },
+        eventId: {
+          not: null,
+        },
+        reviewStatus: {
+          in: [RiskReviewStatus.CONFIRMED_ABUSE, RiskReviewStatus.BENIGN],
+        },
+      },
+      orderBy: {
+        reviewedAt: 'desc',
+      },
+      select: {
+        eventId: true,
+        reviewStatus: true,
+      },
+    });
+
+    const labels = new Map<string, RiskReviewStatus>();
+    for (const row of rows) {
+      if (row.eventId && !labels.has(row.eventId)) {
+        labels.set(row.eventId, row.reviewStatus);
+      }
+    }
+    return labels;
   }
 
   async createFeatureSnapshot(data: {

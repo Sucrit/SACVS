@@ -18,6 +18,15 @@ const TOKEN_ABUSE_ACTIONS = new Set<AuditAction>([
   AuditAction.REQUEST_RECEIPT_EXPIRED,
 ]);
 
+const POSITIVE_WEAK_LABEL_ACTIONS = new Set<AuditAction>([
+  AuditAction.ACCESS_DENIED,
+  AuditAction.SECURITY_ALERT,
+  AuditAction.QR_TOKEN_INVALID,
+  AuditAction.QR_TOKEN_EXPIRED,
+  AuditAction.REQUEST_RECEIPT_INVALID,
+  AuditAction.REQUEST_RECEIPT_EXPIRED,
+]);
+
 function clampScore(value: number): number {
   if (value < 0) return 0;
   if (value > 100) return 100;
@@ -56,14 +65,9 @@ export function buildFeatureVector(context: FeatureContext): FeatureVectorResult
     day_of_week: context.event.createdAt.getUTCDay(),
   };
 
-  const weakLabel =
-    features.failure_ratio_15m >= 0.5 ||
-    features.token_abuse_15m >= 3 ||
-    features.stepup_failures_15m >= 3 ||
-    features.security_alerts_15m >= 1 ||
-    features.access_denied_15m >= 4
-      ? 1
-      : 0;
+  // Weak labels should come from the current security outcome, not the same
+  // rolling-window features we train on. Otherwise the model learns a leaked proxy.
+  const weakLabel = POSITIVE_WEAK_LABEL_ACTIONS.has(context.event.action) ? 1 : 0;
 
   const topSignalsSeed: string[] = [];
   if (features.failure_ratio_15m >= 0.5) topSignalsSeed.push('high_failure_ratio_15m');

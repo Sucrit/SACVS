@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { AuditAction } from '../../../../db/node_modules/@prisma/client';
+import { AuditAction, RiskReviewStatus } from '../../../../db/node_modules/@prisma/client';
 import { ENV } from '../config/env';
 import { buildFeatureVector } from '../feature/feature-builder';
 import { RiskRepository } from '../repository/risk.repository';
@@ -7,8 +7,21 @@ import { SourceAuditEvent } from '../types/risk';
 import { hashNullable } from '../utils/hash';
 import { csvEscape, parseArgs, parseMetadata, pickString, resolveArtifactPath } from './helpers';
 
+const POSITIVE_WEAK_LABEL_ACTIONS = new Set<AuditAction>([
+  AuditAction.ACCESS_DENIED,
+  AuditAction.SECURITY_ALERT,
+  AuditAction.QR_TOKEN_INVALID,
+  AuditAction.QR_TOKEN_EXPIRED,
+  AuditAction.REQUEST_RECEIPT_INVALID,
+  AuditAction.REQUEST_RECEIPT_EXPIRED,
+]);
+
 function sliceWindow(events: SourceAuditEvent[], start: Date, end: Date): SourceAuditEvent[] {
-  return events.filter((event) => event.createdAt >= start && event.createdAt <= end);
+  return events.filter((event) => event.createdAt >= start && event.createdAt < end);
+}
+
+function sliceFutureWindow(events: SourceAuditEvent[], start: Date, end: Date): SourceAuditEvent[] {
+  return events.filter((event) => event.createdAt > start && event.createdAt <= end);
 }
 
 function toActionName(action: AuditAction): string {
@@ -26,6 +39,7 @@ async function main(): Promise<void> {
 
   const repository = new RiskRepository();
   const events = await repository.listAuditLogsSince(since);
+  const reviewedLabels = await repository.listReviewedLabelsSince(since);
   const actorMap = new Map<string, SourceAuditEvent[]>();
 
   for (const event of events) {
@@ -63,6 +77,8 @@ async function main(): Promise<void> {
     'hour_of_day',
     'day_of_week',
     'seedSignals',
+    'labelSource',
+    'reviewStatus',
     'weakLabel',
   ];
 
@@ -73,9 +89,11 @@ async function main(): Promise<void> {
     const from1m = new Date(event.createdAt.getTime() - 60_000);
     const from5m = new Date(event.createdAt.getTime() - 5 * 60_000);
     const from15m = new Date(event.createdAt.getTime() - 15 * 60_000);
+    const until15m = new Date(event.createdAt.getTime() + 15 * 60_000);
     const actorEvents1m = sliceWindow(actorEvents, from1m, event.createdAt);
     const actorEvents5m = sliceWindow(actorEvents, from5m, event.createdAt);
     const actorEvents15m = sliceWindow(actorEvents, from15m, event.createdAt);
+    const actorEventsFuture15m = sliceFutureWindow(actorEvents, event.createdAt, until15m);
 
     const uniqueTargets15m = new Set(actorEvents15m.map((item) => item.targetId).filter(Boolean)).size;
 
@@ -101,6 +119,28 @@ async function main(): Promise<void> {
       userAgentHash: hashNullable(userAgentRaw),
       uniqueTargets15m,
     });
+
+    const futurePositiveCount15m = actorEventsFuture15m.filter((item) =>
+      POSITIVE_WEAK_LABEL_ACTIONS.has(item.action),
+    ).length;
+    const seedSignals = vector.topSignalsSeed.slice();
+    if (futurePositiveCount15m > 0) {
+      seedSignals.push('future_security_followup_15m');
+    }
+    const reviewedStatus = reviewedLabels.get(event.id) ?? null;
+
+    let weakLabel = vector.weakLabel === 1 || futurePositiveCount15m > 0 ? 1 : 0;
+    let labelSource = futurePositiveCount15m > 0 ? 'future_followup' : 'weak_seed';
+
+    if (reviewedStatus === RiskReviewStatus.CONFIRMED_ABUSE) {
+      weakLabel = 1;
+      labelSource = 'analyst_review';
+      seedSignals.push('analyst_confirmed_abuse');
+    } else if (reviewedStatus === RiskReviewStatus.BENIGN) {
+      weakLabel = 0;
+      labelSource = 'analyst_review';
+      seedSignals.push('analyst_benign');
+    }
 
     const record = [
       event.id,
@@ -128,8 +168,10 @@ async function main(): Promise<void> {
       vector.features.is_first_seen_actor,
       vector.features.hour_of_day,
       vector.features.day_of_week,
-      vector.topSignalsSeed.join('|'),
-      vector.weakLabel,
+      seedSignals.join('|'),
+      labelSource,
+      reviewedStatus ?? '',
+      weakLabel,
     ]
       .map((value) => csvEscape(value))
       .join(',');

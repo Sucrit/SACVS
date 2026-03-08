@@ -13,6 +13,8 @@ This service is intentionally **offline/shadow-only** for now.
    - Supervised tabular model: **LightGBM (fallback: XGBoost)**
    - Unsupervised anomaly model: **Isolation Forest**
    - Weighted ensemble output contract.
+5. Dataset extraction that prefers analyst-reviewed `RiskEventRecord.reviewStatus`
+   labels (`CONFIRMED_ABUSE`, `BENIGN`) over weak seeds when available.
 
 ## What is not implemented (by design)
 
@@ -35,7 +37,7 @@ Make sure `DATABASE_URL` points to the same SACVS DB.
 ```bash
 npm run dataset:extract
 # optional:
-# npm run dataset:extract -- --lookbackHours=720 --output=risk_dataset_custom.csv
+# npm run dataset:extract -- --lookbackHours=4320 --output=risk_dataset_custom.csv
 ```
 
 Output goes to `./artifacts`.
@@ -96,3 +98,5 @@ type RiskScoreResult = {
 2. Triage `HIGH` and `CRITICAL` records in ops review.
 3. Update review status (`CONFIRMED_ABUSE` / `BENIGN` / `UNCERTAIN`) for future label quality.
 4. Retrain weekly initially.
+5. Do not move beyond shadow mode until validation and test splits contain enough
+   positive reviewed events to produce meaningful precision and recall metrics.

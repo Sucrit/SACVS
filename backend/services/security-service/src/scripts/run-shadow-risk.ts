@@ -7,7 +7,7 @@ import { hashNullable } from '../utils/hash';
 import { parseArgs, parseMetadata, pickString } from './helpers';
 
 function sliceWindow(events: SourceAuditEvent[], start: Date, end: Date): SourceAuditEvent[] {
-  return events.filter((event) => event.createdAt >= start && event.createdAt <= end);
+  return events.filter((event) => event.createdAt >= start && event.createdAt < end);
 }
 
 function toRiskBand(value: string): RiskBand {

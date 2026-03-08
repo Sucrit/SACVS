@@ -74,6 +74,8 @@ Add a metadata-only ML risk scoring layer that operates beside, not instead of, 
 
 ### Feedback loop
 - analysts later classify records as `confirmed_abuse`, `benign`, or `uncertain`
+- dataset extraction should prefer analyst-reviewed outcomes over weak seeds whenever
+  a `RiskEventRecord.reviewStatus` already exists for the same source event
 
 ## Offline and Shadow Workflow
 1. Extract dataset from metadata logs.
@@ -94,6 +96,13 @@ Add a metadata-only ML risk scoring layer that operates beside, not instead of, 
 - optimize for PR-AUC, Precision@TopK, and Recall@TopK
 - avoid material role bias across student, institution, admin, and employer surfaces
 - store feature contributions for explainability
+- treat evaluation as non-actionable if validation or test splits contain zero positive
+  reviewed samples; keep the model in shadow mode in that case
+
+## Shadow-Mode Exit Rule
+- remain in shadow mode until validation and test windows both contain enough
+  analyst-reviewed positive events to support meaningful holdout evaluation
+- hard rule-based controls remain the production guardrail until that condition is met
 
 ## Operational Rule
 If the ML pipeline is unavailable, SACVS must continue operating on existing rule-based controls without degraded correctness. Model absence is an observability issue, not a blocker to business flows.

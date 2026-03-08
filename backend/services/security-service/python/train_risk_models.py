@@ -67,6 +67,25 @@ def recall_at_top_k(y_true, y_score, top_pct=0.05):
     return precision, recall
 
 
+def derive_ordered_thresholds(valid_scores, default_high=0.7, default_critical=0.85):
+    if len(valid_scores) == 0:
+        return default_high, default_critical
+
+    high = float(np.quantile(valid_scores, 0.85))
+    critical = float(np.quantile(valid_scores, 0.95))
+
+    # Prevent collapsed bands on tiny or low-variance datasets.
+    minimum_gap = 0.05
+    if critical <= high:
+        critical = min(0.99, high + minimum_gap)
+    if critical - high < minimum_gap:
+        critical = min(0.99, high + minimum_gap)
+    if high >= critical:
+        high = max(0.0, critical - minimum_gap)
+
+    return high, critical
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, help="Path to CSV dataset from dataset:extract.")
@@ -130,6 +149,9 @@ def main():
     y_valid = valid_df[label_col].astype(int)
     X_test = test_df[numeric_cols + categorical_cols]
     y_test = test_df[label_col].astype(int)
+    train_positive_count = int(y_train.sum())
+    valid_positive_count = int(y_valid.sum())
+    test_positive_count = int(y_test.sum())
 
     supervised_pipeline.fit(X_train, y_train)
     valid_supervised = supervised_pipeline.predict_proba(X_valid)[:, 1] if len(X_valid) else np.array([])
@@ -171,8 +193,14 @@ def main():
     test_pr_auc = float(average_precision_score(y_test, test_blended)) if len(y_test) else 0.0
     precision_top5, recall_top5 = recall_at_top_k(y_test, test_blended, top_pct=0.05) if len(y_test) else (0.0, 0.0)
 
-    threshold_high = float(np.quantile(valid_blended, 0.85)) if len(valid_blended) else 0.7
-    threshold_critical = float(np.quantile(valid_blended, 0.95)) if len(valid_blended) else 0.85
+    threshold_high, threshold_critical = derive_ordered_thresholds(valid_blended)
+    data_warnings = []
+    if train_positive_count < 20:
+        data_warnings.append("low_positive_count_train")
+    if valid_positive_count == 0:
+        data_warnings.append("no_positive_labels_in_validation_split")
+    if test_positive_count == 0:
+        data_warnings.append("no_positive_labels_in_test_split")
 
     version = args.version or f"ml-risk-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
@@ -214,8 +242,12 @@ def main():
         "train_rows": int(len(train_df)),
         "valid_rows": int(len(valid_df)),
         "test_rows": int(len(test_df)),
+        "train_positive_count": train_positive_count,
+        "valid_positive_count": valid_positive_count,
+        "test_positive_count": test_positive_count,
         "threshold_high": threshold_high,
         "threshold_critical": threshold_critical,
+        "data_warnings": data_warnings,
     }
 
     metrics_path = os.path.join(metrics_dir, f"{version}_metrics.json")
@@ -240,6 +272,8 @@ def main():
     print(f"Artifact: {artifact_path}")
     print(f"Manifest: {manifest_path}")
     print(f"Metrics: {metrics_path}")
+    if data_warnings:
+        print(f"Warnings: {', '.join(data_warnings)}")
 
 
 if __name__ == "__main__":
