@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import {
+  AlertTriangle,
   ArrowRight,
   Clock3,
   Database,
@@ -10,17 +11,19 @@ import {
   Mail,
   Search,
   Server,
+  ShieldAlert,
   UserRoundCheck,
   Users,
 } from 'lucide-react';
 import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../services/audit.service';
+import { RiskBand, RiskEventRecord, RiskReviewStatus, RiskService } from '../../services/risk.service';
 import { User, UserRole, UserService, UserStatus } from '../../services/user.service';
 import { useStepUp } from '../../hooks/useStepUp';
 import { realtimeService } from '../../services/realtime.service';
 import ButtonLoadingContent from '../../components/common/ButtonLoadingContent';
 import { useToast } from '../../hooks/useToast';
 
-type AdminSection = 'overview' | 'users' | 'logs' | 'settings';
+type AdminSection = 'overview' | 'users' | 'risk' | 'logs' | 'settings';
 type RoleFilter = UserRole | 'ALL';
 type StatusFilter = UserStatus | 'ALL';
 
@@ -73,6 +76,7 @@ const getLinkedOrganizationLabel = (user: User) => {
 
 const getSection = (pathname: string): AdminSection => {
   if (pathname.includes('/admin/users')) return 'users';
+  if (pathname.includes('/admin/risk')) return 'risk';
   if (pathname.includes('/admin/logs')) return 'logs';
   if (pathname.includes('/admin/settings')) return 'settings';
   return 'overview';
@@ -83,6 +87,29 @@ const getApiErrorMessage = (error: unknown): string | null => {
     return error.message;
   }
   return null;
+};
+
+const RISK_BAND_OPTIONS: Array<RiskBand | 'ALL'> = ['ALL', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+const RISK_REVIEW_OPTIONS: Array<RiskReviewStatus | 'ALL'> = [
+  'ALL',
+  'PENDING_REVIEW',
+  'CONFIRMED_ABUSE',
+  'BENIGN',
+  'UNCERTAIN',
+];
+
+const getRiskBandStyles = (riskBand: RiskBand) => {
+  if (riskBand === 'CRITICAL') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (riskBand === 'HIGH') return 'border-amber-200 bg-amber-50 text-amber-700';
+  if (riskBand === 'MEDIUM') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
+  return 'border-slate-200 bg-slate-50 text-slate-700';
+};
+
+const getRiskReviewStyles = (reviewStatus: RiskReviewStatus) => {
+  if (reviewStatus === 'CONFIRMED_ABUSE') return 'border-rose-200 bg-rose-50 text-rose-700';
+  if (reviewStatus === 'BENIGN') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  if (reviewStatus === 'UNCERTAIN') return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-slate-200 bg-slate-50 text-slate-700';
 };
 
 export default function AdminDashboard() {
@@ -101,6 +128,20 @@ export default function AdminDashboard() {
   const [auditSeverityFilter, setAuditSeverityFilter] = useState<'ALL' | AuditSeverity>('ALL');
   const [auditPage, setAuditPage] = useState(1);
   const [auditPageSize, setAuditPageSize] = useState(20);
+  const [riskEvents, setRiskEvents] = useState<RiskEventRecord[]>([]);
+  const [isLoadingRiskEvents, setIsLoadingRiskEvents] = useState(false);
+  const [riskBandFilter, setRiskBandFilter] = useState<RiskBand | 'ALL'>('ALL');
+  const [riskReviewFilter, setRiskReviewFilter] = useState<RiskReviewStatus | 'ALL'>('ALL');
+  const [riskPage, setRiskPage] = useState(1);
+  const [riskPageSize, setRiskPageSize] = useState(20);
+  const [riskTotal, setRiskTotal] = useState(0);
+  const [riskSummary, setRiskSummary] = useState({
+    pendingReviewCount: 0,
+    highRiskCount: 0,
+    criticalRiskCount: 0,
+    confirmedAbuseCount: 0,
+  });
+  const [reviewingRiskEventId, setReviewingRiskEventId] = useState<string | null>(null);
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
@@ -118,6 +159,29 @@ export default function AdminDashboard() {
       showToast({ variant: 'error', message: usersError });
     }
   }, [showToast, usersError]);
+
+  const loadRiskEvents = useCallback(async () => {
+    setIsLoadingRiskEvents(true);
+    try {
+      const response = await RiskService.list({
+        page: riskPage,
+        pageSize: riskPageSize,
+        riskBand: riskBandFilter,
+        reviewStatus: riskReviewFilter,
+      });
+      setRiskEvents(response.items);
+      setRiskTotal(response.total);
+      setRiskSummary(response.summary);
+    } catch (error) {
+      setRiskEvents([]);
+      showToast({
+        variant: 'error',
+        message: getApiErrorMessage(error) || 'Unable to load risk review records.',
+      });
+    } finally {
+      setIsLoadingRiskEvents(false);
+    }
+  }, [riskBandFilter, riskPage, riskPageSize, riskReviewFilter, showToast]);
 
   const loadUsers = useCallback(async () => {
     setIsLoadingUsers(true);
@@ -183,10 +247,20 @@ export default function AdminDashboard() {
   }, [auditActionFilter, auditSeverityFilter, auditPageSize]);
 
   useEffect(() => {
+    setRiskPage(1);
+  }, [riskBandFilter, riskReviewFilter, riskPageSize]);
+
+  useEffect(() => {
     if (section === 'logs' && !hasLoadedAuditLogs) {
       void loadAuditLogs();
     }
   }, [hasLoadedAuditLogs, loadAuditLogs, section]);
+
+  useEffect(() => {
+    if (section === 'risk') {
+      void loadRiskEvents();
+    }
+  }, [loadRiskEvents, section]);
 
   const scheduleRefresh = useCallback((key: 'users' | 'logs') => {
     if (refreshTimersRef.current[key]) return;
@@ -353,6 +427,51 @@ export default function AdminDashboard() {
       setIsUpdatingRole(null);
     }
   }, [requestStepUpToken, showToast]);
+
+  const handleRiskReviewUpdate = useCallback(
+    async (id: string, reviewStatus: RiskReviewStatus) => {
+      setReviewingRiskEventId(id);
+      try {
+        const updated = await RiskService.updateReviewStatus(id, { reviewStatus });
+        setRiskEvents(previous =>
+          previous.map(event =>
+            event.id === id
+              ? {
+                  ...event,
+                  reviewStatus: updated.reviewStatus,
+                  reviewedById: updated.reviewedById,
+                  reviewedAt: updated.reviewedAt,
+                  reviewNotes: updated.reviewNotes,
+                }
+              : event,
+          ),
+        );
+        setRiskSummary(previous => {
+          const current = riskEvents.find(event => event.id === id);
+          const next = { ...previous };
+          if (current?.reviewStatus === 'PENDING_REVIEW' && reviewStatus !== 'PENDING_REVIEW') {
+            next.pendingReviewCount = Math.max(0, next.pendingReviewCount - 1);
+          }
+          if (current?.reviewStatus !== 'CONFIRMED_ABUSE' && reviewStatus === 'CONFIRMED_ABUSE') {
+            next.confirmedAbuseCount += 1;
+          }
+          if (current?.reviewStatus === 'CONFIRMED_ABUSE' && reviewStatus !== 'CONFIRMED_ABUSE') {
+            next.confirmedAbuseCount = Math.max(0, next.confirmedAbuseCount - 1);
+          }
+          return next;
+        });
+        showToast({ variant: 'success', message: `Risk event marked as ${reviewStatus}.` });
+      } catch (error) {
+        showToast({
+          variant: 'error',
+          message: getApiErrorMessage(error) || 'Unable to update risk review status.',
+        });
+      } finally {
+        setReviewingRiskEventId(null);
+      }
+    },
+    [riskEvents, showToast],
+  );
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -737,6 +856,234 @@ export default function AdminDashboard() {
     </div>
   );
 
+  const totalRiskPages = Math.max(1, Math.ceil(riskTotal / riskPageSize));
+  const currentRiskPage = Math.min(riskPage, totalRiskPages);
+
+  const renderRiskReview = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <Card title="Pending Review">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-3xl font-bold text-slate-900">{riskSummary.pendingReviewCount}</p>
+              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Needs analyst triage</p>
+            </div>
+            <Clock3 size={22} className="text-slate-700" />
+          </div>
+        </Card>
+        <Card title="High Risk">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-3xl font-bold text-amber-700">{riskSummary.highRiskCount}</p>
+              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">High-band shadow events</p>
+            </div>
+            <AlertTriangle size={22} className="text-amber-700" />
+          </div>
+        </Card>
+        <Card title="Critical Risk">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-3xl font-bold text-rose-700">{riskSummary.criticalRiskCount}</p>
+              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Critical-band shadow events</p>
+            </div>
+            <ShieldAlert size={22} className="text-rose-700" />
+          </div>
+        </Card>
+        <Card title="Confirmed Abuse">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-3xl font-bold text-slate-900">{riskSummary.confirmedAbuseCount}</p>
+              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Analyst-confirmed events</p>
+            </div>
+            <UserRoundCheck size={22} className="text-slate-700" />
+          </div>
+        </Card>
+      </div>
+
+      <Card title="ML Risk Review Queue">
+        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Risk Band</label>
+            <select
+              value={riskBandFilter}
+              onChange={event => setRiskBandFilter(event.target.value as RiskBand | 'ALL')}
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+            >
+              {RISK_BAND_OPTIONS.map(option => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Review Status</label>
+            <select
+              value={riskReviewFilter}
+              onChange={event => setRiskReviewFilter(event.target.value as RiskReviewStatus | 'ALL')}
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+            >
+              {RISK_REVIEW_OPTIONS.map(option => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Page Size</label>
+            <select
+              value={riskPageSize}
+              onChange={event => setRiskPageSize(Number(event.target.value))}
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+            >
+              {[10, 20, 50].map(size => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-end">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              {riskTotal} events
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Action</th>
+                <th className="px-4 py-3">Actor</th>
+                <th className="px-4 py-3">Score</th>
+                <th className="px-4 py-3">Band</th>
+                <th className="px-4 py-3">Review</th>
+                <th className="px-4 py-3">Signals</th>
+                <th className="px-4 py-3">Observed</th>
+                <th className="px-4 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {isLoadingRiskEvents && (
+                <tr>
+                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-500">
+                    Loading risk events...
+                  </td>
+                </tr>
+              )}
+              {!isLoadingRiskEvents && riskEvents.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-500">
+                    No risk events matched the current filters.
+                  </td>
+                </tr>
+              )}
+              {!isLoadingRiskEvents &&
+                riskEvents.map(event => (
+                  <tr key={event.id} className="align-top hover:bg-slate-50/70">
+                    <td className="px-4 py-3">
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-slate-900">{event.action}</p>
+                        <p className="text-xs text-slate-500">{event.targetType || 'No target'}{event.targetId ? ` • ${event.targetId}` : ''}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="space-y-1 text-xs text-slate-600">
+                        <p className="font-semibold text-slate-800">{event.actorRole || 'UNKNOWN'}</p>
+                        <p>{event.actorId || '-'}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-900">{event.riskScore.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-xs">
+                      <span className={`rounded-md border px-2.5 py-1 font-semibold ${getRiskBandStyles(event.riskBand)}`}>
+                        {event.riskBand}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      <div className="space-y-1">
+                        <span className={`inline-flex rounded-md border px-2.5 py-1 font-semibold ${getRiskReviewStyles(event.reviewStatus)}`}>
+                          {event.reviewStatus}
+                        </span>
+                        <p className="text-slate-500">{event.reviewedAt ? formatDateTime(event.reviewedAt) : 'Not reviewed'}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="max-w-xs space-y-1 text-xs text-slate-600">
+                        {event.topSignals.length === 0 && <p>-</p>}
+                        {event.topSignals.slice(0, 3).map(signal => (
+                          <p key={signal} className="truncate">{signal}</p>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-600">
+                      <div className="space-y-1">
+                        <p>{formatDateTime(event.observedAt)}</p>
+                        <p className="text-slate-500">Model {event.modelVersion}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex min-w-[230px] flex-wrap gap-2">
+                        <button
+                          onClick={() => void handleRiskReviewUpdate(event.id, 'CONFIRMED_ABUSE')}
+                          disabled={reviewingRiskEventId === event.id || event.reviewStatus === 'CONFIRMED_ABUSE'}
+                          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {reviewingRiskEventId === event.id && event.reviewStatus !== 'CONFIRMED_ABUSE' ? (
+                            <ButtonLoadingContent label="Saving" />
+                          ) : (
+                            'Confirm abuse'
+                          )}
+                        </button>
+                        <button
+                          onClick={() => void handleRiskReviewUpdate(event.id, 'BENIGN')}
+                          disabled={reviewingRiskEventId === event.id || event.reviewStatus === 'BENIGN'}
+                          className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Benign
+                        </button>
+                        <button
+                          onClick={() => void handleRiskReviewUpdate(event.id, 'UNCERTAIN')}
+                          disabled={reviewingRiskEventId === event.id || event.reviewStatus === 'UNCERTAIN'}
+                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Uncertain
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+        {!isLoadingRiskEvents && riskTotal > 0 && (
+          <div className="mt-3 flex items-center justify-between">
+            <p className="text-xs text-slate-500">
+              Page {currentRiskPage} of {totalRiskPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setRiskPage(previous => Math.max(1, previous - 1))}
+                disabled={currentRiskPage <= 1}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setRiskPage(previous => Math.min(totalRiskPages, previous + 1))}
+                disabled={currentRiskPage >= totalRiskPages}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+
   const renderLogsPlaceholder = () => (
     <div className="space-y-4">
       <Card
@@ -872,6 +1219,7 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       {section === 'overview' && renderOverview()}
       {section === 'users' && renderUserManagement()}
+      {section === 'risk' && renderRiskReview()}
       {section === 'logs' && renderLogsPlaceholder()}
       {section === 'settings' && renderSettingsPlaceholder()}
 

@@ -93,6 +93,25 @@ router.use(
 );
 
 router.use(
+  '/security',
+  createProxyMiddleware({
+    target: ENV.SECURITY_SERVICE_URL,
+    changeOrigin: true,
+    proxyTimeout: PROXY_TIMEOUT_MS,
+    timeout: PROXY_TIMEOUT_MS,
+    pathRewrite: path => (path.startsWith('/security') ? path : `/security${path}`),
+    on: {
+      error: (err, _req, res: any) => {
+        console.error('[PROXY] Security service error:', err.message);
+        if (!res.headersSent) {
+          res.status(502).json({ error: 'Security service unavailable' });
+        }
+      },
+    },
+  }),
+);
+
+router.use(
   '/blockchain',
   createProxyMiddleware({
     target: ENV.BLOCKCHAIN_INTERFACE_SERVICE_URL,

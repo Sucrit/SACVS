@@ -30,6 +30,8 @@ function readNumber(name: string, fallback: number): number {
 }
 
 export const ENV = {
+  PORT: readNumber('PORT', 5500),
+  NODE_ENV: process.env.NODE_ENV || 'development',
   DATABASE_URL: process.env.DATABASE_URL ?? '',
   RISK_ARTIFACTS_DIR: process.env.RISK_ARTIFACTS_DIR
     ? path.resolve(process.cwd(), process.env.RISK_ARTIFACTS_DIR)

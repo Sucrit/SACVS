@@ -11,6 +11,7 @@ export const ENV = {
   NOTIFICATION_SERVICE_URL: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5300',
   BLOCKCHAIN_INTERFACE_SERVICE_URL:
     process.env.BLOCKCHAIN_INTERFACE_SERVICE_URL || 'http://localhost:5400',
+  SECURITY_SERVICE_URL: process.env.SECURITY_SERVICE_URL || 'http://localhost:5500',
   RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX) || 100,
   INTERNAL_SERVICE_TOKEN: process.env.INTERNAL_SERVICE_TOKEN,
 };

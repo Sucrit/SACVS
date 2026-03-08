@@ -21,6 +21,7 @@ SERVICES=(
   "credential-request-service:backend/services/credential-request-service"
   "notification-service:backend/services/notification-service"
   "blockchain-interface-service:backend/services/blockchain-interface-service"
+  "security-service:backend/services/security-service"
 )
 
 PIDS=()

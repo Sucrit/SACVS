@@ -56,6 +56,7 @@ const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string }>> = {
   ],
   ADMIN: [
     { to: '/admin/users', label: 'User Management' },
+    { to: '/admin/risk', label: 'Risk Review' },
     { to: '/admin/logs', label: 'Audit Logs' },
     { to: '/admin/settings', label: 'Settings' },
     { to: '/admin', label: 'Home' },
@@ -78,6 +79,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   '/employer/logs': History,
   '/admin': LayoutGrid,
   '/admin/users': Users,
+  '/admin/risk': Shield,
   '/admin/logs': History,
   '/admin/settings': Settings,
 };

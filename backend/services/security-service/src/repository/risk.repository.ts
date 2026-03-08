@@ -14,6 +14,13 @@ import { SourceAuditEvent } from '../types/risk';
 const prismaAdapter = new PrismaPg({ connectionString: ENV.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: prismaAdapter });
 
+export type RiskEventListQuery = {
+  page: number;
+  pageSize: number;
+  riskBand?: RiskBand;
+  reviewStatus?: RiskReviewStatus;
+};
+
 type StepUpStats = {
   challengeCount15m: number;
   failedCount15m: number;
@@ -21,6 +28,22 @@ type StepUpStats = {
 };
 
 export class RiskRepository {
+  async getUserAuthContext(userId: string): Promise<{ role: Role; status: string } | null> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true, status: true },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      role: user.role,
+      status: user.status,
+    };
+  }
+
   async listAuditLogsSince(since: Date): Promise<SourceAuditEvent[]> {
     const rows = await prisma.auditLog.findMany({
       where: {
@@ -278,6 +301,98 @@ export class RiskRepository {
     return prisma.riskModelVersion.findUnique({
       where: { modelVersion },
       select: { id: true },
+    });
+  }
+
+  async listRiskEventRecords(query: RiskEventListQuery) {
+    const where: Prisma.RiskEventRecordWhereInput = {
+      ...(query.riskBand ? { riskBand: query.riskBand } : {}),
+      ...(query.reviewStatus ? { reviewStatus: query.reviewStatus } : {}),
+    };
+
+    const [total, items, pendingReviewCount, highRiskCount, criticalRiskCount, confirmedAbuseCount] =
+      await Promise.all([
+        prisma.riskEventRecord.count({ where }),
+        prisma.riskEventRecord.findMany({
+          where,
+          orderBy: [{ inferenceTs: 'desc' }, { createdAt: 'desc' }],
+          skip: (query.page - 1) * query.pageSize,
+          take: query.pageSize,
+          select: {
+            id: true,
+            eventId: true,
+            correlationId: true,
+            actorId: true,
+            action: true,
+            riskScore: true,
+            riskBand: true,
+            topSignals: true,
+            modelVersion: true,
+            inferenceTs: true,
+            reviewStatus: true,
+            reviewedById: true,
+            reviewedAt: true,
+            reviewNotes: true,
+            createdAt: true,
+            featuresSnapshot: {
+              select: {
+                actorRole: true,
+                institutionId: true,
+                targetType: true,
+                targetId: true,
+                observedAt: true,
+                features: true,
+              },
+            },
+          },
+        }),
+        prisma.riskEventRecord.count({
+          where: { reviewStatus: RiskReviewStatus.PENDING_REVIEW },
+        }),
+        prisma.riskEventRecord.count({
+          where: { riskBand: RiskBand.HIGH },
+        }),
+        prisma.riskEventRecord.count({
+          where: { riskBand: RiskBand.CRITICAL },
+        }),
+        prisma.riskEventRecord.count({
+          where: { reviewStatus: RiskReviewStatus.CONFIRMED_ABUSE },
+        }),
+      ]);
+
+    return {
+      total,
+      items,
+      summary: {
+        pendingReviewCount,
+        highRiskCount,
+        criticalRiskCount,
+        confirmedAbuseCount,
+      },
+    };
+  }
+
+  async updateRiskReviewStatus(input: {
+    id: string;
+    reviewStatus: RiskReviewStatus;
+    reviewedById: string;
+    reviewNotes?: string | null;
+  }) {
+    return prisma.riskEventRecord.update({
+      where: { id: input.id },
+      data: {
+        reviewStatus: input.reviewStatus,
+        reviewedById: input.reviewedById,
+        reviewedAt: new Date(),
+        reviewNotes: input.reviewNotes ?? null,
+      },
+      select: {
+        id: true,
+        reviewStatus: true,
+        reviewedById: true,
+        reviewedAt: true,
+        reviewNotes: true,
+      },
     });
   }
 }

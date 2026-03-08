@@ -4,6 +4,7 @@
   "description": "Offline ML security shadow pipeline for SACVS.",
   "main": "index.js",
   "scripts": {
+    "dev": "ts-node src/server.ts",
     "db:generate": "prisma generate",
     "typecheck": "tsc --noEmit",
     "dataset:extract": "ts-node src/scripts/extract-risk-dataset.ts",
@@ -11,11 +12,14 @@
     "model:register": "ts-node src/scripts/register-model-version.ts"
   },
   "dependencies": {
+    "@clerk/express": "^1.7.5",
     "@prisma/adapter-pg": "^7.4.0",
     "@prisma/client": "^7.4.0",
+    "express": "^5.1.0",
     "dotenv": "^17.3.1"
   },
   "devDependencies": {
+    "@types/express": "^5.0.3",
     "@types/node": "^24.3.0",
     "prisma": "^7.4.0",
     "ts-node": "^10.9.2",
