@@ -1,5 +1,4 @@
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 const parseRequired = (value: string | undefined, key: string): string => {

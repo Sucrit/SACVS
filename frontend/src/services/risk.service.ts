@@ -25,6 +25,12 @@ export interface RiskEventRecord {
   targetType: string | null;
   targetId: string | null;
   observedAt: string;
+  featuresWindowStart?: string | null;
+  featuresWindowEnd?: string | null;
+  ipHash?: string | null;
+  userAgentHash?: string | null;
+  featureSnapshotId?: string;
+  features?: Record<string, unknown> | null;
 }
 
 export interface RiskEventListResponse {
@@ -46,6 +52,7 @@ export const RiskService = {
     pageSize?: number;
     riskBand?: RiskBand | 'ALL';
     reviewStatus?: RiskReviewStatus | 'ALL';
+    reviewedOnly?: boolean;
   } = {}) => {
     const response = await api.get<RiskEventListResponse>('/security/risk-events', {
       params: {
@@ -68,6 +75,27 @@ export const RiskService = {
       reviewedAt: string | null;
       reviewNotes: string | null;
     }>(`/security/risk-events/${id}/review`, payload);
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await api.get<RiskEventRecord>(`/security/risk-events/${id}`);
+    return response.data;
+  },
+
+  exportReviewed: async (query: {
+    riskBand?: RiskBand | 'ALL';
+    reviewStatus?: RiskReviewStatus | 'ALL';
+    reviewedOnly?: boolean;
+  } = {}) => {
+    const response = await api.get<Blob>('/security/risk-events/export', {
+      params: {
+        reviewedOnly: query.reviewedOnly ? true : undefined,
+        riskBand: query.riskBand === 'ALL' ? undefined : query.riskBand,
+        reviewStatus: query.reviewStatus === 'ALL' ? undefined : query.reviewStatus,
+      },
+      responseType: 'blob',
+    });
     return response.data;
   },
 };

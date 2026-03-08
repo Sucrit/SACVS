@@ -19,6 +19,13 @@ export type RiskEventListQuery = {
   pageSize: number;
   riskBand?: RiskBand;
   reviewStatus?: RiskReviewStatus;
+  reviewedOnly?: boolean;
+};
+
+type RiskEventFilterQuery = {
+  riskBand?: RiskBand;
+  reviewStatus?: RiskReviewStatus;
+  reviewedOnly?: boolean;
 };
 
 type StepUpStats = {
@@ -28,6 +35,57 @@ type StepUpStats = {
 };
 
 export class RiskRepository {
+  private readonly riskEventSelect = {
+    id: true,
+    eventId: true,
+    correlationId: true,
+    actorId: true,
+    action: true,
+    riskScore: true,
+    riskBand: true,
+    topSignals: true,
+    modelVersion: true,
+    inferenceTs: true,
+    reviewStatus: true,
+    reviewedById: true,
+    reviewedAt: true,
+    reviewNotes: true,
+    createdAt: true,
+    featuresSnapshot: {
+      select: {
+        id: true,
+        actorRole: true,
+        institutionId: true,
+        targetType: true,
+        targetId: true,
+        observedAt: true,
+        featuresWindowStart: true,
+        featuresWindowEnd: true,
+        ipHash: true,
+        userAgentHash: true,
+        features: true,
+      },
+    },
+  } satisfies Prisma.RiskEventRecordSelect;
+
+  private buildRiskEventWhere(query: RiskEventFilterQuery): Prisma.RiskEventRecordWhereInput {
+    return {
+      ...(query.riskBand ? { riskBand: query.riskBand } : {}),
+      ...(query.reviewStatus ? { reviewStatus: query.reviewStatus } : {}),
+      ...(query.reviewedOnly && !query.reviewStatus
+        ? {
+            reviewStatus: {
+              in: [
+                RiskReviewStatus.CONFIRMED_ABUSE,
+                RiskReviewStatus.BENIGN,
+                RiskReviewStatus.UNCERTAIN,
+              ],
+            },
+          }
+        : {}),
+    };
+  }
+
   async getUserAuthContext(userId: string): Promise<{ role: Role; status: string } | null> {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -305,10 +363,7 @@ export class RiskRepository {
   }
 
   async listRiskEventRecords(query: RiskEventListQuery) {
-    const where: Prisma.RiskEventRecordWhereInput = {
-      ...(query.riskBand ? { riskBand: query.riskBand } : {}),
-      ...(query.reviewStatus ? { reviewStatus: query.reviewStatus } : {}),
-    };
+    const where = this.buildRiskEventWhere(query);
 
     const [total, items, pendingReviewCount, highRiskCount, criticalRiskCount, confirmedAbuseCount] =
       await Promise.all([
@@ -318,33 +373,7 @@ export class RiskRepository {
           orderBy: [{ inferenceTs: 'desc' }, { createdAt: 'desc' }],
           skip: (query.page - 1) * query.pageSize,
           take: query.pageSize,
-          select: {
-            id: true,
-            eventId: true,
-            correlationId: true,
-            actorId: true,
-            action: true,
-            riskScore: true,
-            riskBand: true,
-            topSignals: true,
-            modelVersion: true,
-            inferenceTs: true,
-            reviewStatus: true,
-            reviewedById: true,
-            reviewedAt: true,
-            reviewNotes: true,
-            createdAt: true,
-            featuresSnapshot: {
-              select: {
-                actorRole: true,
-                institutionId: true,
-                targetType: true,
-                targetId: true,
-                observedAt: true,
-                features: true,
-              },
-            },
-          },
+          select: this.riskEventSelect,
         }),
         prisma.riskEventRecord.count({
           where: { reviewStatus: RiskReviewStatus.PENDING_REVIEW },
@@ -370,6 +399,32 @@ export class RiskRepository {
         confirmedAbuseCount,
       },
     };
+  }
+
+  async getRiskEventRecordById(id: string) {
+    return prisma.riskEventRecord.findUnique({
+      where: { id },
+      select: this.riskEventSelect,
+    });
+  }
+
+  async listReviewedRiskEventRecords(query: RiskEventFilterQuery) {
+    const where = {
+      ...this.buildRiskEventWhere(query),
+      reviewStatus: query.reviewStatus ?? {
+        in: [
+          RiskReviewStatus.CONFIRMED_ABUSE,
+          RiskReviewStatus.BENIGN,
+          RiskReviewStatus.UNCERTAIN,
+        ],
+      },
+    } satisfies Prisma.RiskEventRecordWhereInput;
+
+    return prisma.riskEventRecord.findMany({
+      where,
+      orderBy: [{ reviewedAt: 'desc' }, { inferenceTs: 'desc' }],
+      select: this.riskEventSelect,
+    });
   }
 
   async updateRiskReviewStatus(input: {

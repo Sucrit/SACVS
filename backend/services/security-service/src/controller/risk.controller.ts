@@ -16,56 +16,175 @@ function parsePositiveInt(value: unknown, fallback: number): number {
   return Math.floor(parsed);
 }
 
+function parseRiskFilters(req: Request): {
+  riskBand?: RiskBand;
+  reviewStatus?: RiskReviewStatus;
+  reviewedOnly: boolean;
+} {
+  const riskBandValue = typeof req.query.riskBand === 'string' ? req.query.riskBand : '';
+  const reviewStatusValue =
+    typeof req.query.reviewStatus === 'string' ? req.query.reviewStatus : '';
+  const reviewedOnly =
+    typeof req.query.reviewedOnly === 'string' && req.query.reviewedOnly.toLowerCase() === 'true';
+
+  return {
+    riskBand: VALID_RISK_BANDS.has(riskBandValue as RiskBand)
+      ? (riskBandValue as RiskBand)
+      : undefined,
+    reviewStatus: VALID_REVIEW_STATUSES.has(reviewStatusValue as RiskReviewStatus)
+      ? (reviewStatusValue as RiskReviewStatus)
+      : undefined,
+    reviewedOnly,
+  };
+}
+
+function serializeRiskEvent(item: Awaited<ReturnType<RiskRepository['getRiskEventRecordById']>>) {
+  if (!item) {
+    return null;
+  }
+
+  return {
+    id: item.id,
+    eventId: item.eventId,
+    correlationId: item.correlationId,
+    actorId: item.actorId,
+    action: item.action,
+    riskScore: item.riskScore,
+    riskBand: item.riskBand,
+    topSignals: Array.isArray(item.topSignals) ? item.topSignals : [],
+    modelVersion: item.modelVersion,
+    inferenceTs: item.inferenceTs.toISOString(),
+    reviewStatus: item.reviewStatus,
+    reviewedById: item.reviewedById,
+    reviewedAt: item.reviewedAt?.toISOString() ?? null,
+    reviewNotes: item.reviewNotes,
+    createdAt: item.createdAt.toISOString(),
+    actorRole: item.featuresSnapshot.actorRole,
+    institutionId: item.featuresSnapshot.institutionId,
+    targetType: item.featuresSnapshot.targetType,
+    targetId: item.featuresSnapshot.targetId,
+    observedAt: item.featuresSnapshot.observedAt.toISOString(),
+    featuresWindowStart: item.featuresSnapshot.featuresWindowStart?.toISOString() ?? null,
+    featuresWindowEnd: item.featuresSnapshot.featuresWindowEnd?.toISOString() ?? null,
+    ipHash: item.featuresSnapshot.ipHash,
+    userAgentHash: item.featuresSnapshot.userAgentHash,
+    featureSnapshotId: item.featuresSnapshot.id,
+    features: item.featuresSnapshot.features,
+  };
+}
+
 export class RiskController {
   async listRiskEvents(req: Request, res: Response): Promise<Response> {
     const page = parsePositiveInt(req.query.page, 1);
     const pageSize = Math.min(parsePositiveInt(req.query.pageSize, 20), 100);
-    const riskBandValue = typeof req.query.riskBand === 'string' ? req.query.riskBand : '';
-    const reviewStatusValue =
-      typeof req.query.reviewStatus === 'string' ? req.query.reviewStatus : '';
-
-    const riskBand = VALID_RISK_BANDS.has(riskBandValue as RiskBand)
-      ? (riskBandValue as RiskBand)
-      : undefined;
-    const reviewStatus = VALID_REVIEW_STATUSES.has(reviewStatusValue as RiskReviewStatus)
-      ? (reviewStatusValue as RiskReviewStatus)
-      : undefined;
+    const { riskBand, reviewStatus, reviewedOnly } = parseRiskFilters(req);
 
     const result = await repository.listRiskEventRecords({
       page,
       pageSize,
       riskBand,
       reviewStatus,
+      reviewedOnly,
     });
 
     return res.json({
-      items: result.items.map(item => ({
-        id: item.id,
-        eventId: item.eventId,
-        correlationId: item.correlationId,
-        actorId: item.actorId,
-        action: item.action,
-        riskScore: item.riskScore,
-        riskBand: item.riskBand,
-        topSignals: Array.isArray(item.topSignals) ? item.topSignals : [],
-        modelVersion: item.modelVersion,
-        inferenceTs: item.inferenceTs.toISOString(),
-        reviewStatus: item.reviewStatus,
-        reviewedById: item.reviewedById,
-        reviewedAt: item.reviewedAt?.toISOString() ?? null,
-        reviewNotes: item.reviewNotes,
-        createdAt: item.createdAt.toISOString(),
-        actorRole: item.featuresSnapshot.actorRole,
-        institutionId: item.featuresSnapshot.institutionId,
-        targetType: item.featuresSnapshot.targetType,
-        targetId: item.featuresSnapshot.targetId,
-        observedAt: item.featuresSnapshot.observedAt.toISOString(),
-      })),
+      items: result.items.map(item => serializeRiskEvent(item)),
       total: result.total,
       page,
       pageSize,
       summary: result.summary,
     });
+  }
+
+  async getRiskEventDetails(req: Request, res: Response): Promise<Response> {
+    const id = typeof req.params.id === 'string' ? req.params.id : '';
+
+    if (!id) {
+      return res.status(400).json({ error: 'Risk event id is required.' });
+    }
+
+    const item = await repository.getRiskEventRecordById(id);
+    if (!item) {
+      return res.status(404).json({ error: 'Risk event not found.' });
+    }
+
+    return res.json(serializeRiskEvent(item));
+  }
+
+  async exportReviewedRiskEvents(req: Request, res: Response): Promise<Response> {
+    const { riskBand, reviewStatus, reviewedOnly } = parseRiskFilters(req);
+    const rows = await repository.listReviewedRiskEventRecords({
+      riskBand,
+      reviewStatus,
+      reviewedOnly,
+    });
+
+    const header = [
+      'id',
+      'eventId',
+      'correlationId',
+      'actorId',
+      'actorRole',
+      'action',
+      'riskScore',
+      'riskBand',
+      'reviewStatus',
+      'reviewedById',
+      'reviewedAt',
+      'modelVersion',
+      'targetType',
+      'targetId',
+      'institutionId',
+      'observedAt',
+      'topSignals',
+    ];
+
+    const escapeCsv = (value: unknown) => {
+      if (value === null || value === undefined) {
+        return '';
+      }
+      const stringValue = Array.isArray(value) ? value.join(' | ') : String(value);
+      if (/[",\n]/.test(stringValue)) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
+    const lines = [
+      header.join(','),
+      ...rows.map(row =>
+        [
+          row.id,
+          row.eventId,
+          row.correlationId,
+          row.actorId,
+          row.featuresSnapshot.actorRole,
+          row.action,
+          row.riskScore.toFixed(2),
+          row.riskBand,
+          row.reviewStatus,
+          row.reviewedById,
+          row.reviewedAt?.toISOString() ?? '',
+          row.modelVersion,
+          row.featuresSnapshot.targetType,
+          row.featuresSnapshot.targetId,
+          row.featuresSnapshot.institutionId,
+          row.featuresSnapshot.observedAt.toISOString(),
+          Array.isArray(row.topSignals) ? row.topSignals : [],
+        ]
+          .map(escapeCsv)
+          .join(','),
+      ),
+    ];
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="risk-review-report-${stamp}.csv"`,
+    );
+
+    return res.send(lines.join('\n'));
   }
 
   async updateRiskReviewStatus(req: Request, res: Response): Promise<Response> {

@@ -22,6 +22,7 @@ import { useStepUp } from '../../hooks/useStepUp';
 import { realtimeService } from '../../services/realtime.service';
 import ButtonLoadingContent from '../../components/common/ButtonLoadingContent';
 import { useToast } from '../../hooks/useToast';
+import AdminRiskEventDetailsDrawer from './components/AdminRiskEventDetailsDrawer';
 
 type AdminSection = 'overview' | 'users' | 'risk' | 'logs' | 'settings';
 type RoleFilter = UserRole | 'ALL';
@@ -132,6 +133,7 @@ export default function AdminDashboard() {
   const [isLoadingRiskEvents, setIsLoadingRiskEvents] = useState(false);
   const [riskBandFilter, setRiskBandFilter] = useState<RiskBand | 'ALL'>('ALL');
   const [riskReviewFilter, setRiskReviewFilter] = useState<RiskReviewStatus | 'ALL'>('ALL');
+  const [reviewedOnly, setReviewedOnly] = useState(false);
   const [riskPage, setRiskPage] = useState(1);
   const [riskPageSize, setRiskPageSize] = useState(20);
   const [riskTotal, setRiskTotal] = useState(0);
@@ -142,6 +144,10 @@ export default function AdminDashboard() {
     confirmedAbuseCount: 0,
   });
   const [reviewingRiskEventId, setReviewingRiskEventId] = useState<string | null>(null);
+  const [selectedRiskEventId, setSelectedRiskEventId] = useState<string | null>(null);
+  const [selectedRiskEvent, setSelectedRiskEvent] = useState<RiskEventRecord | null>(null);
+  const [isLoadingSelectedRiskEvent, setIsLoadingSelectedRiskEvent] = useState(false);
+  const [isExportingRiskReport, setIsExportingRiskReport] = useState(false);
 
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
@@ -168,6 +174,7 @@ export default function AdminDashboard() {
         pageSize: riskPageSize,
         riskBand: riskBandFilter,
         reviewStatus: riskReviewFilter,
+        reviewedOnly,
       });
       setRiskEvents(response.items);
       setRiskTotal(response.total);
@@ -181,7 +188,7 @@ export default function AdminDashboard() {
     } finally {
       setIsLoadingRiskEvents(false);
     }
-  }, [riskBandFilter, riskPage, riskPageSize, riskReviewFilter, showToast]);
+  }, [reviewedOnly, riskBandFilter, riskPage, riskPageSize, riskReviewFilter, showToast]);
 
   const loadUsers = useCallback(async () => {
     setIsLoadingUsers(true);
@@ -248,7 +255,13 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setRiskPage(1);
-  }, [riskBandFilter, riskReviewFilter, riskPageSize]);
+  }, [reviewedOnly, riskBandFilter, riskReviewFilter, riskPageSize]);
+
+  useEffect(() => {
+    if (reviewedOnly && riskReviewFilter === 'PENDING_REVIEW') {
+      setRiskReviewFilter('ALL');
+    }
+  }, [reviewedOnly, riskReviewFilter]);
 
   useEffect(() => {
     if (section === 'logs' && !hasLoadedAuditLogs) {
@@ -429,10 +442,10 @@ export default function AdminDashboard() {
   }, [requestStepUpToken, showToast]);
 
   const handleRiskReviewUpdate = useCallback(
-    async (id: string, reviewStatus: RiskReviewStatus) => {
+    async (id: string, reviewStatus: RiskReviewStatus, reviewNotes?: string | null) => {
       setReviewingRiskEventId(id);
       try {
-        const updated = await RiskService.updateReviewStatus(id, { reviewStatus });
+        const updated = await RiskService.updateReviewStatus(id, { reviewStatus, reviewNotes });
         setRiskEvents(previous =>
           previous.map(event =>
             event.id === id
@@ -445,6 +458,17 @@ export default function AdminDashboard() {
                 }
               : event,
           ),
+        );
+        setSelectedRiskEvent(previous =>
+          previous && previous.id === id
+            ? {
+                ...previous,
+                reviewStatus: updated.reviewStatus,
+                reviewedById: updated.reviewedById,
+                reviewedAt: updated.reviewedAt,
+                reviewNotes: updated.reviewNotes,
+              }
+            : previous,
         );
         setRiskSummary(previous => {
           const current = riskEvents.find(event => event.id === id);
@@ -460,7 +484,13 @@ export default function AdminDashboard() {
           }
           return next;
         });
-        showToast({ variant: 'success', message: `Risk event marked as ${reviewStatus}.` });
+        showToast({
+          variant: 'success',
+          message:
+            reviewNotes !== undefined
+              ? `Risk event review saved as ${reviewStatus}.`
+              : `Risk event marked as ${reviewStatus}.`,
+        });
       } catch (error) {
         showToast({
           variant: 'error',
@@ -472,6 +502,59 @@ export default function AdminDashboard() {
     },
     [riskEvents, showToast],
   );
+
+  const openRiskEventDetails = useCallback(
+    async (id: string) => {
+      setSelectedRiskEventId(id);
+      setIsLoadingSelectedRiskEvent(true);
+      try {
+        const event = await RiskService.getById(id);
+        setSelectedRiskEvent(event);
+      } catch (error) {
+        setSelectedRiskEvent(null);
+        showToast({
+          variant: 'error',
+          message: getApiErrorMessage(error) || 'Unable to load risk event details.',
+        });
+      } finally {
+        setIsLoadingSelectedRiskEvent(false);
+      }
+    },
+    [showToast],
+  );
+
+  const closeRiskEventDetails = useCallback(() => {
+    setSelectedRiskEventId(null);
+    setSelectedRiskEvent(null);
+    setIsLoadingSelectedRiskEvent(false);
+  }, []);
+
+  const exportReviewedRiskReport = useCallback(async () => {
+    setIsExportingRiskReport(true);
+    try {
+      const blob = await RiskService.exportReviewed({
+        riskBand: riskBandFilter,
+        reviewStatus: riskReviewFilter === 'PENDING_REVIEW' ? 'ALL' : riskReviewFilter,
+        reviewedOnly,
+      });
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `risk-review-report-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+      showToast({ variant: 'success', message: 'Reviewed risk report downloaded.' });
+    } catch (error) {
+      showToast({
+        variant: 'error',
+        message: getApiErrorMessage(error) || 'Unable to export reviewed risk report.',
+      });
+    } finally {
+      setIsExportingRiskReport(false);
+    }
+  }, [reviewedOnly, riskBandFilter, riskReviewFilter, showToast]);
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -900,7 +983,19 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      <Card title="ML Risk Review Queue">
+      <Card
+        title="ML Risk Review Queue"
+        action={
+          <button
+            type="button"
+            onClick={() => void exportReviewedRiskReport()}
+            disabled={isExportingRiskReport}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isExportingRiskReport ? <ButtonLoadingContent label="Exporting" /> : 'Export reviewed CSV'}
+          </button>
+        }
+      >
         <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
           <div>
             <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Risk Band</label>
@@ -944,7 +1039,16 @@ export default function AdminDashboard() {
               ))}
             </select>
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end justify-between gap-3">
+            <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+              <input
+                type="checkbox"
+                checked={reviewedOnly}
+                onChange={event => setReviewedOnly(event.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+              />
+              Reviewed only
+            </label>
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
               {riskTotal} events
             </div>
@@ -1026,6 +1130,13 @@ export default function AdminDashboard() {
                     <td className="px-4 py-3">
                       <div className="flex min-w-[230px] flex-wrap gap-2">
                         <button
+                          onClick={() => void openRiskEventDetails(event.id)}
+                          disabled={selectedRiskEventId === event.id && isLoadingSelectedRiskEvent}
+                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          View
+                        </button>
+                        <button
                           onClick={() => void handleRiskReviewUpdate(event.id, 'CONFIRMED_ABUSE')}
                           disabled={reviewingRiskEventId === event.id || event.reviewStatus === 'CONFIRMED_ABUSE'}
                           className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -1081,6 +1192,14 @@ export default function AdminDashboard() {
           </div>
         )}
       </Card>
+      <AdminRiskEventDetailsDrawer
+        isOpen={selectedRiskEventId !== null}
+        event={selectedRiskEvent}
+        isLoading={isLoadingSelectedRiskEvent}
+        isSavingReview={reviewingRiskEventId === selectedRiskEvent?.id}
+        onClose={closeRiskEventDetails}
+        onSaveReview={handleRiskReviewUpdate}
+      />
     </div>
   );
 

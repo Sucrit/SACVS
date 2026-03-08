@@ -9,6 +9,8 @@ const controller = new RiskController();
 router.use(requireAuth, requireApprovedAccount, requireRoles(Role.ADMIN));
 
 router.get('/risk-events', (req, res) => void controller.listRiskEvents(req, res));
+router.get('/risk-events/export', (req, res) => void controller.exportReviewedRiskEvents(req, res));
+router.get('/risk-events/:id', (req, res) => void controller.getRiskEventDetails(req, res));
 router.put('/risk-events/:id/review', (req, res) => void controller.updateRiskReviewStatus(req, res));
 
 export default router;

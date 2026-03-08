@@ -1,49 +1,18 @@
 import dotenv from 'dotenv';
-import fs from 'fs';
-import path from 'path';
-
-const envCandidates = [
-  path.resolve(process.cwd(), '.env'),
-  path.resolve(process.cwd(), '../../.env'),
-  path.resolve(process.cwd(), '../../db/.env'),
-  path.resolve(__dirname, '../../../.env'),
-  path.resolve(__dirname, '../../../../.env'),
-  path.resolve(__dirname, '../../../../db/.env'),
-];
-
-for (const envPath of new Set(envCandidates)) {
-  if (fs.existsSync(envPath)) {
-    dotenv.config({ path: envPath, override: false });
-  }
-}
-
-function readNumber(name: string, fallback: number): number {
-  const value = process.env[name];
-  if (!value) {
-    return fallback;
-  }
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    throw new Error(`${name} must be numeric. Received: ${value}`);
-  }
-  return parsed;
-}
+import path from 'fs'; 
+dotenv.config();
 
 export const ENV = {
-  PORT: readNumber('PORT', 5500),
-  NODE_ENV: process.env.NODE_ENV || 'development',
+  PORT: process.env.PORT,
+  NODE_ENV: process.env.NODE_ENV,
   DATABASE_URL: process.env.DATABASE_URL ?? '',
-  RISK_ARTIFACTS_DIR: process.env.RISK_ARTIFACTS_DIR
-    ? path.resolve(process.cwd(), process.env.RISK_ARTIFACTS_DIR)
-    : path.resolve(process.cwd(), 'artifacts'),
-  RISK_DATASET_LOOKBACK_HOURS: readNumber('RISK_DATASET_LOOKBACK_HOURS', 24 * 180),
-  RISK_SHADOW_LOOKBACK_MINUTES: readNumber('RISK_SHADOW_LOOKBACK_MINUTES', 15),
-  RISK_SUPERVISED_WEIGHT: readNumber('RISK_SUPERVISED_WEIGHT', 0.75),
-  RISK_ANOMALY_WEIGHT: readNumber('RISK_ANOMALY_WEIGHT', 0.25),
-  RISK_BAND_HIGH_THRESHOLD: readNumber('RISK_BAND_HIGH_THRESHOLD', 70),
-  RISK_BAND_CRITICAL_THRESHOLD: readNumber('RISK_BAND_CRITICAL_THRESHOLD', 85),
+  CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY,
+  CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+  RISK_ARTIFACTS_DIR: process.env.RISK_ARTIFACTS_DIR,
+  RISK_DATASET_LOOKBACK_HOURS: process.env.RISK_DATASET_LOOKBACK_HOURS,
+  RISK_SHADOW_LOOKBACK_MINUTES:  process.env.RISK_SHADOW_LOOKBACK_MINUTES,
+  RISK_SUPERVISED_WEIGHT: process.env.RISK_SUPERVISED_WEIGHT,
+  RISK_ANOMALY_WEIGHT: process.env.RISK_ANOMALY_WEIGHT,
+  RISK_BAND_HIGH_THRESHOLD: process.env.RISK_BAND_HIGH_THRESHOLD,
+  RISK_BAND_CRITICAL_THRESHOLD:  process.env.RISK_BAND_HIGH_THRESHOLD,
 };
-
-if (!ENV.DATABASE_URL) {
-  throw new Error('DATABASE_URL is required for security-service.');
-}
