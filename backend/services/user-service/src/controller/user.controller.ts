@@ -783,7 +783,7 @@ export class UserController {
       return res.status(200).json({
         id: deleted.id,
         email: deleted.email,
-        message: 'Student account deleted from database and Clerk.',
+        message: 'Student account has been deleted',
       });
     } catch (error) {
       if (

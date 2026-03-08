@@ -1,7 +1,21 @@
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 
-dotenv.config();
+const envCandidates = [
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), '../../.env'),
+  path.resolve(process.cwd(), '../../db/.env'),
+  path.resolve(__dirname, '../../../.env'),
+  path.resolve(__dirname, '../../../../.env'),
+  path.resolve(__dirname, '../../../../db/.env'),
+];
+
+for (const envPath of new Set(envCandidates)) {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath, override: false });
+  }
+}
 
 function readNumber(name: string, fallback: number): number {
   const value = process.env[name];
