@@ -83,6 +83,12 @@ Add a metadata-only ML risk scoring layer that operates beside, not instead of, 
 5. Run shadow scoring asynchronously.
 6. Write `RiskEventRecord` rows for operator review.
 
+## Artifact Layout
+- `artifacts/datasets/` stores extracted CSV datasets
+- `artifacts/models/` stores trained `.joblib` bundles
+- `artifacts/metrics/` stores evaluation summaries
+- `artifacts/manifests/` stores `model_manifest.json`
+
 ## Evaluation Criteria Before Any Enforcement
 - use time-based train, validation, and test splits
 - optimize for PR-AUC, Precision@TopK, and Recall@TopK

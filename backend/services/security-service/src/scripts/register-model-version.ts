@@ -24,7 +24,7 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const manifestPath = args.manifest
     ? path.resolve(process.cwd(), args.manifest)
-    : path.resolve(process.cwd(), 'artifacts', 'model_manifest.json');
+    : path.resolve(process.cwd(), 'artifacts', 'manifests', 'model_manifest.json');
 
   if (!fs.existsSync(manifestPath)) {
     throw new Error(`Manifest file not found: ${manifestPath}`);

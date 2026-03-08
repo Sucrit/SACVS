@@ -3,6 +3,7 @@ import path from 'path';
 import { ENV } from '../config/env';
 
 type MetadataRecord = Record<string, unknown>;
+type ArtifactKind = 'datasets' | 'models' | 'metrics' | 'manifests';
 
 function isObject(value: unknown): value is MetadataRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -41,9 +42,15 @@ export function ensureArtifactsDir(): string {
   return ENV.RISK_ARTIFACTS_DIR;
 }
 
-export function resolveArtifactPath(filename: string): string {
+export function ensureArtifactSubdir(kind: ArtifactKind): string {
   ensureArtifactsDir();
-  return path.resolve(ENV.RISK_ARTIFACTS_DIR, filename);
+  const subdir = path.resolve(ENV.RISK_ARTIFACTS_DIR, kind);
+  fs.mkdirSync(subdir, { recursive: true });
+  return subdir;
+}
+
+export function resolveArtifactPath(kind: ArtifactKind, filename: string): string {
+  return path.resolve(ensureArtifactSubdir(kind), filename);
 }
 
 export function parseArgs(argv: string[]): Record<string, string> {

@@ -77,6 +77,11 @@ def main():
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
+    models_dir = os.path.join(args.output_dir, "models")
+    metrics_dir = os.path.join(args.output_dir, "metrics")
+    manifests_dir = os.path.join(args.output_dir, "manifests")
+    for directory in (models_dir, metrics_dir, manifests_dir):
+        os.makedirs(directory, exist_ok=True)
 
     df = pd.read_csv(args.input)
     if "eventTs" not in df.columns or "weakLabel" not in df.columns:
@@ -188,7 +193,7 @@ def main():
         },
     }
 
-    artifact_path = os.path.join(args.output_dir, f"{version}.joblib")
+    artifact_path = os.path.join(models_dir, f"{version}.joblib")
     joblib.dump(artifact_bundle, artifact_path)
 
     top_features = []
@@ -213,7 +218,7 @@ def main():
         "threshold_critical": threshold_critical,
     }
 
-    metrics_path = os.path.join(args.output_dir, f"{version}_metrics.json")
+    metrics_path = os.path.join(metrics_dir, f"{version}_metrics.json")
     with open(metrics_path, "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2)
 
@@ -227,7 +232,7 @@ def main():
         "isActive": False,
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }
-    manifest_path = os.path.join(args.output_dir, "model_manifest.json")
+    manifest_path = os.path.join(manifests_dir, "model_manifest.json")
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
 

@@ -21,7 +21,7 @@ async function main(): Promise<void> {
     ? Number(args.lookbackHours)
     : ENV.RISK_DATASET_LOOKBACK_HOURS;
   const outputName = args.output ?? `risk_dataset_${new Date().toISOString().slice(0, 10)}.csv`;
-  const outputPath = resolveArtifactPath(outputName);
+  const outputPath = resolveArtifactPath('datasets', outputName);
   const since = new Date(Date.now() - lookbackHours * 60 * 60_000);
 
   const repository = new RiskRepository();

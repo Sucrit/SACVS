@@ -63,6 +63,12 @@ npm run shadow:score -- --lookbackMinutes=1440
 
 These commands require `DATABASE_URL` to resolve from service or parent env files.
 
+Generated ML outputs are organized under:
+- `backend/services/security-service/artifacts/datasets/`
+- `backend/services/security-service/artifacts/models/`
+- `backend/services/security-service/artifacts/metrics/`
+- `backend/services/security-service/artifacts/manifests/`
+
 ## Local Verification Areas
 - student onboarding and request submission
 - institution student management and bulk CSV import

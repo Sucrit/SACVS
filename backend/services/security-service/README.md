@@ -40,24 +40,30 @@ npm run dataset:extract
 
 Output goes to `./artifacts`.
 
+Artifact layout:
+- `artifacts/datasets/`
+- `artifacts/models/`
+- `artifacts/metrics/`
+- `artifacts/manifests/`
+
 ## 2) Train offline models
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r python/requirements.txt
-python python/train_risk_models.py --input artifacts/risk_dataset_YYYY-MM-DD.csv --output_dir artifacts
+python python/train_risk_models.py --input artifacts/datasets/risk_dataset_YYYY-MM-DD.csv --output_dir artifacts
 ```
 
 Artifacts produced:
-- `<version>.joblib`
-- `<version>_metrics.json`
-- `model_manifest.json`
+- `models/<version>.joblib`
+- `metrics/<version>_metrics.json`
+- `manifests/model_manifest.json`
 
 ## 3) Register trained model metadata in DB
 
 ```bash
-npm run model:register -- --manifest=artifacts/model_manifest.json
+npm run model:register -- --manifest=artifacts/manifests/model_manifest.json
 ```
 
 ## 4) Run shadow scoring job
