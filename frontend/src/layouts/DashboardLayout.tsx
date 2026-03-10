@@ -146,6 +146,14 @@ export default function DashboardLayout() {
   const path = location.pathname;
   const navLinks = NAV_LINKS[role] || [];
   const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
+  const firstName = user.firstName || displayName;
+
+  const greeting = (() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  })();
 
   const bellRouteByRole: Record<UserRole, string | null> = {
     STUDENT: '/student/notifications',
@@ -526,7 +534,7 @@ export default function DashboardLayout() {
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-6">
           <div className="flex items-center gap-3">
             <p className="text-sm font-medium text-neutral-500">
-              {displayName}
+              {greeting}, <span className="text-neutral-700">{firstName}</span>
             </p>
           </div>
 
