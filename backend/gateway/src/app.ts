@@ -146,7 +146,6 @@ const normalizeRouteKey = (req: express.Request): string => {
     .replace(/\/users\/[^/]+\/(role|status)$/i, '/users/:id/$1')
     .replace(/\/users\/me\/institution\/students\/bulk$/i, '/users/me/institution/students/bulk')
     .replace(/\/credentials\/verify\/qr\/document\/[^/?#]+/i, '/credentials/verify/qr/document/:token')
-    .replace(/\/credentials\/verify\/qr\/employer$/i, '/credentials/verify/qr/employer')
     .replace(/\/credentials\/verify\/qr$/i, '/credentials/verify/qr')
     .replace(/\/credentials\/[^/]+\/issue$/i, '/credentials/:id/issue')
     .replace(/\/credentials\/[^/]+\/document$/i, '/credentials/:id/document')

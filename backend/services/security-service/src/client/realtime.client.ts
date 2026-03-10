@@ -11,7 +11,6 @@ export interface RealtimeEvent {
     roles?: Role[];
     userIds?: string[];
     institutionIds?: string[];
-    employerIds?: string[];
   };
   payload?: Record<string, unknown>;
 }

@@ -13,7 +13,6 @@ export interface AuthenticatedRequest extends Request {
     role?: UserRole;
     status?: UserStatus;
     institutionId?: string | null;
-    employerId?: string | null;
   };
 }
 
@@ -41,7 +40,6 @@ export const requireAuth = async (
         role: true,
         status: true,
         institutionId: true,
-        employerId: true,
       },
     });
 
@@ -50,7 +48,6 @@ export const requireAuth = async (
       role: localUser?.role as UserRole | undefined,
       status: localUser?.status as UserStatus | undefined,
       institutionId: localUser?.institutionId,
-      employerId: localUser?.employerId,
     };
 
     return next();

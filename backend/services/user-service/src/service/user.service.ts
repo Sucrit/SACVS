@@ -465,7 +465,7 @@ export class UserService {
       {
         domain: 'audit',
         action: 'log.created',
-        scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
       },
     ]);
     return updated;
@@ -505,18 +505,10 @@ export class UserService {
       registrationNumber: data.registrationNumber.trim(),
       organizationEmail: normalizeEmail(data.organizationEmail),
       phoneNumber: data.phoneNumber.trim(),
-      employer: data.role === 'EMPLOYER'
-        ? {
-            companyName: data.companyName.trim(),
-            taxId: data.taxId.trim(),
-          }
-        : undefined,
-      institution: data.role === 'INSTITUTION'
-        ? {
-            institutionName: data.institutionName.trim(),
-            accreditationNumber: data.accreditationNumber.trim(),
-          }
-        : undefined,
+      institution: {
+        institutionName: data.institutionName.trim(),
+        accreditationNumber: data.accreditationNumber.trim(),
+      },
     });
   }
 

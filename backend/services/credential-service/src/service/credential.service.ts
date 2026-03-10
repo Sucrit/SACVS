@@ -102,7 +102,6 @@ export interface CredentialActor {
   userId: string;
   role?: `${Role}`;
   institutionId?: string | null;
-  employerId?: string | null;
 }
 
 interface UpdateCredentialStatusOptions {
@@ -176,7 +175,7 @@ export class CredentialService {
           entityId: item.id,
           scope: {
             userIds: [item.studentId],
-            roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'],
+            roles: ['ADMIN', 'INSTITUTION'],
             institutionIds: item.institutionId ? [item.institutionId] : [],
           },
         }));
@@ -184,7 +183,7 @@ export class CredentialService {
         credentialEvents.push({
           domain: 'audit',
           action: 'log.created',
-          scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+          scope: { roles: ['ADMIN', 'INSTITUTION'] },
         });
 
         void realtimeClient.publishMany(credentialEvents);
@@ -871,14 +870,14 @@ export class CredentialService {
           entityId: updated.id,
           scope: {
             userIds: [updated.studentId],
-            roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'],
+            roles: ['ADMIN', 'INSTITUTION'],
             institutionIds: updated.student.institutionId ? [updated.student.institutionId] : [],
           },
         },
         {
           domain: 'audit',
           action: 'log.created',
-          scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+          scope: { roles: ['ADMIN', 'INSTITUTION'] },
         },
       ]);
       return updated;
@@ -902,14 +901,14 @@ export class CredentialService {
           entityId: updated.id,
           scope: {
             userIds: [updated.studentId],
-            roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'],
+            roles: ['ADMIN', 'INSTITUTION'],
             institutionIds: updated.student.institutionId ? [updated.student.institutionId] : [],
           },
         },
         {
           domain: 'audit',
           action: 'log.created',
-          scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+          scope: { roles: ['ADMIN', 'INSTITUTION'] },
         },
       ]);
     }
@@ -1031,7 +1030,7 @@ export class CredentialService {
       {
         domain: 'audit',
         action: 'log.created',
-        scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
       },
     ]);
 
@@ -1080,7 +1079,6 @@ export class CredentialService {
       await this.createAuditEntry({
         action: reason === 'EXPIRED' ? 'QR_TOKEN_EXPIRED' : 'QR_TOKEN_INVALID',
         actorId: consumer.consumerId ?? null,
-        actorRole: consumer.consumerType === 'EMPLOYER' ? Role.EMPLOYER : undefined,
         targetType: 'CredentialQrToken',
         description: `QR token verification failed: ${reason}`,
         metadata: {
@@ -1103,7 +1101,6 @@ export class CredentialService {
       await this.createAuditEntry({
         action: 'QR_TOKEN_INVALID',
         actorId: consumer.consumerId ?? null,
-        actorRole: consumer.consumerType === 'EMPLOYER' ? Role.EMPLOYER : undefined,
         targetType: 'CredentialQrToken',
         description: 'QR token consumed but credential was not found',
         metadata: {
@@ -1143,7 +1140,6 @@ export class CredentialService {
     await this.createAuditEntry({
       action: 'QR_TOKEN_CONSUMED',
       actorId: consumer.consumerId ?? null,
-      actorRole: consumer.consumerType === 'EMPLOYER' ? Role.EMPLOYER : undefined,
       targetType: 'Credential',
       targetId: view.id,
       description: 'One-time QR token consumed successfully',

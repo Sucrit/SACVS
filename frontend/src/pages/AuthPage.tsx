@@ -27,7 +27,6 @@ const SIGNUP_ROLE_STORAGE_KEY = 'sacvs.signup.role';
 const ROLE_HOME_ROUTES: Record<UserRole, string> = {
   STUDENT: '/student',
   ADMIN: '/admin',
-  EMPLOYER: '/employer',
   INSTITUTION: '/institution',
 };
 
@@ -80,7 +79,6 @@ export default function AuthPage() {
   const [organizationName, setOrganizationName] = useState('');
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [accreditationNumber, setAccreditationNumber] = useState('');
-  const [taxId, setTaxId] = useState('');
   const [organizationEmail, setOrganizationEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [confirmVerification, setConfirmVerification] = useState(false);
@@ -119,7 +117,7 @@ export default function AuthPage() {
 
     if (normalizedMode === 'signup' && typeof window !== 'undefined') {
       const persistedRole = window.sessionStorage.getItem(SIGNUP_ROLE_STORAGE_KEY);
-      if (persistedRole === 'EMPLOYER' || persistedRole === 'INSTITUTION') {
+      if (persistedRole === 'INSTITUTION') {
         setSelectedRole(persistedRole);
       } else {
         setSelectedRole(null);
@@ -176,38 +174,21 @@ export default function AuthPage() {
         }
 
         if (localUser) {
-          if (localUser.role === 'EMPLOYER' || localUser.role === 'INSTITUTION') {
+          if (localUser.role === 'INSTITUTION') {
             setAndPersistRole(localUser.role);
             setFirstName(localUser.firstName || clerkUser.firstName || '');
             setMiddleName(localUser.middleName || '');
             setLastName(localUser.lastName || clerkUser.lastName || '');
-            setRegistrationNumber(
-              localUser.role === 'EMPLOYER'
-                ? localUser.employer?.registrationNumber || ''
-                : localUser.institution?.registrationNumber || '',
-            );
-            setOrganizationName(
-              localUser.role === 'EMPLOYER'
-                ? localUser.employer?.companyName || ''
-                : localUser.institution?.institutionName || '',
-            );
+            setRegistrationNumber(localUser.institution?.registrationNumber || '');
+            setOrganizationName(localUser.institution?.institutionName || '');
             setAccreditationNumber(localUser.institution?.accreditationNumber || '');
-            setTaxId(localUser.employer?.taxId || '');
-            setOrganizationEmail(
-              localUser.role === 'EMPLOYER'
-                ? localUser.employer?.email || currentEmail
-                : localUser.institution?.email || currentEmail,
-            );
-            setPhoneNumber(
-              localUser.role === 'EMPLOYER'
-                ? localUser.employer?.phoneNumber || ''
-                : localUser.institution?.phoneNumber || '',
-            );
+            setOrganizationEmail(localUser.institution?.email || currentEmail);
+            setPhoneNumber(localUser.institution?.phoneNumber || '');
             setAuthHint(null);
             return;
           }
 
-          setAuthError('Self-signup is restricted to Institution and Employer accounts.');
+          setAuthError('Self-signup is restricted to institution accounts.');
           return;
         }
 
@@ -298,7 +279,7 @@ export default function AuthPage() {
     }
 
     if (!organizationName.trim()) {
-      return selectedRole === 'EMPLOYER' ? 'Company name is required.' : 'Institution name is required.';
+      return 'Institution name is required.';
     }
 
     if (!registrationNumber.trim()) {
@@ -315,10 +296,6 @@ export default function AuthPage() {
 
     if (!/^\+63\d{10}$/.test(phoneNumber.trim())) {
       return 'Phone number must use +63 followed by 10 digits (e.g. +639123456789).';
-    }
-
-    if (selectedRole === 'EMPLOYER' && !taxId.trim()) {
-      return 'Tax ID is required for employer accounts.';
     }
 
     if (selectedRole === 'INSTITUTION' && !accreditationNumber.trim()) {
@@ -356,30 +333,17 @@ export default function AuthPage() {
 
     setIsSubmitting(true);
     try {
-      const payload: CompleteOrganizationOnboardingPayload =
-        selectedRole === 'EMPLOYER'
-          ? {
-              role: 'EMPLOYER',
-              firstName: firstName.trim(),
-              middleName: middleName.trim() || null,
-              lastName: lastName.trim(),
-              companyName: organizationName.trim(),
-              registrationNumber: registrationNumber.trim(),
-              taxId: taxId.trim(),
-              organizationEmail: organizationEmail.trim(),
-              phoneNumber: phoneNumber.trim(),
-            }
-          : {
-              role: 'INSTITUTION',
-              firstName: firstName.trim(),
-              middleName: middleName.trim() || null,
-              lastName: lastName.trim(),
-              institutionName: organizationName.trim(),
-              accreditationNumber: accreditationNumber.trim(),
-              registrationNumber: registrationNumber.trim(),
-              organizationEmail: organizationEmail.trim(),
-              phoneNumber: phoneNumber.trim(),
-            };
+      const payload: CompleteOrganizationOnboardingPayload = {
+        role: 'INSTITUTION',
+        firstName: firstName.trim(),
+        middleName: middleName.trim() || null,
+        lastName: lastName.trim(),
+        institutionName: organizationName.trim(),
+        accreditationNumber: accreditationNumber.trim(),
+        registrationNumber: registrationNumber.trim(),
+        organizationEmail: organizationEmail.trim(),
+        phoneNumber: phoneNumber.trim(),
+      };
 
       await UserService.completeOrganizationOnboarding(payload);
       await refreshUser();
@@ -404,7 +368,7 @@ export default function AuthPage() {
   const isRoleStep = !selectedRole;
   const isAuthStep = !!selectedRole && !isSignedIn;
   const isProfileStep = !!selectedRole && isSignedIn;
-  const roleDisplay = selectedRole === 'EMPLOYER' ? 'Employer' : 'Institution';
+  const roleDisplay = 'Institution';
   const authPageBackgroundStyle = {
     backgroundImage: `url(${heroBg})`,
     backgroundSize: 'cover',
@@ -533,16 +497,6 @@ export default function AuthPage() {
           <img alt="Credence logo" className="h-8 w-auto" src={logo2} />
         </Link>
         <div className="flex items-center gap-2">
-          {selectedRole && (
-            <button
-              type="button"
-              onClick={() => setAndPersistRole(null)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              <Icon className="text-sm" name="arrow_back" />
-              Back to Role
-            </button>
-          )}
           <Link
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
             to="/"
@@ -624,11 +578,11 @@ export default function AuthPage() {
         {isRoleStep && (
           <div className="space-y-6">
             <div className="space-y-1 text-center">
-              <h3 className="text-2xl font-bold tracking-tight text-slate-900">Choose Your Account Type</h3>
-              <p className="text-sm text-slate-500">Self-signup is available only for Institution and Employer accounts.</p>
+              <h3 className="text-2xl font-bold tracking-tight text-slate-900">Institution Registration</h3>
+              <p className="text-sm text-slate-500">Self-signup is available only for institution accounts.</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4">
               <button
                 type="button"
                 onClick={() => setAndPersistRole('INSTITUTION')}
@@ -639,18 +593,6 @@ export default function AuthPage() {
                 </div>
                 <p className="text-base font-semibold text-slate-900">Institution</p>
                 <p className="mt-1 text-sm text-slate-600">For schools and academic institutions issuing and validating records.</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setAndPersistRole('EMPLOYER')}
-                className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left transition hover:border-slate-400 hover:bg-white"
-              >
-                <div className="mb-3 inline-flex rounded-full bg-slate-900/5 p-2 text-slate-700">
-                  <Icon className="text-lg" name="business_center" />
-                </div>
-                <p className="text-base font-semibold text-slate-900">Employer</p>
-                <p className="mt-1 text-sm text-slate-600">For companies requesting and tracking applicant credential verification.</p>
               </button>
             </div>
           </div>
@@ -742,14 +684,12 @@ export default function AuthPage() {
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-600">
-                      {selectedRole === 'EMPLOYER' ? 'Company Name' : 'Institution Name'}
-                    </label>
+                    <label className="text-sm font-semibold text-slate-600">Institution Name</label>
                     <input
                       required
                       value={organizationName}
                       onChange={event => setOrganizationName(event.target.value)}
-                      placeholder={selectedRole === 'EMPLOYER' ? 'Company Name' : 'Institution Name'}
+                      placeholder="Institution Name"
                       className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
                     />
                   </div>
@@ -766,29 +706,16 @@ export default function AuthPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {selectedRole === 'EMPLOYER' ? (
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-600">Tax ID</label>
-                      <input
-                        required
-                        value={taxId}
-                        onChange={event => setTaxId(event.target.value)}
-                        placeholder="Tax ID"
-                        className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <label className="text-sm font-semibold text-slate-600">Accreditation Number</label>
-                      <input
-                        required
-                        value={accreditationNumber}
-                        onChange={event => setAccreditationNumber(event.target.value)}
-                        placeholder="Accreditation Number"
-                        className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
-                      />
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-600">Accreditation Number</label>
+                    <input
+                      required
+                      value={accreditationNumber}
+                      onChange={event => setAccreditationNumber(event.target.value)}
+                      placeholder="Accreditation Number"
+                      className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
+                    />
+                  </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-600">Phone Number</label>
@@ -803,15 +730,13 @@ export default function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-600">
-                    {selectedRole === 'EMPLOYER' ? 'Company Email' : 'Institution Email'}
-                  </label>
+                  <label className="text-sm font-semibold text-slate-600">Institution Email</label>
                   <input
                     required
                     type="email"
                     value={organizationEmail}
                     onChange={event => setOrganizationEmail(event.target.value)}
-                    placeholder={selectedRole === 'EMPLOYER' ? 'Company Email' : 'Institution Email'}
+                    placeholder="Institution Email"
                     className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none"
                   />
                 </div>
@@ -828,16 +753,7 @@ export default function AuthPage() {
 
                 {authError && <p className="text-sm text-rose-700">{authError}</p>}
                 {authHint && <p className="text-sm text-slate-600">{authHint}</p>}
-
                 <div className="flex flex-col items-center gap-3 border-t border-slate-100 pt-4 sm:flex-row">
-                  <button
-                    type="button"
-                    onClick={() => setAndPersistRole(null)}
-                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 sm:w-auto"
-                  >
-                    <Icon className="text-base" name="arrow_back" />
-                    Change Role
-                  </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}

@@ -39,13 +39,6 @@ router.post(
   '/verify/qr',
   credentialController.verifyCredentialQrPublic.bind(credentialController),
 );
-router.post(
-  '/verify/qr/employer',
-  requireAuth,
-  requireApprovedAccount,
-  requireRoles('EMPLOYER'),
-  credentialController.verifyCredentialQrEmployer.bind(credentialController),
-);
 router.get(
   '/verify/qr/document/:token',
   credentialController.getCredentialDocumentByQrToken.bind(credentialController),

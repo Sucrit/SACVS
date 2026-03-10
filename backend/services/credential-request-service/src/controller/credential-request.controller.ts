@@ -103,9 +103,6 @@ export class CredentialRequestController {
       if (error instanceof Error && error.message === 'STUDENT_ID_REQUIRED') {
         return res.status(400).json({ error: 'Missing required field: studentId' });
       }
-      if (error instanceof Error && error.message === 'EMPLOYER_CONTEXT_MISSING') {
-        return res.status(403).json({ error: 'Employer context is missing for this account.' });
-      }
       if (error instanceof Error && error.message === 'INSTITUTION_CONTEXT_MISSING') {
         return res.status(403).json({ error: 'Institution context is missing for this account.' });
       }

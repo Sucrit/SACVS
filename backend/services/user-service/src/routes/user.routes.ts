@@ -63,7 +63,7 @@ router.get(
   '/audit',
   requireAuth,
   requireApprovedAccount,
-  requireRoles('ADMIN', 'INSTITUTION', 'EMPLOYER'),
+  requireRoles('ADMIN', 'INSTITUTION'),
   userController.listAuditLogs.bind(userController),
 );
 

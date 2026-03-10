@@ -85,7 +85,7 @@ export interface ConsumeQrTokenDto {
 }
 
 export interface QrTokenConsumerContext {
-  consumerType: 'PUBLIC' | 'EMPLOYER';
+  consumerType: 'PUBLIC';
   consumerId?: string | null;
   ipAddress?: string | null;
 }

@@ -54,10 +54,9 @@ const toCredentialRequestResponse = (
   rejectionReason: request.rejectionReason,
   notes: null,
   metadata: {
-    requesterType: request.requesterType,
+    requesterType: request.requesterType === 'STUDENT' ? 'STUDENT' : 'INSTITUTION',
     requesterId: request.requesterId,
     institutionId: request.institutionId,
-    employerId: request.employerId,
   },
   createdAt: request.createdAt.toISOString(),
   updatedAt: request.updatedAt.toISOString(),
@@ -372,7 +371,7 @@ export class CredentialRequestService {
   }
 
   private ensureCanCreateForRole(actor: UserContext): void {
-    if (!['STUDENT', 'EMPLOYER', 'INSTITUTION'].includes(actor.role)) {
+    if (!['STUDENT', 'INSTITUTION'].includes(actor.role)) {
       throw new Error('FORBIDDEN_ROLE');
     }
   }
@@ -401,17 +400,6 @@ export class CredentialRequestService {
           {
             OR: [{ studentId: actor.id }, { requesterId: actor.id }],
           },
-        ],
-      };
-    }
-
-    if (actor.role === Role.EMPLOYER) {
-      return {
-        AND: [
-          where,
-          actor.employerId
-            ? { OR: [{ employerId: actor.employerId }, { requesterId: actor.id }] }
-            : { requesterId: actor.id },
         ],
       };
     }
@@ -477,22 +465,11 @@ export class CredentialRequestService {
     let studentId = parseOptionalString(data.studentId);
     let requesterType: RequesterType = RequesterType.STUDENT;
     let institutionId: string | null = null;
-    let employerId: string | null = null;
 
     if (actor.role === Role.STUDENT) {
       studentId = actor.id;
       requesterType = RequesterType.STUDENT;
       institutionId = actor.institutionId ?? null;
-    } else if (actor.role === Role.EMPLOYER) {
-      if (!studentId) {
-        throw new Error('STUDENT_ID_REQUIRED');
-      }
-      requesterType = RequesterType.EMPLOYER;
-      employerId = actor.employerId ?? parseOptionalString(data.employerId);
-      institutionId = parseOptionalString(data.institutionId);
-      if (!employerId) {
-        throw new Error('EMPLOYER_CONTEXT_MISSING');
-      }
     } else if (this.isInstitutionScopedRole(actor.role)) {
       if (!studentId) {
         throw new Error('STUDENT_ID_REQUIRED');
@@ -520,7 +497,6 @@ export class CredentialRequestService {
         status: CredentialRequestStatus.PENDING,
         requesterType,
         requesterId: actor.id,
-        employerId,
         institutionId,
       });
 
@@ -540,7 +516,6 @@ export class CredentialRequestService {
           requesterType: created.requesterType,
           studentId: created.studentId,
           institutionId: created.institutionId,
-          employerId: created.employerId,
         },
       });
       void realtimeClient.publishMany([
@@ -550,15 +525,14 @@ export class CredentialRequestService {
           entityId: created.id,
           scope: {
             userIds: [created.studentId],
-            roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'],
+            roles: ['ADMIN', 'INSTITUTION'],
             institutionIds: created.institutionId ? [created.institutionId] : [],
-            employerIds: created.employerId ? [created.employerId] : [],
           },
         },
         {
           domain: 'audit',
           action: 'log.created',
-          scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+          scope: { roles: ['ADMIN', 'INSTITUTION'] },
         },
       ]);
 
@@ -758,7 +732,6 @@ export class CredentialRequestService {
         nextStatus: updated.status,
         studentId: updated.studentId,
         institutionId: updated.institutionId,
-        employerId: updated.employerId,
       },
     });
     void realtimeClient.publishMany([
@@ -768,15 +741,14 @@ export class CredentialRequestService {
         entityId: updated.id,
         scope: {
           userIds: [updated.studentId],
-          roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'],
+          roles: ['ADMIN', 'INSTITUTION'],
           institutionIds: updated.institutionId ? [updated.institutionId] : [],
-          employerIds: updated.employerId ? [updated.employerId] : [],
         },
       },
       {
         domain: 'audit',
         action: 'log.created',
-        scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
       },
     ]);
 
@@ -863,15 +835,14 @@ export class CredentialRequestService {
         entityId: updated.id,
         scope: {
           userIds: [updated.studentId],
-          roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'],
+          roles: ['ADMIN', 'INSTITUTION'],
           institutionIds: updated.institutionId ? [updated.institutionId] : [],
-          employerIds: updated.employerId ? [updated.employerId] : [],
         },
       },
       {
         domain: 'audit',
         action: 'log.created',
-        scope: { roles: ['ADMIN', 'INSTITUTION', 'EMPLOYER'] },
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
       },
     ]);
 

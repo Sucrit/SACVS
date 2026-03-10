@@ -23,7 +23,7 @@ router.post(
   '/requests',
   requireAuth,
   requireApprovedAccount,
-  requireRoles('STUDENT', 'EMPLOYER', 'INSTITUTION'),
+  requireRoles('STUDENT', 'INSTITUTION'),
   credentialRequestController.createCredentialRequest.bind(credentialRequestController),
 );
 

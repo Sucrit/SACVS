@@ -347,7 +347,7 @@ export class CredentialRepository {
     tokenHash: string,
     now: Date,
     consumer: {
-      consumerType: 'PUBLIC' | 'EMPLOYER';
+      consumerType: 'PUBLIC';
       consumerId?: string | null;
       ipAddress?: string | null;
     },

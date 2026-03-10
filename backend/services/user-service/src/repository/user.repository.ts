@@ -25,18 +25,10 @@ const prisma = new PrismaClient({ adapter: prismaAdapter });
 
 const userInclude = {
   profile: true,
-  employer: true,
   institution: true,
 };
 
 const adminUserInclude = {
-  employer: {
-    select: {
-      id: true,
-      companyName: true,
-      email: true,
-    },
-  },
   institution: {
     select: {
       id: true,
@@ -140,8 +132,6 @@ const toPrismaRole = (role?: UserRole): Role => {
   switch (role) {
     case 'ADMIN':
       return Role.ADMIN;
-    case 'EMPLOYER':
-      return Role.EMPLOYER;
     case 'INSTITUTION':
       return Role.INSTITUTION;
     case 'STUDENT':
@@ -209,7 +199,6 @@ export class UserRepository {
     role: Role;
     status: Status;
     institutionId: string | null;
-    employerId: string | null;
   } | null> {
     return prisma.user.findUnique({
       where: { id: userId },
@@ -218,7 +207,6 @@ export class UserRepository {
         role: true,
         status: true,
         institutionId: true,
-        employerId: true,
       },
     });
   }
@@ -345,7 +333,6 @@ export class UserRepository {
         role: Role.STUDENT,
         status,
         institutionId,
-        employerId: null,
         approvedById,
         approvedAt,
         profile: {
@@ -360,7 +347,6 @@ export class UserRepository {
         role: Role.STUDENT,
         status,
         institutionId,
-        employerId: null,
         approvedById,
         approvedAt,
         profile: {
@@ -428,14 +414,10 @@ export class UserRepository {
       firstName: string;
       middleName?: string | null;
       lastName: string;
-      role: 'EMPLOYER' | 'INSTITUTION';
+      role: 'INSTITUTION';
       registrationNumber: string;
       organizationEmail: string;
       phoneNumber: string;
-      employer?: {
-        companyName: string;
-        taxId: string;
-      };
       institution?: {
         institutionName: string;
         accreditationNumber: string;
@@ -451,58 +433,6 @@ export class UserRepository {
     const normalizedOrgEmail = normalizeEmail(data.organizationEmail);
 
     return prisma.$transaction(async tx => {
-      if (data.role === 'EMPLOYER') {
-        if (!data.employer) {
-          throw new Error('EMPLOYER_PAYLOAD_MISSING');
-        }
-
-        const employer = await tx.employer.upsert({
-          where: { email: normalizedOrgEmail },
-          create: {
-            companyName: data.employer.companyName,
-            registrationNumber: data.registrationNumber,
-            taxId: data.employer.taxId,
-            email: normalizedOrgEmail,
-            phoneNumber: data.phoneNumber,
-          },
-          update: {
-            companyName: data.employer.companyName,
-            registrationNumber: data.registrationNumber,
-            taxId: data.employer.taxId,
-            email: normalizedOrgEmail,
-            phoneNumber: data.phoneNumber,
-          },
-        });
-
-        return tx.user.upsert({
-          where: { id: clerkUserId },
-          create: {
-            id: clerkUserId,
-            email: normalizedUserEmail,
-            firstName: data.firstName,
-            middleName: normalizeOptionalString(data.middleName),
-            lastName: data.lastName,
-            role: Role.EMPLOYER,
-            status: Status.PENDING,
-            employerId: employer.id,
-            institutionId: null,
-          },
-          update: {
-            email: normalizedUserEmail,
-            firstName: data.firstName,
-            middleName: normalizeOptionalString(data.middleName),
-            lastName: data.lastName,
-            role: Role.EMPLOYER,
-            status: Status.PENDING,
-            approvedById: null,
-            approvedAt: null,
-            employerId: employer.id,
-            institutionId: null,
-          },
-          include: userInclude,
-        });
-      }
-
       if (!data.institution) {
         throw new Error('INSTITUTION_PAYLOAD_MISSING');
       }
@@ -535,7 +465,6 @@ export class UserRepository {
           lastName: data.lastName,
           role: Role.INSTITUTION,
           status: Status.PENDING,
-          employerId: null,
           institutionId: institution.id,
         },
         update: {
@@ -547,7 +476,6 @@ export class UserRepository {
           status: Status.PENDING,
           approvedById: null,
           approvedAt: null,
-          employerId: null,
           institutionId: institution.id,
         },
         include: userInclude,
@@ -777,7 +705,6 @@ export class UserRepository {
           role: Role.STUDENT,
           status,
           institutionId,
-          employerId: null,
           approvedById: status === Status.APPROVED ? actorId ?? null : null,
           approvedAt,
           profile: {
@@ -1073,7 +1000,6 @@ export class UserRepository {
     id: string;
     role: Role;
     institutionId: string | null;
-    employerId: string | null;
   }): Promise<Array<{
     id: string;
     action: AuditAction;
@@ -1135,19 +1061,6 @@ export class UserRepository {
         where: {
           actor: {
             institutionId: actor.institutionId,
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 250,
-        select: baseSelect,
-      });
-    }
-
-    if (actor.role === Role.EMPLOYER && actor.employerId) {
-      return prisma.auditLog.findMany({
-        where: {
-          actor: {
-            employerId: actor.employerId,
           },
         },
         orderBy: { createdAt: 'desc' },

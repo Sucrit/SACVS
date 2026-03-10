@@ -35,7 +35,6 @@ export class CredentialController {
       userId: auth?.sub ?? null,
       role: auth?.role,
       institutionId: auth?.institutionId,
-      employerId: auth?.employerId,
     };
   }
 
@@ -410,7 +409,6 @@ export class CredentialController {
           userId: actor.userId,
           role: actor.role,
           institutionId: actor.institutionId,
-          employerId: actor.employerId,
         },
         query,
       );
@@ -457,7 +455,6 @@ export class CredentialController {
           userId: actor.userId,
           role: actor.role,
           institutionId: actor.institutionId,
-          employerId: actor.employerId,
         },
         payload as CreateCredentialDto,
       );
@@ -485,7 +482,6 @@ export class CredentialController {
           userId: actor.userId,
           role: actor.role,
           institutionId: actor.institutionId,
-          employerId: actor.employerId,
         },
         credentialId,
       );
@@ -524,7 +520,6 @@ export class CredentialController {
           userId: actor.userId,
           role: actor.role,
           institutionId: actor.institutionId,
-          employerId: actor.employerId,
         },
         credentialId,
         payload as UpdateCredentialStatusDto,
@@ -591,7 +586,6 @@ export class CredentialController {
       userId: actor.userId,
       role: actor.role,
       institutionId: actor.institutionId,
-      employerId: actor.employerId,
     };
 
     try {
@@ -674,7 +668,6 @@ export class CredentialController {
       userId: actor.userId,
       role: actor.role,
       institutionId: actor.institutionId,
-      employerId: actor.employerId,
     };
 
     const payload = {
@@ -728,7 +721,6 @@ export class CredentialController {
           userId: actor.userId,
           role: actor.role,
           institutionId: actor.institutionId,
-          employerId: actor.employerId,
         },
         credentialId,
         options,
@@ -757,29 +749,6 @@ export class CredentialController {
       if (mapped) return mapped;
 
       console.error('Error verifying public one-time credential QR token:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-  }
-
-  async verifyCredentialQrEmployer(req: Request, res: Response): Promise<Response> {
-    const actor = this.getActor(req);
-    if (!actor.userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    try {
-      const payload = this.parseConsumeQrTokenPayload(req.body);
-      const result: ConsumeQrTokenResponseDto = await credentialService.consumeQrToken(payload.token, {
-        consumerType: 'EMPLOYER',
-        consumerId: actor.userId,
-        ipAddress: req.ip || req.socket.remoteAddress || null,
-      });
-      return res.status(200).json(result);
-    } catch (error) {
-      const mapped = this.mapError(error, res);
-      if (mapped) return mapped;
-
-      console.error('Error verifying employer one-time credential QR token:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }

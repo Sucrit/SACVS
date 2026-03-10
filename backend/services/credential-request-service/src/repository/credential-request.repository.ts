@@ -29,7 +29,6 @@ export interface UserContext {
   lastName: string;
   email: string;
   institutionId: string | null;
-  employerId: string | null;
 }
 
 export interface CredentialRequestScope {
@@ -39,7 +38,6 @@ export interface CredentialRequestScope {
   requesterId: string;
   status: CredentialRequestStatus;
   institutionId: string | null;
-  employerId: string | null;
   deliveryMethod: DeliveryMethod;
   processedAt: Date | null;
   type: string;
@@ -125,7 +123,6 @@ export class CredentialRequestRepository {
         lastName: true,
         email: true,
         institutionId: true,
-        employerId: true,
       },
     });
   }
@@ -180,7 +177,6 @@ export class CredentialRequestRepository {
         requesterId: true,
         status: true,
         institutionId: true,
-        employerId: true,
         deliveryMethod: true,
         processedAt: true,
         type: true,
@@ -248,7 +244,6 @@ export class CredentialRequestRepository {
           requesterId: true,
           status: true,
           institutionId: true,
-          employerId: true,
           deliveryMethod: true,
           processedAt: true,
           type: true,
