@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
-import { RiskBand, RiskReviewStatus } from '../../../../db/node_modules/@prisma/client';
+import {
+  RiskBand,
+  RiskReviewReasonCode,
+  RiskReviewStatus,
+} from '../../../../db/node_modules/@prisma/client';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { RiskRepository } from '../repository/risk.repository';
 import { shadowRiskWorker } from '../runtime/shadow-risk.worker';
@@ -8,6 +12,7 @@ const repository = new RiskRepository();
 
 const VALID_RISK_BANDS = new Set<RiskBand>(Object.values(RiskBand));
 const VALID_REVIEW_STATUSES = new Set<RiskReviewStatus>(Object.values(RiskReviewStatus));
+const VALID_REVIEW_REASON_CODES = new Set<RiskReviewReasonCode>(Object.values(RiskReviewReasonCode));
 
 function parsePositiveInt(value: unknown, fallback: number): number {
   const parsed = Number(value);
@@ -58,6 +63,8 @@ function serializeRiskEvent(item: Awaited<ReturnType<RiskRepository['getRiskEven
     reviewStatus: item.reviewStatus,
     reviewedById: item.reviewedById,
     reviewedAt: item.reviewedAt?.toISOString() ?? null,
+    reviewReasonCode: item.reviewReasonCode,
+    reviewReasonDetail: item.reviewReasonDetail,
     reviewNotes: item.reviewNotes,
     createdAt: item.createdAt.toISOString(),
     actorRole: item.featuresSnapshot.actorRole,
@@ -152,6 +159,9 @@ export class RiskController {
       'reviewStatus',
       'reviewedById',
       'reviewedAt',
+      'reviewReasonCode',
+      'reviewReasonDetail',
+      'reviewNotes',
       'modelVersion',
       'targetType',
       'targetId',
@@ -186,6 +196,9 @@ export class RiskController {
           row.reviewStatus,
           row.reviewedById,
           row.reviewedAt?.toISOString() ?? '',
+          row.reviewReasonCode,
+          row.reviewReasonDetail,
+          row.reviewNotes,
           row.modelVersion,
           row.featuresSnapshot.targetType,
           row.featuresSnapshot.targetId,
@@ -217,6 +230,12 @@ export class RiskController {
       typeof req.body?.reviewNotes === 'string' && req.body.reviewNotes.trim().length > 0
         ? req.body.reviewNotes.trim()
         : null;
+    const reviewReasonCode =
+      typeof req.body?.reviewReasonCode === 'string' ? req.body.reviewReasonCode : null;
+    const reviewReasonDetail =
+      typeof req.body?.reviewReasonDetail === 'string' && req.body.reviewReasonDetail.trim().length > 0
+        ? req.body.reviewReasonDetail.trim()
+        : null;
 
     if (!auth?.sub) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -230,10 +249,16 @@ export class RiskController {
       return res.status(400).json({ error: 'Invalid reviewStatus value.' });
     }
 
+    if (reviewReasonCode && !VALID_REVIEW_REASON_CODES.has(reviewReasonCode as RiskReviewReasonCode)) {
+      return res.status(400).json({ error: 'Invalid reviewReasonCode value.' });
+    }
+
     const updated = await repository.updateRiskReviewStatus({
       id,
       reviewStatus: reviewStatus as RiskReviewStatus,
       reviewedById: auth.sub,
+      reviewReasonCode: (reviewReasonCode as RiskReviewReasonCode | null) ?? null,
+      reviewReasonDetail,
       reviewNotes,
     });
 
@@ -242,6 +267,8 @@ export class RiskController {
       reviewStatus: updated.reviewStatus,
       reviewedById: updated.reviewedById,
       reviewedAt: updated.reviewedAt?.toISOString() ?? null,
+      reviewReasonCode: updated.reviewReasonCode,
+      reviewReasonDetail: updated.reviewReasonDetail,
       reviewNotes: updated.reviewNotes,
     });
   }

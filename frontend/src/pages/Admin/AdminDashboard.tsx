@@ -16,7 +16,14 @@ import {
   Users,
 } from 'lucide-react';
 import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../services/audit.service';
-import { RiskBand, RiskEventRecord, RiskReviewStatus, RiskService, RiskWorkerStatus } from '../../services/risk.service';
+import {
+  RiskBand,
+  RiskEventRecord,
+  RiskReviewReasonCode,
+  RiskReviewStatus,
+  RiskService,
+  RiskWorkerStatus,
+} from '../../services/risk.service';
 import { User, UserRole, UserService, UserStatus } from '../../services/user.service';
 import { useStepUp } from '../../hooks/useStepUp';
 import { realtimeService } from '../../services/realtime.service';
@@ -469,10 +476,21 @@ export default function AdminDashboard() {
   }, [requestStepUpToken, showToast]);
 
   const handleRiskReviewUpdate = useCallback(
-    async (id: string, reviewStatus: RiskReviewStatus, reviewNotes?: string | null) => {
+    async (
+      id: string,
+      reviewStatus: RiskReviewStatus,
+      reviewReasonCode?: RiskReviewReasonCode | null,
+      reviewReasonDetail?: string | null,
+      reviewNotes?: string | null,
+    ) => {
       setReviewingRiskEventId(id);
       try {
-        const updated = await RiskService.updateReviewStatus(id, { reviewStatus, reviewNotes });
+        const updated = await RiskService.updateReviewStatus(id, {
+          reviewStatus,
+          reviewReasonCode,
+          reviewReasonDetail,
+          reviewNotes,
+        });
         setRiskEvents(previous =>
           previous.map(event =>
             event.id === id
@@ -481,6 +499,8 @@ export default function AdminDashboard() {
                   reviewStatus: updated.reviewStatus,
                   reviewedById: updated.reviewedById,
                   reviewedAt: updated.reviewedAt,
+                  reviewReasonCode: updated.reviewReasonCode,
+                  reviewReasonDetail: updated.reviewReasonDetail,
                   reviewNotes: updated.reviewNotes,
                 }
               : event,
@@ -493,6 +513,8 @@ export default function AdminDashboard() {
                 reviewStatus: updated.reviewStatus,
                 reviewedById: updated.reviewedById,
                 reviewedAt: updated.reviewedAt,
+                reviewReasonCode: updated.reviewReasonCode,
+                reviewReasonDetail: updated.reviewReasonDetail,
                 reviewNotes: updated.reviewNotes,
               }
             : previous,
@@ -514,7 +536,7 @@ export default function AdminDashboard() {
         showToast({
           variant: 'success',
           message:
-            reviewNotes !== undefined
+            reviewNotes !== undefined || reviewReasonCode !== undefined || reviewReasonDetail !== undefined
               ? `Risk event review saved as ${reviewStatus}.`
               : `Risk event marked as ${reviewStatus}.`,
         });
@@ -1006,6 +1028,25 @@ export default function AdminDashboard() {
         detail: riskWorkerStatus.lastRunStartedAt
           ? `Current pass started ${formatDateTime(riskWorkerStatus.lastRunStartedAt)}`
           : 'A scoring pass is in progress.',
+      };
+    }
+
+    const staleThresholdMs = riskWorkerStatus.intervalMs * 2;
+    const lastSuccessfulMs = riskWorkerStatus.lastSuccessfulRunAt
+      ? new Date(riskWorkerStatus.lastSuccessfulRunAt).getTime()
+      : Number.NaN;
+    const isStale =
+      Number.isNaN(lastSuccessfulMs) ||
+      Date.now() - lastSuccessfulMs > staleThresholdMs;
+
+    if (isStale) {
+      return {
+        titleClass: 'text-amber-700',
+        dotClass: 'bg-amber-500',
+        label: 'Worker degraded',
+        detail: riskWorkerStatus.lastSuccessfulRunAt
+          ? `No successful run within ${Math.round(staleThresholdMs / 60000)} minute(s). Last success ${formatDateTime(riskWorkerStatus.lastSuccessfulRunAt)}`
+          : 'No successful shadow scoring pass has completed yet.',
       };
     }
 

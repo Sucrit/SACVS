@@ -73,6 +73,14 @@ export const ENV = {
     1,
     parseNumber(process.env.RISK_SHADOW_BATCH_LIMIT, 500),
   ),
+  GATEWAY_TELEMETRY_RETENTION_DAYS: Math.max(
+    1,
+    parseNumber(process.env.GATEWAY_TELEMETRY_RETENTION_DAYS, 30),
+  ),
+  GATEWAY_TELEMETRY_CLEANUP_INTERVAL_MS: Math.max(
+    60_000,
+    parseNumber(process.env.GATEWAY_TELEMETRY_CLEANUP_INTERVAL_MS, 6 * 60 * 60_000),
+  ),
   RISK_SUPERVISED_WEIGHT: parseNumber(process.env.RISK_SUPERVISED_WEIGHT, 0.75),
   RISK_ANOMALY_WEIGHT: parseNumber(process.env.RISK_ANOMALY_WEIGHT, 0.25),
   RISK_BAND_HIGH_THRESHOLD: parseNumber(process.env.RISK_BAND_HIGH_THRESHOLD, 70),

@@ -3,6 +3,24 @@ import { api } from '../api/client';
 export type RiskBand = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type RiskReviewStatus = 'PENDING_REVIEW' | 'CONFIRMED_ABUSE' | 'BENIGN' | 'UNCERTAIN';
 export type RiskActorRole = 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION' | null;
+export type RiskReviewReasonCode =
+  | 'OTP_BRUTE_FORCE'
+  | 'TOKEN_ABUSE'
+  | 'RATE_LIMIT_ABUSE'
+  | 'CROSS_SCOPE_ACCESS'
+  | 'PRIVILEGE_MISUSE'
+  | 'AUTOMATED_PROBING'
+  | 'SUSPICIOUS_BULK_ACTIVITY'
+  | 'OTHER_ABUSE'
+  | 'USER_MISTAKE'
+  | 'TEST_ACTIVITY'
+  | 'EXPECTED_ADMIN_ACTION'
+  | 'EXPECTED_INSTITUTION_FLOW'
+  | 'FALSE_POSITIVE_PATTERN'
+  | 'OTHER_BENIGN'
+  | 'NEEDS_MORE_CONTEXT'
+  | 'INSUFFICIENT_EVIDENCE'
+  | 'MIXED_SIGNALS';
 
 export interface RiskEventRecord {
   id: string;
@@ -18,6 +36,8 @@ export interface RiskEventRecord {
   reviewStatus: RiskReviewStatus;
   reviewedById: string | null;
   reviewedAt: string | null;
+  reviewReasonCode: RiskReviewReasonCode | null;
+  reviewReasonDetail: string | null;
   reviewNotes: string | null;
   createdAt: string;
   actorRole: RiskActorRole;
@@ -87,13 +107,20 @@ export const RiskService = {
 
   updateReviewStatus: async (
     id: string,
-    payload: { reviewStatus: RiskReviewStatus; reviewNotes?: string | null },
+    payload: {
+      reviewStatus: RiskReviewStatus;
+      reviewReasonCode?: RiskReviewReasonCode | null;
+      reviewReasonDetail?: string | null;
+      reviewNotes?: string | null;
+    },
   ) => {
     const response = await api.put<{
       id: string;
       reviewStatus: RiskReviewStatus;
       reviewedById: string | null;
       reviewedAt: string | null;
+      reviewReasonCode: RiskReviewReasonCode | null;
+      reviewReasonDetail: string | null;
       reviewNotes: string | null;
     }>(`/security/risk-events/${id}/review`, payload);
     return response.data;

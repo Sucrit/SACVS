@@ -1,4 +1,4 @@
-import { Role, AuditAction } from '../../../../db/node_modules/@prisma/client';
+import { Role, AuditAction, RiskReviewReasonCode } from '../../../../db/node_modules/@prisma/client';
 
 export type NumericFeatureMap = Record<string, number>;
 
@@ -18,6 +18,9 @@ export type FeatureContext = {
   actorEvents15m: SourceAuditEvent[];
   actorEvents5m: SourceAuditEvent[];
   actorEvents1m: SourceAuditEvent[];
+  telemetryEvents15m: GatewayTelemetryEvent[];
+  telemetryEvents5m: GatewayTelemetryEvent[];
+  telemetryEvents1m: GatewayTelemetryEvent[];
   actorStepUpChallengeCount15m: number;
   actorStepUpFailedCount15m: number;
   actorStepUpLockedCount24h: number;
@@ -25,6 +28,7 @@ export type FeatureContext = {
   ipHash: string | null;
   userAgentHash: string | null;
   uniqueTargets15m: number;
+  uniqueRouteKeys15m: number;
 };
 
 export type FeatureVectorResult = {
@@ -39,4 +43,32 @@ export type RiskScoreResult = {
   topSignals: string[];
   modelVersion: string;
   inferenceTs: string;
+};
+
+export type GatewayTelemetryEvent = {
+  id: string;
+  eventId: string;
+  correlationId: string | null;
+  requestTs: Date;
+  routeKey: string;
+  routeClass: string;
+  method: string;
+  statusCode: number;
+  durationMs: number;
+  rateLimitOutcome: string;
+  actorId: string | null;
+  actorRole: Role | null;
+  actorIdentityHash: string | null;
+  ipHash: string | null;
+  userAgentHash: string | null;
+  is401: boolean;
+  is403: boolean;
+  is429: boolean;
+  is5xx: boolean;
+  createdAt: Date;
+};
+
+export type ReviewedLabel = {
+  status: 'CONFIRMED_ABUSE' | 'BENIGN';
+  reasonCode: RiskReviewReasonCode | null;
 };

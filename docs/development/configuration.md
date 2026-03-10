@@ -16,6 +16,10 @@
 - `REALTIME_GATEWAY_URL`: URL used by services to publish websocket updates back to the gateway
 - Recommendation: set explicitly to your gateway base URL in every service environment
 
+### Gateway security telemetry
+- `GATEWAY_TELEMETRY_ENABLED`: enables persistence of security-focused gateway request telemetry for ML shadow scoring support
+- Recommendation: keep enabled in environments where the ML shadow layer is active
+
 ## User Service
 ### Required or security-sensitive
 - `DATABASE_URL`
@@ -78,6 +82,26 @@
 ### Important runtime variables
 - Clerk publishable key and auth-related browser configuration
 - API base URL pointing to the gateway
+
+## Security Service
+### Required or security-sensitive
+- `DATABASE_URL`
+- Clerk backend auth variables required for admin-protected `/security` APIs
+
+### Shadow scoring runtime
+- `RISK_SHADOW_AUTORUN`
+- `RISK_SHADOW_INTERVAL_MS`
+- `RISK_SHADOW_OVERLAP_MINUTES`
+- `RISK_SHADOW_BATCH_LIMIT`
+
+### Telemetry retention
+- `GATEWAY_TELEMETRY_RETENTION_DAYS`
+- `GATEWAY_TELEMETRY_CLEANUP_INTERVAL_MS`
+
+### Notes
+- raw gateway telemetry is retained for 30 days by default
+- telemetry is security-focused only and should not ingest generic page loads or low-risk CRUD by default
+- Clerk-native sign-in failures remain out of scope unless you explicitly mirror them into internal audit or telemetry storage
 
 ## Security Guidance
 - OTP/session peppers, QR peppers, and HMAC secrets must be distinct values.

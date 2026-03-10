@@ -3,7 +3,7 @@ import { AuditAction, RiskReviewStatus } from '../../../../db/node_modules/@pris
 import { ENV } from '../config/env';
 import { buildFeatureVector } from '../feature/feature-builder';
 import { RiskRepository } from '../repository/risk.repository';
-import { SourceAuditEvent } from '../types/risk';
+import { GatewayTelemetryEvent, SourceAuditEvent } from '../types/risk';
 import { hashNullable } from '../utils/hash';
 import { csvEscape, parseArgs, parseMetadata, pickString, resolveArtifactPath } from './helpers';
 
@@ -24,6 +24,21 @@ function sliceFutureWindow(events: SourceAuditEvent[], start: Date, end: Date): 
   return events.filter((event) => event.createdAt > start && event.createdAt <= end);
 }
 
+function sliceTelemetryWindow(events: GatewayTelemetryEvent[], start: Date, end: Date): GatewayTelemetryEvent[] {
+  return events.filter((event) => event.requestTs >= start && event.requestTs < end);
+}
+
+function appendTelemetryIndex(
+  map: Map<string, GatewayTelemetryEvent[]>,
+  key: string | null | undefined,
+  event: GatewayTelemetryEvent,
+) {
+  if (!key) return;
+  const bucket = map.get(key) ?? [];
+  bucket.push(event);
+  map.set(key, bucket);
+}
+
 function toActionName(action: AuditAction): string {
   return String(action);
 }
@@ -40,15 +55,29 @@ async function main(): Promise<void> {
   const since = new Date(Date.now() - lookbackHours * 60 * 60_000);
 
   const repository = new RiskRepository();
-  const events = await repository.listAuditLogsSince(since);
-  const reviewedLabels = await repository.listReviewedLabelsSince(since);
+  const [events, telemetryEvents, reviewedLabels] = await Promise.all([
+    repository.listAuditLogsSince(since),
+    repository.listGatewayTelemetrySince(since),
+    repository.listReviewedLabelsSince(since),
+  ]);
   const actorMap = new Map<string, SourceAuditEvent[]>();
+  const telemetryByCorrelationId = new Map<string, GatewayTelemetryEvent[]>();
+  const telemetryByActorId = new Map<string, GatewayTelemetryEvent[]>();
+  const telemetryByIpHash = new Map<string, GatewayTelemetryEvent[]>();
+  const telemetryByUserAgentHash = new Map<string, GatewayTelemetryEvent[]>();
 
   for (const event of events) {
     if (!event.actorId) continue;
     const bucket = actorMap.get(event.actorId) ?? [];
     bucket.push(event);
     actorMap.set(event.actorId, bucket);
+  }
+
+  for (const event of telemetryEvents) {
+    appendTelemetryIndex(telemetryByCorrelationId, event.correlationId, event);
+    appendTelemetryIndex(telemetryByActorId, event.actorId, event);
+    appendTelemetryIndex(telemetryByIpHash, event.ipHash, event);
+    appendTelemetryIndex(telemetryByUserAgentHash, event.userAgentHash, event);
   }
 
   const rows: string[] = [];
@@ -78,9 +107,22 @@ async function main(): Promise<void> {
     'is_first_seen_actor',
     'hour_of_day',
     'day_of_week',
+    'telemetry_velocity_1m',
+    'telemetry_velocity_5m',
+    'telemetry_velocity_15m',
+    'telemetry_401_15m',
+    'telemetry_403_15m',
+    'telemetry_429_15m',
+    'telemetry_5xx_15m',
+    'telemetry_failure_ratio_15m',
+    'telemetry_rate_limit_hits_15m',
+    'telemetry_unique_routes_15m',
+    'telemetry_public_verify_hits_15m',
+    'telemetry_avg_duration_15m',
     'seedSignals',
     'labelSource',
     'reviewStatus',
+    'reviewReasonCode',
     'weakLabel',
   ];
 
@@ -107,6 +149,28 @@ async function main(): Promise<void> {
     const metadata = parseMetadata(event.metadata);
     const ipRaw = pickString(metadata, ['ip', 'usedByIp', 'requestIp']);
     const userAgentRaw = pickString(metadata, ['userAgent']);
+    const correlationId = pickString(metadata, ['correlationId', 'x-correlation-id']);
+    const ipHash = hashNullable(ipRaw);
+    const userAgentHash = hashNullable(userAgentRaw);
+    const telemetryCandidateMap = new Map<string, GatewayTelemetryEvent>();
+    const candidateBuckets = [
+      correlationId ? telemetryByCorrelationId.get(correlationId) ?? [] : [],
+      event.actorId ? telemetryByActorId.get(event.actorId) ?? [] : [],
+      ipHash ? telemetryByIpHash.get(ipHash) ?? [] : [],
+      userAgentHash ? telemetryByUserAgentHash.get(userAgentHash) ?? [] : [],
+    ];
+
+    for (const bucket of candidateBuckets) {
+      for (const telemetryEvent of bucket) {
+        telemetryCandidateMap.set(telemetryEvent.eventId, telemetryEvent);
+      }
+    }
+    const telemetryActorEvents = Array.from(telemetryCandidateMap.values()).sort(
+      (left, right) => left.requestTs.getTime() - right.requestTs.getTime(),
+    );
+    const telemetryEvents1m = sliceTelemetryWindow(telemetryActorEvents, from1m, event.createdAt);
+    const telemetryEvents5m = sliceTelemetryWindow(telemetryActorEvents, from5m, event.createdAt);
+    const telemetryEvents15m = sliceTelemetryWindow(telemetryActorEvents, from15m, event.createdAt);
 
     const vector = buildFeatureVector({
       event,
@@ -117,9 +181,13 @@ async function main(): Promise<void> {
       actorStepUpFailedCount15m: stepUpStats.failedCount15m,
       actorStepUpLockedCount24h: stepUpStats.lockedCount24h,
       actorFirstSeenAt,
-      ipHash: hashNullable(ipRaw),
-      userAgentHash: hashNullable(userAgentRaw),
+      ipHash,
+      userAgentHash,
       uniqueTargets15m,
+      telemetryEvents1m,
+      telemetryEvents5m,
+      telemetryEvents15m,
+      uniqueRouteKeys15m: new Set(telemetryEvents15m.map((item) => item.routeKey).filter(Boolean)).size,
     });
 
     const futurePositiveCount15m = actorEventsFuture15m.filter((item) =>
@@ -129,16 +197,16 @@ async function main(): Promise<void> {
     if (futurePositiveCount15m > 0) {
       seedSignals.push('future_security_followup_15m');
     }
-    const reviewedStatus = reviewedLabels.get(event.id) ?? null;
+    const reviewedLabel = reviewedLabels.get(event.id) ?? null;
 
     let weakLabel = vector.weakLabel === 1 || futurePositiveCount15m > 0 ? 1 : 0;
     let labelSource = futurePositiveCount15m > 0 ? 'future_followup' : 'weak_seed';
 
-    if (reviewedStatus === RiskReviewStatus.CONFIRMED_ABUSE) {
+    if (reviewedLabel?.status === RiskReviewStatus.CONFIRMED_ABUSE) {
       weakLabel = 1;
       labelSource = 'analyst_review';
       seedSignals.push('analyst_confirmed_abuse');
-    } else if (reviewedStatus === RiskReviewStatus.BENIGN) {
+    } else if (reviewedLabel?.status === RiskReviewStatus.BENIGN) {
       weakLabel = 0;
       labelSource = 'analyst_review';
       seedSignals.push('analyst_benign');
@@ -152,8 +220,8 @@ async function main(): Promise<void> {
       event.actorRole ?? '',
       event.targetType ?? '',
       event.targetId ?? '',
-      hashNullable(ipRaw) ?? '',
-      hashNullable(userAgentRaw) ?? '',
+      ipHash ?? '',
+      userAgentHash ?? '',
       vector.features.velocity_1m,
       vector.features.velocity_5m,
       vector.features.velocity_15m,
@@ -170,9 +238,22 @@ async function main(): Promise<void> {
       vector.features.is_first_seen_actor,
       vector.features.hour_of_day,
       vector.features.day_of_week,
+      vector.features.telemetry_velocity_1m,
+      vector.features.telemetry_velocity_5m,
+      vector.features.telemetry_velocity_15m,
+      vector.features.telemetry_401_15m,
+      vector.features.telemetry_403_15m,
+      vector.features.telemetry_429_15m,
+      vector.features.telemetry_5xx_15m,
+      vector.features.telemetry_failure_ratio_15m,
+      vector.features.telemetry_rate_limit_hits_15m,
+      vector.features.telemetry_unique_routes_15m,
+      vector.features.telemetry_public_verify_hits_15m,
+      vector.features.telemetry_avg_duration_15m,
       seedSignals.join('|'),
       labelSource,
-      reviewedStatus ?? '',
+      reviewedLabel?.status ?? '',
+      reviewedLabel?.reasonCode ?? '',
       weakLabel,
     ]
       .map((value) => csvEscape(value))

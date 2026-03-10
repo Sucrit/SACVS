@@ -2,7 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
-import { RiskEventRecord, RiskReviewStatus } from '../../../services/risk.service';
+import {
+  RiskEventRecord,
+  RiskReviewReasonCode,
+  RiskReviewStatus,
+} from '../../../services/risk.service';
 
 type Props = {
   isOpen: boolean;
@@ -10,14 +14,49 @@ type Props = {
   isLoading: boolean;
   isSavingReview: boolean;
   onClose: () => void;
-  onSaveReview: (id: string, reviewStatus: RiskReviewStatus, reviewNotes: string | null) => Promise<void> | void;
+  onSaveReview: (
+    id: string,
+    reviewStatus: RiskReviewStatus,
+    reviewReasonCode: RiskReviewReasonCode | null,
+    reviewReasonDetail: string | null,
+    reviewNotes: string | null,
+  ) => Promise<void> | void;
 };
 
-const REVIEW_ACTIONS: Array<{ status: RiskReviewStatus; label: string }> = [
+const REVIEW_ACTIONS: Array<{ status: Exclude<RiskReviewStatus, 'PENDING_REVIEW'>; label: string }> = [
   { status: 'CONFIRMED_ABUSE', label: 'Mark abuse' },
   { status: 'BENIGN', label: 'Mark benign' },
   { status: 'UNCERTAIN', label: 'Mark uncertain' },
 ];
+
+const REVIEW_REASON_OPTIONS: Record<
+  Exclude<RiskReviewStatus, 'PENDING_REVIEW'>,
+  Array<{ value: RiskReviewReasonCode; label: string }>
+> = {
+  CONFIRMED_ABUSE: [
+    { value: 'OTP_BRUTE_FORCE', label: 'OTP brute force' },
+    { value: 'TOKEN_ABUSE', label: 'Token abuse' },
+    { value: 'RATE_LIMIT_ABUSE', label: 'Rate-limit abuse' },
+    { value: 'CROSS_SCOPE_ACCESS', label: 'Cross-scope access' },
+    { value: 'PRIVILEGE_MISUSE', label: 'Privilege misuse' },
+    { value: 'AUTOMATED_PROBING', label: 'Automated probing' },
+    { value: 'SUSPICIOUS_BULK_ACTIVITY', label: 'Suspicious bulk activity' },
+    { value: 'OTHER_ABUSE', label: 'Other abuse' },
+  ],
+  BENIGN: [
+    { value: 'USER_MISTAKE', label: 'User mistake' },
+    { value: 'TEST_ACTIVITY', label: 'Test activity' },
+    { value: 'EXPECTED_ADMIN_ACTION', label: 'Expected admin action' },
+    { value: 'EXPECTED_INSTITUTION_FLOW', label: 'Expected institution flow' },
+    { value: 'FALSE_POSITIVE_PATTERN', label: 'False positive pattern' },
+    { value: 'OTHER_BENIGN', label: 'Other benign' },
+  ],
+  UNCERTAIN: [
+    { value: 'NEEDS_MORE_CONTEXT', label: 'Needs more context' },
+    { value: 'INSUFFICIENT_EVIDENCE', label: 'Insufficient evidence' },
+    { value: 'MIXED_SIGNALS', label: 'Mixed signals' },
+  ],
+};
 
 const formatDateTime = (value: string | null | undefined) => {
   if (!value) return '-';
@@ -44,6 +83,8 @@ export default function AdminRiskEventDetailsDrawer({
   onSaveReview,
 }: Props) {
   const [draftNotes, setDraftNotes] = useState('');
+  const [draftReasonCode, setDraftReasonCode] = useState<RiskReviewReasonCode | ''>('');
+  const [draftReasonDetail, setDraftReasonDetail] = useState('');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -58,11 +99,18 @@ export default function AdminRiskEventDetailsDrawer({
 
   useEffect(() => {
     setDraftNotes(event?.reviewNotes ?? '');
-  }, [event?.id, event?.reviewNotes]);
+    setDraftReasonCode(event?.reviewReasonCode ?? '');
+    setDraftReasonDetail(event?.reviewReasonDetail ?? '');
+  }, [event?.id, event?.reviewNotes, event?.reviewReasonCode, event?.reviewReasonDetail]);
 
   const features = event?.features && typeof event.features === 'object' ? event.features : null;
   const hasUnsavedNotes = useMemo(() => draftNotes.trim() !== (event?.reviewNotes ?? ''), [draftNotes, event?.reviewNotes]);
-
+  const hasUnsavedReviewMeta = useMemo(
+    () =>
+      draftReasonCode !== (event?.reviewReasonCode ?? '') ||
+      draftReasonDetail.trim() !== (event?.reviewReasonDetail ?? ''),
+    [draftReasonCode, draftReasonDetail, event?.reviewReasonCode, event?.reviewReasonDetail],
+  );
   return (
     <AnimatePresence>
       {isOpen && (
@@ -133,6 +181,14 @@ export default function AdminRiskEventDetailsDrawer({
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Review Status</p>
                       <p className="mt-2 text-base font-semibold text-slate-900">{event.reviewStatus}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Reason Code</p>
+                      <p className="mt-2 text-sm text-slate-700">{event.reviewReasonCode || '-'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Reason Detail</p>
+                      <p className="mt-2 text-sm text-slate-700">{event.reviewReasonDetail || '-'}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Actor</p>
@@ -209,6 +265,28 @@ export default function AdminRiskEventDetailsDrawer({
                       Save analyst reasoning with the selected label so reviewed events can be used for later model training.
                     </p>
                     <div className="mt-4 space-y-4">
+                      <select
+                        value={draftReasonCode}
+                        onChange={event => setDraftReasonCode(event.target.value as RiskReviewReasonCode | '')}
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-slate-300 focus:bg-white"
+                      >
+                        <option value="">Select a review reason</option>
+                        {Object.entries(REVIEW_REASON_OPTIONS).map(([status, options]) => (
+                          <optgroup key={status} label={status.replace('_', ' ')}>
+                            {options.map(option => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                      <input
+                        value={draftReasonDetail}
+                        onChange={event => setDraftReasonDetail(event.target.value)}
+                        placeholder="Optional detail for the selected reason."
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-slate-300 focus:bg-white"
+                      />
                       <textarea
                         value={draftNotes}
                         onChange={event => setDraftNotes(event.target.value)}
@@ -222,7 +300,15 @@ export default function AdminRiskEventDetailsDrawer({
                             key={action.status}
                             type="button"
                             disabled={isSavingReview}
-                            onClick={() => void onSaveReview(event.id, action.status, draftNotes.trim() || null)}
+                            onClick={() =>
+                              void onSaveReview(
+                                event.id,
+                                action.status,
+                                draftReasonCode || REVIEW_REASON_OPTIONS[action.status][0]?.value || null,
+                                draftReasonDetail.trim() || null,
+                                draftNotes.trim() || null,
+                              )
+                            }
                             className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {isSavingReview && event.reviewStatus !== action.status ? (
@@ -234,8 +320,16 @@ export default function AdminRiskEventDetailsDrawer({
                         ))}
                         <button
                           type="button"
-                          disabled={isSavingReview || !hasUnsavedNotes}
-                          onClick={() => void onSaveReview(event.id, event.reviewStatus, draftNotes.trim() || null)}
+                          disabled={isSavingReview || (!hasUnsavedNotes && !hasUnsavedReviewMeta)}
+                          onClick={() =>
+                            void onSaveReview(
+                              event.id,
+                              event.reviewStatus,
+                              draftReasonCode || null,
+                              draftReasonDetail.trim() || null,
+                              draftNotes.trim() || null,
+                            )
+                          }
                           className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {isSavingReview ? <ButtonLoadingContent label="Saving" /> : 'Save notes'}

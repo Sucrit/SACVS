@@ -149,6 +149,26 @@ enum RiskReviewStatus {
   UNCERTAIN
 }
 
+enum RiskReviewReasonCode {
+  OTP_BRUTE_FORCE
+  TOKEN_ABUSE
+  RATE_LIMIT_ABUSE
+  CROSS_SCOPE_ACCESS
+  PRIVILEGE_MISUSE
+  AUTOMATED_PROBING
+  SUSPICIOUS_BULK_ACTIVITY
+  OTHER_ABUSE
+  USER_MISTAKE
+  TEST_ACTIVITY
+  EXPECTED_ADMIN_ACTION
+  EXPECTED_INSTITUTION_FLOW
+  FALSE_POSITIVE_PATTERN
+  OTHER_BENIGN
+  NEEDS_MORE_CONTEXT
+  INSUFFICIENT_EVIDENCE
+  MIXED_SIGNALS
+}
+
 enum RiskModelType {
   SUPERVISED
   ANOMALY
@@ -569,6 +589,8 @@ model RiskEventRecord {
   reviewStatus        RiskReviewStatus @default(PENDING_REVIEW)
   reviewedById        String?
   reviewedAt          DateTime?
+  reviewReasonCode    RiskReviewReasonCode?
+  reviewReasonDetail  String?
   reviewNotes         String?
   createdAt           DateTime         @default(now())
 
@@ -577,6 +599,39 @@ model RiskEventRecord {
   @@index([actorId, inferenceTs])
   @@index([riskBand, inferenceTs])
   @@index([reviewStatus, inferenceTs])
+  @@index([reviewReasonCode, inferenceTs])
+  @@index([createdAt])
+}
+
+model GatewayRequestTelemetry {
+  id                 String    @id @default(uuid())
+  eventId            String    @unique
+  correlationId      String?
+  requestTs          DateTime
+  routeKey           String
+  routeClass         String
+  method             String
+  statusCode         Int
+  durationMs         Int
+  rateLimitOutcome   String
+  actorId            String?
+  actorRole          Role?
+  actorIdentityHash  String?
+  ipHash             String?
+  userAgentHash      String?
+  is401              Boolean   @default(false)
+  is403              Boolean   @default(false)
+  is429              Boolean   @default(false)
+  is5xx              Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+
+  @@index([requestTs])
+  @@index([correlationId, requestTs])
+  @@index([actorId, requestTs])
+  @@index([routeClass, requestTs])
+  @@index([routeKey, requestTs])
+  @@index([statusCode, requestTs])
+  @@index([rateLimitOutcome, requestTs])
   @@index([createdAt])
 }
 

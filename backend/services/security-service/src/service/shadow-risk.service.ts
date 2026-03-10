@@ -1,12 +1,20 @@
 import { RiskBand, RiskModelType } from '../../../../db/node_modules/@prisma/client';
 import { buildFeatureVector, scoreFeatureVector } from '../feature/feature-builder';
 import { RiskRepository } from '../repository/risk.repository';
-import { SourceAuditEvent } from '../types/risk';
+import { GatewayTelemetryEvent, SourceAuditEvent } from '../types/risk';
 import { hashNullable } from '../utils/hash';
 import { parseMetadata, pickString } from '../scripts/helpers';
 
 function sliceWindow(events: SourceAuditEvent[], start: Date, end: Date): SourceAuditEvent[] {
   return events.filter((event) => event.createdAt >= start && event.createdAt < end);
+}
+
+function sliceTelemetryWindow(
+  events: GatewayTelemetryEvent[],
+  start: Date,
+  end: Date,
+): GatewayTelemetryEvent[] {
+  return events.filter((event) => event.requestTs >= start && event.requestTs < end);
 }
 
 function toRiskBand(value: string): RiskBand {
@@ -20,6 +28,17 @@ function toRiskBand(value: string): RiskBand {
     default:
       return RiskBand.LOW;
   }
+}
+
+function appendTelemetryIndex(
+  map: Map<string, GatewayTelemetryEvent[]>,
+  key: string | null | undefined,
+  event: GatewayTelemetryEvent,
+) {
+  if (!key) return;
+  const bucket = map.get(key) ?? [];
+  bucket.push(event);
+  map.set(key, bucket);
 }
 
 export type ShadowRiskRunOptions = {
@@ -41,15 +60,31 @@ export class ShadowRiskService {
 
   async run(options: ShadowRiskRunOptions): Promise<ShadowRiskRunResult> {
     const inferenceTs = new Date();
-    const events = await this.repository.listAuditLogsSince(options.since, options.limit);
-    const scoredSet = await this.repository.listAlreadyScoredEventIds(options.since);
+    const [events, telemetryEvents, scoredSet] = await Promise.all([
+      this.repository.listAuditLogsSince(options.since, options.limit),
+      this.repository.listGatewayTelemetrySince(options.since),
+      this.repository.listAlreadyScoredEventIds(options.since),
+    ]);
     const actorMap = new Map<string, SourceAuditEvent[]>();
+    const telemetryByCorrelationId = new Map<string, GatewayTelemetryEvent[]>();
+    const telemetryByActorId = new Map<string, GatewayTelemetryEvent[]>();
+    const telemetryByActorIdentityHash = new Map<string, GatewayTelemetryEvent[]>();
+    const telemetryByIpHash = new Map<string, GatewayTelemetryEvent[]>();
+    const telemetryByUserAgentHash = new Map<string, GatewayTelemetryEvent[]>();
 
     for (const event of events) {
       if (!event.actorId) continue;
       const bucket = actorMap.get(event.actorId) ?? [];
       bucket.push(event);
       actorMap.set(event.actorId, bucket);
+    }
+
+    for (const event of telemetryEvents) {
+      appendTelemetryIndex(telemetryByCorrelationId, event.correlationId, event);
+      appendTelemetryIndex(telemetryByActorId, event.actorId, event);
+      appendTelemetryIndex(telemetryByActorIdentityHash, event.actorIdentityHash, event);
+      appendTelemetryIndex(telemetryByIpHash, event.ipHash, event);
+      appendTelemetryIndex(telemetryByUserAgentHash, event.userAgentHash, event);
     }
 
     const modelRef = await this.repository.upsertModelVersion({
@@ -67,6 +102,18 @@ export class ShadowRiskService {
         access_denied_15m: 'number',
         unique_targets_15m: 'number',
         actor_age_hours: 'number',
+        telemetry_velocity_1m: 'number',
+        telemetry_velocity_5m: 'number',
+        telemetry_velocity_15m: 'number',
+        telemetry_401_15m: 'number',
+        telemetry_403_15m: 'number',
+        telemetry_429_15m: 'number',
+        telemetry_5xx_15m: 'number',
+        telemetry_failure_ratio_15m: 'number',
+        telemetry_rate_limit_hits_15m: 'number',
+        telemetry_unique_routes_15m: 'number',
+        telemetry_public_verify_hits_15m: 'number',
+        telemetry_avg_duration_15m: 'number',
       },
       metrics: {
         mode: 'shadow',
@@ -107,6 +154,32 @@ export class ShadowRiskService {
       const userAgentRaw = pickString(metadata, ['userAgent']);
       const correlationId = pickString(metadata, ['correlationId', 'x-correlation-id']);
       const institutionId = pickString(metadata, ['institutionId', 'actorInstitutionId']);
+      const ipHash = hashNullable(ipRaw);
+      const userAgentHash = hashNullable(userAgentRaw);
+
+      const telemetryCandidateMap = new Map<string, GatewayTelemetryEvent>();
+      const candidateBuckets = [
+        correlationId ? telemetryByCorrelationId.get(correlationId) ?? [] : [],
+        event.actorId ? telemetryByActorId.get(event.actorId) ?? [] : [],
+        event.actorId ? telemetryByActorIdentityHash.get(hashNullable(event.actorId) ?? '') ?? [] : [],
+        ipHash ? telemetryByIpHash.get(ipHash) ?? [] : [],
+        userAgentHash ? telemetryByUserAgentHash.get(userAgentHash) ?? [] : [],
+      ];
+
+      for (const bucket of candidateBuckets) {
+        for (const telemetryEvent of bucket) {
+          telemetryCandidateMap.set(telemetryEvent.eventId, telemetryEvent);
+        }
+      }
+      const telemetryActorEvents = Array.from(telemetryCandidateMap.values()).sort(
+        (left, right) => left.requestTs.getTime() - right.requestTs.getTime(),
+      );
+      const telemetryEvents1m = sliceTelemetryWindow(telemetryActorEvents, from1m, event.createdAt);
+      const telemetryEvents5m = sliceTelemetryWindow(telemetryActorEvents, from5m, event.createdAt);
+      const telemetryEvents15m = sliceTelemetryWindow(telemetryActorEvents, from15m, event.createdAt);
+      const uniqueRouteKeys15m = new Set(
+        telemetryEvents15m.map((item) => item.routeKey).filter(Boolean),
+      ).size;
 
       const vector = buildFeatureVector({
         event,
@@ -117,9 +190,13 @@ export class ShadowRiskService {
         actorStepUpFailedCount15m: stepUpStats.failedCount15m,
         actorStepUpLockedCount24h: stepUpStats.lockedCount24h,
         actorFirstSeenAt,
-        ipHash: hashNullable(ipRaw),
-        userAgentHash: hashNullable(userAgentRaw),
+        ipHash,
+        userAgentHash,
         uniqueTargets15m,
+        telemetryEvents1m,
+        telemetryEvents5m,
+        telemetryEvents15m,
+        uniqueRouteKeys15m,
       });
 
       const scored = scoreFeatureVector(vector.features, vector.topSignalsSeed);
@@ -132,8 +209,8 @@ export class ShadowRiskService {
         action: event.action,
         targetType: event.targetType,
         targetId: event.targetId,
-        ipHash: hashNullable(ipRaw),
-        userAgentHash: hashNullable(userAgentRaw),
+        ipHash,
+        userAgentHash,
         features: vector.features,
         featuresWindowStart: from15m,
         featuresWindowEnd: event.createdAt,

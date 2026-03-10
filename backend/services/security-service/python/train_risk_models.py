@@ -112,7 +112,19 @@ def main():
 
     label_col = "weakLabel"
     categorical_cols = ["action", "actorRole", "targetType"]
-    ignored_cols = ["eventId", "eventTs", "actorId", "targetId", "ipHash", "userAgentHash", "seedSignals", label_col]
+    ignored_cols = [
+        "eventId",
+        "eventTs",
+        "actorId",
+        "targetId",
+        "ipHash",
+        "userAgentHash",
+        "seedSignals",
+        "labelSource",
+        "reviewStatus",
+        "reviewReasonCode",
+        label_col,
+    ]
     numeric_cols = [c for c in df.columns if c not in ignored_cols and c not in categorical_cols]
 
     preprocessor = ColumnTransformer(
@@ -152,6 +164,15 @@ def main():
     train_positive_count = int(y_train.sum())
     valid_positive_count = int(y_valid.sum())
     test_positive_count = int(y_test.sum())
+    reviewed_train_positive_count = int(
+        ((train_df["labelSource"] == "analyst_review") & (train_df[label_col].astype(int) == 1)).sum()
+    )
+    reviewed_valid_positive_count = int(
+        ((valid_df["labelSource"] == "analyst_review") & (valid_df[label_col].astype(int) == 1)).sum()
+    )
+    reviewed_test_positive_count = int(
+        ((test_df["labelSource"] == "analyst_review") & (test_df[label_col].astype(int) == 1)).sum()
+    )
 
     supervised_pipeline.fit(X_train, y_train)
     valid_supervised = supervised_pipeline.predict_proba(X_valid)[:, 1] if len(X_valid) else np.array([])
@@ -201,6 +222,12 @@ def main():
         data_warnings.append("no_positive_labels_in_validation_split")
     if test_positive_count == 0:
         data_warnings.append("no_positive_labels_in_test_split")
+    if reviewed_train_positive_count < 10:
+        data_warnings.append("low_reviewed_positive_count_train")
+    if reviewed_valid_positive_count == 0:
+        data_warnings.append("no_reviewed_positive_labels_in_validation_split")
+    if reviewed_test_positive_count == 0:
+        data_warnings.append("no_reviewed_positive_labels_in_test_split")
 
     version = args.version or f"ml-risk-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
@@ -245,6 +272,9 @@ def main():
         "train_positive_count": train_positive_count,
         "valid_positive_count": valid_positive_count,
         "test_positive_count": test_positive_count,
+        "reviewed_train_positive_count": reviewed_train_positive_count,
+        "reviewed_valid_positive_count": reviewed_valid_positive_count,
+        "reviewed_test_positive_count": reviewed_test_positive_count,
         "threshold_high": threshold_high,
         "threshold_critical": threshold_critical,
         "data_warnings": data_warnings,

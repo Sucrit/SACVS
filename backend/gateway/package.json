@@ -6,6 +6,8 @@
     "dev": "nodemon"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.4.0",
+    "@prisma/client": "^7.4.0",
     "@types/ws": "^8.18.1",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",

@@ -1,15 +1,17 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
   AuditAction,
+  GatewayRequestTelemetry,
   Prisma,
   PrismaClient,
   RiskBand,
   RiskModelType,
+  RiskReviewReasonCode,
   RiskReviewStatus,
   Role,
 } from '../../../../db/node_modules/@prisma/client';
 import { ENV } from '../config/env';
-import { SourceAuditEvent } from '../types/risk';
+import { GatewayTelemetryEvent, ReviewedLabel, SourceAuditEvent } from '../types/risk';
 
 const prismaAdapter = new PrismaPg({ connectionString: ENV.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: prismaAdapter });
@@ -49,6 +51,8 @@ export class RiskRepository {
     reviewStatus: true,
     reviewedById: true,
     reviewedAt: true,
+    reviewReasonCode: true,
+    reviewReasonDetail: true,
     reviewNotes: true,
     createdAt: true,
     featuresSnapshot: {
@@ -230,7 +234,7 @@ export class RiskRepository {
     return ids;
   }
 
-  async listReviewedLabelsSince(since: Date): Promise<Map<string, RiskReviewStatus>> {
+  async listReviewedLabelsSince(since: Date): Promise<Map<string, ReviewedLabel>> {
     const rows = await prisma.riskEventRecord.findMany({
       where: {
         inferenceTs: {
@@ -249,16 +253,73 @@ export class RiskRepository {
       select: {
         eventId: true,
         reviewStatus: true,
+        reviewReasonCode: true,
       },
     });
 
-    const labels = new Map<string, RiskReviewStatus>();
+    const labels = new Map<string, ReviewedLabel>();
     for (const row of rows) {
       if (row.eventId && !labels.has(row.eventId)) {
-        labels.set(row.eventId, row.reviewStatus);
+        const status =
+          row.reviewStatus === RiskReviewStatus.CONFIRMED_ABUSE
+            ? 'CONFIRMED_ABUSE'
+            : 'BENIGN';
+        labels.set(row.eventId, {
+          status,
+          reasonCode: row.reviewReasonCode,
+        });
       }
     }
     return labels;
+  }
+
+  async listGatewayTelemetrySince(since: Date, limit?: number): Promise<GatewayTelemetryEvent[]> {
+    const rows = await prisma.gatewayRequestTelemetry.findMany({
+      where: {
+        requestTs: {
+          gte: since,
+        },
+      },
+      orderBy: {
+        requestTs: 'asc',
+      },
+      ...(typeof limit === 'number' && limit > 0 ? { take: limit } : {}),
+    });
+
+    return rows.map((row: GatewayRequestTelemetry) => ({
+      id: row.id,
+      eventId: row.eventId,
+      correlationId: row.correlationId,
+      requestTs: row.requestTs,
+      routeKey: row.routeKey,
+      routeClass: row.routeClass,
+      method: row.method,
+      statusCode: row.statusCode,
+      durationMs: row.durationMs,
+      rateLimitOutcome: row.rateLimitOutcome,
+      actorId: row.actorId,
+      actorRole: row.actorRole,
+      actorIdentityHash: row.actorIdentityHash,
+      ipHash: row.ipHash,
+      userAgentHash: row.userAgentHash,
+      is401: row.is401,
+      is403: row.is403,
+      is429: row.is429,
+      is5xx: row.is5xx,
+      createdAt: row.createdAt,
+    }));
+  }
+
+  async deleteGatewayTelemetryOlderThan(cutoff: Date): Promise<number> {
+    const result = await prisma.gatewayRequestTelemetry.deleteMany({
+      where: {
+        requestTs: {
+          lt: cutoff,
+        },
+      },
+    });
+
+    return result.count;
   }
 
   async createFeatureSnapshot(data: {
@@ -311,6 +372,9 @@ export class RiskRepository {
     modelVersionId?: string | null;
     inferenceTs: Date;
     reviewStatus?: RiskReviewStatus;
+    reviewReasonCode?: RiskReviewReasonCode | null;
+    reviewReasonDetail?: string | null;
+    reviewNotes?: string | null;
   }): Promise<void> {
     await prisma.riskEventRecord.create({
       data: {
@@ -326,6 +390,9 @@ export class RiskRepository {
         modelVersionId: data.modelVersionId ?? null,
         inferenceTs: data.inferenceTs,
         reviewStatus: data.reviewStatus ?? RiskReviewStatus.PENDING_REVIEW,
+        reviewReasonCode: data.reviewReasonCode ?? null,
+        reviewReasonDetail: data.reviewReasonDetail ?? null,
+        reviewNotes: data.reviewNotes ?? null,
       },
     });
   }
@@ -447,6 +514,8 @@ export class RiskRepository {
     id: string;
     reviewStatus: RiskReviewStatus;
     reviewedById: string;
+    reviewReasonCode?: RiskReviewReasonCode | null;
+    reviewReasonDetail?: string | null;
     reviewNotes?: string | null;
   }) {
     return prisma.riskEventRecord.update({
@@ -455,6 +524,8 @@ export class RiskRepository {
         reviewStatus: input.reviewStatus,
         reviewedById: input.reviewedById,
         reviewedAt: new Date(),
+        reviewReasonCode: input.reviewReasonCode ?? null,
+        reviewReasonDetail: input.reviewReasonDetail ?? null,
         reviewNotes: input.reviewNotes ?? null,
       },
       select: {
@@ -462,6 +533,8 @@ export class RiskRepository {
         reviewStatus: true,
         reviewedById: true,
         reviewedAt: true,
+        reviewReasonCode: true,
+        reviewReasonDetail: true,
         reviewNotes: true,
       },
     });

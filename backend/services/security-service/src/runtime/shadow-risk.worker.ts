@@ -16,6 +16,7 @@ export class ShadowRiskWorker {
   private lastErrorMessage: string | null = null;
   private lastInsertedCount = 0;
   private lastScannedCount = 0;
+  private lastTelemetryCleanupAt: Date | null = null;
 
   start(): void {
     console.log(
@@ -42,6 +43,8 @@ export class ShadowRiskWorker {
       intervalMs: ENV.RISK_SHADOW_INTERVAL_MS,
       overlapMinutes: ENV.RISK_SHADOW_OVERLAP_MINUTES,
       batchLimit: ENV.RISK_SHADOW_BATCH_LIMIT,
+      telemetryRetentionDays: ENV.GATEWAY_TELEMETRY_RETENTION_DAYS,
+      telemetryCleanupIntervalMs: ENV.GATEWAY_TELEMETRY_CLEANUP_INTERVAL_MS,
       lastProcessedAt: this.lastProcessedAt,
       lastRunStartedAt: this.lastRunStartedAt,
       lastRunCompletedAt: this.lastRunCompletedAt,
@@ -50,6 +53,7 @@ export class ShadowRiskWorker {
       lastErrorMessage: this.lastErrorMessage,
       lastInsertedCount: this.lastInsertedCount,
       lastScannedCount: this.lastScannedCount,
+      lastTelemetryCleanupAt: this.lastTelemetryCleanupAt,
     };
   }
 
@@ -107,6 +111,8 @@ export class ShadowRiskWorker {
           },
         });
       }
+
+      await this.cleanupGatewayTelemetryIfNeeded();
     } catch (error) {
       this.lastRunCompletedAt = new Date();
       this.lastFailureAt = this.lastRunCompletedAt;
@@ -114,6 +120,26 @@ export class ShadowRiskWorker {
       console.error('[security-service] Shadow risk worker pass failed:', error);
     } finally {
       this.isRunning = false;
+    }
+  }
+
+  private async cleanupGatewayTelemetryIfNeeded(): Promise<void> {
+    const now = Date.now();
+    if (
+      this.lastTelemetryCleanupAt &&
+      now - this.lastTelemetryCleanupAt.getTime() < ENV.GATEWAY_TELEMETRY_CLEANUP_INTERVAL_MS
+    ) {
+      return;
+    }
+
+    const cutoff = new Date(now - ENV.GATEWAY_TELEMETRY_RETENTION_DAYS * 24 * 60 * 60_000);
+    const deletedCount = await this.repository.deleteGatewayTelemetryOlderThan(cutoff);
+    this.lastTelemetryCleanupAt = new Date(now);
+
+    if (deletedCount > 0) {
+      console.log(
+        `[security-service] Gateway telemetry cleanup deleted=${deletedCount} cutoff=${cutoff.toISOString()}`,
+      );
     }
   }
 }

@@ -41,6 +41,21 @@ export function buildFeatureVector(context: FeatureContext): FeatureVectorResult
   const securityAlerts15m = context.actorEvents15m.filter(
     (event) => event.action === AuditAction.SECURITY_ALERT,
   ).length;
+  const telemetry15m = context.telemetryEvents15m.length;
+  const telemetry40115m = context.telemetryEvents15m.filter((event) => event.is401).length;
+  const telemetry40315m = context.telemetryEvents15m.filter((event) => event.is403).length;
+  const telemetry42915m = context.telemetryEvents15m.filter((event) => event.is429).length;
+  const telemetry5xx15m = context.telemetryEvents15m.filter((event) => event.is5xx).length;
+  const telemetryRateLimited15m = context.telemetryEvents15m.filter(
+    (event) => event.rateLimitOutcome !== 'ALLOWED',
+  ).length;
+  const telemetryPublicVerify15m = context.telemetryEvents15m.filter(
+    (event) => event.routeClass === 'PUBLIC_VERIFY',
+  ).length;
+  const telemetryAvgDuration15m =
+    telemetry15m > 0
+      ? context.telemetryEvents15m.reduce((total, event) => total + event.durationMs, 0) / telemetry15m
+      : 0;
 
   const actorAgeHours = context.actorFirstSeenAt
     ? Math.max(0, (context.event.createdAt.getTime() - context.actorFirstSeenAt.getTime()) / 3_600_000)
@@ -63,6 +78,19 @@ export function buildFeatureVector(context: FeatureContext): FeatureVectorResult
     is_first_seen_actor: actorAgeHours <= 1 ? 1 : 0,
     hour_of_day: context.event.createdAt.getUTCHours(),
     day_of_week: context.event.createdAt.getUTCDay(),
+    telemetry_velocity_1m: context.telemetryEvents1m.length,
+    telemetry_velocity_5m: context.telemetryEvents5m.length,
+    telemetry_velocity_15m: telemetry15m,
+    telemetry_401_15m: telemetry40115m,
+    telemetry_403_15m: telemetry40315m,
+    telemetry_429_15m: telemetry42915m,
+    telemetry_5xx_15m: telemetry5xx15m,
+    telemetry_failure_ratio_15m:
+      telemetry15m > 0 ? (telemetry40115m + telemetry40315m + telemetry42915m + telemetry5xx15m) / telemetry15m : 0,
+    telemetry_rate_limit_hits_15m: telemetryRateLimited15m,
+    telemetry_unique_routes_15m: context.uniqueRouteKeys15m,
+    telemetry_public_verify_hits_15m: telemetryPublicVerify15m,
+    telemetry_avg_duration_15m: telemetryAvgDuration15m,
   };
 
   // Weak labels should come from the current security outcome, not the same
@@ -76,6 +104,10 @@ export function buildFeatureVector(context: FeatureContext): FeatureVectorResult
   if (features.access_denied_15m >= 4) topSignalsSeed.push('access_denied_burst_15m');
   if (features.velocity_1m >= 8) topSignalsSeed.push('high_velocity_1m');
   if (features.unique_targets_15m >= 5) topSignalsSeed.push('wide_target_spread_15m');
+  if (features.telemetry_429_15m >= 3) topSignalsSeed.push('gateway_rate_limit_hits_15m');
+  if (features.telemetry_failure_ratio_15m >= 0.45) topSignalsSeed.push('gateway_failure_ratio_15m');
+  if (features.telemetry_unique_routes_15m >= 6) topSignalsSeed.push('wide_route_probe_15m');
+  if (features.telemetry_public_verify_hits_15m >= 5) topSignalsSeed.push('public_verify_burst_15m');
   if (features.is_first_seen_actor === 1 && features.velocity_5m >= 6) {
     topSignalsSeed.push('new_actor_high_velocity_5m');
   }
@@ -99,13 +131,19 @@ export function scoreFeatureVector(
     Math.min(features.stepup_locked_24h, 5) * 8 +
     Math.min(features.token_abuse_15m, 8) * 6 +
     Math.min(features.access_denied_15m, 12) * 2.2 +
-    Math.min(features.unique_targets_15m, 10) * 1.6;
+    Math.min(features.unique_targets_15m, 10) * 1.6 +
+    Math.min(features.telemetry_429_15m, 12) * 3 +
+    Math.min(features.telemetry_403_15m, 12) * 2 +
+    Math.min(features.telemetry_unique_routes_15m, 12) * 1.4 +
+    Math.min(features.telemetry_public_verify_hits_15m, 12) * 1.8;
 
   const anomalyRaw =
     Math.min(features.velocity_1m / 10, 1) * 35 +
     Math.min(features.velocity_15m / 40, 1) * 20 +
     (features.is_first_seen_actor === 1 ? 20 : 0) +
-    Math.min(features.failure_ratio_15m, 1) * 25;
+    Math.min(features.failure_ratio_15m, 1) * 25 +
+    Math.min(features.telemetry_velocity_1m / 10, 1) * 20 +
+    Math.min(features.telemetry_failure_ratio_15m, 1) * 20;
 
   const blended =
     supervisedRaw * ENV.RISK_SUPERVISED_WEIGHT + anomalyRaw * ENV.RISK_ANOMALY_WEIGHT;

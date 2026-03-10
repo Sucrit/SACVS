@@ -55,11 +55,11 @@ const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string }>> = {
     { to: '/employer/logs', label: 'Audit Logs' },
   ],
   ADMIN: [
-    { to: '/admin/users', label: 'User Management' },
+    { to: '/admin', label: 'Home' },
+    { to: '/admin/users', label: 'Users' },
     { to: '/admin/risk', label: 'Risk Review' },
     { to: '/admin/logs', label: 'Audit Logs' },
     { to: '/admin/settings', label: 'Settings' },
-    { to: '/admin', label: 'Home' },
   ],
 };
 

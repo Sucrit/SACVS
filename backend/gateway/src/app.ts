@@ -4,8 +4,10 @@ import crypto from 'node:crypto';
 import routes from './routes';
 import { ENV } from './config/env';
 import { hasInternalEventAuth, parseRealtimeEvents, realtimeHub } from './realtime/realtime.hub';
+import { GatewayTelemetryRepository } from './repository/gateway-telemetry.repository';
 
 const app = express();
+const telemetryRepository = ENV.GATEWAY_TELEMETRY_ENABLED ? new GatewayTelemetryRepository() : null;
 const jsonParser = express.json({ limit: '256kb' });
 app.use((req, res, next) => {
   const path = req.path || '';
@@ -80,6 +82,8 @@ type RateState = {
   violations: number;
 };
 
+type TelemetryRateLimitOutcome = 'ALLOWED' | 'COOLDOWN' | 'BLOCKED' | 'RATE_LIMITED';
+
 const RATE_POLICY: Record<RouteClass, RatePolicy> = {
   PUBLIC_VERIFY: {
     windowMs: 60_000,
@@ -132,11 +136,32 @@ const classifyRoute = (req: express.Request): RouteClass => {
   return 'STANDARD_AUTH';
 };
 
+const isTelemetryEligibleRoute = (routeClass: RouteClass): boolean =>
+  routeClass === 'PUBLIC_VERIFY' || routeClass === 'HIGH_RISK_MUTATION' || routeClass === 'INTERNAL';
+
+const normalizeRouteKey = (req: express.Request): string => {
+  const path = req.path || req.originalUrl || '';
+
+  return path
+    .replace(/\/users\/[^/]+\/(role|status)$/i, '/users/:id/$1')
+    .replace(/\/users\/me\/institution\/students\/bulk$/i, '/users/me/institution/students/bulk')
+    .replace(/\/credentials\/verify\/qr\/document\/[^/?#]+/i, '/credentials/verify/qr/document/:token')
+    .replace(/\/credentials\/verify\/qr\/employer$/i, '/credentials/verify/qr/employer')
+    .replace(/\/credentials\/verify\/qr$/i, '/credentials/verify/qr')
+    .replace(/\/credentials\/[^/]+\/issue$/i, '/credentials/:id/issue')
+    .replace(/\/credentials\/[^/]+\/document$/i, '/credentials/:id/document')
+    .replace(/\/credentials\/internal\/documents\/[^/?#]+/i, '/credentials/internal/documents/:id')
+    .replace(/\/notifications\/system$/i, '/notifications/system');
+};
+
 const identityPart = (req: express.Request): string => {
   const auth = req.header('authorization')?.trim();
   if (!auth) return 'anon';
   return crypto.createHash('sha1').update(auth).digest('hex').slice(0, 16);
 };
+
+const sha256Hex = (value: string): string =>
+  crypto.createHash('sha256').update(value.trim().toLowerCase()).digest('hex');
 
 app.use((req, res, next) => {
   const routeClass = classifyRoute(req);
@@ -147,6 +172,8 @@ app.use((req, res, next) => {
   const current = rateState.get(key);
 
   if (!current || now > current.resetAt) {
+    res.locals.routeClass = routeClass;
+    res.locals.rateLimitOutcome = 'ALLOWED' as TelemetryRateLimitOutcome;
     rateState.set(key, {
       count: 1,
       burstCount: 1,
@@ -159,11 +186,15 @@ app.use((req, res, next) => {
   }
 
   if (current.blockedUntil && now < current.blockedUntil) {
+    res.locals.routeClass = routeClass;
+    res.locals.rateLimitOutcome = 'BLOCKED' as TelemetryRateLimitOutcome;
     res.setHeader('Retry-After', String(Math.ceil((current.blockedUntil - now) / 1000)));
     return res.status(429).json({ error: 'RATE_LIMITED' });
   }
 
   if (current.cooldownUntil && now < current.cooldownUntil) {
+    res.locals.routeClass = routeClass;
+    res.locals.rateLimitOutcome = 'COOLDOWN' as TelemetryRateLimitOutcome;
     res.setHeader('Retry-After', String(Math.ceil((current.cooldownUntil - now) / 1000)));
     return res.status(429).json({ error: 'RATE_LIMITED' });
   }
@@ -175,11 +206,13 @@ app.use((req, res, next) => {
   res.setHeader('X-RateLimit-Reset', String(Math.ceil(current.resetAt / 1000)));
 
   if (current.burstCount > policy.burstMax || current.count > policy.maxRequests) {
+    res.locals.routeClass = routeClass;
     current.violations += 1;
     current.cooldownUntil = now + policy.cooldownMs;
     if (policy.blockDurationMs && current.violations >= 3) {
       current.blockedUntil = now + policy.blockDurationMs;
     }
+    res.locals.rateLimitOutcome = current.blockedUntil ? ('BLOCKED' as TelemetryRateLimitOutcome) : ('RATE_LIMITED' as TelemetryRateLimitOutcome);
 
     const retryAt = current.blockedUntil && current.blockedUntil > current.cooldownUntil
       ? current.blockedUntil
@@ -191,6 +224,8 @@ app.use((req, res, next) => {
     return res.status(429).json({ error: 'RATE_LIMITED' });
   }
 
+  res.locals.routeClass = routeClass;
+  res.locals.rateLimitOutcome = 'ALLOWED' as TelemetryRateLimitOutcome;
   return next();
 });
 
@@ -218,12 +253,49 @@ const redactUrl = (rawUrl: string): string => {
 // request logging
 app.use((req, res, next) => {
   const start = Date.now();
+  const startedAt = new Date();
   const correlationId = req.header('x-correlation-id') || 'n/a';
   res.on('finish', () => {
     const duration = Date.now() - start;
     console.log(
       `[${new Date().toISOString()}] [corr=${correlationId}] ${req.method} ${redactUrl(req.originalUrl)} -> ${res.statusCode} (${duration}ms)`,
     );
+
+    const routeClass = (res.locals.routeClass as RouteClass | undefined) ?? classifyRoute(req);
+    if (!telemetryRepository || !isTelemetryEligibleRoute(routeClass)) {
+      return;
+    }
+
+    const actorIdentityHash = (() => {
+      const auth = req.header('authorization')?.trim();
+      return auth ? sha256Hex(auth) : null;
+    })();
+    const ip = req.ip || req.socket.remoteAddress || '';
+    const userAgent = req.header('user-agent')?.trim() || '';
+    const rateLimitOutcome =
+      (res.locals.rateLimitOutcome as TelemetryRateLimitOutcome | undefined) ??
+      (res.statusCode === 429 ? 'RATE_LIMITED' : 'ALLOWED');
+
+    void telemetryRepository.create({
+      eventId: crypto.randomUUID(),
+      correlationId,
+      requestTs: startedAt,
+      routeKey: normalizeRouteKey(req),
+      routeClass,
+      method: req.method.toUpperCase(),
+      statusCode: res.statusCode,
+      durationMs: duration,
+      rateLimitOutcome,
+      actorIdentityHash,
+      ipHash: ip ? sha256Hex(ip) : null,
+      userAgentHash: userAgent ? sha256Hex(userAgent) : null,
+      is401: res.statusCode === 401,
+      is403: res.statusCode === 403,
+      is429: res.statusCode === 429,
+      is5xx: res.statusCode >= 500,
+    }).catch(error => {
+      console.error('[gateway] Failed to persist security telemetry:', error);
+    });
   });
   next();
 });
