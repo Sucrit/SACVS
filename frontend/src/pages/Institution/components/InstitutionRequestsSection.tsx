@@ -1,6 +1,8 @@
-﻿import { Check, ClipboardCheck, FileText, Search, X } from 'lucide-react';
+﻿import { useMemo } from 'react';
+import { Check, ClipboardCheck, FileText, Search, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
+import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import { CredentialRequest, CredentialType } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
 import { REQUEST_STATUS_OPTIONS, RequestStatusFilter } from '../types';
@@ -74,11 +76,25 @@ export default function InstitutionRequestsSection({
     students.map(student => [student.id, student] as const),
   );
 
+  const filterGroups = useMemo<SearchFilterGroup[]>(() => [
+    {
+      id: 'request-status',
+      label: 'Status',
+      value: requestStatusFilter,
+      defaultValue: 'ALL',
+      options: REQUEST_STATUS_OPTIONS.map(status => ({
+        value: status,
+        label: status === 'ALL' ? 'All statuses' : status,
+      })),
+      onChange: value => onFilterChange(value as RequestStatusFilter),
+    },
+  ], [onFilterChange, requestStatusFilter]);
+
   return (
     <div className="space-y-6">
       <Card title="Request Filters & Bulk Actions">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <div className="md:col-span-2 relative">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full lg:max-w-2xl">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
             <input
               value={requestSearch}
@@ -87,18 +103,11 @@ export default function InstitutionRequestsSection({
               className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none"
             />
           </div>
-          <select
-            value={requestStatusFilter}
-            onChange={event => onFilterChange(event.target.value as RequestStatusFilter)}
-            className="h-10 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-          >
-            {REQUEST_STATUS_OPTIONS.map(status => (
-              <option key={status} value={status}>
-                {status === 'ALL' ? 'All statuses' : status}
-              </option>
-            ))}
-          </select>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <SearchFilterModal
+              groups={filterGroups}
+              description="Refine incoming requests by their current approval state."
+            />
             <button onClick={() => void onBulkAction('APPROVE')} className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Bulk Approve</button>
             <button onClick={() => void onBulkAction('REJECT')} className="inline-flex h-10 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-800 hover:bg-rose-100">Bulk Reject</button>
             <button onClick={() => void onBulkAction('ISSUE')} className="inline-flex h-10 items-center justify-center rounded-lg border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-800 hover:bg-cyan-100">Bulk Issue</button>

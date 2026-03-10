@@ -4,6 +4,7 @@ import { Check, PauseCircle, Pencil, Search, Trash2, Upload, UserPlus, X } from 
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import { User, UserStatus } from '../../../services/user.service';
 import { StudentFormState, StudentStatusFilter, STUDENT_STATUS_OPTIONS } from '../types';
 import { getStudentFullName } from '../utils';
@@ -179,6 +180,31 @@ export default function InstitutionStudentsSection({
     return Array.from(values).sort((a, b) => a.localeCompare(b));
   }, [departmentOptions, students]);
 
+  const filterGroups = useMemo<SearchFilterGroup[]>(() => [
+    {
+      id: 'student-status',
+      label: 'Status',
+      value: studentStatusFilter,
+      defaultValue: 'ALL',
+      options: ['ALL', ...STUDENT_STATUS_OPTIONS].map(status => ({
+        value: status,
+        label: status === 'ALL' ? 'All statuses' : status,
+      })),
+      onChange: value => onStudentStatusFilterChange(value as StudentStatusFilter),
+    },
+    {
+      id: 'student-department',
+      label: 'Department',
+      value: studentDepartmentFilter,
+      defaultValue: 'ALL',
+      options: departmentOptions.map(option => ({
+        value: option,
+        label: option === 'ALL' ? 'All departments' : option,
+      })),
+      onChange: onStudentDepartmentFilterChange,
+    },
+  ], [departmentOptions, onStudentDepartmentFilterChange, onStudentStatusFilterChange, studentDepartmentFilter, studentStatusFilter]);
+
   return (
     <div className="min-h-[calc(100vh-220px)] space-y-4 pb-4">
       <Card
@@ -205,18 +231,17 @@ export default function InstitutionStudentsSection({
           </div>
         )}
       >
-        <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-4">
-          <div className="md:col-span-2 relative">
+        <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full lg:max-w-2xl">
             <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
             <input value={studentSearch} onChange={event => onStudentSearchChange(event.target.value)} placeholder="Search name, email, student #, department..." className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none" />
           </div>
-          <select value={studentStatusFilter} onChange={event => onStudentStatusFilterChange(event.target.value as StudentStatusFilter)} className="h-10 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none">
-            <option value="ALL">All statuses</option>
-            {STUDENT_STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
-          </select>
-          <select value={studentDepartmentFilter} onChange={event => onStudentDepartmentFilterChange(event.target.value)} className="h-10 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none">
-            {departmentOptions.map(option => <option key={option} value={option}>{option === 'ALL' ? 'All departments' : option}</option>)}
-          </select>
+          <div className="flex items-center justify-end gap-2">
+            <SearchFilterModal
+              groups={filterGroups}
+              description="Refine the student roster by account status or department."
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto rounded-lg border border-neutral-200">

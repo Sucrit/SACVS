@@ -257,9 +257,9 @@ export default function StudentCredentialDetailsSection({
   }
 
   return (
-    <Card className="overflow-hidden rounded-lg border border-neutral-200 p-6 shadow-sm">
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.5fr_1fr]">
-          <section className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/70 p-3">
+    <div className="w-full">
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.5fr_1fr]">
+        <section className="flex flex-col gap-4">
             {isRevoked && (
               <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                 <p className="inline-flex items-center gap-2 font-semibold">
@@ -314,10 +314,10 @@ export default function StudentCredentialDetailsSection({
 
           </section>
 
-          <section className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4">
-            <div className="rounded-lg border border-neutral-200 bg-neutral-50/60 px-3.5 py-3">
-              <p className="text-xs font-semibold  text-neutral-500">Credential Details</p>
-              <p className="mt-1 text-lg font-semibold leading-tight text-neutral-900">{selectedCredential.title}</p>
+          <section className="flex flex-col gap-6 xl:pl-4 xl:pt-2">
+            <div className="border-b border-neutral-200 pb-5">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Credential Details</p>
+              <p className="mt-2 text-xl font-semibold leading-tight text-neutral-900">{selectedCredential.title}</p>
               <p className="mt-2 text-sm font-medium text-neutral-600">
                 <span className="text-neutral-500">Type:</span>{' '}
                 <span className="font-semibold text-neutral-900">{formatCredentialTypeLabel(selectedCredential.type)}</span>
@@ -562,7 +562,7 @@ export default function StudentCredentialDetailsSection({
       )}
       </AnimatePresence>
       {stepUpModal}
-    </Card>
+    </div>
   );
 }
 

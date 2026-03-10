@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
+import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
 import {
   AlertTriangle,
   ArrowRight,
@@ -104,6 +105,113 @@ export default function AdminDashboard() {
     exportReviewedRiskReport,
     stepUpModal,
   } = useAdminDashboardState();
+
+  const userFilterGroups = useMemo<SearchFilterGroup[]>(() => [
+    {
+      id: 'admin-user-role',
+      label: 'Role',
+      value: roleFilter,
+      defaultValue: 'ALL',
+      options: ROLE_OPTIONS.map(role => ({
+        value: role,
+        label: role === 'ALL' ? 'All roles' : role,
+      })),
+      onChange: value => setRoleFilter(value as RoleFilter),
+    },
+    {
+      id: 'admin-user-status',
+      label: 'Status',
+      value: statusFilter,
+      defaultValue: 'ALL',
+      options: STATUS_OPTIONS.map(status => ({
+        value: status,
+        label: status === 'ALL' ? 'All statuses' : status,
+      })),
+      onChange: value => setStatusFilter(value as StatusFilter),
+    },
+  ], [roleFilter, setRoleFilter, setStatusFilter, statusFilter]);
+
+  const riskFilterGroups = useMemo<SearchFilterGroup[]>(() => [
+    {
+      id: 'admin-risk-band',
+      label: 'Risk band',
+      value: riskBandFilter,
+      defaultValue: 'ALL',
+      options: RISK_BAND_OPTIONS.map(option => ({
+        value: option,
+        label: option === 'ALL' ? 'All bands' : option,
+      })),
+      onChange: value => setRiskBandFilter(value as RiskBand | 'ALL'),
+    },
+    {
+      id: 'admin-risk-review',
+      label: 'Review status',
+      value: riskReviewFilter,
+      defaultValue: 'ALL',
+      options: RISK_REVIEW_OPTIONS.map(option => ({
+        value: option,
+        label: option === 'ALL' ? 'Any review state' : option,
+      })),
+      onChange: value => setRiskReviewFilter(value as RiskReviewStatus | 'ALL'),
+    },
+    {
+      id: 'admin-risk-page-size',
+      label: 'Page size',
+      value: String(riskPageSize),
+      defaultValue: '10',
+      options: [10, 20, 50].map(size => ({
+        value: String(size),
+        label: `${size} rows`,
+      })),
+      onChange: value => setRiskPageSize(Number(value)),
+    },
+    {
+      id: 'admin-risk-reviewed',
+      label: 'Scope',
+      type: 'boolean',
+      value: reviewedOnly,
+      defaultValue: false,
+      trueLabel: 'Reviewed only',
+      falseLabel: 'All events',
+      onChange: setReviewedOnly,
+    },
+  ], [reviewedOnly, riskBandFilter, riskPageSize, riskReviewFilter, setReviewedOnly, setRiskBandFilter, setRiskPageSize, setRiskReviewFilter]);
+
+  const auditFilterGroups = useMemo<SearchFilterGroup[]>(() => [
+    {
+      id: 'admin-audit-action',
+      label: 'Action',
+      value: auditActionFilter,
+      defaultValue: 'ALL',
+      options: adminAuditActionOptions.map(action => ({
+        value: action,
+        label: action === 'ALL' ? 'All actions' : action,
+      })),
+      onChange: value => setAuditActionFilter(value as 'ALL' | AuditAction),
+    },
+    {
+      id: 'admin-audit-severity',
+      label: 'Severity',
+      value: auditSeverityFilter,
+      defaultValue: 'ALL',
+      options: (['ALL', 'INFO', 'WARNING', 'CRITICAL'] as const).map(severity => ({
+        value: severity,
+        label: severity === 'ALL' ? 'All severities' : severity,
+      })),
+      onChange: value => setAuditSeverityFilter(value as 'ALL' | AuditSeverity),
+    },
+    {
+      id: 'admin-audit-page-size',
+      label: 'Page size',
+      value: String(auditPageSize),
+      defaultValue: '10',
+      options: [10, 20, 50].map(size => ({
+        value: String(size),
+        label: `${size} rows`,
+      })),
+      onChange: value => setAuditPageSize(Number(value)),
+    },
+  ], [adminAuditActionOptions, auditActionFilter, auditPageSize, auditSeverityFilter, setAuditActionFilter, setAuditPageSize, setAuditSeverityFilter]);
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -246,8 +354,8 @@ export default function AdminDashboard() {
       <Card
         title="User Management"
       >
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
-          <div className="lg:col-span-2">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="w-full lg:max-w-2xl">
             <label className="mb-1.5 block text-xs font-medium text-neutral-500">Search</label>
             <div className="relative">
               <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -259,35 +367,11 @@ export default function AdminDashboard() {
               />
             </div>
           </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-neutral-500">Role</label>
-            <select
-              value={roleFilter}
-              onChange={event => setRoleFilter(event.target.value as RoleFilter)}
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-800"
-            >
-              {ROLE_OPTIONS.map(role => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-neutral-500">Status</label>
-            <select
-              value={statusFilter}
-              onChange={event => setStatusFilter(event.target.value as StatusFilter)}
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-800"
-            >
-              {STATUS_OPTIONS.map(status => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center justify-end gap-2">
+            <SearchFilterModal
+              groups={userFilterGroups}
+              description="Refine the user directory by account role and approval status."
+            />
           </div>
         </div>
 
@@ -624,59 +708,12 @@ export default function AdminDashboard() {
           </div>
         }
       >
-        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-neutral-500">Risk Band</label>
-            <select
-              value={riskBandFilter}
-              onChange={event => setRiskBandFilter(event.target.value as RiskBand | 'ALL')}
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800"
-            >
-              {RISK_BAND_OPTIONS.map(option => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-neutral-500">Review Status</label>
-            <select
-              value={riskReviewFilter}
-              onChange={event => setRiskReviewFilter(event.target.value as RiskReviewStatus | 'ALL')}
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800"
-            >
-              {RISK_REVIEW_OPTIONS.map(option => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-neutral-500">Page Size</label>
-            <select
-              value={riskPageSize}
-              onChange={event => setRiskPageSize(Number(event.target.value))}
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800"
-            >
-              {[10, 20, 50].map(size => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-end justify-between gap-3">
-            <label className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium text-neutral-700">
-              <input
-                type="checkbox"
-                checked={reviewedOnly}
-                onChange={event => setReviewedOnly(event.target.checked)}
-                className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400"
-              />
-              Reviewed only
-            </label>
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2">
+            <SearchFilterModal
+              groups={riskFilterGroups}
+              description="Refine the risk queue by band, review state, scope, and result size."
+            />
             <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
               {riskTotal} events
             </div>
@@ -836,49 +873,11 @@ export default function AdminDashboard() {
       <Card
         title="Admin Governance Audit Logs"
       >
-        <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-neutral-500">Action</label>
-            <select
-              value={auditActionFilter}
-              onChange={event => setAuditActionFilter(event.target.value as 'ALL' | AuditAction)}
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800"
-            >
-              {adminAuditActionOptions.map(action => (
-                <option key={action} value={action}>
-                  {action}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-neutral-500">Severity</label>
-            <select
-              value={auditSeverityFilter}
-              onChange={event => setAuditSeverityFilter(event.target.value as 'ALL' | AuditSeverity)}
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800"
-            >
-              {(['ALL', 'INFO', 'WARNING', 'CRITICAL'] as const).map(severity => (
-                <option key={severity} value={severity}>
-                  {severity}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-neutral-500">Page Size</label>
-            <select
-              value={auditPageSize}
-              onChange={event => setAuditPageSize(Number(event.target.value))}
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800"
-            >
-              {[10, 20, 50].map(size => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <SearchFilterModal
+            groups={auditFilterGroups}
+            description="Refine governance logs by action, severity, and page size."
+          />
           <div className="flex items-end">
             <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
               {filteredAdminAuditLogs.length} entries

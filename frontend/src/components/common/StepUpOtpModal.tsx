@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { isAxiosError } from 'axios';
 import { StepUpAction, UserService } from '../../services/user.service';
 import { useLegacyAuth } from '../../auth/auth-context';

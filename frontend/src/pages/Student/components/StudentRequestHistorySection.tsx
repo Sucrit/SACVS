@@ -20,6 +20,7 @@ import { jsPDF } from 'jspdf';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import {
   ApprovalReceipt,
   CredentialRequest,
@@ -277,6 +278,31 @@ export default function StudentRequestHistorySection({
       .replace(/_/g, ' ')
       .replace(/\b\w/g, char => char.toUpperCase());
 
+  const filterGroups = useMemo<SearchFilterGroup[]>(() => [
+    {
+      id: 'request-type',
+      label: 'Type',
+      value: typeFilter,
+      defaultValue: 'ALL',
+      options: requestTypeFilters.map(filter => ({
+        value: filter,
+        label: filter === 'ALL' ? 'All types' : filter,
+      })),
+      onChange: value => setTypeFilter(value as RequestTypeFilter),
+    },
+    {
+      id: 'request-date',
+      label: 'Upload date',
+      value: dateFilter,
+      defaultValue: 'ALL',
+      options: dateRangeFilters.map(filter => ({
+        value: filter.value,
+        label: filter.label,
+      })),
+      onChange: value => setDateFilter(value as DateRangeFilter),
+    },
+  ], [dateFilter, typeFilter]);
+
   return (
     <Card>
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -291,33 +317,10 @@ export default function StudentRequestHistorySection({
           />
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <select
-            value={typeFilter}
-            onChange={event => setTypeFilter(event.target.value as RequestTypeFilter)}
-            className="h-10 rounded-full border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-700 outline-none focus:border-neutral-300"
-            aria-label="Filter requests by credential type"
-          >
-            <option value="ALL">All types</option>
-            {requestTypeFilters
-              .filter(filter => filter !== 'ALL')
-              .map(filter => (
-                <option key={filter} value={filter}>
-                  {filter}
-                </option>
-              ))}
-          </select>
-          <select
-            value={dateFilter}
-            onChange={event => setDateFilter(event.target.value as DateRangeFilter)}
-            className="h-10 rounded-full border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-700 outline-none focus:border-neutral-300"
-            aria-label="Filter requests by submitted date"
-          >
-            {dateRangeFilters.map(filter => (
-              <option key={filter.value} value={filter.value}>
-                {filter.label}
-              </option>
-            ))}
-          </select>
+          <SearchFilterModal
+            groups={filterGroups}
+            description="Refine request history by document type and submission date."
+          />
           {requestAction}
         </div>
       </div>

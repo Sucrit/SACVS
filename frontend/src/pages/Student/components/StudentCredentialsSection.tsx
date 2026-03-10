@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import {
   Credential,
   CredentialService,
@@ -377,6 +378,31 @@ export default function StudentCredentialsSection({
     });
   }, [credentials, dateFilter, searchTerm, typeFilter]);
 
+  const filterGroups = useMemo<SearchFilterGroup[]>(() => [
+    {
+      id: 'credential-type',
+      label: 'Type',
+      value: typeFilter,
+      defaultValue: 'ALL',
+      options: typeFilters.map(filter => ({
+        value: filter,
+        label: filter === 'ALL' ? 'All types' : filter,
+      })),
+      onChange: value => setTypeFilter(value as CredentialTypeFilter),
+    },
+    {
+      id: 'credential-date',
+      label: 'Issued date',
+      value: dateFilter,
+      defaultValue: 'ALL',
+      options: dateRangeFilters.map(filter => ({
+        value: filter.value,
+        label: filter.label,
+      })),
+      onChange: value => setDateFilter(value as DateRangeFilter),
+    },
+  ], [dateFilter, typeFilter]);
+
   return (
     <div>
       <div className="space-y-4">
@@ -393,33 +419,10 @@ export default function StudentCredentialsSection({
             />
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <select
-              value={typeFilter}
-              onChange={event => setTypeFilter(event.target.value as CredentialTypeFilter)}
-              className="h-9 rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-              aria-label="Filter credentials by type"
-            >
-              <option value="ALL">All types</option>
-              {typeFilters
-                .filter(filter => filter !== 'ALL')
-                .map(filter => (
-                  <option key={filter} value={filter}>
-                    {filter}
-                  </option>
-                ))}
-            </select>
-            <select
-              value={dateFilter}
-              onChange={event => setDateFilter(event.target.value as DateRangeFilter)}
-              className="h-9 rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-              aria-label="Filter credentials by date"
-            >
-              {dateRangeFilters.map(filter => (
-                <option key={filter.value} value={filter.value}>
-                  {filter.label}
-                </option>
-              ))}
-            </select>
+            <SearchFilterModal
+              groups={filterGroups}
+              description="Refine the credential gallery by type or issuance window."
+            />
           </div>
         </div>
         {isLoadingCredentials && (
