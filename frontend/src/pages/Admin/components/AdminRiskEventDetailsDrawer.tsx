@@ -130,7 +130,7 @@ export default function AdminRiskEventDetailsDrawer({
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             onClick={event => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between border-b border-neutral-200 px-7 py-6">
+            <div className="flex items-start justify-between border-b border-neutral-200 px-4 py-4 sm:px-7 sm:py-6">
               <div>
                 <h2 className="text-lg font-semibold text-neutral-900">Risk Event Details</h2>
                 <p className="mt-1 text-sm text-neutral-500">
@@ -147,7 +147,7 @@ export default function AdminRiskEventDetailsDrawer({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-7 py-6">
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-7 sm:py-6">
               {isLoading && (
                 <div className="flex min-h-[320px] flex-col items-center justify-center text-center">
                   <div className="h-10 w-10 animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-700" />

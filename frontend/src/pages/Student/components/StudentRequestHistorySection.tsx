@@ -468,7 +468,7 @@ export default function StudentRequestHistorySection({
             exit="exit"
             variants={MODAL_BACKDROP_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/60 p-2 backdrop-blur-[1px] sm:p-4"
             onClick={() => setDetailsRequest(null)}
           >
             <motion.div
@@ -477,7 +477,7 @@ export default function StudentRequestHistorySection({
               exit="exit"
               variants={MODAL_PANEL_VARIANTS}
               transition={MODAL_TRANSITION}
-              className="w-full max-w-xl overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-2xl"
+              className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg"
               onClick={event => event.stopPropagation()}
             >
             <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
@@ -688,7 +688,7 @@ export default function StudentRequestHistorySection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-2xl"
+            className="max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg"
             onClick={event => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">

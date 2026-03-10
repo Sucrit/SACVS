@@ -136,7 +136,7 @@ export default function StudentNotificationsSection({
               <MoreHorizontal size={18} />
             </button>
             {isMenuOpen && (
-              <div ref={menuRef} className="absolute right-0 top-10 z-10 min-w-[230px]">
+              <div ref={menuRef} className="absolute right-0 top-10 z-10 w-56 max-w-[calc(100vw-2rem)]">
                 <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
                   <button
                     type="button"

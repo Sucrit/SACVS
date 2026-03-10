@@ -195,9 +195,9 @@ export default function InstitutionOverviewSection({
       </div>
 
       <Card className="p-0">
-        <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
-          <p className="text-xl font-semibold text-neutral-900">Institution's Student Directory</p>
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 px-3 py-3 sm:px-5 sm:py-4">
+          <p className="text-lg font-semibold text-neutral-900 sm:text-xl">Institution's Student Directory</p>
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => navigate('/institution/students')}
@@ -236,30 +236,30 @@ export default function InstitutionOverviewSection({
               <table className="min-w-full border-separate border-spacing-0">
                 <thead>
                   <tr className="text-left text-[11px]  text-neutral-500">
-                    <th className="px-5 py-3 font-semibold">Student Name</th>
-                    <th className="px-5 py-3 font-semibold">Student ID</th>
-                    <th className="px-5 py-3 font-semibold">Program</th>
-                    <th className="px-5 py-3 font-semibold">Status</th>
-                    <th className="px-5 py-3 font-semibold">Last Issued</th>
+                    <th className="px-3 py-2 font-semibold sm:px-5 sm:py-3">Student Name</th>
+                    <th className="hidden px-3 py-2 font-semibold sm:table-cell sm:px-5 sm:py-3">Student ID</th>
+                    <th className="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-3">Program</th>
+                    <th className="px-3 py-2 font-semibold sm:px-5 sm:py-3">Status</th>
+                    <th className="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-3">Last Issued</th>
                   </tr>
                 </thead>
                 <tbody>
                   {directoryRows.map(student => (
                     <tr key={student.id} className="border-t border-neutral-100 text-sm text-neutral-700">
-                      <td className="px-5 py-3 align-top">
+                      <td className="px-3 py-2 align-top sm:px-5 sm:py-3">
                         <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
                         <p className="mt-0.5 text-xs text-neutral-500">{student.email}</p>
                       </td>
-                      <td className="px-5 py-3 align-top text-neutral-600">
+                      <td className="hidden px-3 py-2 align-top text-neutral-600 sm:table-cell sm:px-5 sm:py-3">
                         {student.profile?.studentNumber || '--'}
                       </td>
-                      <td className="px-5 py-3 align-top text-neutral-600">
+                      <td className="hidden px-3 py-2 align-top text-neutral-600 md:table-cell md:px-5 md:py-3">
                         {student.profile?.courseOfStudy || '--'}
                       </td>
-                      <td className="px-5 py-3 align-top">
+                      <td className="px-3 py-2 align-top sm:px-5 sm:py-3">
                         <Badge status={student.status} />
                       </td>
-                      <td className="px-5 py-3 align-top text-neutral-600">
+                      <td className="hidden px-3 py-2 align-top text-neutral-600 md:table-cell md:px-5 md:py-3">
                         {formatShortDate(lastIssuedByStudentId.get(student.id))}
                       </td>
                     </tr>

@@ -200,7 +200,7 @@ export default function InstitutionCredentialDetailsDrawer({
         }`}
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+          <div className="flex items-center justify-between border-b border-neutral-200 px-3 py-3 sm:px-5 sm:py-4">
             <h3 className="text-lg font-semibold text-neutral-900">Credential Details</h3>
             <button
               type="button"
@@ -212,7 +212,7 @@ export default function InstitutionCredentialDetailsDrawer({
             </button>
           </div>
 
-          <div className="flex-1 space-y-5 overflow-y-auto p-5">
+          <div className="flex-1 space-y-5 overflow-y-auto p-3 sm:p-5">
             {isLoading && (
               <div className="flex min-h-[420px] flex-col items-center justify-center px-6 text-center">
                 <span

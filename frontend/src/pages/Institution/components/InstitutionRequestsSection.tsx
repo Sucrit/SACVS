@@ -98,7 +98,7 @@ export default function InstitutionRequestsSection({
               </option>
             ))}
           </select>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => void onBulkAction('APPROVE')} className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Bulk Approve</button>
             <button onClick={() => void onBulkAction('REJECT')} className="inline-flex h-10 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-800 hover:bg-rose-100">Bulk Reject</button>
             <button onClick={() => void onBulkAction('ISSUE')} className="inline-flex h-10 items-center justify-center rounded-lg border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-800 hover:bg-cyan-100">Bulk Issue</button>
@@ -114,10 +114,10 @@ export default function InstitutionRequestsSection({
                 <th className="px-4 py-3">Pick</th>
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Document</th>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Expiry Date</th>
+                <th className="hidden px-4 py-3 md:table-cell">Date</th>
+                <th className="hidden px-4 py-3 lg:table-cell">Expiry Date</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Reason</th>
+                <th className="hidden px-4 py-3 lg:table-cell">Reason</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -172,8 +172,8 @@ export default function InstitutionRequestsSection({
                       {getRequestTypeLabel(request)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-neutral-600">{formatDate(request.createdAt)}</td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-4 py-3 text-sm text-neutral-600 md:table-cell">{formatDate(request.createdAt)}</td>
+                  <td className="hidden px-4 py-3 lg:table-cell">
                     {supportsExpiryDate(request.type) ? (
                       <div className="space-y-1">
                         <p className="text-[10px] font-medium  text-neutral-500">Expiry</p>
@@ -191,7 +191,7 @@ export default function InstitutionRequestsSection({
                     )}
                   </td>
                   <td className="px-4 py-3"><Badge status={request.status} /></td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-4 py-3 lg:table-cell">
                     <input
                       value={rejectionReasonByRequestId[request.id] || ''}
                       onChange={event => onReasonChange(request.id, event.target.value)}

@@ -324,7 +324,7 @@ export default function StudentCredentialDetailsSection({
               </p>
             </div>
 
-            <div className="grid grid-cols-[130px_1fr] items-start gap-x-3 gap-y-3 text-sm">
+            <div className="grid grid-cols-1 items-start gap-x-3 gap-y-2 text-sm sm:grid-cols-[130px_1fr] sm:gap-y-3">
               <p className="inline-flex items-center gap-2 font-medium text-neutral-500">
                 <Sparkles size={14} />
                 Status
@@ -482,7 +482,7 @@ export default function StudentCredentialDetailsSection({
             </p>
             <div className="mt-4 flex justify-center rounded-lg border border-neutral-200 bg-neutral-50 p-4">
               {qrDataUrl ? (
-                <img src={qrDataUrl} alt="One-time credential verification QR" className="h-64 w-64" />
+                <img src={qrDataUrl} alt="One-time credential verification QR" className="h-40 w-40 sm:h-64 sm:w-64" />
               ) : (
                 <p className="text-sm text-neutral-500">Rendering QR...</p>
               )}

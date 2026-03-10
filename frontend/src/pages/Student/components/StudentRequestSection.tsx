@@ -124,7 +124,7 @@ export default function StudentRequestSection({
 
               <div className="space-y-1">
                 <p className="text-xs font-medium text-neutral-600">Delivery Method</p>
-                <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50">
+                <div className="grid grid-cols-1 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 sm:grid-cols-3">
                   {DELIVERY_METHODS.map(method => {
                     const selected = requestForm.deliveryMethod === method;
                     return (

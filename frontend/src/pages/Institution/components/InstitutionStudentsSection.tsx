@@ -224,11 +224,11 @@ export default function InstitutionStudentsSection({
             <thead className="bg-neutral-50 text-xs font-semibold  text-neutral-500">
               <tr>
                 <th className="px-4 py-3">Student</th>
-                <th className="px-4 py-3">Student #</th>
-                <th className="px-4 py-3">Department</th>
-                <th className="px-4 py-3">Program</th>
+                <th className="hidden px-4 py-3 sm:table-cell">Student #</th>
+                <th className="hidden px-4 py-3 md:table-cell">Department</th>
+                <th className="hidden px-4 py-3 lg:table-cell">Program</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Approval</th>
+                <th className="hidden px-4 py-3 md:table-cell">Approval</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -238,11 +238,11 @@ export default function InstitutionStudentsSection({
               {!isLoadingStudents && students.map(student => (
                 <tr key={student.id} className="hover:bg-neutral-50/70">
                   <td className="px-4 py-3"><p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p><p className="mt-1 text-xs text-neutral-500">{student.email}</p></td>
-                  <td className="px-4 py-3 text-sm text-neutral-700">{student.profile?.studentNumber || '-'}</td>
-                  <td className="px-4 py-3 text-sm text-neutral-700">{student.profile?.department || '-'}</td>
-                  <td className="px-4 py-3 text-sm text-neutral-700">{student.profile?.courseOfStudy || '-'}</td>
+                  <td className="hidden px-4 py-3 text-sm text-neutral-700 sm:table-cell">{student.profile?.studentNumber || '-'}</td>
+                  <td className="hidden px-4 py-3 text-sm text-neutral-700 md:table-cell">{student.profile?.department || '-'}</td>
+                  <td className="hidden px-4 py-3 text-sm text-neutral-700 lg:table-cell">{student.profile?.courseOfStudy || '-'}</td>
                   <td className="px-4 py-3"><Badge status={student.status} /></td>
-                  <td className="px-4 py-3 text-xs text-neutral-600">
+                  <td className="hidden px-4 py-3 text-xs text-neutral-600 md:table-cell">
                     <p><span className="font-semibold text-neutral-700">By:</span> {student.approverName || '-'}</p>
                     <p className="mt-1"><span className="font-semibold text-neutral-700">At:</span> {formatDateTime(student.approvedAt)}</p>
                   </td>
@@ -285,7 +285,7 @@ export default function InstitutionStudentsSection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-2 backdrop-blur-[1px] sm:p-4"
           onClick={() => setActiveModal(null)}
         >
           <motion.div
@@ -294,7 +294,7 @@ export default function InstitutionStudentsSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg"
+            className="w-full max-w-[95vw] max-h-[90vh] overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg sm:max-w-5xl"
             onClick={event => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
@@ -445,7 +445,7 @@ export default function InstitutionStudentsSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-xl overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg"
+            className="w-full max-w-[95vw] overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg sm:max-w-xl"
             onClick={event => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
@@ -491,7 +491,7 @@ export default function InstitutionStudentsSection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-2 backdrop-blur-[1px] sm:p-4"
           onClick={onCancelEditStudent}
         >
           <motion.div
@@ -500,7 +500,7 @@ export default function InstitutionStudentsSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg"
+            className="w-full max-w-[95vw] max-h-[90vh] overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg sm:max-w-5xl"
             onClick={event => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">

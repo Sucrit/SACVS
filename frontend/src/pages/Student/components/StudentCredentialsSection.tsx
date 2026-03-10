@@ -559,7 +559,7 @@ export default function StudentCredentialsSection({
             </p>
             <div className="mt-4 flex justify-center rounded-lg border border-neutral-200 bg-neutral-50 p-4">
               {qrDataUrl ? (
-                <img src={qrDataUrl} alt="One-time credential verification QR" className="h-56 w-56" />
+                <img src={qrDataUrl} alt="One-time credential verification QR" className="h-40 w-40 sm:h-56 sm:w-56" />
               ) : (
                 <p className="text-sm text-neutral-500">{isGeneratingQr ? 'Generating QR...' : 'Rendering QR...'}</p>
               )}

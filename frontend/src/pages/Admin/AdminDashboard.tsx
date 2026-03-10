@@ -168,10 +168,10 @@ export default function AdminDashboard() {
                 <thead className="bg-neutral-50 text-xs font-medium text-neutral-500">
                   <tr>
                     <th className="px-5 py-3">Name</th>
-                    <th className="px-5 py-3">Email</th>
+                    <th className="hidden px-5 py-3 sm:table-cell">Email</th>
                     <th className="px-5 py-3">Role</th>
                     <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3">Created</th>
+                    <th className="hidden px-5 py-3 md:table-cell">Created</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100 bg-white">
@@ -196,7 +196,7 @@ export default function AdminDashboard() {
                           <p className="font-semibold text-neutral-900">{getFullName(user)}</p>
                           <p className="mt-1 text-xs text-neutral-500">ID: {user.id}</p>
                         </td>
-                        <td className="px-5 py-4 text-sm text-neutral-600">{user.email}</td>
+                        <td className="hidden px-5 py-4 text-sm text-neutral-600 sm:table-cell">{user.email}</td>
                         <td className="px-5 py-4">
                           <span className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${getRoleStyles(user.role)}`}>
                             {user.role}
@@ -205,7 +205,7 @@ export default function AdminDashboard() {
                         <td className="px-5 py-4">
                           <Badge status={user.status} />
                         </td>
-                        <td className="px-5 py-4 text-sm text-neutral-500">{formatDate(user.createdAt)}</td>
+                        <td className="hidden px-5 py-4 text-sm text-neutral-500 md:table-cell">{formatDate(user.createdAt)}</td>
                       </tr>
                     ))}
                 </tbody>
@@ -307,8 +307,8 @@ export default function AdminDashboard() {
                     <th className="px-5 py-3">User</th>
                     <th className="px-5 py-3">Role</th>
                     <th className="px-5 py-3">Status</th>
-                    <th className="px-5 py-3">Organization</th>
-                    <th className="px-5 py-3">Created</th>
+                    <th className="hidden px-5 py-3 md:table-cell">Organization</th>
+                    <th className="hidden px-5 py-3 sm:table-cell">Created</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100 bg-white">
@@ -355,8 +355,8 @@ export default function AdminDashboard() {
                           <td className="px-5 py-4">
                             <Badge status={user.status} />
                           </td>
-                          <td className="px-5 py-4 text-sm text-neutral-600">{getLinkedOrganizationLabel(user)}</td>
-                          <td className="px-5 py-4 text-sm text-neutral-600">{formatDate(user.createdAt)}</td>
+                          <td className="hidden px-5 py-4 text-sm text-neutral-600 md:table-cell">{getLinkedOrganizationLabel(user)}</td>
+                          <td className="hidden px-5 py-4 text-sm text-neutral-600 sm:table-cell">{formatDate(user.createdAt)}</td>
                         </tr>
                       );
                     })}
@@ -381,7 +381,7 @@ export default function AdminDashboard() {
                     <Badge status={selectedUser.status} />
                   </div>
 
-                  <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                  <div className="mt-4 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
                     <div>
                       <p className="text-neutral-500">User ID</p>
                       <p className="mt-1 break-all font-semibold text-neutral-700">{selectedUser.id}</p>
@@ -688,12 +688,12 @@ export default function AdminDashboard() {
             <thead className="bg-neutral-50 text-xs font-medium text-neutral-500">
               <tr>
                 <th className="px-4 py-3">Action</th>
-                <th className="px-4 py-3">Actor</th>
+                <th className="hidden px-4 py-3 sm:table-cell">Actor</th>
                 <th className="px-4 py-3">Score</th>
                 <th className="px-4 py-3">Band</th>
-                <th className="px-4 py-3">Review</th>
-                <th className="px-4 py-3">Signals</th>
-                <th className="px-4 py-3">Observed</th>
+                <th className="hidden px-4 py-3 md:table-cell">Review</th>
+                <th className="hidden px-4 py-3 lg:table-cell">Signals</th>
+                <th className="hidden px-4 py-3 lg:table-cell">Observed</th>
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
@@ -721,7 +721,7 @@ export default function AdminDashboard() {
                         <p className="text-xs text-neutral-500">{event.targetType || 'No target'}{event.targetId ? ` â€¢ ${event.targetId}` : ''}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="hidden px-4 py-3 sm:table-cell">
                       <div className="space-y-1 text-xs text-neutral-600">
                         <p className="font-semibold text-neutral-800">{event.actorRole || 'UNKNOWN'}</p>
                         <p>{event.actorId || '-'}</p>
@@ -733,7 +733,7 @@ export default function AdminDashboard() {
                         {event.riskBand}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs">
+                    <td className="hidden px-4 py-3 text-xs md:table-cell">
                       <div className="space-y-1">
                         <span className={`inline-flex rounded-md border px-2.5 py-1 font-semibold ${getRiskReviewStyles(event.reviewStatus)}`}>
                           {event.reviewStatus}
@@ -741,7 +741,7 @@ export default function AdminDashboard() {
                         <p className="text-neutral-500">{event.reviewedAt ? formatDateTime(event.reviewedAt) : 'Not reviewed'}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="hidden px-4 py-3 lg:table-cell">
                       <div className="max-w-xs space-y-1 text-xs text-neutral-600">
                         {event.topSignals.length === 0 && <p>-</p>}
                         {event.topSignals.slice(0, 3).map(signal => (
@@ -749,14 +749,14 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-neutral-600">
+                    <td className="hidden px-4 py-3 text-xs text-neutral-600 lg:table-cell">
                       <div className="space-y-1">
                         <p>{formatDateTime(event.observedAt)}</p>
                         <p className="text-neutral-500">Model {event.modelVersion}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex min-w-[230px] flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <button
                           onClick={() => void openRiskEventDetails(event.id)}
                           disabled={selectedRiskEventId === event.id && isLoadingSelectedRiskEvent}
@@ -892,9 +892,9 @@ export default function AdminDashboard() {
               <tr>
                 <th className="px-4 py-3">Timestamp</th>
                 <th className="px-4 py-3">Action</th>
-                <th className="px-4 py-3">Severity</th>
-                <th className="px-4 py-3">Actor</th>
-                <th className="px-4 py-3">Description</th>
+                <th className="hidden px-4 py-3 sm:table-cell">Severity</th>
+                <th className="hidden px-4 py-3 md:table-cell">Actor</th>
+                <th className="hidden px-4 py-3 lg:table-cell">Description</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 bg-white">
@@ -917,9 +917,9 @@ export default function AdminDashboard() {
                   <tr key={log.id} className="hover:bg-neutral-50/70">
                     <td className="px-4 py-3 text-xs text-neutral-600">{new Date(log.createdAt).toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs font-semibold text-neutral-800">{log.action}</td>
-                    <td className="px-4 py-3 text-xs text-neutral-700">{log.severity}</td>
-                    <td className="px-4 py-3 text-xs text-neutral-600">{log.actorEmail || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-700">{log.description || '-'}</td>
+                    <td className="hidden px-4 py-3 text-xs text-neutral-700 sm:table-cell">{log.severity}</td>
+                    <td className="hidden px-4 py-3 text-xs text-neutral-600 md:table-cell">{log.actorEmail || '-'}</td>
+                    <td className="hidden px-4 py-3 text-sm text-neutral-700 lg:table-cell">{log.description || '-'}</td>
                   </tr>
                 ))}
             </tbody>

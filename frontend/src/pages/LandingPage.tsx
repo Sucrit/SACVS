@@ -153,8 +153,8 @@ export default function LandingPage() {
 
       <main className="flex-1">
         <section className="credence-hero-gradient relative overflow-hidden pb-32 pt-40">
-          <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center px-6 text-center md:px-20">
-            <h1 className="mb-6 max-w-4xl text-5xl font-extrabold leading-[1.1] tracking-tight text-neutral-900 md:text-7xl">
+          <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center px-4 text-center sm:px-6 md:px-20">
+            <h1 className="mb-6 max-w-4xl text-3xl font-extrabold leading-[1.1] tracking-tight text-neutral-900 sm:text-5xl md:text-7xl">
               Securing Academic Excellence with <span className="text-neutral-500">Blockchain</span> and <span className="text-neutral-500">AI</span>
             </h1>
             <p className="mb-10 max-w-2xl text-lg leading-relaxed text-neutral-500 md:text-xl">
@@ -192,7 +192,7 @@ export default function LandingPage() {
             <div className="absolute inset-0 bg-white/90"></div>
           </div>
 
-          <div className="relative z-10 mx-auto max-w-7xl px-6 md:px-20">
+          <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 md:px-20">
             <div className="mb-16">
               <h2 className="mb-4 text-3xl font-black md:text-4xl">The Future of Academic Integrity</h2>
               <p className="mb-8 text-lg leading-relaxed text-neutral-500">
@@ -225,7 +225,7 @@ export default function LandingPage() {
         </section>
 
         <section id="solutions" className="py-24">
-          <div className="mx-auto max-w-7xl px-6 md:px-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 md:px-20">
             <div className="space-y-8">
               <article className="overflow-hidden rounded-[2rem] border border-[#2b3e52] bg-[#1b2a3a] shadow-[0_18px_44px_rgba(15,23,42,0.28)]">
                 <div className="grid grid-cols-1 md:grid-cols-2">
@@ -263,7 +263,7 @@ export default function LandingPage() {
               </article>
               <article className="overflow-hidden rounded-[2rem] border border-neutral-200 bg-[#eaf1f7] shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
                 <div className="grid grid-cols-1 md:grid-cols-2">
-                  <div className="relative z-10 p-8 md:p-12 lg:p-14">
+                  <div className="relative z-10 p-4 sm:p-8 md:p-12 lg:p-14">
                     <p className="text-xs font-bold uppercase tracking-[0.15em] text-blue-700">For Institutions</p>
                     <h3 className="mt-4 text-4xl font-black leading-tight text-neutral-900">
                       Secure issuance.
@@ -300,9 +300,9 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer id="team" className="border-t border-neutral-100 bg-neutral-50 px-6 pb-10 pt-20 md:px-20">
+      <footer id="team" className="border-t border-neutral-100 bg-neutral-50 px-4 pb-10 pt-12 sm:px-6 sm:pt-20 md:px-20">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-16 grid grid-cols-2 gap-12 md:grid-cols-4 lg:grid-cols-5">
+          <div className="mb-16 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-12 md:grid-cols-4 lg:grid-cols-5">
             <div className="col-span-2 lg:col-span-2">
               <img alt="Credence logo" className="mb-6 h-7 w-auto" src={logo2} />
               <p className="mb-6 max-w-sm text-neutral-500">

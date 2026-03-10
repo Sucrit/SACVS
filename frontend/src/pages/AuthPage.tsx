@@ -557,7 +557,7 @@ export default function AuthPage() {
         className={
           isAuthStep
             ? 'mx-auto w-full max-w-[520px]'
-            : 'mx-auto w-full max-w-[760px] rounded-lg border border-neutral-200 bg-white p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12)] md:p-8'
+            : 'mx-auto w-full max-w-[760px] rounded-lg border border-neutral-200 bg-white p-4 shadow-[0_24px_80px_rgba(15,23,42,0.12)] sm:p-6 md:p-8'
         }
       >
         {isAuthStep && !isClerkLoaded && (

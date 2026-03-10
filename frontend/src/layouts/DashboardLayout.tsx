@@ -6,6 +6,8 @@ import {
   ChartColumnBig,
   CheckCheck,
   FileSearch,
+  Menu,
+  X,
   FileText,
   GraduationCap,
   History,
@@ -42,7 +44,7 @@ const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string; icon: Lucid
     { to: '/institution/students', label: 'Students', icon: Users },
     { to: '/institution/requests', label: 'Requests', icon: FileText },
     { to: '/institution/analytics', label: 'Analytics', icon: ChartColumnBig },
-    { to: '/institution/receipt-verify', label: 'Receipt Verify', icon: FileSearch },
+    { to: '/institution/receipt-verify', label: 'Verify Receipt', icon: FileSearch },
     { to: '/institution/logs', label: 'Audit Logs', icon: History },
   ],
   ADMIN: [
@@ -90,6 +92,7 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const { user, isLoading } = useLegacyAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState<'ALL' | 'UNREAD'>('ALL');
@@ -458,11 +461,21 @@ export default function DashboardLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-neutral-50 font-sans selection:bg-primary-600 selection:text-white">
+      {/* ── Mobile sidebar overlay ── */}
+      {mobileNavOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-neutral-950/40 backdrop-blur-[2px] md:hidden"
+          onClick={() => setMobileNavOpen(false)}
+        />
+      )}
+
       {/* ── Sidebar ── */}
       <aside
-        className={`flex flex-col border-r border-neutral-200 bg-white transition-[width] duration-200 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-neutral-200 bg-white transition-transform duration-200 ease-in-out md:static md:translate-x-0 ${
+          mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
+        } ${
           sidebarCollapsed ? 'w-16' : 'w-56'
-        }`}
+        } md:transition-[width]`}
       >
         {/* Sidebar header */}
         <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-neutral-200 px-4">
@@ -493,6 +506,7 @@ export default function DashboardLayout() {
                   key={link.to}
                   to={link.to}
                   end={link.to === expectedRoutePrefix}
+                  onClick={() => setMobileNavOpen(false)}
                   className={({ isActive }) =>
                     `group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
                       isActive
@@ -515,8 +529,8 @@ export default function DashboardLayout() {
           </div>
         </nav>
 
-        {/* Sidebar footer — collapse toggle */}
-        <div className="shrink-0 border-t border-neutral-200 px-2 py-2">
+        {/* Sidebar footer — collapse toggle (desktop only) */}
+        <div className="hidden shrink-0 border-t border-neutral-200 px-2 py-2 md:block">
           <button
             type="button"
             onClick={() => setSidebarCollapsed(prev => !prev)}
@@ -531,9 +545,18 @@ export default function DashboardLayout() {
       {/* ── Main area ── */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-6">
-          <div className="flex items-center gap-3">
-            <p className="text-sm font-medium text-neutral-500">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-3 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Hamburger — mobile only */}
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(prev => !prev)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700 md:hidden"
+              aria-label="Toggle navigation"
+            >
+              {mobileNavOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+            <p className="hidden text-sm font-medium text-neutral-500 sm:block">
               {greeting}, <span className="text-neutral-700">{firstName}</span>
             </p>
           </div>
@@ -566,7 +589,7 @@ export default function DashboardLayout() {
               {isNotificationOpen && (
                 <div
                   ref={bellPanelRef}
-                  className="absolute right-0 top-10 z-50 w-80 sm:w-[22rem]"
+                  className="absolute right-0 top-10 z-50 w-[calc(100vw-2rem)] max-w-[22rem] sm:w-[22rem]"
                 >
                   <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-overlay">
                     <div className="max-h-[75vh] overflow-y-auto overscroll-contain">
@@ -725,7 +748,7 @@ export default function DashboardLayout() {
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-6xl px-6 py-6">
+          <div className="mx-auto max-w-6xl px-3 py-4 sm:px-6 sm:py-6">
             <Outlet />
           </div>
         </main>
