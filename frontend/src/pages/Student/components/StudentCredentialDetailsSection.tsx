@@ -434,7 +434,11 @@ export default function StudentCredentialDetailsSection({
                     Verification QR
                   </p>
                   <p className="text-xs font-semibold text-amber-700">
-                    Expires in {formatQrCountdown(qrSecondsRemaining)}
+                    {isGeneratingQr ? (
+                      <span className="text-neutral-400 animate-pulse">Updating...</span>
+                    ) : (
+                      `Expires in ${formatQrCountdown(qrSecondsRemaining)}`
+                    )}
                   </p>
                 </>
               )}
@@ -476,10 +480,16 @@ export default function StudentCredentialDetailsSection({
               </button>
             </div>
             <div className="p-5">
-            <p className="text-sm text-neutral-600">
-              This QR can be used once and expires in{' '}
-              <span className="font-semibold text-amber-700">{formatQrCountdown(qrSecondsRemaining)}</span>.
-            </p>
+            <div className="text-sm text-neutral-600 min-h-[20px]">
+              {isGeneratingQr ? (
+                <span className="text-neutral-500 animate-pulse">Waiting for verification...</span>
+              ) : (
+                <p>
+                  This QR can be used once and expires in{' '}
+                  <span className="font-semibold text-amber-700">{formatQrCountdown(qrSecondsRemaining)}</span>.
+                </p>
+              )}
+            </div>
             <div className="mt-4 flex justify-center rounded-lg border border-neutral-200 bg-neutral-50 p-4">
               {qrDataUrl ? (
                 <img src={qrDataUrl} alt="One-time credential verification QR" className="h-40 w-40 sm:h-64 sm:w-64" />

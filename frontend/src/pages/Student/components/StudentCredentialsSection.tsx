@@ -553,10 +553,16 @@ export default function StudentCredentialsSection({
               </button>
             </div>
             <div className="p-5">
-            <p className="text-sm text-neutral-600">
-              <span className="font-medium text-neutral-900">{shareCredential.title}</span> verification QR expires in{' '}
-              <span className="font-semibold text-warning-700">{formatQrCountdown(qrSecondsRemaining)}</span>.
-            </p>
+            <div className="text-sm text-neutral-600 min-h-[20px]">
+              {isGeneratingQr ? (
+                <span className="text-neutral-500 animate-pulse">Waiting for verification...</span>
+              ) : (
+                <p>
+                  <span className="font-medium text-neutral-900">{shareCredential.title}</span> verification QR expires in{' '}
+                  <span className="font-semibold text-warning-700">{formatQrCountdown(qrSecondsRemaining)}</span>.
+                </p>
+              )}
+            </div>
             <div className="mt-4 flex justify-center rounded-lg border border-neutral-200 bg-neutral-50 p-4">
               {qrDataUrl ? (
                 <img src={qrDataUrl} alt="One-time credential verification QR" className="h-40 w-40 sm:h-56 sm:w-56" />

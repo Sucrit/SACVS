@@ -430,15 +430,13 @@ export default function StudentProfileSection({
               {saveError}
             </div>
           )}
-          <div className="flex items-center justify-end gap-3 border-t border-neutral-200 pt-4">
             <button
               type="submit"
               disabled={isSavingPersonalInfo}
               className="inline-flex h-10 items-center justify-center rounded-lg border border-neutral-900 bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSavingPersonalInfo ? <ButtonLoadingContent label="Saving" /> : 'Save Information'}
+              {isSavingPersonalInfo ? <ButtonLoadingContent label="Saving" /> : 'Save'}
             </button>
-          </div>
         </form>
       </div>
     </Card>

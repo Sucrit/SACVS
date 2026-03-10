@@ -460,7 +460,7 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-neutral-50 font-sans selection:bg-primary-600 selection:text-white">
+    <div className="flex h-dvh overflow-hidden bg-neutral-50 font-sans selection:bg-primary-600 selection:text-white">
       {/* ── Mobile sidebar overlay ── */}
       {mobileNavOpen && (
         <div
