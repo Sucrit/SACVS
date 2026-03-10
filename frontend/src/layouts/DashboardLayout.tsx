@@ -474,11 +474,10 @@ export default function DashboardLayout() {
                   type="button"
                   onClick={() => setIsNotificationOpen(previous => !previous)}
                   disabled={isNotificationPageOpen}
-                  className={`relative rounded-full p-2.5 transition-all duration-300 ${
-                    isNotificationPageOpen
+                  className={`relative rounded-full p-2.5 transition-all duration-300 ${isNotificationPageOpen
                       ? 'cursor-default bg-transparent text-slate-900'
                       : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
+                    }`}
                   aria-label="Open notifications"
                   aria-expanded={isNotificationOpen && !isNotificationPageOpen}
                   aria-current={isNotificationPageOpen ? 'page' : undefined}
@@ -573,22 +572,20 @@ export default function DashboardLayout() {
                             <button
                               type="button"
                               onClick={() => setNotificationFilter('ALL')}
-                              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                                notificationFilter === 'ALL'
+                              className={`rounded-full px-3 py-1 text-xs font-semibold ${notificationFilter === 'ALL'
                                   ? 'bg-slate-900 text-white'
                                   : 'text-slate-600 hover:text-slate-900'
-                              }`}
+                                }`}
                             >
                               All
                             </button>
                             <button
                               type="button"
                               onClick={() => setNotificationFilter('UNREAD')}
-                              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                                notificationFilter === 'UNREAD'
+                              className={`rounded-full px-3 py-1 text-xs font-semibold ${notificationFilter === 'UNREAD'
                                   ? 'bg-slate-900 text-white'
                                   : 'text-slate-600 hover:text-slate-900'
-                              }`}
+                                }`}
                             >
                               Unread
                             </button>
@@ -629,11 +626,10 @@ export default function DashboardLayout() {
                                   key={notification.id}
                                   type="button"
                                   onClick={() => void handleHeaderNotificationClick(notification)}
-                                  className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                                    notification.read
+                                  className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors ${notification.read
                                       ? 'border-slate-200 bg-white hover:bg-slate-50'
                                       : 'border-sky-200 bg-sky-50/40 hover:bg-sky-50'
-                                  }`}
+                                    }`}
                                 >
                                   <div className="mb-1.5 flex items-start justify-between gap-3">
                                     <p className="text-sm font-semibold text-slate-900">{notification.title}</p>
@@ -678,10 +674,9 @@ export default function DashboardLayout() {
                   to={link.to}
                   end={link.to === expectedRoutePrefix}
                   className={({ isActive }) =>
-                    `inline-flex h-full items-center whitespace-nowrap border-b px-3 py-0 text-[13px] font-semibold transition sm:text-sm lg:px-3.5 ${
-                      isActive
-                        ? 'border-slate-900 text-slate-900'
-                        : 'border-transparent text-slate-600 hover:text-slate-900'
+                    `inline-flex h-full items-center whitespace-nowrap border-b px-3 py-0 text-[13px] font-semibold transition sm:text-sm lg:px-3.5 ${isActive
+                      ? 'border-slate-900 text-slate-900'
+                      : 'border-transparent text-slate-600 hover:text-slate-900'
                     }`
                   }
                 >

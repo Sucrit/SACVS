@@ -1,6 +1,8 @@
-import { isAxiosError } from 'axios';
 import { InstitutionStudentPayload, User } from '../../services/user.service';
 import { InstitutionSection } from './types';
+
+export { formatDate, formatDateTime } from '../../utils/formatting';
+export { getApiErrorMessage } from '../../utils/errors';
 
 export const getInstitutionSection = (pathname: string): InstitutionSection => {
   if (pathname.startsWith('/institution/analytics')) return 'analytics';
@@ -11,30 +13,6 @@ export const getInstitutionSection = (pathname: string): InstitutionSection => {
   if (pathname.startsWith('/institution/notifications')) return 'notifications';
   if (pathname.startsWith('/institution/logs')) return 'logs';
   return 'overview';
-};
-
-export const formatDate = (value: string | null | undefined) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-};
-
-export const formatDateTime = (value: string | null | undefined) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
 };
 
 export const getStudentFullName = (student: User) =>
@@ -81,25 +59,6 @@ export const parseCsvStudents = (rawCsv: string): { students: InstitutionStudent
   }
 
   return { students, error: null };
-};
-
-export const getApiErrorMessage = (error: unknown): string | null => {
-  if (!isAxiosError(error)) {
-    if (error instanceof Error && error.message.trim().length > 0) return error.message;
-    return null;
-  }
-
-  if (typeof error.response?.data === 'string' && error.response.data.trim().length > 0) {
-    return error.response.data;
-  }
-
-  const responseData = error.response?.data as { error?: string; message?: string } | undefined;
-  if (typeof responseData?.error === 'string' && responseData.error.trim().length > 0) return responseData.error;
-  if (typeof responseData?.message === 'string' && responseData.message.trim().length > 0) return responseData.message;
-
-  if (typeof error.message === 'string' && error.message.trim().length > 0) return error.message;
-
-  return null;
 };
 
 export const createClientId = () => `${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;

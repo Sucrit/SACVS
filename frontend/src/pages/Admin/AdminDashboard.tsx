@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import {
@@ -15,588 +15,96 @@ import {
   UserRoundCheck,
   Users,
 } from 'lucide-react';
-import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../services/audit.service';
-import {
-  RiskBand,
-  RiskEventRecord,
-  RiskReviewReasonCode,
-  RiskReviewStatus,
-  RiskService,
-  RiskWorkerStatus,
-} from '../../services/risk.service';
-import { User, UserRole, UserService, UserStatus } from '../../services/user.service';
-import { useStepUp } from '../../hooks/useStepUp';
-import { realtimeService } from '../../services/realtime.service';
+import { AuditAction, AuditSeverity } from '../../services/audit.service';
+import { RiskBand, RiskReviewStatus } from '../../services/risk.service';
 import ButtonLoadingContent from '../../components/common/ButtonLoadingContent';
-import { useToast } from '../../hooks/useToast';
 import AdminRiskEventDetailsDrawer from './components/AdminRiskEventDetailsDrawer';
-
-type AdminSection = 'overview' | 'users' | 'risk' | 'logs';
-type RoleFilter = UserRole | 'ALL';
-type StatusFilter = UserStatus | 'ALL';
-
-const ROLE_OPTIONS: RoleFilter[] = ['ALL', 'STUDENT', 'INSTITUTION', 'ADMIN'];
-const STATUS_OPTIONS: StatusFilter[] = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'];
-const USER_STATUS_ACTIONS: UserStatus[] = ['APPROVED', 'REJECTED', 'SUSPENDED', 'PENDING'];
-const USER_ROLE_ACTIONS: UserRole[] = ['STUDENT', 'INSTITUTION', 'ADMIN'];
-const OTP_BADGE_CLASS =
-  'rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700';
-
-const formatDateTime = (value: string | null | undefined) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString();
-};
-
-const formatDate = (value: string | null | undefined) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleDateString();
-};
-
-const getFullName = (user: User) => [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ').trim();
-
-const getInitials = (user: User) => {
-  const source = getFullName(user) || user.email || 'U';
-  const tokens = source.split(' ').filter(Boolean);
-  if (tokens.length === 1) return tokens[0].slice(0, 2).toUpperCase();
-  return `${tokens[0][0] || ''}${tokens[1][0] || ''}`.toUpperCase();
-};
-
-const getRoleStyles = (role: UserRole) => {
-  if (role === 'ADMIN') return 'border-slate-400 bg-slate-100 text-slate-800';
-  if (role === 'INSTITUTION') return 'border-cyan-200 bg-cyan-50 text-cyan-800';
-  return 'border-slate-200 bg-slate-50 text-slate-700';
-};
-
-const getLinkedOrganizationLabel = (user: User) => {
-  if (user.role === 'INSTITUTION') {
-    return user.institution?.institutionName || '-';
-  }
-  return '-';
-};
-
-const getSection = (pathname: string): AdminSection => {
-  if (pathname.includes('/admin/users')) return 'users';
-  if (pathname.includes('/admin/risk')) return 'risk';
-  if (pathname.includes('/admin/logs')) return 'logs';
-  return 'overview';
-};
-
-const getApiErrorMessage = (error: unknown): string | null => {
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
-  }
-  return null;
-};
-
-const RISK_BAND_OPTIONS: Array<RiskBand | 'ALL'> = ['ALL', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-const RISK_REVIEW_OPTIONS: Array<RiskReviewStatus | 'ALL'> = [
-  'ALL',
-  'PENDING_REVIEW',
-  'CONFIRMED_ABUSE',
-  'BENIGN',
-  'UNCERTAIN',
-];
-
-const getRiskBandStyles = (riskBand: RiskBand) => {
-  if (riskBand === 'CRITICAL') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (riskBand === 'HIGH') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (riskBand === 'MEDIUM') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
-  return 'border-slate-200 bg-slate-50 text-slate-700';
-};
-
-const getRiskReviewStyles = (reviewStatus: RiskReviewStatus) => {
-  if (reviewStatus === 'CONFIRMED_ABUSE') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (reviewStatus === 'BENIGN') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (reviewStatus === 'UNCERTAIN') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-slate-200 bg-slate-50 text-slate-700';
-};
+import { formatDate, formatDateTime } from '../../utils/formatting';
+import {
+  useAdminDashboardState,
+  getFullName,
+  getInitials,
+  getRoleStyles,
+  getLinkedOrganizationLabel,
+  getRiskBandStyles,
+  getRiskReviewStyles,
+  ROLE_OPTIONS,
+  STATUS_OPTIONS,
+  USER_STATUS_ACTIONS,
+  USER_ROLE_ACTIONS,
+  RISK_BAND_OPTIONS,
+  RISK_REVIEW_OPTIONS,
+  OTP_BADGE_CLASS,
+} from './useAdminDashboardState';
+import type { RoleFilter, StatusFilter } from './useAdminDashboardState';
 
 export default function AdminDashboard() {
-  const location = useLocation();
-  const section = getSection(location.pathname);
-
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [usersError, setUsersError] = useState<string | null>(null);
-  const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
-  const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
-  const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
-  const [hasLoadedAuditLogs, setHasLoadedAuditLogs] = useState(false);
-  const [auditActionFilter, setAuditActionFilter] = useState<'ALL' | AuditAction>('ALL');
-  const [auditSeverityFilter, setAuditSeverityFilter] = useState<'ALL' | AuditSeverity>('ALL');
-  const [auditPage, setAuditPage] = useState(1);
-  const [auditPageSize, setAuditPageSize] = useState(20);
-  const [riskEvents, setRiskEvents] = useState<RiskEventRecord[]>([]);
-  const [isLoadingRiskEvents, setIsLoadingRiskEvents] = useState(false);
-  const [riskBandFilter, setRiskBandFilter] = useState<RiskBand | 'ALL'>('ALL');
-  const [riskReviewFilter, setRiskReviewFilter] = useState<RiskReviewStatus | 'ALL'>('ALL');
-  const [reviewedOnly, setReviewedOnly] = useState(false);
-  const [riskPage, setRiskPage] = useState(1);
-  const [riskPageSize, setRiskPageSize] = useState(20);
-  const [riskTotal, setRiskTotal] = useState(0);
-  const [riskSummary, setRiskSummary] = useState({
-    pendingReviewCount: 0,
-    highRiskCount: 0,
-    criticalRiskCount: 0,
-    confirmedAbuseCount: 0,
-  });
-  const [riskWorkerStatus, setRiskWorkerStatus] = useState<RiskWorkerStatus | null>(null);
-  const [isLoadingRiskWorkerStatus, setIsLoadingRiskWorkerStatus] = useState(false);
-  const [reviewingRiskEventId, setReviewingRiskEventId] = useState<string | null>(null);
-  const [selectedRiskEventId, setSelectedRiskEventId] = useState<string | null>(null);
-  const [selectedRiskEvent, setSelectedRiskEvent] = useState<RiskEventRecord | null>(null);
-  const [isLoadingSelectedRiskEvent, setIsLoadingSelectedRiskEvent] = useState(false);
-  const [isExportingRiskReport, setIsExportingRiskReport] = useState(false);
-
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const { requestStepUpToken, stepUpModal } = useStepUp();
-  const { showToast } = useToast();
-  const refreshTimersRef = useRef<Record<'users' | 'logs' | 'risk', number | null>>({
-    users: null,
-    logs: null,
-    risk: null,
-  });
-
-  useEffect(() => {
-    if (usersError) {
-      showToast({ variant: 'error', message: usersError });
-    }
-  }, [showToast, usersError]);
-
-  const loadRiskEvents = useCallback(async () => {
-    setIsLoadingRiskEvents(true);
-    try {
-      const response = await RiskService.list({
-        page: riskPage,
-        pageSize: riskPageSize,
-        riskBand: riskBandFilter,
-        reviewStatus: riskReviewFilter,
-        reviewedOnly,
-      });
-      setRiskEvents(response.items);
-      setRiskTotal(response.total);
-      setRiskSummary(response.summary);
-    } catch (error) {
-      setRiskEvents([]);
-      showToast({
-        variant: 'error',
-        message: getApiErrorMessage(error) || 'Unable to load risk review records.',
-      });
-    } finally {
-      setIsLoadingRiskEvents(false);
-    }
-  }, [reviewedOnly, riskBandFilter, riskPage, riskPageSize, riskReviewFilter, showToast]);
-
-  const loadRiskWorkerStatus = useCallback(async () => {
-    setIsLoadingRiskWorkerStatus(true);
-    try {
-      const status = await RiskService.getWorkerStatus();
-      setRiskWorkerStatus(status);
-    } catch (error) {
-      setRiskWorkerStatus(null);
-      showToast({
-        variant: 'error',
-        message: getApiErrorMessage(error) || 'Unable to load shadow risk worker status.',
-      });
-    } finally {
-      setIsLoadingRiskWorkerStatus(false);
-    }
-  }, [showToast]);
-
-  const loadUsers = useCallback(async () => {
-    setIsLoadingUsers(true);
-    setUsersError(null);
-
-    try {
-      const data = await UserService.list();
-      setUsers(data);
-    } catch (error) {
-      console.error('Failed to load users:', error);
-      setUsers([]);
-      setUsersError('Unable to load users from the server.');
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadUsers();
-  }, [loadUsers]);
-
-  const loadAuditLogs = useCallback(async () => {
-    setIsLoadingAuditLogs(true);
-    try {
-      const data = await AuditService.list();
-      setAuditLogs(data);
-      setHasLoadedAuditLogs(true);
-    } catch (error) {
-      setAuditLogs([]);
-      setUsersError(getApiErrorMessage(error) || 'Unable to load admin audit logs.');
-    } finally {
-      setIsLoadingAuditLogs(false);
-    }
-  }, []);
-
-  const adminAuditActionOptions = useMemo(
-    () =>
-      ['ALL', ...Array.from(new Set(auditLogs.map(log => log.action))).sort()] as Array<
-        'ALL' | AuditAction
-      >,
-    [auditLogs],
-  );
-
-  const filteredAdminAuditLogs = useMemo(
-    () =>
-      auditLogs.filter(log => {
-        if (auditActionFilter !== 'ALL' && log.action !== auditActionFilter) return false;
-        if (auditSeverityFilter !== 'ALL' && log.severity !== auditSeverityFilter) return false;
-        return true;
-      }),
-    [auditActionFilter, auditLogs, auditSeverityFilter],
-  );
-
-  const totalAdminAuditPages = Math.max(1, Math.ceil(filteredAdminAuditLogs.length / auditPageSize));
-  const currentAdminAuditPage = Math.min(auditPage, totalAdminAuditPages);
-  const pagedAdminAuditLogs = useMemo(() => {
-    const start = (currentAdminAuditPage - 1) * auditPageSize;
-    return filteredAdminAuditLogs.slice(start, start + auditPageSize);
-  }, [auditPageSize, currentAdminAuditPage, filteredAdminAuditLogs]);
-
-  useEffect(() => {
-    setAuditPage(1);
-  }, [auditActionFilter, auditSeverityFilter, auditPageSize]);
-
-  useEffect(() => {
-    setRiskPage(1);
-  }, [reviewedOnly, riskBandFilter, riskReviewFilter, riskPageSize]);
-
-  useEffect(() => {
-    if (reviewedOnly && riskReviewFilter === 'PENDING_REVIEW') {
-      setRiskReviewFilter('ALL');
-    }
-  }, [reviewedOnly, riskReviewFilter]);
-
-  useEffect(() => {
-    if (section === 'logs' && !hasLoadedAuditLogs) {
-      void loadAuditLogs();
-    }
-  }, [hasLoadedAuditLogs, loadAuditLogs, section]);
-
-  useEffect(() => {
-    if (section === 'risk') {
-      void loadRiskEvents();
-      void loadRiskWorkerStatus();
-    }
-  }, [loadRiskEvents, loadRiskWorkerStatus, section]);
-
-  const scheduleRefresh = useCallback((key: 'users' | 'logs' | 'risk') => {
-    if (refreshTimersRef.current[key]) return;
-    refreshTimersRef.current[key] = window.setTimeout(() => {
-      refreshTimersRef.current[key] = null;
-      if (key === 'users' && section !== 'logs') {
-        void loadUsers();
-      }
-      if (key === 'logs' && section === 'logs') {
-        void loadAuditLogs();
-      }
-      if (key === 'risk' && section === 'risk') {
-        void loadRiskEvents();
-        void loadRiskWorkerStatus();
-      }
-    }, 350);
-  }, [loadAuditLogs, loadRiskEvents, loadRiskWorkerStatus, loadUsers, section]);
-
-  useEffect(() => {
-    const unsubscribe = realtimeService.subscribe(event => {
-      if (event.domain === 'users' || event.domain === 'system') {
-        scheduleRefresh('users');
-      }
-      if (event.domain === 'audit') {
-        scheduleRefresh('logs');
-      }
-      if (event.domain === 'security' && event.action === 'SECURITY_RISK_EVENTS_UPDATED') {
-        scheduleRefresh('risk');
-      }
-    });
-    return () => {
-      unsubscribe();
-      (Object.keys(refreshTimersRef.current) as Array<'users' | 'logs' | 'risk'>).forEach(key => {
-        const timer = refreshTimersRef.current[key];
-        if (timer) {
-          window.clearTimeout(timer);
-          refreshTimersRef.current[key] = null;
-        }
-      });
-    };
-  }, [scheduleRefresh]);
-
-  const totalUsers = users.length;
-  const approvedUsers = users.filter(user => user.status === 'APPROVED').length;
-  const pendingUsers = users.filter(user => user.status === 'PENDING').length;
-  const suspendedUsers = users.filter(user => user.status === 'SUSPENDED').length;
-  const studentAccounts = users.filter(user => user.role === 'STUDENT').length;
-
-  const roleDistribution = useMemo(() => {
-    return {
-      STUDENT: users.filter(user => user.role === 'STUDENT').length,
-      INSTITUTION: users.filter(user => user.role === 'INSTITUTION').length,
-      ADMIN: users.filter(user => user.role === 'ADMIN').length,
-    };
-  }, [users]);
-
-  const statusDistribution = useMemo(() => {
-    return {
-      APPROVED: approvedUsers,
-      PENDING: pendingUsers,
-      REJECTED: users.filter(user => user.status === 'REJECTED').length,
-      SUSPENDED: suspendedUsers,
-    };
-  }, [approvedUsers, pendingUsers, suspendedUsers, users]);
-
-  const recentUsers = useMemo(() => {
-    return [...users]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 8);
-  }, [users]);
-
-  const filteredUsers = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-
-    return users.filter(user => {
-      if (roleFilter !== 'ALL' && user.role !== roleFilter) return false;
-      if (statusFilter !== 'ALL' && user.status !== statusFilter) return false;
-
-      if (!keyword) return true;
-
-      const searchable = [
-        user.id,
-        user.email,
-        user.firstName,
-        user.middleName || '',
-        user.lastName,
-        user.role,
-        user.status,
-        user.institution?.institutionName || '',
-      ]
-        .join(' ')
-        .toLowerCase();
-
-      return searchable.includes(keyword);
-    });
-  }, [users, roleFilter, statusFilter, search]);
-
-  useEffect(() => {
-    if (filteredUsers.length === 0) {
-      setSelectedUserId(null);
-      return;
-    }
-
-    const hasSelectedUser = selectedUserId && filteredUsers.some(user => user.id === selectedUserId);
-    if (!hasSelectedUser) {
-      setSelectedUserId(filteredUsers[0].id);
-    }
-  }, [filteredUsers, selectedUserId]);
-
-  const selectedUser = useMemo(
-    () => filteredUsers.find(user => user.id === selectedUserId) || null,
-    [filteredUsers, selectedUserId],
-  );
-
-  const pendingQueue = useMemo(
-    () =>
-      users
-        .filter(user => user.status === 'PENDING')
-        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
-    [users],
-  );
-
-  const handleStatusUpdate = useCallback(async (userId: string, status: UserStatus) => {
-    setIsUpdatingStatus(userId);
-    setUsersError(null);
-
-    try {
-      const stepUpToken = await requestStepUpToken({
-        action: 'STATUS_CHANGE',
-        targetId: userId,
-        title: 'Confirm Status Update',
-        description: 'Enter the OTP sent to your email to change this account status.',
-      });
-      const updated = await UserService.updateStatus(userId, status, stepUpToken);
-      setUsers(previous => previous.map(user => (user.id === userId ? { ...user, ...updated } : user)));
-      showToast({ variant: 'success', message: 'User status updated successfully.' });
-    } catch (error) {
-      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
-        return;
-      }
-      console.error('Failed to update user status:', error);
-      setUsersError('Unable to update user status at this time.');
-    } finally {
-      setIsUpdatingStatus(null);
-    }
-  }, [requestStepUpToken, showToast]);
-
-  const handleRoleUpdate = useCallback(async (userId: string, role: UserRole) => {
-    setIsUpdatingRole(userId);
-    setUsersError(null);
-
-    try {
-      const stepUpToken = await requestStepUpToken({
-        action: 'ROLE_CHANGE',
-        targetId: userId,
-        title: 'Confirm Role Update',
-        description: 'Enter the OTP sent to your email to change this user role.',
-      });
-      const updated = await UserService.updateRole(userId, role, stepUpToken);
-      setUsers(previous => previous.map(user => (user.id === userId ? { ...user, ...updated } : user)));
-      showToast({ variant: 'success', message: 'User role updated successfully.' });
-    } catch (error) {
-      if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') {
-        return;
-      }
-      console.error('Failed to update user role:', error);
-      setUsersError('Unable to update user role at this time.');
-    } finally {
-      setIsUpdatingRole(null);
-    }
-  }, [requestStepUpToken, showToast]);
-
-  const handleRiskReviewUpdate = useCallback(
-    async (
-      id: string,
-      reviewStatus: RiskReviewStatus,
-      reviewReasonCode?: RiskReviewReasonCode | null,
-      reviewReasonDetail?: string | null,
-      reviewNotes?: string | null,
-    ) => {
-      setReviewingRiskEventId(id);
-      try {
-        const updated = await RiskService.updateReviewStatus(id, {
-          reviewStatus,
-          reviewReasonCode,
-          reviewReasonDetail,
-          reviewNotes,
-        });
-        setRiskEvents(previous =>
-          previous.map(event =>
-            event.id === id
-              ? {
-                  ...event,
-                  reviewStatus: updated.reviewStatus,
-                  reviewedById: updated.reviewedById,
-                  reviewedAt: updated.reviewedAt,
-                  reviewReasonCode: updated.reviewReasonCode,
-                  reviewReasonDetail: updated.reviewReasonDetail,
-                  reviewNotes: updated.reviewNotes,
-                }
-              : event,
-          ),
-        );
-        setSelectedRiskEvent(previous =>
-          previous && previous.id === id
-            ? {
-                ...previous,
-                reviewStatus: updated.reviewStatus,
-                reviewedById: updated.reviewedById,
-                reviewedAt: updated.reviewedAt,
-                reviewReasonCode: updated.reviewReasonCode,
-                reviewReasonDetail: updated.reviewReasonDetail,
-                reviewNotes: updated.reviewNotes,
-              }
-            : previous,
-        );
-        setRiskSummary(previous => {
-          const current = riskEvents.find(event => event.id === id);
-          const next = { ...previous };
-          if (current?.reviewStatus === 'PENDING_REVIEW' && reviewStatus !== 'PENDING_REVIEW') {
-            next.pendingReviewCount = Math.max(0, next.pendingReviewCount - 1);
-          }
-          if (current?.reviewStatus !== 'CONFIRMED_ABUSE' && reviewStatus === 'CONFIRMED_ABUSE') {
-            next.confirmedAbuseCount += 1;
-          }
-          if (current?.reviewStatus === 'CONFIRMED_ABUSE' && reviewStatus !== 'CONFIRMED_ABUSE') {
-            next.confirmedAbuseCount = Math.max(0, next.confirmedAbuseCount - 1);
-          }
-          return next;
-        });
-        showToast({
-          variant: 'success',
-          message:
-            reviewNotes !== undefined || reviewReasonCode !== undefined || reviewReasonDetail !== undefined
-              ? `Risk event review saved as ${reviewStatus}.`
-              : `Risk event marked as ${reviewStatus}.`,
-        });
-      } catch (error) {
-        showToast({
-          variant: 'error',
-          message: getApiErrorMessage(error) || 'Unable to update risk review status.',
-        });
-      } finally {
-        setReviewingRiskEventId(null);
-      }
-    },
-    [riskEvents, showToast],
-  );
-
-  const openRiskEventDetails = useCallback(
-    async (id: string) => {
-      setSelectedRiskEventId(id);
-      setIsLoadingSelectedRiskEvent(true);
-      try {
-        const event = await RiskService.getById(id);
-        setSelectedRiskEvent(event);
-      } catch (error) {
-        setSelectedRiskEvent(null);
-        showToast({
-          variant: 'error',
-          message: getApiErrorMessage(error) || 'Unable to load risk event details.',
-        });
-      } finally {
-        setIsLoadingSelectedRiskEvent(false);
-      }
-    },
-    [showToast],
-  );
-
-  const closeRiskEventDetails = useCallback(() => {
-    setSelectedRiskEventId(null);
-    setSelectedRiskEvent(null);
-    setIsLoadingSelectedRiskEvent(false);
-  }, []);
-
-  const exportReviewedRiskReport = useCallback(async () => {
-    setIsExportingRiskReport(true);
-    try {
-      const blob = await RiskService.exportReviewed({
-        riskBand: riskBandFilter,
-        reviewStatus: riskReviewFilter === 'PENDING_REVIEW' ? 'ALL' : riskReviewFilter,
-        reviewedOnly,
-      });
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = `risk-review-report-${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(objectUrl);
-      showToast({ variant: 'success', message: 'Reviewed risk report downloaded.' });
-    } catch (error) {
-      showToast({
-        variant: 'error',
-        message: getApiErrorMessage(error) || 'Unable to export reviewed risk report.',
-      });
-    } finally {
-      setIsExportingRiskReport(false);
-    }
-  }, [reviewedOnly, riskBandFilter, riskReviewFilter, showToast]);
+  const {
+    section,
+    users,
+    isLoadingUsers,
+    filteredUsers,
+    selectedUser,
+    selectedUserId,
+    setSelectedUserId,
+    search,
+    setSearch,
+    roleFilter,
+    setRoleFilter,
+    statusFilter,
+    setStatusFilter,
+    isUpdatingStatus,
+    isUpdatingRole,
+    handleStatusUpdate,
+    handleRoleUpdate,
+    totalUsers,
+    approvedUsers,
+    pendingUsers,
+    studentAccounts,
+    roleDistribution,
+    statusDistribution,
+    recentUsers,
+    pendingQueue,
+    isLoadingAuditLogs,
+    auditActionFilter,
+    setAuditActionFilter,
+    auditSeverityFilter,
+    setAuditSeverityFilter,
+    setAuditPage,
+    auditPageSize,
+    setAuditPageSize,
+    adminAuditActionOptions,
+    filteredAdminAuditLogs,
+    totalAdminAuditPages,
+    currentAdminAuditPage,
+    pagedAdminAuditLogs,
+    riskEvents,
+    isLoadingRiskEvents,
+    riskBandFilter,
+    setRiskBandFilter,
+    riskReviewFilter,
+    setRiskReviewFilter,
+    reviewedOnly,
+    setReviewedOnly,
+    riskPage,
+    setRiskPage,
+    riskPageSize,
+    setRiskPageSize,
+    riskTotal,
+    riskSummary,
+    riskWorkerStatus,
+    isLoadingRiskWorkerStatus,
+    reviewingRiskEventId,
+    selectedRiskEventId,
+    selectedRiskEvent,
+    isLoadingSelectedRiskEvent,
+    isExportingRiskReport,
+    handleRiskReviewUpdate,
+    openRiskEventDetails,
+    closeRiskEventDetails,
+    exportReviewedRiskReport,
+    stepUpModal,
+  } = useAdminDashboardState();
 
   const renderOverview = () => (
     <div className="space-y-6">

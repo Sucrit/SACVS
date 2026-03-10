@@ -16,25 +16,25 @@ const features: Array<{
   title: string;
   description: string;
 }> = [
-  {
-    icon: ShieldCheck,
-    title: 'Tamper-Proof Records',
-    description:
-      'Our decentralized ledger technology ensures academic records can never be altered, forged, or deleted once issued.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Trusted Verification',
-    description:
-      'Institution-issued records are validated through secure, auditable workflows before sharing.',
-  },
-  {
-    icon: Globe2,
-    title: 'Global Portability',
-    description:
-      'Share your achievements across borders instantly. Compatible with major job boards and immigration systems worldwide.',
-  },
-];
+    {
+      icon: ShieldCheck,
+      title: 'Tamper-Proof Records',
+      description:
+        'Our decentralized ledger technology ensures academic records can never be altered, forged, or deleted once issued.',
+    },
+    {
+      icon: ShieldCheck,
+      title: 'Trusted Verification',
+      description:
+        'Institution-issued records are validated through secure, auditable workflows before sharing.',
+    },
+    {
+      icon: Globe2,
+      title: 'Global Portability',
+      description:
+        'Share your achievements across borders instantly. Compatible with major job boards and immigration systems worldwide.',
+    },
+  ];
 
 function Icon({ name, className = '' }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
@@ -101,7 +101,7 @@ export default function LandingPage() {
               Solutions
             </a>
             <a className="text-sm font-medium text-slate-600 transition hover:text-slate-900" href="#team">
-              Team  
+              Team
             </a>
           </nav>
 

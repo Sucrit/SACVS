@@ -416,16 +416,19 @@ export default function AuthPage() {
 
           <div className="mx-auto w-full max-w-[500px]">
             {!isClerkLoaded && (
-              <div className="mx-auto w-full max-w-[401px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_10px_25px_rgba(0,0,0,.25)]">
+              <div className="mx-auto w-full max-w-[401px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_10px_25px_rgba(0,0,0,.20)]">
                 <div className="border-b border-slate-200 px-9 pb-5 pt-8">
+                  <div className="skeleton-shimmer mx-auto mb-6 h-6 w-25 rounded-md"></div>
                   <div className="skeleton-shimmer mx-auto mb-2.5 h-5 w-40 rounded-md"></div>
                   <div className="skeleton-shimmer skeleton-delay-1 mx-auto h-3.5 w-64 rounded-md"></div>
 
-                  <div className="mt-8 space-y-4">
+                  <div className="mt-8 mb-0 space-y-4">
                     <div className="relative">
                       <div className="skeleton-shimmer skeleton-delay-2 h-8 rounded-lg border border-slate-200"></div>
                       <div className="skeleton-shimmer skeleton-delay-3 absolute -right-2 -top-2 h-4 w-15 rounded-full border border-slate-200"></div>
                     </div>
+
+                    <div className="skeleton-shimmer skeleton-delay-2 h-8 -mt-2 rounded-lg border border-slate-200"></div>
 
                     <div className="flex items-center gap-3 mb-7 mt-7">
                       <div className="skeleton-shimmer h-px flex-1"></div>
