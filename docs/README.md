@@ -1,6 +1,6 @@
-# SACVS Documentation
+# Credence Documentation
 
-This folder is the canonical documentation set for SACVS. It is organized by architecture, development, operations, features, security, and ML shadow scoring rather than as a collection of ad hoc notes.
+This folder is the canonical documentation set for Credence. It is organized by architecture, development, operations, features, security, and ML shadow scoring rather than as a collection of ad hoc notes.
 
 ## Documentation Map
 
