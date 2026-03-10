@@ -408,7 +408,7 @@ export default function StudentCredentialsSection({
       <div className="space-y-4">
         {heading && <h2 className="text-lg font-semibold text-neutral-900">{heading}</h2>}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex w-full items-center gap-2 lg:max-w-md">
+          <div className="flex w-full items-center gap-2 lg:max-w-xl">
             <div className="relative flex-1">
               <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
               <input

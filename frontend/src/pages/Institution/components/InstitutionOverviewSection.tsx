@@ -213,7 +213,7 @@ export default function InstitutionOverviewSection({
               title="Download full student directory"
             >
               <Download size={16} />
-              Download Student List
+              Download List
             </button>
           </div>
         </div>

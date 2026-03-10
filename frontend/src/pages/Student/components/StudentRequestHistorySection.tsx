@@ -306,7 +306,7 @@ export default function StudentRequestHistorySection({
   return (
     <Card>
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex w-full items-center gap-2 lg:max-w-md">
+        <div className="flex w-full items-center gap-2 lg:max-w-xl">
           <div className="relative flex-1">
             <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
             <input
@@ -314,7 +314,7 @@ export default function StudentRequestHistorySection({
               value={searchTerm}
               onChange={event => setSearchTerm(event.target.value)}
               placeholder="Search requests..."
-              className="h-10 w-full rounded-full border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm text-neutral-700 outline-none focus:border-neutral-300"
+              className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm text-neutral-700 outline-none focus:border-neutral-300"
             />
           </div>
           <SearchFilterModal

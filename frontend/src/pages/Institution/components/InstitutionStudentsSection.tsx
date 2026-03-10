@@ -209,7 +209,18 @@ export default function InstitutionStudentsSection({
     <div className="min-h-[calc(100vh-220px)] space-y-4 pb-4">
       <Card
         title="Institution's Student Management"
-        action={(
+      >
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex w-full items-center gap-2 lg:max-w-xl">
+            <div className="relative flex-1">
+              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input value={studentSearch} onChange={event => onStudentSearchChange(event.target.value)} placeholder="Search name, email, student #, department..." className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none" />
+            </div>
+            <SearchFilterModal
+              groups={filterGroups}
+              description="Refine the student roster by account status or department."
+            />
+          </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
@@ -228,21 +239,6 @@ export default function InstitutionStudentsSection({
               <Upload size={14} />
               Bulk Import (CSV)
             </button>
-          </div>
-        )}
-      >
-        <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex w-full items-center gap-2 lg:max-w-2xl">
-            <div className="relative flex-1">
-              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-              <input value={studentSearch} onChange={event => onStudentSearchChange(event.target.value)} placeholder="Search name, email, student #, department..." className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none" />
-            </div>
-            <SearchFilterModal
-              groups={filterGroups}
-              description="Refine the student roster by account status or department."
-            />
-          </div>
-          <div className="flex items-center justify-end gap-2">
           </div>
         </div>
 

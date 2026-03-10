@@ -29,7 +29,7 @@ interface InstitutionRequestsSectionProps {
     requestId: string,
     action: 'APPROVE' | 'REJECT' | 'ISSUE' | 'MARK_PHYSICAL_CLAIMED',
   ) => Promise<void>;
-  onBulkAction: (action: 'APPROVE' | 'REJECT' | 'ISSUE') => Promise<void>;
+  onBulkAction: (action: 'APPROVE' | 'REJECT') => Promise<void>;
 }
 
 const EXPIRY_ALLOWED_TYPES: CredentialType[] = ['CERTIFICATE', 'LICENSE'];
@@ -92,9 +92,9 @@ export default function InstitutionRequestsSection({
 
   return (
     <div className="space-y-6">
-      <Card title="Request Filters & Bulk Actions">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex w-full items-center gap-2 lg:max-w-2xl">
+      <Card title="Student's Credential Requests">
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex w-full items-center gap-2 lg:max-w-xl">
               <div className="relative flex-1">
                 <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
                 <input
@@ -110,12 +110,11 @@ export default function InstitutionRequestsSection({
               />
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-            <button onClick={() => void onBulkAction('ISSUE')} className="inline-flex h-10 items-center justify-center rounded-lg border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-800 hover:bg-cyan-100">Bulk Issue</button>
-          </div>
+              <button onClick={() => void onBulkAction('APPROVE')} className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Bulk Approve</button>
+              <button onClick={() => void onBulkAction('REJECT')} className="inline-flex h-10 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-800 hover:bg-rose-100">Bulk Reject</button>
+            </div>
         </div>
-      </Card>
 
-      <Card title="Student's Credential Requests">
         <div className="overflow-x-auto rounded-lg border border-neutral-200">
           <table className="w-full text-left">
             <thead className="bg-neutral-50 text-xs font-semibold  text-neutral-500">

@@ -371,7 +371,7 @@ export default function InstitutionIssueSection({
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-neutral-800">Upload student credential</p>
+                <p className="text-sm font-semibold text-neutral-800">Student Credential Document</p>
                 <label
                   className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors ${
                     isDirectFileDragActive

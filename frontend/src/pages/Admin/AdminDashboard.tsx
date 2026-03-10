@@ -355,7 +355,7 @@ export default function AdminDashboard() {
         title="User Management"
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="flex w-full items-end gap-2 lg:max-w-2xl">
+          <div className="flex w-full items-end gap-2 lg:max-w-xl">
             <div className="w-full">
               <label className="mb-1.5 block text-xs font-medium text-neutral-500">Search</label>
               <div className="relative">

@@ -72,7 +72,7 @@ export default function SearchFilterModal({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex h-9 items-center gap-2 rounded-full border border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-800 transition-colors hover:bg-neutral-50"
+        className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-800 transition-colors hover:bg-neutral-50"
       >
         <SlidersHorizontal size={15} />
         {buttonLabel}
@@ -102,7 +102,7 @@ export default function SearchFilterModal({
               type="button"
               onClick={handleReset}
               disabled={activeFilterCount === 0}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <RotateCcw size={13} />
               Reset all

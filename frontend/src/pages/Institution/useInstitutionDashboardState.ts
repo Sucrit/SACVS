@@ -125,7 +125,7 @@ export interface InstitutionDashboardState {
   setIssueExpiryByRequestId: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   updatingRequestId: string | null;
   handleRequestAction: (requestId: string, action: 'APPROVE' | 'REJECT' | 'ISSUE' | 'MARK_PHYSICAL_CLAIMED') => Promise<void>;
-  handleBulkRequestAction: (action: 'APPROVE' | 'REJECT' | 'ISSUE') => Promise<void>;
+  handleBulkRequestAction: (action: 'APPROVE' | 'REJECT') => Promise<void>;
   pendingCount: number;
 
   // Credentials
@@ -785,7 +785,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     }
   };
 
-  const handleBulkRequestAction = async (action: 'APPROVE' | 'REJECT' | 'ISSUE') => {
+  const handleBulkRequestAction = async (action: 'APPROVE' | 'REJECT') => {
     if (selectedRequestIds.length === 0) { setRequestsError('Select at least one request for bulk action.'); return; }
     const results: Array<'fulfilled' | 'rejected'> = [];
     for (const requestId of selectedRequestIds) {
@@ -797,10 +797,6 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
           results.push('fulfilled');
           continue;
         }
-        const request = requests.find(entry => entry.id === requestId);
-        if (!request) throw new Error(`Credential request ${requestId} not found.`);
-        await issueCredentialForRequest(request);
-        results.push('fulfilled');
       } catch (error) {
         if (error instanceof Error && (error.message === 'STEP_UP_CANCELLED' || error.message === 'STEP_UP_IN_PROGRESS')) { results.push('rejected'); continue; }
         results.push('rejected');
