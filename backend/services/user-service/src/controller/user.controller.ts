@@ -123,29 +123,23 @@ export class UserController {
     };
   }
 
-  private inferOrganizationRoleFromPayload(payload: unknown): 'EMPLOYER' | 'INSTITUTION' | null {
+  private inferOrganizationRoleFromPayload(payload: unknown): 'INSTITUTION' | null {
     if (!payload || typeof payload !== 'object') {
       return null;
     }
 
     const data = payload as Record<string, unknown>;
     const role = typeof data.role === 'string' ? data.role : null;
-    if (role === 'EMPLOYER' || role === 'INSTITUTION') {
+    if (role === 'INSTITUTION') {
       return role;
     }
 
-    const hasEmployerHints =
-      typeof data.companyName === 'string' ||
-      typeof data.taxId === 'string';
     const hasInstitutionHints =
       typeof data.institutionName === 'string' ||
       typeof data.name === 'string' ||
       typeof data.accreditationNumber === 'string';
 
-    if (hasEmployerHints && !hasInstitutionHints) {
-      return 'EMPLOYER';
-    }
-    if (hasInstitutionHints && !hasEmployerHints) {
+    if (hasInstitutionHints) {
       return 'INSTITUTION';
     }
 
@@ -165,10 +159,8 @@ export class UserController {
       typeof data.organizationEmail === 'string' ||
       typeof data.phoneNumber === 'string' ||
       typeof data.organizationName === 'string' ||
-      typeof data.companyName === 'string' ||
       typeof data.institutionName === 'string' ||
       typeof data.name === 'string' ||
-      typeof data.taxId === 'string' ||
       typeof data.accreditationNumber === 'string';
 
     const hasStudentHints =
@@ -213,9 +205,6 @@ export class UserController {
     const body = (req.body ?? {}) as Record<string, unknown>;
     // Legacy payload compatibility: support "organizationName".
     if (typeof body.organizationName === 'string') {
-      if (body.role === 'EMPLOYER' && typeof body.companyName !== 'string') {
-        body.companyName = body.organizationName;
-      }
       if (body.role === 'INSTITUTION' && typeof body.institutionName !== 'string') {
         body.institutionName = body.organizationName;
       }
@@ -226,7 +215,7 @@ export class UserController {
     }
 
     const data = body as unknown as CompleteOrganizationOnboardingDto;
-    if (!data?.role || !['EMPLOYER', 'INSTITUTION'].includes(data.role)) {
+    if (data?.role !== 'INSTITUTION') {
       return res.status(400).json({ error: 'Missing required field: role' });
     }
     if (!data?.firstName || typeof data.firstName !== 'string') {
@@ -257,30 +246,19 @@ export class UserController {
       });
     }
 
-    if (data.role === 'EMPLOYER') {
-      if (!data.companyName || typeof data.companyName !== 'string' || data.companyName.trim().length === 0) {
-        return res.status(400).json({ error: 'Missing required field: companyName' });
-      }
-      if (!data.taxId || typeof data.taxId !== 'string' || data.taxId.trim().length === 0) {
-        return res.status(400).json({ error: 'Missing required field: taxId' });
-      }
+    if (
+      !data.institutionName ||
+      typeof data.institutionName !== 'string' ||
+      data.institutionName.trim().length === 0
+    ) {
+      return res.status(400).json({ error: 'Missing required field: institutionName' });
     }
-
-    if (data.role === 'INSTITUTION') {
-      if (
-        !data.institutionName ||
-        typeof data.institutionName !== 'string' ||
-        data.institutionName.trim().length === 0
-      ) {
-        return res.status(400).json({ error: 'Missing required field: institutionName' });
-      }
-      if (
-        !data.accreditationNumber ||
-        typeof data.accreditationNumber !== 'string' ||
-        data.accreditationNumber.trim().length === 0
-      ) {
-        return res.status(400).json({ error: 'Missing required field: accreditationNumber' });
-      }
+    if (
+      !data.accreditationNumber ||
+      typeof data.accreditationNumber !== 'string' ||
+      data.accreditationNumber.trim().length === 0
+    ) {
+      return res.status(400).json({ error: 'Missing required field: accreditationNumber' });
     }
 
     try {
@@ -689,7 +667,7 @@ export class UserController {
         return res.status(400).json({ error: 'Last name is required.' });
       }
 
-      if (userData.role && !['STUDENT', 'ADMIN', 'EMPLOYER', 'INSTITUTION'].includes(userData.role)) {
+      if (userData.role && !['STUDENT', 'ADMIN', 'INSTITUTION'].includes(userData.role)) {
         return res.status(400).json({ error: 'Invalid role provided.' });
       }
 
@@ -843,7 +821,7 @@ export class UserController {
     const userId: string = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const actorId = getAuthUserId(req);
     const { role }: UpdateUserRoleDto = req.body;
-    const validRoles = ['STUDENT', 'ADMIN', 'EMPLOYER', 'INSTITUTION'];
+    const validRoles = ['STUDENT', 'ADMIN', 'INSTITUTION'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ error: 'Invalid role value.' });
     }

@@ -1,6 +1,6 @@
 import { api } from '../api/client';
 
-export type UserRole = 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION';
+export type UserRole = 'STUDENT' | 'ADMIN' | 'INSTITUTION';
 export type UserStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
 export type StudentSex = 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
 
@@ -25,17 +25,6 @@ export interface StudentProfile {
   updatedAt: string;
 }
 
-export interface EmployerProfile {
-  id: string;
-  companyName: string;
-  registrationNumber: string;
-  taxId: string;
-  email: string;
-  phoneNumber: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface InstitutionProfile {
   id: string;
   institutionName: string;
@@ -55,7 +44,6 @@ export interface User {
   email: string;
   role: UserRole;
   status: UserStatus;
-  employerId: string | null;
   institutionId: string | null;
   approvedById: string | null;
   approverName?: string | null;
@@ -63,7 +51,6 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   profile?: StudentProfile | null;
-  employer?: EmployerProfile | null;
   institution?: InstitutionProfile | null;
 }
 
@@ -92,7 +79,7 @@ export interface UpsertStudentProfilePayload {
   guardianRelationship?: string | null;
 }
 
-export type OrganizationRole = 'EMPLOYER' | 'INSTITUTION';
+export type OrganizationRole = 'INSTITUTION';
 
 interface CompleteOrganizationOnboardingBasePayload {
   role: OrganizationRole;
@@ -104,21 +91,13 @@ interface CompleteOrganizationOnboardingBasePayload {
   phoneNumber: string;
 }
 
-export interface CompleteEmployerOnboardingPayload extends CompleteOrganizationOnboardingBasePayload {
-  role: 'EMPLOYER';
-  companyName: string;
-  taxId: string;
-}
-
 export interface CompleteInstitutionOnboardingPayload extends CompleteOrganizationOnboardingBasePayload {
   role: 'INSTITUTION';
   institutionName: string;
   accreditationNumber: string;
 }
 
-export type CompleteOrganizationOnboardingPayload =
-  | CompleteEmployerOnboardingPayload
-  | CompleteInstitutionOnboardingPayload;
+export type CompleteOrganizationOnboardingPayload = CompleteInstitutionOnboardingPayload;
 
 export interface UserListQuery {
   role?: UserRole;

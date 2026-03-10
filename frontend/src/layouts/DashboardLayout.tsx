@@ -4,7 +4,6 @@ import { UserButton } from '@clerk/clerk-react';
 import {
   Bell,
   ChartColumnBig,
-  Building2,
   CheckCheck,
   ChevronDown,
   FileSearch,
@@ -46,13 +45,6 @@ const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string }>> = {
     { to: '/institution/receipt-verify', label: 'Receipt Verification' },
     { to: '/institution/logs', label: 'Audit Logs' },
   ],
-  EMPLOYER: [
-    { to: '/employer', label: 'Dashboard' },
-    { to: '/employer/requests', label: 'My Requests' },
-    { to: '/employer/verifications', label: 'Verifications' },
-    { to: '/employer/partners', label: 'Institutions' },
-    { to: '/employer/logs', label: 'Audit Logs' },
-  ],
   ADMIN: [
     { to: '/admin', label: 'Home' },
     { to: '/admin/users', label: 'Users' },
@@ -70,11 +62,6 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   '/institution/students': Users,
   '/institution/requests': FileText,
   '/institution/receipt-verify': FileSearch,
-  '/employer': LayoutDashboard,
-  '/employer/requests': FileText,
-  '/employer/verifications': Shield,
-  '/employer/partners': Building2,
-  '/employer/logs': History,
   '/admin': LayoutGrid,
   '/admin/users': Users,
   '/admin/risk': Shield,
@@ -158,7 +145,6 @@ export default function DashboardLayout() {
   const roleRoutes: Record<UserRole, string> = {
     STUDENT: '/student',
     ADMIN: '/admin',
-    EMPLOYER: '/employer',
     INSTITUTION: '/institution',
   };
 
@@ -173,7 +159,6 @@ export default function DashboardLayout() {
     STUDENT: '/student/notifications',
     INSTITUTION: '/institution/notifications',
     ADMIN: '/admin/notifications',
-    EMPLOYER: null,
   };
   const bellTargetRoute = bellRouteByRole[role];
   const isNotificationPageOpen = Boolean(
@@ -295,9 +280,6 @@ export default function DashboardLayout() {
       if (role === 'INSTITUTION') {
         return `/institution/issue?credentialId=${encodeURIComponent(credentialId)}`;
       }
-      if (role === 'EMPLOYER') {
-        return `/employer/verifications?credentialId=${encodeURIComponent(credentialId)}`;
-      }
       return '/admin/notifications';
     }
 
@@ -308,9 +290,6 @@ export default function DashboardLayout() {
       }
       if (role === 'INSTITUTION') {
         return `/institution/requests?requestId=${encodeURIComponent(requestId)}`;
-      }
-      if (role === 'EMPLOYER') {
-        return `/employer/requests?requestId=${encodeURIComponent(requestId)}`;
       }
       return `/admin/notifications?requestId=${encodeURIComponent(requestId)}`;
     }

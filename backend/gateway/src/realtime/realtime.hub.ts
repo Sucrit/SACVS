@@ -3,14 +3,13 @@ import type { Server } from 'node:http';
 import WebSocket, { WebSocketServer } from 'ws';
 import { ENV } from '../config/env';
 
-type ActorRole = 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION';
+type ActorRole = 'STUDENT' | 'ADMIN' | 'INSTITUTION';
 
 export interface RealtimeEventScope {
   broadcast?: boolean;
   roles?: ActorRole[];
   userIds?: string[];
   institutionIds?: string[];
-  employerIds?: string[];
 }
 
 export interface RealtimeEventEnvelope {
@@ -33,7 +32,6 @@ type AuthContext = {
   userId: string;
   role: ActorRole;
   institutionId: string | null;
-  employerId: string | null;
 };
 
 type ClientState = {
@@ -140,15 +138,13 @@ export class RealtimeHub {
         id?: string;
         role?: ActorRole;
         institutionId?: string | null;
-        employerId?: string | null;
       };
       if (!body?.id || !body?.role) return null;
-      if (!['STUDENT', 'ADMIN', 'EMPLOYER', 'INSTITUTION'].includes(body.role)) return null;
+      if (!['STUDENT', 'ADMIN', 'INSTITUTION'].includes(body.role)) return null;
       return {
         userId: body.id,
         role: body.role,
         institutionId: body.institutionId ?? null,
-        employerId: body.employerId ?? null,
       };
     } catch {
       return null;
@@ -161,7 +157,6 @@ export class RealtimeHub {
     if (scope.userIds?.includes(auth.userId)) return true;
     if (scope.roles?.includes(auth.role)) return true;
     if (auth.institutionId && scope.institutionIds?.includes(auth.institutionId)) return true;
-    if (auth.employerId && scope.employerIds?.includes(auth.employerId)) return true;
     return false;
   }
 }
@@ -201,3 +196,4 @@ export const hasInternalEventAuth = (req: IncomingMessage): boolean => {
   const provided = Array.isArray(header) ? header[0] : header;
   return typeof provided === 'string' && provided.trim() === expected;
 };
+

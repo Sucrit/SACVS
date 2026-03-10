@@ -31,7 +31,7 @@ export type AuditAction =
   | 'SECURITY_ALERT';
 
 export type AuditSeverity = 'INFO' | 'WARNING' | 'CRITICAL';
-export type AuditActorRole = 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION' | null;
+export type AuditActorRole = 'STUDENT' | 'ADMIN' | 'INSTITUTION' | null;
 
 export interface AuditLogEntry {
   id: string;
@@ -53,3 +53,4 @@ export const AuditService = {
     return response.data;
   },
 };
+

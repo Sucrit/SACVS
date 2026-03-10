@@ -331,11 +331,6 @@ export const CredentialService = {
     return response.data;
   },
 
-  verifyQrEmployer: async (token: string) => {
-    const response = await api.post<QrVerificationResult>('/credentials/verify/qr/employer', { token });
-    return response.data;
-  },
-
   getQrSharedDocumentBlob: async (token: string, mode: 'preview' | 'download') => {
     const response = await api.get<Blob>(
       `/credentials/verify/qr/document/${encodeURIComponent(token)}${mode === 'download' ? '?download=1' : ''}`,

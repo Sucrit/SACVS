@@ -35,10 +35,10 @@ type AdminSection = 'overview' | 'users' | 'risk' | 'logs';
 type RoleFilter = UserRole | 'ALL';
 type StatusFilter = UserStatus | 'ALL';
 
-const ROLE_OPTIONS: RoleFilter[] = ['ALL', 'STUDENT', 'EMPLOYER', 'INSTITUTION', 'ADMIN'];
+const ROLE_OPTIONS: RoleFilter[] = ['ALL', 'STUDENT', 'INSTITUTION', 'ADMIN'];
 const STATUS_OPTIONS: StatusFilter[] = ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'];
 const USER_STATUS_ACTIONS: UserStatus[] = ['APPROVED', 'REJECTED', 'SUSPENDED', 'PENDING'];
-const USER_ROLE_ACTIONS: UserRole[] = ['STUDENT', 'EMPLOYER', 'INSTITUTION', 'ADMIN'];
+const USER_ROLE_ACTIONS: UserRole[] = ['STUDENT', 'INSTITUTION', 'ADMIN'];
 const OTP_BADGE_CLASS =
   'rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700';
 
@@ -68,16 +68,12 @@ const getInitials = (user: User) => {
 const getRoleStyles = (role: UserRole) => {
   if (role === 'ADMIN') return 'border-slate-400 bg-slate-100 text-slate-800';
   if (role === 'INSTITUTION') return 'border-cyan-200 bg-cyan-50 text-cyan-800';
-  if (role === 'EMPLOYER') return 'border-violet-200 bg-violet-50 text-violet-800';
   return 'border-slate-200 bg-slate-50 text-slate-700';
 };
 
 const getLinkedOrganizationLabel = (user: User) => {
   if (user.role === 'INSTITUTION') {
     return user.institution?.institutionName || '-';
-  }
-  if (user.role === 'EMPLOYER') {
-    return user.employer?.companyName || '-';
   }
   return '-';
 };
@@ -351,7 +347,6 @@ export default function AdminDashboard() {
   const roleDistribution = useMemo(() => {
     return {
       STUDENT: users.filter(user => user.role === 'STUDENT').length,
-      EMPLOYER: users.filter(user => user.role === 'EMPLOYER').length,
       INSTITUTION: users.filter(user => user.role === 'INSTITUTION').length,
       ADMIN: users.filter(user => user.role === 'ADMIN').length,
     };
@@ -389,7 +384,6 @@ export default function AdminDashboard() {
         user.lastName,
         user.role,
         user.status,
-        user.employer?.companyName || '',
         user.institution?.institutionName || '',
       ]
         .join(' ')

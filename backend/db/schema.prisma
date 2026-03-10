@@ -15,7 +15,6 @@ datasource db {
 enum Role {
   STUDENT
   ADMIN
-  EMPLOYER
   INSTITUTION
 }
 
@@ -51,7 +50,6 @@ enum CredentialType {
 
 enum RequesterType {
   STUDENT
-  EMPLOYER
   INSTITUTION
 }
 
@@ -202,7 +200,6 @@ model User {
   email         String    @unique
   role          Role      @default(STUDENT)
   status        Status    @default(PENDING)
-  employerId    String?
   institutionId String?
   approvedById  String?
   approvedAt    DateTime?
@@ -215,7 +212,6 @@ model User {
   credentialRequests CredentialRequest[] @relation("StudentRequests")
   requestedRequests  CredentialRequest[] @relation("RequesterRequests")
   processedRequests  CredentialRequest[] @relation("ProcessedByInstitution")
-  employer           Employer?           @relation("EmployerUsers", fields: [employerId], references: [id])
   institution        Institution?        @relation("InstitutionUsers", fields: [institutionId], references: [id])
   auditLogs          AuditLog[]
   notifications      Notification[]
@@ -227,7 +223,6 @@ model User {
 
   @@index([role])
   @@index([status])
-  @@index([employerId])
   @@index([institutionId])
 }
 
@@ -455,9 +450,7 @@ model CredentialRequest {
   requesterId   String
   requester     User          @relation("RequesterRequests", fields: [requesterId], references: [id])
 
-  employerId    String? // Employer initiating the request
   institutionId String? // Institution processing the request
-  employer      Employer?    @relation("EmployerCredentialRequests", fields: [employerId], references: [id])
   institution   Institution? @relation("InstitutionCredentialRequests", fields: [institutionId], references: [id])
 
   createdAt DateTime @default(now())
@@ -467,7 +460,6 @@ model CredentialRequest {
   @@index([studentId])
   @@index([status])
   @@index([processedById])
-  @@index([employerId])
   @@index([institutionId])
 }
 
@@ -716,33 +708,6 @@ model NotificationBroadcast {
 
 
 
-
-// Employer
-
-model Employer {
-  id                 String   @id @default(uuid())
-  companyName        String
-  registrationNumber String
-  taxId              String
-  email              String   @unique
-  phoneNumber        String
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  users              User[]              @relation("EmployerUsers")
-  credentialRequests CredentialRequest[] @relation("EmployerCredentialRequests")
-
-  @@index([email])
-}
-
-
-
-
-
-
-
-
-
 // Institution
 
 model Institution {
@@ -762,3 +727,4 @@ model Institution {
 
   @@index([email])
 }
+

@@ -8,7 +8,7 @@ import studentsGraduateImage from '../assets/students-graduates.jpg';
 import logo2 from '../assets/logo2.png';
 
 const platformLinks = ['How it works', 'Blockchain', 'Verification', 'Security'];
-const audienceLinks = ['For Institutions', 'For Students', 'For Employers'];
+const audienceLinks = ['For Institutions', 'For Students', 'For Public Verification'];
 const companyLinks = ['About Us', 'Privacy Policy', 'Terms of Service', 'Contact Support'];
 
 const features: Array<{
@@ -48,7 +48,6 @@ export default function LandingPage() {
   const roleRoutes: Record<UserRole, string> = {
     STUDENT: '/student',
     ADMIN: '/admin',
-    EMPLOYER: '/employer',
     INSTITUTION: '/institution',
   };
 
@@ -257,7 +256,7 @@ export default function LandingPage() {
                       In your pocket.
                     </h3>
                     <p className="mt-6 max-w-md text-lg leading-relaxed text-slate-300">
-                      Access your credentials from anywhere and share instantly with schools, employers, and licensing
+                      Access your credentials from anywhere and share instantly with schools, verifiers, and licensing
                       offices with trusted verifiable proof.
                     </p>
                     <a className="mt-8 inline-flex items-center gap-1 text-sm font-bold text-white hover:text-slate-200" href="#">

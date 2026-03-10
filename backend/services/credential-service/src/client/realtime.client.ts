@@ -1,6 +1,6 @@
 import { ENV } from '../config/env';
 
-type Role = 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION';
+type Role = 'STUDENT' | 'ADMIN' | 'INSTITUTION';
 
 export interface RealtimeEvent {
   domain: 'users' | 'credentials' | 'credentialRequests' | 'notifications' | 'audit' | 'system';
@@ -11,7 +11,6 @@ export interface RealtimeEvent {
     roles?: Role[];
     userIds?: string[];
     institutionIds?: string[];
-    employerIds?: string[];
   };
   payload?: Record<string, unknown>;
 }
@@ -48,3 +47,4 @@ export class RealtimeClient {
 }
 
 export const realtimeClient = new RealtimeClient();
+

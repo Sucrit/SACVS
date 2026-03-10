@@ -1,6 +1,6 @@
 import { ENV } from '../config/env';
 
-type Role = 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION';
+type Role = 'STUDENT' | 'ADMIN' | 'INSTITUTION';
 
 export interface RealtimeEvent {
   domain: 'users' | 'credentials' | 'credentialRequests' | 'notifications' | 'audit' | 'system' | 'security';

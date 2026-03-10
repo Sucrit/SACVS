@@ -1,6 +1,6 @@
 export type CredentialRequestStatus = 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED' | 'CANCELLED';
 export type CredentialType = 'TRANSCRIPT' | 'DIPLOMA' | 'CERTIFICATE' | 'DEGREE' | 'LICENSE';
-export type RequesterType = 'STUDENT' | 'EMPLOYER' | 'INSTITUTION';
+export type RequesterType = 'STUDENT' | 'INSTITUTION';
 export type DeliveryMethod = 'DIGITAL' | 'PHYSICAL' | 'BOTH';
 
 export interface ListCredentialRequestsQueryDto {
@@ -19,7 +19,6 @@ export interface CreateCredentialRequestDto {
   purpose?: string;
   deliveryMethod?: DeliveryMethod;
   institutionId?: string;
-  employerId?: string;
 }
 
 export interface UpdateCredentialRequestStatusDto {
@@ -47,7 +46,6 @@ export interface CredentialRequestResponseDto {
     requesterType: RequesterType;
     requesterId: string;
     institutionId: string | null;
-    employerId: string | null;
   };
   createdAt: string;
   updatedAt: string;
@@ -82,3 +80,4 @@ export interface ApprovalReceiptVerificationResultDto {
     institutionName: string;
   };
 }
+

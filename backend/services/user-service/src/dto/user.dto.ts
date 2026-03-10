@@ -1,6 +1,6 @@
-export type UserRole = 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION';
+export type UserRole = 'STUDENT' | 'ADMIN' | 'INSTITUTION';
 export type UserStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
-export type OrganizationRole = 'EMPLOYER' | 'INSTITUTION';
+export type OrganizationRole = 'INSTITUTION';
 export type InstitutionManagedStudentStatus = UserStatus;
 export type StudentSex = 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY';
 export type StepUpAction =
@@ -83,21 +83,13 @@ interface CompleteOrganizationOnboardingBaseDto {
   phoneNumber: string;
 }
 
-export interface CompleteEmployerOnboardingDto extends CompleteOrganizationOnboardingBaseDto {
-  role: 'EMPLOYER';
-  companyName: string;
-  taxId: string;
-}
-
 export interface CompleteInstitutionOnboardingDto extends CompleteOrganizationOnboardingBaseDto {
   role: 'INSTITUTION';
   institutionName: string;
   accreditationNumber: string;
 }
 
-export type CompleteOrganizationOnboardingDto =
-  | CompleteEmployerOnboardingDto
-  | CompleteInstitutionOnboardingDto;
+export type CompleteOrganizationOnboardingDto = CompleteInstitutionOnboardingDto;
 
 export interface CreateStepUpChallengeDto {
   action: StepUpAction;

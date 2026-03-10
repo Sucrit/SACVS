@@ -2,7 +2,7 @@ import { api } from '../api/client';
 
 export type RiskBand = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type RiskReviewStatus = 'PENDING_REVIEW' | 'CONFIRMED_ABUSE' | 'BENIGN' | 'UNCERTAIN';
-export type RiskActorRole = 'STUDENT' | 'ADMIN' | 'EMPLOYER' | 'INSTITUTION' | null;
+export type RiskActorRole = 'STUDENT' | 'ADMIN' | 'INSTITUTION' | null;
 export type RiskReviewReasonCode =
   | 'OTP_BRUTE_FORCE'
   | 'TOKEN_ABUSE'
@@ -147,3 +147,4 @@ export const RiskService = {
     return response.data;
   },
 };
+
