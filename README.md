@@ -1,6 +1,6 @@
-# SACVS
+# Credence
 
-SACVS is a multi-service credential issuance and verification platform for institution-managed academic credentials. The platform includes student onboarding, institution student management, credential request handling, direct and request-driven issuance, blockchain anchoring, one-time QR verification, approval receipt verification for physical claim workflows, realtime dashboard updates, and a metadata-only ML risk scoring layer operating in shadow mode.
+Credence is a multi-service credential issuance and verification platform for institution-managed academic credentials. The platform includes student onboarding, institution student management, credential request handling, direct and request-driven issuance, blockchain anchoring, one-time QR verification, approval receipt verification for physical claim workflows, realtime dashboard updates, and a metadata-only ML risk scoring layer operating in shadow mode.
 
 ## Repository Structure
 - `frontend/`: React/Vite application

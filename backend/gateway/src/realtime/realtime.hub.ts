@@ -14,7 +14,14 @@ export interface RealtimeEventScope {
 }
 
 export interface RealtimeEventEnvelope {
-  domain: 'users' | 'credentials' | 'credentialRequests' | 'notifications' | 'audit' | 'system';
+  domain:
+    | 'users'
+    | 'credentials'
+    | 'credentialRequests'
+    | 'notifications'
+    | 'audit'
+    | 'system'
+    | 'security';
   action: string;
   entityId?: string;
   occurredAt?: string;

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { RiskBand, RiskReviewStatus } from '../../../../db/node_modules/@prisma/client';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { RiskRepository } from '../repository/risk.repository';
+import { shadowRiskWorker } from '../runtime/shadow-risk.worker';
 
 const repository = new RiskRepository();
 
@@ -74,6 +75,26 @@ function serializeRiskEvent(item: Awaited<ReturnType<RiskRepository['getRiskEven
 }
 
 export class RiskController {
+  async getWorkerStatus(_req: Request, res: Response): Promise<Response> {
+    const status = shadowRiskWorker.getStatus();
+
+    return res.json({
+      autorunEnabled: status.autorunEnabled,
+      isRunning: status.isRunning,
+      intervalMs: status.intervalMs,
+      overlapMinutes: status.overlapMinutes,
+      batchLimit: status.batchLimit,
+      lastProcessedAt: status.lastProcessedAt?.toISOString() ?? null,
+      lastRunStartedAt: status.lastRunStartedAt?.toISOString() ?? null,
+      lastRunCompletedAt: status.lastRunCompletedAt?.toISOString() ?? null,
+      lastSuccessfulRunAt: status.lastSuccessfulRunAt?.toISOString() ?? null,
+      lastFailureAt: status.lastFailureAt?.toISOString() ?? null,
+      lastErrorMessage: status.lastErrorMessage,
+      lastInsertedCount: status.lastInsertedCount,
+      lastScannedCount: status.lastScannedCount,
+    });
+  }
+
   async listRiskEvents(req: Request, res: Response): Promise<Response> {
     const page = parsePositiveInt(req.query.page, 1);
     const pageSize = Math.min(parsePositiveInt(req.query.pageSize, 20), 100);

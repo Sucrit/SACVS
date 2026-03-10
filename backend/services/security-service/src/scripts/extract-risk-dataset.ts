@@ -30,8 +30,10 @@ function toActionName(action: AuditAction): string {
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
-  const lookbackHours = args.lookbackHours
-    ? Number(args.lookbackHours)
+  const parsedLookbackHours =
+    typeof args.lookbackHours === 'string' ? Number(args.lookbackHours) : NaN;
+  const lookbackHours = Number.isFinite(parsedLookbackHours)
+    ? parsedLookbackHours
     : ENV.RISK_DATASET_LOOKBACK_HOURS;
   const outputName = args.output ?? `risk_dataset_${new Date().toISOString().slice(0, 10)}.csv`;
   const outputPath = resolveArtifactPath('datasets', outputName);

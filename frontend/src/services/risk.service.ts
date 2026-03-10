@@ -46,6 +46,22 @@ export interface RiskEventListResponse {
   };
 }
 
+export interface RiskWorkerStatus {
+  autorunEnabled: boolean;
+  isRunning: boolean;
+  intervalMs: number;
+  overlapMinutes: number;
+  batchLimit: number;
+  lastProcessedAt: string | null;
+  lastRunStartedAt: string | null;
+  lastRunCompletedAt: string | null;
+  lastSuccessfulRunAt: string | null;
+  lastFailureAt: string | null;
+  lastErrorMessage: string | null;
+  lastInsertedCount: number;
+  lastScannedCount: number;
+}
+
 export const RiskService = {
   list: async (query: {
     page?: number;
@@ -61,6 +77,11 @@ export const RiskService = {
         reviewStatus: query.reviewStatus === 'ALL' ? undefined : query.reviewStatus,
       },
     });
+    return response.data;
+  },
+
+  getWorkerStatus: async () => {
+    const response = await api.get<RiskWorkerStatus>('/security/risk-worker/status');
     return response.data;
   },
 

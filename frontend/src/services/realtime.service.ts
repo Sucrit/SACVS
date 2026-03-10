@@ -1,4 +1,11 @@
-type RealtimeDomain = 'users' | 'credentials' | 'credentialRequests' | 'notifications' | 'audit' | 'system';
+type RealtimeDomain =
+  | 'users'
+  | 'credentials'
+  | 'credentialRequests'
+  | 'notifications'
+  | 'audit'
+  | 'system'
+  | 'security';
 
 export interface RealtimeEventEnvelope {
   domain: RealtimeDomain;

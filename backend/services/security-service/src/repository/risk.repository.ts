@@ -102,7 +102,7 @@ export class RiskRepository {
     };
   }
 
-  async listAuditLogsSince(since: Date): Promise<SourceAuditEvent[]> {
+  async listAuditLogsSince(since: Date, limit?: number): Promise<SourceAuditEvent[]> {
     const rows = await prisma.auditLog.findMany({
       where: {
         createdAt: {
@@ -112,6 +112,7 @@ export class RiskRepository {
       orderBy: {
         createdAt: 'asc',
       },
+      ...(typeof limit === 'number' && limit > 0 ? { take: limit } : {}),
       select: {
         id: true,
         action: true,
@@ -134,6 +135,21 @@ export class RiskRepository {
       metadata: row.metadata,
       createdAt: row.createdAt,
     }));
+  }
+
+  async getLatestProcessedObservedAt(): Promise<Date | null> {
+    const row = await prisma.riskEventRecord.findFirst({
+      orderBy: [{ inferenceTs: 'desc' }, { createdAt: 'desc' }],
+      select: {
+        featuresSnapshot: {
+          select: {
+            observedAt: true,
+          },
+        },
+      },
+    });
+
+    return row?.featuresSnapshot.observedAt ?? null;
   }
 
   async getActorStepUpStats(actorId: string, eventAt: Date): Promise<StepUpStats> {

@@ -16,7 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../services/audit.service';
-import { RiskBand, RiskEventRecord, RiskReviewStatus, RiskService } from '../../services/risk.service';
+import { RiskBand, RiskEventRecord, RiskReviewStatus, RiskService, RiskWorkerStatus } from '../../services/risk.service';
 import { User, UserRole, UserService, UserStatus } from '../../services/user.service';
 import { useStepUp } from '../../hooks/useStepUp';
 import { realtimeService } from '../../services/realtime.service';
@@ -143,6 +143,8 @@ export default function AdminDashboard() {
     criticalRiskCount: 0,
     confirmedAbuseCount: 0,
   });
+  const [riskWorkerStatus, setRiskWorkerStatus] = useState<RiskWorkerStatus | null>(null);
+  const [isLoadingRiskWorkerStatus, setIsLoadingRiskWorkerStatus] = useState(false);
   const [reviewingRiskEventId, setReviewingRiskEventId] = useState<string | null>(null);
   const [selectedRiskEventId, setSelectedRiskEventId] = useState<string | null>(null);
   const [selectedRiskEvent, setSelectedRiskEvent] = useState<RiskEventRecord | null>(null);
@@ -155,9 +157,10 @@ export default function AdminDashboard() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const { requestStepUpToken, stepUpModal } = useStepUp();
   const { showToast } = useToast();
-  const refreshTimersRef = useRef<Record<'users' | 'logs', number | null>>({
+  const refreshTimersRef = useRef<Record<'users' | 'logs' | 'risk', number | null>>({
     users: null,
     logs: null,
+    risk: null,
   });
 
   useEffect(() => {
@@ -189,6 +192,22 @@ export default function AdminDashboard() {
       setIsLoadingRiskEvents(false);
     }
   }, [reviewedOnly, riskBandFilter, riskPage, riskPageSize, riskReviewFilter, showToast]);
+
+  const loadRiskWorkerStatus = useCallback(async () => {
+    setIsLoadingRiskWorkerStatus(true);
+    try {
+      const status = await RiskService.getWorkerStatus();
+      setRiskWorkerStatus(status);
+    } catch (error) {
+      setRiskWorkerStatus(null);
+      showToast({
+        variant: 'error',
+        message: getApiErrorMessage(error) || 'Unable to load shadow risk worker status.',
+      });
+    } finally {
+      setIsLoadingRiskWorkerStatus(false);
+    }
+  }, [showToast]);
 
   const loadUsers = useCallback(async () => {
     setIsLoadingUsers(true);
@@ -272,10 +291,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (section === 'risk') {
       void loadRiskEvents();
+      void loadRiskWorkerStatus();
     }
-  }, [loadRiskEvents, section]);
+  }, [loadRiskEvents, loadRiskWorkerStatus, section]);
 
-  const scheduleRefresh = useCallback((key: 'users' | 'logs') => {
+  const scheduleRefresh = useCallback((key: 'users' | 'logs' | 'risk') => {
     if (refreshTimersRef.current[key]) return;
     refreshTimersRef.current[key] = window.setTimeout(() => {
       refreshTimersRef.current[key] = null;
@@ -285,8 +305,12 @@ export default function AdminDashboard() {
       if (key === 'logs' && section === 'logs') {
         void loadAuditLogs();
       }
+      if (key === 'risk' && section === 'risk') {
+        void loadRiskEvents();
+        void loadRiskWorkerStatus();
+      }
     }, 350);
-  }, [loadAuditLogs, loadUsers, section]);
+  }, [loadAuditLogs, loadRiskEvents, loadRiskWorkerStatus, loadUsers, section]);
 
   useEffect(() => {
     const unsubscribe = realtimeService.subscribe(event => {
@@ -296,10 +320,13 @@ export default function AdminDashboard() {
       if (event.domain === 'audit') {
         scheduleRefresh('logs');
       }
+      if (event.domain === 'security' && event.action === 'SECURITY_RISK_EVENTS_UPDATED') {
+        scheduleRefresh('risk');
+      }
     });
     return () => {
       unsubscribe();
-      (Object.keys(refreshTimersRef.current) as Array<'users' | 'logs'>).forEach(key => {
+      (Object.keys(refreshTimersRef.current) as Array<'users' | 'logs' | 'risk'>).forEach(key => {
         const timer = refreshTimersRef.current[key];
         if (timer) {
           window.clearTimeout(timer);
@@ -941,6 +968,56 @@ export default function AdminDashboard() {
 
   const totalRiskPages = Math.max(1, Math.ceil(riskTotal / riskPageSize));
   const currentRiskPage = Math.min(riskPage, totalRiskPages);
+  const riskWorkerStatusView = useMemo(() => {
+    if (!riskWorkerStatus) {
+      return {
+        titleClass: 'text-slate-600',
+        dotClass: 'bg-slate-400',
+        label: isLoadingRiskWorkerStatus ? 'Checking worker' : 'Worker unavailable',
+        detail: isLoadingRiskWorkerStatus ? 'Loading latest runtime health.' : 'Status could not be loaded.',
+      };
+    }
+
+    if (!riskWorkerStatus.autorunEnabled) {
+      return {
+        titleClass: 'text-slate-700',
+        dotClass: 'bg-slate-400',
+        label: 'Autorun disabled',
+        detail: 'Shadow scoring requires manual execution.',
+      };
+    }
+
+    if (riskWorkerStatus.lastErrorMessage) {
+      return {
+        titleClass: 'text-rose-700',
+        dotClass: 'bg-rose-500',
+        label: 'Worker error',
+        detail: riskWorkerStatus.lastFailureAt
+          ? `Last failure ${formatDateTime(riskWorkerStatus.lastFailureAt)}`
+          : 'The most recent scoring pass failed.',
+      };
+    }
+
+    if (riskWorkerStatus.isRunning) {
+      return {
+        titleClass: 'text-cyan-700',
+        dotClass: 'bg-cyan-500',
+        label: 'Scoring now',
+        detail: riskWorkerStatus.lastRunStartedAt
+          ? `Current pass started ${formatDateTime(riskWorkerStatus.lastRunStartedAt)}`
+          : 'A scoring pass is in progress.',
+      };
+    }
+
+    return {
+      titleClass: 'text-emerald-700',
+      dotClass: 'bg-emerald-500',
+      label: 'Shadow worker active',
+      detail: riskWorkerStatus.lastSuccessfulRunAt
+        ? `Last success ${formatDateTime(riskWorkerStatus.lastSuccessfulRunAt)}`
+        : 'Waiting for the first successful scoring pass.',
+    };
+  }, [isLoadingRiskWorkerStatus, riskWorkerStatus]);
 
   const renderRiskReview = () => (
     <div className="space-y-6">
@@ -986,14 +1063,30 @@ export default function AdminDashboard() {
       <Card
         title="ML Risk Review Queue"
         action={
-          <button
-            type="button"
-            onClick={() => void exportReviewedRiskReport()}
-            disabled={isExportingRiskReport}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isExportingRiskReport ? <ButtonLoadingContent label="Exporting" /> : 'Export reviewed CSV'}
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+              <span className={`h-2.5 w-2.5 rounded-full ${riskWorkerStatusView.dotClass}`} />
+              <div className="text-left">
+                <p className={`font-semibold ${riskWorkerStatusView.titleClass}`}>
+                  {riskWorkerStatusView.label}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {riskWorkerStatusView.detail}
+                  {riskWorkerStatus && !riskWorkerStatus.isRunning && riskWorkerStatus.autorunEnabled && !riskWorkerStatus.lastErrorMessage
+                    ? ` • Scanned ${riskWorkerStatus.lastScannedCount}, inserted ${riskWorkerStatus.lastInsertedCount}`
+                    : ''}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => void exportReviewedRiskReport()}
+              disabled={isExportingRiskReport}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isExportingRiskReport ? <ButtonLoadingContent label="Exporting" /> : 'Export reviewed CSV'}
+            </button>
+          </div>
         }
       >
         <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
