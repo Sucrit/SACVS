@@ -1,4 +1,5 @@
 import { CredentialRequestStatus } from '../../services/credential.service';
+import { InstitutionNotificationBroadcast } from '../../services/notification.service';
 import { UserStatus } from '../../services/user.service';
 
 export type InstitutionSection =
@@ -23,13 +24,7 @@ export interface ActivityEvent {
   createdAt: string;
 }
 
-export interface OutboundNotification {
-  id: string;
-  target: NotificationTarget;
-  title: string;
-  message: string;
-  createdAt: string;
-}
+export type OutboundNotification = InstitutionNotificationBroadcast;
 
 export interface StudentFormState {
   email: string;

@@ -30,6 +30,19 @@ export interface NotificationListResponse {
   };
 }
 
+export type InstitutionNotificationTarget = 'ALL' | 'APPROVED_ONLY' | 'SUSPENDED_ONLY';
+
+export interface InstitutionNotificationBroadcast {
+  id: string;
+  target: InstitutionNotificationTarget;
+  title: string;
+  message: string;
+  recipientCount: number;
+  createdAt: string;
+  createdByName: string;
+  createdByEmail: string;
+}
+
 interface NotificationDisplayOptions {
   institutionNameFallback?: string | null;
 }
@@ -105,6 +118,25 @@ export const NotificationService = {
 
   markAllRead: async () => {
     const response = await api.patch<{ updatedCount: number }>('/notifications/read-all');
+    return response.data;
+  },
+
+  listInstitutionBroadcasts: async () => {
+    const response = await api.get<{ items: InstitutionNotificationBroadcast[] }>(
+      '/notifications/institution-broadcasts',
+    );
+    return response.data.items;
+  },
+
+  createInstitutionBroadcast: async (payload: {
+    target: InstitutionNotificationTarget;
+    title: string;
+    message: string;
+  }) => {
+    const response = await api.post<InstitutionNotificationBroadcast>(
+      '/notifications/institution-broadcast',
+      payload,
+    );
     return response.data;
   },
 };

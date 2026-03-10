@@ -47,7 +47,9 @@ export class NotificationController {
       TITLE_REQUIRED: { code: 400, error: 'Missing required field: title' },
       MESSAGE_REQUIRED: { code: 400, error: 'Missing required field: message' },
       INVALID_NOTIFICATION_TYPE: { code: 400, error: 'Invalid notification type.' },
+      INVALID_INSTITUTION_NOTIFICATION_TARGET: { code: 400, error: 'Invalid institution notification target.' },
       USER_NOT_FOUND: { code: 404, error: 'User not found.' },
+      INSTITUTION_ID_REQUIRED: { code: 400, error: 'Missing institution context.' },
       NOTIFICATION_ID_REQUIRED: { code: 400, error: 'Missing notification id.' },
       NOTIFICATION_NOT_FOUND: { code: 404, error: 'Notification not found.' },
       INVALID_READ_QUERY: { code: 400, error: 'Invalid read query value. Use true or false.' },
@@ -166,6 +168,48 @@ export class NotificationController {
       if (mapped) return mapped;
 
       console.error('Error creating system notification:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async listInstitutionBroadcasts(req: Request, res: Response): Promise<Response> {
+    const auth = (req as AuthenticatedRequest).auth;
+    if (!auth?.institutionId) return res.status(403).json({ error: 'Institution access required.' });
+
+    try {
+      const items = await notificationService.listInstitutionBroadcasts(auth.institutionId);
+      return res.status(200).json({ items });
+    } catch (error) {
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error listing institution broadcasts:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async createInstitutionBroadcast(req: Request, res: Response): Promise<Response> {
+    const auth = (req as AuthenticatedRequest).auth;
+    if (!auth?.institutionId || !auth.sub) {
+      return res.status(403).json({ error: 'Institution access required.' });
+    }
+
+    try {
+      const created = await notificationService.createInstitutionBroadcast({
+        institutionId: auth.institutionId,
+        actorUserId: auth.sub,
+        payload: {
+          target: typeof req.body?.target === 'string' ? req.body.target : 'ALL',
+          title: typeof req.body?.title === 'string' ? req.body.title : '',
+          message: typeof req.body?.message === 'string' ? req.body.message : '',
+        },
+      });
+      return res.status(201).json(created);
+    } catch (error) {
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error creating institution broadcast:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }

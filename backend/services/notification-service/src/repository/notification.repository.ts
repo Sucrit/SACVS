@@ -1,7 +1,9 @@
 import {
   Notification,
+  NotificationBroadcast,
   Prisma,
   PrismaClient,
+  Status,
 } from '../../../../db/node_modules/@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { ENV } from '../config/env';
@@ -25,6 +27,87 @@ export class NotificationRepository {
 
   async createNotification(data: Prisma.NotificationUncheckedCreateInput): Promise<Notification> {
     return prisma.notification.create({ data });
+  }
+
+  async createInstitutionBroadcast(data: {
+    institutionId: string;
+    createdById: string;
+    targetScope: string;
+    title: string;
+    message: string;
+    recipientCount: number;
+    recipientUserIds: string[];
+    notificationMetadata: Prisma.InputJsonValue | null;
+  }): Promise<NotificationBroadcast> {
+    return prisma.$transaction(async tx => {
+      const broadcast = await tx.notificationBroadcast.create({
+        data: {
+          institutionId: data.institutionId,
+          createdById: data.createdById,
+          targetScope: data.targetScope,
+          title: data.title,
+          message: data.message,
+          recipientCount: data.recipientCount,
+        },
+      });
+
+      if (data.recipientUserIds.length > 0) {
+        await tx.notification.createMany({
+          data: data.recipientUserIds.map(userId => ({
+            userId,
+            type: 'SYSTEM_ANNOUNCEMENT',
+            title: data.title,
+            message: data.message,
+            metadata: data.notificationMetadata === null ? Prisma.JsonNull : data.notificationMetadata,
+          })),
+        });
+      }
+
+      return broadcast;
+    });
+  }
+
+  async listInstitutionBroadcasts(institutionId: string): Promise<Array<NotificationBroadcast & {
+    createdBy: { firstName: string; middleName: string | null; lastName: string; email: string };
+  }>> {
+    return prisma.notificationBroadcast.findMany({
+      where: { institutionId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        createdBy: {
+          select: {
+            firstName: true,
+            middleName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+      take: 100,
+    });
+  }
+
+  async listInstitutionStudentRecipientIds(
+    institutionId: string,
+    target: 'ALL' | 'APPROVED_ONLY' | 'SUSPENDED_ONLY',
+  ): Promise<string[]> {
+    const statusFilter =
+      target === 'APPROVED_ONLY'
+        ? Status.APPROVED
+        : target === 'SUSPENDED_ONLY'
+          ? Status.SUSPENDED
+          : undefined;
+
+    const users = await prisma.user.findMany({
+      where: {
+        role: 'STUDENT',
+        institutionId,
+        ...(statusFilter ? { status: statusFilter } : {}),
+      },
+      select: { id: true },
+    });
+
+    return users.map(user => user.id);
   }
 
   async listNotifications(

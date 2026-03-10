@@ -219,6 +219,7 @@ model User {
   institution        Institution?        @relation("InstitutionUsers", fields: [institutionId], references: [id])
   auditLogs          AuditLog[]
   notifications      Notification[]
+  createdNotificationBroadcasts NotificationBroadcast[] @relation("CreatedNotificationBroadcasts")
   qrTokens           CredentialQrToken[]
   stepUpChallenges   StepUpChallenge[]
   stepUpSessions     StepUpSession[]
@@ -690,6 +691,23 @@ model Notification {
   @@index([createdAt])
 }
 
+model NotificationBroadcast {
+  id             String   @id @default(uuid())
+  institutionId  String
+  createdById    String
+  targetScope    String
+  title          String
+  message        String
+  recipientCount Int
+  createdAt      DateTime @default(now())
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  createdBy   User        @relation("CreatedNotificationBroadcasts", fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([institutionId, createdAt])
+  @@index([createdById, createdAt])
+}
+
 
 
 
@@ -740,6 +758,7 @@ model Institution {
   users              User[]              @relation("InstitutionUsers")
   credentialRequests CredentialRequest[] @relation("InstitutionCredentialRequests")
   requestApprovalReceipts CredentialRequestApprovalReceipt[]
+  notificationBroadcasts NotificationBroadcast[]
 
   @@index([email])
 }

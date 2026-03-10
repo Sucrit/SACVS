@@ -77,6 +77,23 @@ export const requireApprovedAccount = (
   return next();
 };
 
+export const requireInstitutionRole = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Response | void => {
+  const auth = (req as AuthenticatedRequest).auth;
+  if (!auth?.sub) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  if (auth.role !== 'INSTITUTION' || !auth.institutionId) {
+    return res.status(403).json({ error: 'Institution access required.' });
+  }
+
+  return next();
+};
+
 export const requireInternalService = (
   req: Request,
   res: Response,

@@ -4,6 +4,7 @@ import { NotificationController } from '../controller/notification.controller';
 import {
   requireApprovedAccount,
   requireAuth,
+  requireInstitutionRole,
   requireInternalService,
 } from '../middleware/auth.middleware';
 
@@ -38,6 +39,22 @@ router.patch(
   requireAuth,
   requireApprovedAccount,
   notificationController.markAllRead.bind(notificationController),
+);
+
+router.get(
+  '/notifications/institution-broadcasts',
+  requireAuth,
+  requireApprovedAccount,
+  requireInstitutionRole,
+  notificationController.listInstitutionBroadcasts.bind(notificationController),
+);
+
+router.post(
+  '/notifications/institution-broadcast',
+  requireAuth,
+  requireApprovedAccount,
+  requireInstitutionRole,
+  notificationController.createInstitutionBroadcast.bind(notificationController),
 );
 
 router.post(

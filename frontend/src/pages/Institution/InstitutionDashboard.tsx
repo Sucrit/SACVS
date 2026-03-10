@@ -23,6 +23,7 @@ import InstitutionOverviewSection from './components/InstitutionOverviewSection'
 import InstitutionAnalyticsSection from './components/InstitutionAnalyticsSection';
 import InstitutionReceiptVerifySection from './components/InstitutionReceiptVerifySection';
 import InstitutionCredentialDetailsDrawer from './components/InstitutionCredentialDetailsDrawer';
+import { NotificationService } from '../../services/notification.service';
 import {
   ActivityEvent,
   DEFAULT_STUDENT_FORM,
@@ -129,6 +130,8 @@ export default function InstitutionDashboard() {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [notificationHint, setNotificationHint] = useState<string | null>(null);
+  const [isSubmittingNotification, setIsSubmittingNotification] = useState(false);
+  const [hasLoadedNotifications, setHasLoadedNotifications] = useState(false);
   const [selectedCredentialId, setSelectedCredentialId] = useState<string | null>(null);
   const [isCredentialDrawerOpen, setIsCredentialDrawerOpen] = useState(false);
   const { requestStepUpToken, stepUpModal } = useStepUp();
@@ -232,6 +235,19 @@ export default function InstitutionDashboard() {
     }
   }, []);
 
+  const loadOutboundNotifications = useCallback(async () => {
+    setNotificationError(null);
+    try {
+      const items = await NotificationService.listInstitutionBroadcasts();
+      setOutboundNotifications(items);
+      setHasLoadedNotifications(true);
+    } catch (error) {
+      setOutboundNotifications([]);
+      setNotificationError(getApiErrorMessage(error) || 'Unable to load notification activity.');
+      console.error('Failed to load institution notifications:', error);
+    }
+  }, []);
+
   const upsertCredentialState = useCallback((updated: Credential) => {
     setCredentials(previous =>
       previous.some(item => item.id === updated.id)
@@ -249,6 +265,11 @@ export default function InstitutionDashboard() {
     if (section === 'students' && !hasLoadedStudents) {
       void loadStudents();
     }
+    if (section === 'notifications') {
+      if (!hasLoadedNotifications) void loadOutboundNotifications();
+      if (!hasLoadedRequests) void loadRequests();
+      if (!hasLoadedStudents) void loadStudents();
+    }
     if (section === 'requests') {
       if (!hasLoadedRequests) void loadRequests();
       if (!hasLoadedStudents) void loadStudents();
@@ -265,8 +286,10 @@ export default function InstitutionDashboard() {
   }, [
     createEvent,
     hasLoadedCredentials,
+    hasLoadedNotifications,
     hasLoadedRequests,
     hasLoadedStudents,
+    loadOutboundNotifications,
     loadCredentials,
     loadRequests,
     loadStudents,
@@ -889,7 +912,7 @@ export default function InstitutionDashboard() {
     }
   };
 
-  const handleNotificationSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleNotificationSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setNotificationError(null);
     setNotificationHint(null);
@@ -903,18 +926,28 @@ export default function InstitutionDashboard() {
       return;
     }
 
-    const entry: OutboundNotification = {
-      id: createClientId(),
-      target: notificationTarget,
-      title: notificationTitle.trim(),
-      message: notificationMessage.trim(),
-      createdAt: new Date().toISOString(),
-    };
-    setOutboundNotifications(previous => [entry, ...previous]);
-    setNotificationTitle('');
-    setNotificationMessage('');
-    setNotificationHint('Notification queued in frontend log. Backend delivery endpoint will be wired next.');
-    createEvent('NOTIFICATION', 'Notification queued', `${entry.target}: ${entry.title}`);
+    setIsSubmittingNotification(true);
+    try {
+      const entry = await NotificationService.createInstitutionBroadcast({
+        target: notificationTarget,
+        title: notificationTitle.trim(),
+        message: notificationMessage.trim(),
+      });
+      setOutboundNotifications(previous => [entry, ...previous]);
+      setNotificationTitle('');
+      setNotificationMessage('');
+      setNotificationHint(
+        entry.recipientCount > 0
+          ? `Notification sent to ${entry.recipientCount} student${entry.recipientCount === 1 ? '' : 's'}.`
+          : 'Notification saved, but no matching student recipients were found.',
+      );
+      createEvent('NOTIFICATION', 'Notification sent', `${entry.target}: ${entry.title}`);
+    } catch (error) {
+      setNotificationError(getApiErrorMessage(error) || 'Unable to send notification.');
+      console.error('Failed to send institution notification:', error);
+    } finally {
+      setIsSubmittingNotification(false);
+    }
   };
 
   const loadAuditLogs = useCallback(async () => {
@@ -1142,6 +1175,7 @@ export default function InstitutionDashboard() {
           pendingStudentCount={studentCounts.pending}
           suspendedStudentCount={studentCounts.suspended}
           notifications={outboundNotifications}
+          isSubmitting={isSubmittingNotification}
           onTargetChange={setNotificationTarget}
           onTitleChange={setNotificationTitle}
           onMessageChange={setNotificationMessage}

@@ -3,7 +3,9 @@ import {
   Prisma,
 } from '../../../../db/node_modules/@prisma/client';
 import {
+  CreateInstitutionBroadcastDto,
   CreateSystemNotificationDto,
+  InstitutionNotificationTarget,
   ListNotificationsQueryDto,
   UpdateNotificationReadDto,
 } from '../dto/notification.dto';
@@ -18,6 +20,12 @@ const parseRequiredString = (value: unknown): string | null => {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 };
+
+const VALID_INSTITUTION_NOTIFICATION_TARGETS = new Set<InstitutionNotificationTarget>([
+  'ALL',
+  'APPROVED_ONLY',
+  'SUSPENDED_ONLY',
+]);
 
 export class NotificationService {
   async createSystemNotification(data: CreateSystemNotificationDto) {
@@ -128,5 +136,86 @@ export class NotificationService {
       ]);
     }
     return { updatedCount: count };
+  }
+
+  async createInstitutionBroadcast(params: {
+    institutionId: string;
+    actorUserId: string;
+    payload: CreateInstitutionBroadcastDto;
+  }) {
+    const institutionId = parseRequiredString(params.institutionId);
+    const actorUserId = parseRequiredString(params.actorUserId);
+    const target = params.payload.target;
+    const title = parseRequiredString(params.payload.title);
+    const message = parseRequiredString(params.payload.message);
+
+    if (!institutionId) throw new Error('INSTITUTION_ID_REQUIRED');
+    if (!actorUserId) throw new Error('USER_ID_REQUIRED');
+    if (!VALID_INSTITUTION_NOTIFICATION_TARGETS.has(target)) {
+      throw new Error('INVALID_INSTITUTION_NOTIFICATION_TARGET');
+    }
+    if (!title) throw new Error('TITLE_REQUIRED');
+    if (!message) throw new Error('MESSAGE_REQUIRED');
+
+    const recipientUserIds = await notificationRepository.listInstitutionStudentRecipientIds(
+      institutionId,
+      target,
+    );
+
+    const broadcast = await notificationRepository.createInstitutionBroadcast({
+      institutionId,
+      createdById: actorUserId,
+      targetScope: target,
+      title,
+      message,
+      recipientCount: recipientUserIds.length,
+      recipientUserIds,
+      notificationMetadata: {
+        event: 'INSTITUTION_BROADCAST',
+        institutionId,
+        targetScope: target,
+      },
+    });
+
+    if (recipientUserIds.length > 0) {
+      void realtimeClient.publishMany([
+        {
+          domain: 'notifications',
+          action: 'notification.broadcast_created',
+          entityId: broadcast.id,
+          scope: { userIds: recipientUserIds },
+          payload: { institutionId, recipientCount: recipientUserIds.length },
+        },
+      ]);
+    }
+
+    return {
+      id: broadcast.id,
+      target,
+      title: broadcast.title,
+      message: broadcast.message,
+      recipientCount: broadcast.recipientCount,
+      createdAt: broadcast.createdAt.toISOString(),
+    };
+  }
+
+  async listInstitutionBroadcasts(institutionId: string) {
+    const normalizedInstitutionId = parseRequiredString(institutionId);
+    if (!normalizedInstitutionId) throw new Error('INSTITUTION_ID_REQUIRED');
+
+    const items = await notificationRepository.listInstitutionBroadcasts(normalizedInstitutionId);
+    return items.map(item => ({
+      id: item.id,
+      target: item.targetScope,
+      title: item.title,
+      message: item.message,
+      recipientCount: item.recipientCount,
+      createdAt: item.createdAt.toISOString(),
+      createdByName: [item.createdBy.firstName, item.createdBy.middleName, item.createdBy.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim(),
+      createdByEmail: item.createdBy.email,
+    }));
   }
 }

@@ -17,3 +17,11 @@ export interface CreateSystemNotificationDto {
 export interface UpdateNotificationReadDto {
   read: boolean;
 }
+
+export type InstitutionNotificationTarget = 'ALL' | 'APPROVED_ONLY' | 'SUSPENDED_ONLY';
+
+export interface CreateInstitutionBroadcastDto {
+  target: InstitutionNotificationTarget;
+  title: string;
+  message: string;
+}
