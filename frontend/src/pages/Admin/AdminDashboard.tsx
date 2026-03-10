@@ -1,13 +1,10 @@
 ﻿import { useMemo } from 'react';
 import Card from '../../components/common/Card';
-import Badge from '../../components/common/Badge';
 import TopNavPortal from '../../components/common/TopNavPortal';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
 import {
   AlertTriangle,
   Clock3,
-  ListFilter,
-  Search,
   ShieldAlert,
   UserRoundCheck,
 } from 'lucide-react';
@@ -16,24 +13,15 @@ import { RiskBand, RiskReviewStatus } from '../../services/risk.service';
 import ButtonLoadingContent from '../../components/common/ButtonLoadingContent';
 import AdminRiskEventDetailsDrawer from './components/AdminRiskEventDetailsDrawer';
 import AdminOverviewSection from './components/AdminOverviewSection';
-import { formatDate, formatDateTime } from '../../utils/formatting';
+import AdminUserSection from './components/AdminUserSection';
+import { formatDateTime } from '../../utils/formatting';
 import {
   useAdminDashboardState,
-  getFullName,
-  getInitials,
-  getRoleStyles,
-  getLinkedOrganizationLabel,
   getRiskBandStyles,
   getRiskReviewStyles,
-  ROLE_OPTIONS,
-  STATUS_OPTIONS,
-  USER_STATUS_ACTIONS,
-  USER_ROLE_ACTIONS,
   RISK_BAND_OPTIONS,
   RISK_REVIEW_OPTIONS,
-  OTP_BADGE_CLASS,
 } from './useAdminDashboardState';
-import type { RoleFilter, StatusFilter } from './useAdminDashboardState';
 
 export default function AdminDashboard() {
   const {
@@ -99,31 +87,6 @@ export default function AdminDashboard() {
     exportReviewedRiskReport,
     stepUpModal,
   } = useAdminDashboardState();
-
-  const userFilterGroups = useMemo<SearchFilterGroup[]>(() => [
-    {
-      id: 'admin-user-role',
-      label: 'Role',
-      value: roleFilter,
-      defaultValue: 'ALL',
-      options: ROLE_OPTIONS.map(role => ({
-        value: role,
-        label: role === 'ALL' ? 'All roles' : role,
-      })),
-      onChange: value => setRoleFilter(value as RoleFilter),
-    },
-    {
-      id: 'admin-user-status',
-      label: 'Status',
-      value: statusFilter,
-      defaultValue: 'ALL',
-      options: STATUS_OPTIONS.map(status => ({
-        value: status,
-        label: status === 'ALL' ? 'All statuses' : status,
-      })),
-      onChange: value => setStatusFilter(value as StatusFilter),
-    },
-  ], [roleFilter, setRoleFilter, setStatusFilter, statusFilter]);
 
   const riskFilterGroups = useMemo<SearchFilterGroup[]>(() => [
     {
@@ -206,221 +169,6 @@ export default function AdminDashboard() {
       onChange: value => setAuditPageSize(Number(value)),
     },
   ], [adminAuditActionOptions, auditActionFilter, auditPageSize, auditSeverityFilter, setAuditActionFilter, setAuditPageSize, setAuditSeverityFilter]);
-
-  const renderUserManagement = () => (
-    <div className="space-y-6">
-      <Card
-        title="User Management"
-      >
-        <TopNavPortal>
-          <div className="flex w-full items-center gap-2 lg:max-w-xl">
-            <div className="relative flex-1">
-              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-              <input
-                value={search}
-                onChange={event => setSearch(event.target.value)}
-                placeholder="Name, email, role, organization..."
-                className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm text-neutral-800 placeholder:text-neutral-400 outline-none focus:border-neutral-300"
-              />
-            </div>
-            <SearchFilterModal
-              hideLabel
-              groups={userFilterGroups}
-              description="Refine the user directory by account role and approval status."
-            />
-          </div>
-        </TopNavPortal>
-
-        <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-600">
-          <ListFilter size={14} />
-          Showing {filteredUsers.length} of {users.length} users
-        </div>
-      </Card>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
-        <div className="xl:col-span-3">
-          <Card title="Accounts">
-            <div className="overflow-x-auto rounded-lg border border-neutral-200">
-              <table className="w-full text-left">
-                <thead className="bg-neutral-50 text-xs font-medium text-neutral-500">
-                  <tr>
-                    <th className="px-5 py-3">User</th>
-                    <th className="px-5 py-3">Role</th>
-                    <th className="px-5 py-3">Status</th>
-                    <th className="hidden px-5 py-3 md:table-cell">Organization</th>
-                    <th className="hidden px-5 py-3 sm:table-cell">Created</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100 bg-white">
-                  {isLoadingUsers && (
-                    <tr>
-                      <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
-                        Loading users...
-                      </td>
-                    </tr>
-                  )}
-                  {!isLoadingUsers && filteredUsers.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
-                        No users matched your filters.
-                      </td>
-                    </tr>
-                  )}
-                  {!isLoadingUsers &&
-                    filteredUsers.map(user => {
-                      const isSelected = user.id === selectedUserId;
-
-                      return (
-                        <tr
-                          key={user.id}
-                          className={`cursor-pointer transition-colors hover:bg-neutral-50/80 ${isSelected ? 'bg-neutral-50' : ''}`}
-                          onClick={() => setSelectedUserId(user.id)}
-                        >
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
-                                {getInitials(user)}
-                              </div>
-                              <div>
-                                <p className="font-semibold text-neutral-900">{getFullName(user)}</p>
-                                <p className="text-xs text-neutral-500">{user.email}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-5 py-4 text-xs">
-                            <span className={`rounded-md border px-2.5 py-1 font-semibold ${getRoleStyles(user.role)}`}>
-                              {user.role}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4">
-                            <Badge status={user.status} />
-                          </td>
-                          <td className="hidden px-5 py-4 text-sm text-neutral-600 md:table-cell">{getLinkedOrganizationLabel(user)}</td>
-                          <td className="hidden px-5 py-4 text-sm text-neutral-600 sm:table-cell">{formatDate(user.createdAt)}</td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-
-        <div className="xl:col-span-2">
-          <Card title="Selected User Details">
-            {!selectedUser && <p className="text-sm text-neutral-500">Select a user to view account details.</p>}
-
-            {selectedUser && (
-              <div className="space-y-5">
-                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-lg font-semibold text-neutral-900">{getFullName(selectedUser)}</p>
-                      <p className="mt-1 text-sm text-neutral-500">{selectedUser.email}</p>
-                    </div>
-                    <Badge status={selectedUser.status} />
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
-                    <div>
-                      <p className="text-neutral-500">User ID</p>
-                      <p className="mt-1 break-all font-semibold text-neutral-700">{selectedUser.id}</p>
-                    </div>
-                    <div>
-                      <p className="text-neutral-500">Role</p>
-                      <p className="mt-1 font-semibold text-neutral-700">{selectedUser.role}</p>
-                    </div>
-                    <div>
-                      <p className="text-neutral-500">Organization</p>
-                      <p className="mt-1 font-semibold text-neutral-700">{getLinkedOrganizationLabel(selectedUser)}</p>
-                    </div>
-                    <div>
-                      <p className="text-neutral-500">Created</p>
-                      <p className="mt-1 font-semibold text-neutral-700">{formatDateTime(selectedUser.createdAt)}</p>
-                    </div>
-                    <div>
-                      <p className="text-neutral-500">Updated</p>
-                      <p className="mt-1 font-semibold text-neutral-700">{formatDateTime(selectedUser.updatedAt)}</p>
-                    </div>
-                    <div>
-                      <p className="text-neutral-500">Approved At</p>
-                      <p className="mt-1 font-semibold text-neutral-700">{formatDateTime(selectedUser.approvedAt)}</p>
-                    </div>
-                    <div>
-                      <p className="text-neutral-500">Approved By ID</p>
-                      <p className="mt-1 break-all font-semibold text-neutral-700">{selectedUser.approvedById || '-'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-2 flex items-center gap-2 text-xs font-medium text-neutral-500">
-                    Role Actions
-                    <span className={OTP_BADGE_CLASS}>OTP Required</span>
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {USER_ROLE_ACTIONS.map(nextRole => (
-                      <button
-                        key={nextRole}
-                        disabled={isUpdatingRole === selectedUser.id || selectedUser.role === nextRole}
-                        onClick={() => void handleRoleUpdate(selectedUser.id, nextRole)}
-                        className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
-                          selectedUser.role === nextRole
-                            ? 'cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400'
-                            : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
-                        }`}
-                        title="OTP required before this action is applied"
-                      >
-                        <span className="inline-flex items-center gap-1.5">
-                          {isUpdatingRole === selectedUser.id && selectedUser.role !== nextRole
-                            ? <ButtonLoadingContent label="Updating" />
-                            : nextRole}
-                          {selectedUser.role !== nextRole && <span className={OTP_BADGE_CLASS}>OTP</span>}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="mb-2 flex items-center gap-2 text-xs font-medium text-neutral-500">
-                    Status Actions
-                    <span className={OTP_BADGE_CLASS}>OTP Required</span>
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {USER_STATUS_ACTIONS.map(nextStatus => (
-                      <button
-                        key={nextStatus}
-                        disabled={isUpdatingStatus === selectedUser.id || selectedUser.status === nextStatus}
-                        onClick={() => void handleStatusUpdate(selectedUser.id, nextStatus)}
-                        className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
-                          selectedUser.status === nextStatus
-                            ? 'cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400'
-                            : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
-                        }`}
-                        title="OTP required before this action is applied"
-                      >
-                        <span className="inline-flex items-center gap-1.5">
-                          {isUpdatingStatus === selectedUser.id && selectedUser.status !== nextStatus
-                            ? <ButtonLoadingContent label="Updating" />
-                            : nextStatus}
-                          {selectedUser.status !== nextStatus && <span className={OTP_BADGE_CLASS}>OTP</span>}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
-                  Privacy guardrail: student profile data is hidden from admin-level tools by default.
-                </div>
-              </div>
-            )}
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
 
   const totalRiskPages = Math.max(1, Math.ceil(riskTotal / riskPageSize));
   const currentRiskPage = Math.min(riskPage, totalRiskPages);
@@ -830,7 +578,26 @@ export default function AdminDashboard() {
           isLoadingRiskEvents={isLoadingRiskEvents}
         />
       )}
-      {section === 'users' && renderUserManagement()}
+      {section === 'users' && (
+        <AdminUserSection
+          users={users}
+          filteredUsers={filteredUsers}
+          isLoadingUsers={isLoadingUsers}
+          search={search}
+          setSearch={setSearch}
+          roleFilter={roleFilter}
+          setRoleFilter={setRoleFilter}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          selectedUserId={selectedUserId}
+          setSelectedUserId={setSelectedUserId}
+          selectedUser={selectedUser}
+          isUpdatingStatus={isUpdatingStatus}
+          isUpdatingRole={isUpdatingRole}
+          handleStatusUpdate={handleStatusUpdate}
+          handleRoleUpdate={handleRoleUpdate}
+        />
+      )}
       {section === 'risk' && renderRiskReview()}
       {section === 'logs' && renderLogsPlaceholder()}
 

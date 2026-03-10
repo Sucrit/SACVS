@@ -386,12 +386,6 @@ export function useAdminDashboardState(): AdminDashboardState {
     });
   }, [users, roleFilter, statusFilter, search]);
 
-  useEffect(() => {
-    if (filteredUsers.length === 0) { setSelectedUserId(null); return; }
-    const hasSelectedUser = selectedUserId && filteredUsers.some(u => u.id === selectedUserId);
-    if (!hasSelectedUser) setSelectedUserId(filteredUsers[0].id);
-  }, [filteredUsers, selectedUserId]);
-
   const selectedUser = useMemo(
     () => filteredUsers.find(u => u.id === selectedUserId) || null,
     [filteredUsers, selectedUserId],

@@ -61,7 +61,7 @@ export default function AdminOverviewSection({
           </div>
           <div>
             <p className="text-2xl font-semibold text-neutral-900">{pendingUsers}</p>
-            <p className="text-xs text-neutral-500">Pending approvals</p>
+            <p className="text-xs text-neutral-500">Pending Institution Approvals</p>
           </div>
         </div>
 
@@ -100,7 +100,7 @@ export default function AdminOverviewSection({
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <Card
-            title="Pending Approvals"
+            title="Pending Institution Approvals    "
             action={
               <Link
                 to="/admin/users"
