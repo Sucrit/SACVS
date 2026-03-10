@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangle,
@@ -239,29 +239,29 @@ export default function StudentCredentialDetailsSection({
 
   if (!selectedCredential) {
     return (
-      <Card className="rounded-3xl p-6">
+      <Card className="rounded-lg p-6">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50"
         >
           <ArrowLeft size={14} />
           Back
         </button>
         <div className="mt-4">
-          <p className="text-xl font-semibold text-slate-900">Credential Details</p>
-          <p className="mt-1 text-sm text-slate-500">Credential details are not available.</p>
+          <p className="text-xl font-semibold text-neutral-900">Credential Details</p>
+          <p className="mt-1 text-sm text-neutral-500">Credential details are not available.</p>
         </div>
       </Card>
     );
   }
 
   return (
-    <Card className="overflow-hidden rounded-3xl border border-slate-200 p-6 shadow-[0_16px_50px_rgba(15,23,42,0.08)]">
+    <Card className="overflow-hidden rounded-lg border border-neutral-200 p-6 shadow-sm">
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.5fr_1fr]">
-          <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3">
+          <section className="space-y-3 rounded-lg border border-neutral-200 bg-neutral-50/70 p-3">
             {isRevoked && (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                 <p className="inline-flex items-center gap-2 font-semibold">
                   <AlertTriangle size={14} />
                   Revoked Credential
@@ -275,25 +275,25 @@ export default function StudentCredentialDetailsSection({
               <button
                 type="button"
                 onClick={onBack}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50"
               >
                 <ArrowLeft size={14} />
                 Back
               </button>
               <div className="flex items-center gap-2">
-                <FileBadge2 size={14} className="text-slate-500" />
-                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Document Preview</p>
+                <FileBadge2 size={14} className="text-neutral-500" />
+                <p className="text-xs font-semibold  text-neutral-500">Document Preview</p>
               </div>
             </div>
 
             {selectedCredentialFileUrl ? (
               <>
                 {isRevoked ? (
-                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-16 text-center text-sm text-slate-600">
+                  <div className="rounded-lg border border-neutral-200 bg-white px-3 py-16 text-center text-sm text-neutral-600">
                     This credential has been revoked.
                   </div>
                 ) : selectedCredentialHasImage ? (
-                  <div className="h-[clamp(420px,70vh,760px)] w-full overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  <div className="h-[clamp(420px,70vh,760px)] w-full overflow-hidden rounded-lg border border-neutral-200 bg-white">
                     <img
                       src={selectedCredentialFileUrl}
                       alt={selectedCredential.title}
@@ -301,71 +301,71 @@ export default function StudentCredentialDetailsSection({
                     />
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-slate-200 bg-white px-3 py-8 text-center text-sm text-slate-600">
+                  <div className="rounded-lg border border-neutral-200 bg-white px-3 py-8 text-center text-sm text-neutral-600">
                     Inline preview is not available for this file type.
                   </div>
                 )}
               </>
             ) : (
-              <div className="rounded-xl border border-slate-200 bg-white px-3 py-8 text-center text-sm text-slate-600">
+              <div className="rounded-lg border border-neutral-200 bg-white px-3 py-8 text-center text-sm text-neutral-600">
                 {isLoadingFile ? 'Loading credential document...' : 'No file is attached to this credential.'}
               </div>
             )}
 
           </section>
 
-          <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-3">
-              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Credential Details</p>
-              <p className="mt-1 text-2xl font-semibold leading-tight text-slate-900">{selectedCredential.title}</p>
-              <p className="mt-2 text-sm font-medium text-slate-600">
-                <span className="text-slate-500">Type:</span>{' '}
-                <span className="font-semibold text-slate-900">{formatCredentialTypeLabel(selectedCredential.type)}</span>
+          <section className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50/60 px-3.5 py-3">
+              <p className="text-xs font-semibold  text-neutral-500">Credential Details</p>
+              <p className="mt-1 text-lg font-semibold leading-tight text-neutral-900">{selectedCredential.title}</p>
+              <p className="mt-2 text-sm font-medium text-neutral-600">
+                <span className="text-neutral-500">Type:</span>{' '}
+                <span className="font-semibold text-neutral-900">{formatCredentialTypeLabel(selectedCredential.type)}</span>
               </p>
             </div>
 
             <div className="grid grid-cols-[130px_1fr] items-start gap-x-3 gap-y-3 text-sm">
-              <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+              <p className="inline-flex items-center gap-2 font-medium text-neutral-500">
                 <Sparkles size={14} />
                 Status
               </p>
-              <p className={`font-semibold ${isRevoked ? 'text-rose-700' : 'text-slate-900'}`}>
+              <p className={`font-semibold ${isRevoked ? 'text-rose-700' : 'text-neutral-900'}`}>
                 {selectedCredential.status}
               </p>
 
-              <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+              <p className="inline-flex items-center gap-2 font-medium text-neutral-500">
                 <CalendarDays size={14} />
                 Issued
               </p>
-              <p className="font-semibold text-slate-900">{formatDateTime(selectedCredential.issuedDate || selectedCredential.createdAt)}</p>
+              <p className="font-semibold text-neutral-900">{formatDateTime(selectedCredential.issuedDate || selectedCredential.createdAt)}</p>
 
-              <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+              <p className="inline-flex items-center gap-2 font-medium text-neutral-500">
                 <Building2 size={14} />
                 Institution
               </p>
-              <p className="font-semibold text-slate-900">{issuerInstitutionName}</p>
+              <p className="font-semibold text-neutral-900">{issuerInstitutionName}</p>
 
-              <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+              <p className="inline-flex items-center gap-2 font-medium text-neutral-500">
                 <Sparkles size={14} />
                 Verification
               </p>
-              <p className="font-semibold text-slate-900">{getStudentVerificationSummary(selectedCredential)}</p>
+              <p className="font-semibold text-neutral-900">{getStudentVerificationSummary(selectedCredential)}</p>
 
-              <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+              <p className="inline-flex items-center gap-2 font-medium text-neutral-500">
                 <Link2 size={14} />
                 Blockchain
               </p>
               <div>
-                <p className="font-semibold text-slate-900">{selectedCredential.chain || 'Not anchored yet'}</p>
+                <p className="font-semibold text-neutral-900">{selectedCredential.chain || 'Not anchored yet'}</p>
                 {isAnchored && (
                   <>
-                    <p className="mt-1 text-xs text-slate-500">Block #: {selectedCredential.blockNumber ?? '-'}</p>
-                    <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs">
-                      <code className="truncate font-mono text-slate-600">{shortenHash(selectedCredential.txHash)}</code>
+                    <p className="mt-1 text-xs text-neutral-500">Block #: {selectedCredential.blockNumber ?? '-'}</p>
+                    <div className="mt-2 flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2.5 py-1.5 text-xs">
+                      <code className="truncate font-mono text-neutral-600">{shortenHash(selectedCredential.txHash)}</code>
                       {selectedCredential.txHash && (
                         <button
                           onClick={() => void copyText(selectedCredential.txHash as string)}
-                          className="inline-flex h-5 w-5 items-center justify-center rounded text-slate-500 hover:bg-slate-200/60 hover:text-slate-700"
+                          className="inline-flex h-5 w-5 items-center justify-center rounded text-neutral-500 hover:bg-neutral-200/60 hover:text-neutral-700"
                           title="Copy transaction hash"
                         >
                           <Link2 size={12} />
@@ -376,21 +376,21 @@ export default function StudentCredentialDetailsSection({
                 )}
               </div>
 
-              <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+              <p className="inline-flex items-center gap-2 font-medium text-neutral-500">
                 <CalendarDays size={14} />
                 Expiry Date
               </p>
-              <p className="font-semibold text-slate-900">{formatDateTime(selectedCredential.expiryDate)}</p>
+              <p className="font-semibold text-neutral-900">{formatDateTime(selectedCredential.expiryDate)}</p>
 
-              <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+              <p className="inline-flex items-center gap-2 font-medium text-neutral-500">
                 <Fingerprint size={14} />
                 File Hash
               </p>
-              <p className="break-all font-semibold text-slate-900">{shortenHash(selectedCredential.fileHash)}</p>
+              <p className="break-all font-semibold text-neutral-900">{shortenHash(selectedCredential.fileHash)}</p>
 
               {selectedCredentialFileUrl && (
                 <>
-                  <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+                  <p className="inline-flex items-center gap-2 font-medium text-neutral-500">
                     <Link2 size={14} />
                     Actions
                   </p>
@@ -399,7 +399,7 @@ export default function StudentCredentialDetailsSection({
                       type="button"
                       onClick={() => void handleShare()}
                       disabled={isRevoked || !canGenerateQr || isGeneratingQr}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
                       title="Share one-time QR (OTP required only if document download is enabled)"
                     >
                       <Share2 size={13} />
@@ -409,7 +409,7 @@ export default function StudentCredentialDetailsSection({
                       <button
                         type="button"
                         disabled
-                        className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 opacity-40"
+                        className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 opacity-40"
                       >
                         <Download size={13} />
                         Download
@@ -418,7 +418,7 @@ export default function StudentCredentialDetailsSection({
                       <a
                         href={selectedCredentialFileUrl}
                         download={selectedCredential.filename || `${selectedCredential.title}.pdf`}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50"
                       >
                         <Download size={13} />
                         Download
@@ -429,7 +429,7 @@ export default function StudentCredentialDetailsSection({
               )}
               {qrToken && (
                 <>
-                  <p className="inline-flex items-center gap-2 font-medium text-slate-500">
+                  <p className="inline-flex items-center gap-2 font-medium text-neutral-500">
                     <QrCode size={14} />
                     Verification QR
                   </p>
@@ -449,7 +449,7 @@ export default function StudentCredentialDetailsSection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 px-4 py-4 backdrop-blur-[1px] sm:items-center"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-neutral-900/60 px-4 py-4 backdrop-blur-[1px] sm:items-center"
           onClick={() => setQrToken(null)}
         >
           <motion.div
@@ -458,41 +458,41 @@ export default function StudentCredentialDetailsSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="max-h-[92vh] w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="max-h-[92vh] w-full max-w-md overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
             <div className="max-h-[92vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
               <div>
-                <p className="text-sm font-semibold text-slate-900">One-Time Verification QR</p>
-                <p className="mt-1 text-xs text-slate-500">Share this one-time token for external credential verification.</p>
+                <p className="text-sm font-semibold text-neutral-900">One-Time Verification QR</p>
+                <p className="mt-1 text-xs text-neutral-500">Share this one-time token for external credential verification.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setQrToken(null)}
-                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
+                className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
               >
                 <X size={15} />
               </button>
             </div>
             <div className="p-5">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-neutral-600">
               This QR can be used once and expires in{' '}
               <span className="font-semibold text-amber-700">{formatQrCountdown(qrSecondsRemaining)}</span>.
             </p>
-            <div className="mt-4 flex justify-center rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mt-4 flex justify-center rounded-lg border border-neutral-200 bg-neutral-50 p-4">
               {qrDataUrl ? (
                 <img src={qrDataUrl} alt="One-time credential verification QR" className="h-64 w-64" />
               ) : (
-                <p className="text-sm text-slate-500">Rendering QR...</p>
+                <p className="text-sm text-neutral-500">Rendering QR...</p>
               )}
             </div>
             <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               Security notice: this link is short-lived and single-use. If leaked, regenerate immediately.
             </div>
-            <div className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Shared document access</p>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+            <div className="mt-4 space-y-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-3">
+              <p className="text-xs font-semibold  text-neutral-500">Shared document access</p>
+              <label className="flex items-center gap-2 text-sm text-neutral-700">
                 <input
                   type="checkbox"
                   checked={allowDocumentPreview}
@@ -504,7 +504,7 @@ export default function StudentCredentialDetailsSection({
                 />
                 Allow document preview
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-neutral-700">
                 <input
                   type="checkbox"
                   checked={allowDocumentDownload}
@@ -513,7 +513,7 @@ export default function StudentCredentialDetailsSection({
                 />
                 Allow document download
                 <span
-                  className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700"
+                  className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold  text-amber-700"
                   title="Enabling download requires OTP verification"
                 >
                   OTP Required
@@ -524,7 +524,7 @@ export default function StudentCredentialDetailsSection({
               <button
                 type="button"
                 onClick={() => void handleCopyQrLink()}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50"
               >
                 <Link2 size={13} />
                 Copy Link
@@ -533,13 +533,13 @@ export default function StudentCredentialDetailsSection({
                 type="button"
                 onClick={() => void handleGenerateQr()}
                 disabled={isGeneratingQr}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-900 bg-neutral-900 px-3 py-2 text-xs font-semibold text-white hover:bg-neutral-800 disabled:opacity-50"
                 title={allowDocumentDownload ? 'OTP required when regenerating with download enabled' : 'Regenerate one-time QR'}
               >
                 <RefreshIcon />
                 {isGeneratingQr ? <ButtonLoadingContent label="Regenerating" /> : 'Regenerate'}
                 {allowDocumentDownload && (
-                  <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold  text-amber-700">
                     OTP
                   </span>
                 )}

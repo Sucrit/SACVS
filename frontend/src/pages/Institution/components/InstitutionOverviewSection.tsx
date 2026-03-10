@@ -1,4 +1,4 @@
-import { AlertCircle, Boxes, Download, GraduationCap, TrendingUp } from 'lucide-react';
+﻿import { AlertCircle, Boxes, Download, GraduationCap, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
@@ -155,60 +155,60 @@ export default function InstitutionOverviewSection({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
           <div className="mb-3 flex items-center justify-between">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
               <AlertCircle size={18} />
             </span>
           </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Pending Requests</p>
-          <p className="mt-2 text-4xl font-bold text-slate-900">{pendingRequests}</p>
+          <p className="text-xs font-medium text-neutral-500">Pending Requests</p>
+          <p className="mt-2 text-lg font-semibold text-neutral-900">{pendingRequests}</p>
         </Card>
 
         <Card>
           <div className="mb-3 flex items-center justify-between">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
               <GraduationCap size={18} />
             </span>
           </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Total Authorized Students</p>
-          <p className="mt-2 text-4xl font-bold text-slate-900">{activeStudents.toLocaleString()}</p>
+          <p className="text-xs font-medium text-neutral-500">Total Authorized Students</p>
+          <p className="mt-2 text-lg font-semibold text-neutral-900">{activeStudents.toLocaleString()}</p>
         </Card>
 
         <Card>
           <div className="mb-3 flex items-center justify-between">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
               <Boxes size={18} />
             </span>
           </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Blockchain Credentials</p>
-          <p className="mt-2 text-4xl font-bold text-slate-900">{blockchainCredentials.toLocaleString()}</p>
+          <p className="text-xs font-medium text-neutral-500">Blockchain Credentials</p>
+          <p className="mt-2 text-lg font-semibold text-neutral-900">{blockchainCredentials.toLocaleString()}</p>
         </Card>
 
         <Card>
           <div className="mb-3 flex items-center justify-between">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
               <TrendingUp size={18} />
             </span>
           </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Issuance Trend</p>
-          <p className="mt-2 text-4xl font-bold text-slate-900">{formatPercent(issuanceTrendPercent)}</p>
+          <p className="text-xs font-medium text-neutral-500">Issuance Trend</p>
+          <p className="mt-2 text-lg font-semibold text-neutral-900">{formatPercent(issuanceTrendPercent)}</p>
         </Card>
       </div>
 
       <Card className="p-0">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <p className="text-xl font-semibold text-slate-900">Institution's Student Directory</p>
+        <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+          <p className="text-xl font-semibold text-neutral-900">Institution's Student Directory</p>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => navigate('/institution/students')}
-              className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+              className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 hover:text-neutral-900"
             >
               See More
             </button>
             <button
               type="button"
               onClick={handleDownloadStudentDirectory}
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 hover:text-neutral-900"
               aria-label="Download full student directory"
               title="Download full student directory"
             >
@@ -221,13 +221,13 @@ export default function InstitutionOverviewSection({
         {isLoading && (
           <div className="space-y-2 px-5 py-4">
             {[1, 2, 3, 4, 5].map(key => (
-              <div key={key} className="h-12 animate-pulse rounded-xl border border-slate-200 bg-slate-100" />
+              <div key={key} className="h-12 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
             ))}
           </div>
         )}
 
         {!isLoading && directoryRows.length === 0 && (
-          <div className="px-5 py-10 text-sm text-slate-500">No students found.</div>
+          <div className="px-5 py-10 text-sm text-neutral-500">No students found.</div>
         )}
 
         {!isLoading && directoryRows.length > 0 && (
@@ -235,7 +235,7 @@ export default function InstitutionOverviewSection({
             <div className="overflow-x-auto">
               <table className="min-w-full border-separate border-spacing-0">
                 <thead>
-                  <tr className="text-left text-[11px] uppercase tracking-[0.08em] text-slate-500">
+                  <tr className="text-left text-[11px]  text-neutral-500">
                     <th className="px-5 py-3 font-semibold">Student Name</th>
                     <th className="px-5 py-3 font-semibold">Student ID</th>
                     <th className="px-5 py-3 font-semibold">Program</th>
@@ -245,21 +245,21 @@ export default function InstitutionOverviewSection({
                 </thead>
                 <tbody>
                   {directoryRows.map(student => (
-                    <tr key={student.id} className="border-t border-slate-100 text-sm text-slate-700">
+                    <tr key={student.id} className="border-t border-neutral-100 text-sm text-neutral-700">
                       <td className="px-5 py-3 align-top">
-                        <p className="font-semibold text-slate-900">{getStudentFullName(student)}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{student.email}</p>
+                        <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
+                        <p className="mt-0.5 text-xs text-neutral-500">{student.email}</p>
                       </td>
-                      <td className="px-5 py-3 align-top text-slate-600">
+                      <td className="px-5 py-3 align-top text-neutral-600">
                         {student.profile?.studentNumber || '--'}
                       </td>
-                      <td className="px-5 py-3 align-top text-slate-600">
+                      <td className="px-5 py-3 align-top text-neutral-600">
                         {student.profile?.courseOfStudy || '--'}
                       </td>
                       <td className="px-5 py-3 align-top">
                         <Badge status={student.status} />
                       </td>
-                      <td className="px-5 py-3 align-top text-slate-600">
+                      <td className="px-5 py-3 align-top text-neutral-600">
                         {formatShortDate(lastIssuedByStudentId.get(student.id))}
                       </td>
                     </tr>
@@ -267,7 +267,7 @@ export default function InstitutionOverviewSection({
                 </tbody>
               </table>
             </div>
-            <div className="border-t border-slate-200 px-5 py-3 text-xs text-slate-500">
+            <div className="border-t border-neutral-200 px-5 py-3 text-xs text-neutral-500">
               Showing {directoryRows.length} of {students.length.toLocaleString()} students
             </div>
           </>

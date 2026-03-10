@@ -45,9 +45,9 @@ export const getInitials = (user: User) => {
 };
 
 export const getRoleStyles = (role: UserRole) => {
-  if (role === 'ADMIN') return 'border-slate-400 bg-slate-100 text-slate-800';
+  if (role === 'ADMIN') return 'border-neutral-400 bg-neutral-100 text-neutral-800';
   if (role === 'INSTITUTION') return 'border-cyan-200 bg-cyan-50 text-cyan-800';
-  return 'border-slate-200 bg-slate-50 text-slate-700';
+  return 'border-neutral-200 bg-neutral-50 text-neutral-700';
 };
 
 export const getLinkedOrganizationLabel = (user: User) => {
@@ -68,18 +68,18 @@ export const getRiskBandStyles = (riskBand: RiskBand) => {
   if (riskBand === 'CRITICAL') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (riskBand === 'HIGH') return 'border-amber-200 bg-amber-50 text-amber-700';
   if (riskBand === 'MEDIUM') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
-  return 'border-slate-200 bg-slate-50 text-slate-700';
+  return 'border-neutral-200 bg-neutral-50 text-neutral-700';
 };
 
 export const getRiskReviewStyles = (reviewStatus: RiskReviewStatus) => {
   if (reviewStatus === 'CONFIRMED_ABUSE') return 'border-rose-200 bg-rose-50 text-rose-700';
   if (reviewStatus === 'BENIGN') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
   if (reviewStatus === 'UNCERTAIN') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-slate-200 bg-slate-50 text-slate-700';
+  return 'border-neutral-200 bg-neutral-50 text-neutral-700';
 };
 
 export const OTP_BADGE_CLASS =
-  'rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700';
+  'rounded-full border border-warning-200 bg-warning-50 px-1.5 py-0.5 text-[10px] font-medium text-warning-700';
 
 // =============================================================================
 // Hook

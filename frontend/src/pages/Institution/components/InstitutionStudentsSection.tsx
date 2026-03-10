@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
+﻿import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, PauseCircle, Pencil, Search, Trash2, Upload, UserPlus, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
@@ -68,7 +68,7 @@ const DEFAULT_YEAR_LEVEL_OPTIONS = [
 ];
 
 const OTP_BADGE_CLASS =
-  'rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700';
+  'rounded-full border border-warning-200 bg-warning-50 px-1.5 py-0.5 text-[10px] font-medium text-warning-700';
 
 export default function InstitutionStudentsSection({
   studentForm,
@@ -188,7 +188,7 @@ export default function InstitutionStudentsSection({
             <button
               type="button"
               onClick={() => setActiveModal('add')}
-              className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
             >
               <UserPlus size={14} />
               Student Account
@@ -197,7 +197,7 @@ export default function InstitutionStudentsSection({
               type="button"
               onClick={() => setActiveModal('bulk')}
               title="Bulk student import requires OTP verification"
-              className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+              className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
             >
               <Upload size={14} />
               Bulk Import (CSV)
@@ -207,21 +207,21 @@ export default function InstitutionStudentsSection({
       >
         <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-4">
           <div className="md:col-span-2 relative">
-            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input value={studentSearch} onChange={event => onStudentSearchChange(event.target.value)} placeholder="Search name, email, student #, department..." className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none" />
+            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <input value={studentSearch} onChange={event => onStudentSearchChange(event.target.value)} placeholder="Search name, email, student #, department..." className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none" />
           </div>
-          <select value={studentStatusFilter} onChange={event => onStudentStatusFilterChange(event.target.value as StudentStatusFilter)} className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none">
+          <select value={studentStatusFilter} onChange={event => onStudentStatusFilterChange(event.target.value as StudentStatusFilter)} className="h-10 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none">
             <option value="ALL">All statuses</option>
             {STUDENT_STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
           </select>
-          <select value={studentDepartmentFilter} onChange={event => onStudentDepartmentFilterChange(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none">
+          <select value={studentDepartmentFilter} onChange={event => onStudentDepartmentFilterChange(event.target.value)} className="h-10 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none">
             {departmentOptions.map(option => <option key={option} value={option}>{option === 'ALL' ? 'All departments' : option}</option>)}
           </select>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
+        <div className="overflow-x-auto rounded-lg border border-neutral-200">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
+            <thead className="bg-neutral-50 text-xs font-semibold  text-neutral-500">
               <tr>
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Student #</th>
@@ -232,22 +232,22 @@ export default function InstitutionStudentsSection({
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {isLoadingStudents && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">Loading students...</td></tr>}
-              {!isLoadingStudents && students.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-500">No students found.</td></tr>}
+            <tbody className="divide-y divide-neutral-100 bg-white">
+              {isLoadingStudents && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-neutral-500">Loading students...</td></tr>}
+              {!isLoadingStudents && students.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-neutral-500">No students found.</td></tr>}
               {!isLoadingStudents && students.map(student => (
-                <tr key={student.id} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-3"><p className="font-semibold text-slate-900">{getStudentFullName(student)}</p><p className="mt-1 text-xs text-slate-500">{student.email}</p></td>
-                  <td className="px-4 py-3 text-sm text-slate-700">{student.profile?.studentNumber || '-'}</td>
-                  <td className="px-4 py-3 text-sm text-slate-700">{student.profile?.department || '-'}</td>
-                  <td className="px-4 py-3 text-sm text-slate-700">{student.profile?.courseOfStudy || '-'}</td>
+                <tr key={student.id} className="hover:bg-neutral-50/70">
+                  <td className="px-4 py-3"><p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p><p className="mt-1 text-xs text-neutral-500">{student.email}</p></td>
+                  <td className="px-4 py-3 text-sm text-neutral-700">{student.profile?.studentNumber || '-'}</td>
+                  <td className="px-4 py-3 text-sm text-neutral-700">{student.profile?.department || '-'}</td>
+                  <td className="px-4 py-3 text-sm text-neutral-700">{student.profile?.courseOfStudy || '-'}</td>
                   <td className="px-4 py-3"><Badge status={student.status} /></td>
-                  <td className="px-4 py-3 text-xs text-slate-600">
-                    <p><span className="font-semibold text-slate-700">By:</span> {student.approverName || '-'}</p>
-                    <p className="mt-1"><span className="font-semibold text-slate-700">At:</span> {formatDateTime(student.approvedAt)}</p>
+                  <td className="px-4 py-3 text-xs text-neutral-600">
+                    <p><span className="font-semibold text-neutral-700">By:</span> {student.approverName || '-'}</p>
+                    <p className="mt-1"><span className="font-semibold text-neutral-700">At:</span> {formatDateTime(student.approvedAt)}</p>
                   </td>
                   <td className="px-4 py-3 text-right"><div className="inline-flex gap-2">
-                    <button onClick={() => onStartEditStudent(student)} className="rounded-lg border border-slate-200 bg-white p-2 text-slate-700 hover:bg-slate-100" title="Edit student profile"><Pencil size={14} /></button>
+                    <button onClick={() => onStartEditStudent(student)} className="rounded-lg border border-neutral-200 bg-white p-2 text-neutral-700 hover:bg-neutral-100" title="Edit student profile"><Pencil size={14} /></button>
                     {student.status !== 'APPROVED' && (
                       <button
                         disabled={updatingStudentId === student.id}
@@ -285,7 +285,7 @@ export default function InstitutionStudentsSection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-90 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
           onClick={() => setActiveModal(null)}
         >
           <motion.div
@@ -294,20 +294,20 @@ export default function InstitutionStudentsSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg"
             onClick={event => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Add Student Account</p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="text-sm font-semibold text-neutral-900">Add Student Account</p>
+                <p className="mt-1 text-xs text-neutral-500">
                   Create a new student profile under your institution.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
-                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
+                className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
                 aria-label="Close modal"
               >
                 <X size={16} />
@@ -315,45 +315,45 @@ export default function InstitutionStudentsSection({
             </div>
             <form className="space-y-3 p-5" onSubmit={onCreateStudent}>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 md:col-span-2 xl:col-span-3">
+                <p className="text-xs font-semibold  text-neutral-500 md:col-span-2 xl:col-span-3">
                   Personal Info
                 </p>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     First name <span className="text-rose-500">*</span>
                   </span>
-                  <input required value={studentForm.firstName} onChange={event => onSetStudentFormValue('firstName', event.target.value)} placeholder="First name" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+                  <input required value={studentForm.firstName} onChange={event => onSetStudentFormValue('firstName', event.target.value)} placeholder="First name" className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none" />
                 </label>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Middle name
                   </span>
-                  <input value={studentForm.middleName} onChange={event => onSetStudentFormValue('middleName', event.target.value)} placeholder="Middle name (optional)" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+                  <input value={studentForm.middleName} onChange={event => onSetStudentFormValue('middleName', event.target.value)} placeholder="Middle name (optional)" className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none" />
                 </label>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Last name <span className="text-rose-500">*</span>
                   </span>
-                  <input required value={studentForm.lastName} onChange={event => onSetStudentFormValue('lastName', event.target.value)} placeholder="Last name" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+                  <input required value={studentForm.lastName} onChange={event => onSetStudentFormValue('lastName', event.target.value)} placeholder="Last name" className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none" />
                 </label>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     University Issued Email<span className="text-rose-500">*</span>
                   </span>
-                  <input required type="email" value={studentForm.email} onChange={event => onSetStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+                  <input required type="email" value={studentForm.email} onChange={event => onSetStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none" />
                 </label>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Student number <span className="text-rose-500">*</span>
                   </span>
-                  <input required value={studentForm.studentNumber} onChange={event => onSetStudentFormValue('studentNumber', event.target.value)} placeholder="Student number" className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
+                  <input required value={studentForm.studentNumber} onChange={event => onSetStudentFormValue('studentNumber', event.target.value)} placeholder="Student number" className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none" />
                 </label>
 
-                <p className="pt-2 text-xs font-semibold uppercase tracking-widest text-slate-500 md:col-span-2 xl:col-span-3">
+                <p className="pt-2 text-xs font-semibold  text-neutral-500 md:col-span-2 xl:col-span-3">
                   Academic Info
                 </p>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Department <span className="text-rose-500">*</span>
                   </span>
                   <select
@@ -367,7 +367,7 @@ export default function InstitutionStudentsSection({
                         onSetStudentFormValue('courseOfStudy', '');
                       }
                     }}
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   >
                     <option value="" disabled>Select department</option>
                     {addFormDepartmentOptions.map(option => (
@@ -376,14 +376,14 @@ export default function InstitutionStudentsSection({
                   </select>
                 </label>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Course of study <span className="text-rose-500">*</span>
                   </span>
                   <select
                     required
                     value={studentForm.courseOfStudy}
                     onChange={event => onSetStudentFormValue('courseOfStudy', event.target.value)}
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   >
                     <option value="" disabled>Select course of study</option>
                     {addFormCourseOptions.map(option => (
@@ -392,14 +392,14 @@ export default function InstitutionStudentsSection({
                   </select>
                 </label>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Year level <span className="text-rose-500">*</span>
                   </span>
                   <select
                     required
                     value={studentForm.yearLevel}
                     onChange={event => onSetStudentFormValue('yearLevel', event.target.value)}
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   >
                     <option value="" disabled>Select year level</option>
                     {addFormYearLevelOptions.map(option => (
@@ -409,14 +409,14 @@ export default function InstitutionStudentsSection({
                 </label>
               </div>
               <div className="flex items-center gap-2">
-                <button type="submit" disabled={isSubmittingStudent} className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-black disabled:opacity-60">
+                <button type="submit" disabled={isSubmittingStudent} className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-black disabled:opacity-60">
                   <UserPlus size={14} />
                   {isSubmittingStudent ? <ButtonLoadingContent label="Creating" /> : 'Create Student'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveModal(null)}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
                 >
                   <X size={14} />
                   Close
@@ -436,7 +436,7 @@ export default function InstitutionStudentsSection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-90 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
           onClick={() => setActiveModal(null)}
         >
           <motion.div
@@ -445,33 +445,33 @@ export default function InstitutionStudentsSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="w-full max-w-xl overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg"
             onClick={event => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Bulk Student Account Import (CSV)</p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="text-sm font-semibold text-neutral-900">Bulk Student Account Import (CSV)</p>
+                <p className="mt-1 text-xs text-neutral-500">
                   Upload a CSV file to create multiple student accounts at once.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setActiveModal(null)}
-                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
+                className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
                 aria-label="Close modal"
               >
                 <X size={16} />
               </button>
             </div>
             <div className="p-5">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-neutral-600">
               Strictly use the header format below:
-              <span className="mt-2 block max-w-full break-all rounded-lg bg-slate-50 p-2 text-xs text-slate-700">
+              <span className="mt-2 block max-w-full break-all rounded-lg bg-neutral-50 p-2 text-xs text-neutral-700">
                 email,firstName,middleName,lastName,studentNumber,courseOfStudy,yearLevel,department
               </span>
             </p>
-            <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+            <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100">
               <Upload size={14} />
               {isBulkImporting ? <ButtonLoadingContent label="Importing" /> : 'Upload CSV'}
               {!isBulkImporting && <span className={OTP_BADGE_CLASS}>OTP Required</span>}
@@ -491,7 +491,7 @@ export default function InstitutionStudentsSection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-90 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
           onClick={onCancelEditStudent}
         >
           <motion.div
@@ -500,20 +500,20 @@ export default function InstitutionStudentsSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg"
             onClick={event => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Edit Student Profile</p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="text-sm font-semibold text-neutral-900">Edit Student Profile</p>
+                <p className="mt-1 text-xs text-neutral-500">
                   Update student profile, academic metadata, and account status.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={onCancelEditStudent}
-                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
+                className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
                 aria-label="Close modal"
               >
                 <X size={16} />
@@ -521,11 +521,11 @@ export default function InstitutionStudentsSection({
             </div>
             <form className="space-y-3 p-5" onSubmit={onSaveEditedStudent}>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 md:col-span-2 xl:col-span-3">
+                <p className="text-xs font-semibold  text-neutral-500 md:col-span-2 xl:col-span-3">
                   Personal Info
                 </p>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     First name <span className="text-rose-500">*</span>
                   </span>
                   <input
@@ -533,22 +533,22 @@ export default function InstitutionStudentsSection({
                     value={editStudentForm.firstName}
                     onChange={event => onSetEditStudentFormValue('firstName', event.target.value)}
                     placeholder="First name"
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Middle name
                   </span>
                   <input
                     value={editStudentForm.middleName}
                     onChange={event => onSetEditStudentFormValue('middleName', event.target.value)}
                     placeholder="Middle name (optional)"
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Last name <span className="text-rose-500">*</span>
                   </span>
                   <input
@@ -556,11 +556,11 @@ export default function InstitutionStudentsSection({
                     value={editStudentForm.lastName}
                     onChange={event => onSetEditStudentFormValue('lastName', event.target.value)}
                     placeholder="Last name"
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Email <span className="text-rose-500">*</span>
                   </span>
                   <input
@@ -569,11 +569,11 @@ export default function InstitutionStudentsSection({
                     value={editStudentForm.email}
                     onChange={event => onSetEditStudentFormValue('email', event.target.value)}
                     placeholder="Email"
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Student number <span className="text-rose-500">*</span>
                   </span>
                   <input
@@ -581,22 +581,22 @@ export default function InstitutionStudentsSection({
                     value={editStudentForm.studentNumber}
                     onChange={event => onSetEditStudentFormValue('studentNumber', event.target.value)}
                     placeholder="Student number"
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   />
                 </label>
 
-                <p className="pt-2 text-xs font-semibold uppercase tracking-widest text-slate-500 md:col-span-2 xl:col-span-3">
+                <p className="pt-2 text-xs font-semibold  text-neutral-500 md:col-span-2 xl:col-span-3">
                   Academic Info
                 </p>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Course of study <span className="text-rose-500">*</span>
                   </span>
                   <select
                     required
                     value={editStudentForm.courseOfStudy}
                     onChange={event => onSetEditStudentFormValue('courseOfStudy', event.target.value)}
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   >
                     <option value="" disabled>Select course of study</option>
                     {editFormCourseOptions.map(option => (
@@ -605,14 +605,14 @@ export default function InstitutionStudentsSection({
                   </select>
                 </label>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Year level <span className="text-rose-500">*</span>
                   </span>
                   <select
                     required
                     value={editStudentForm.yearLevel}
                     onChange={event => onSetEditStudentFormValue('yearLevel', event.target.value)}
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   >
                     <option value="" disabled>Select year level</option>
                     {addFormYearLevelOptions.map(option => (
@@ -621,7 +621,7 @@ export default function InstitutionStudentsSection({
                   </select>
                 </label>
                 <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <span className="block text-xs font-semibold  text-neutral-500">
                     Department <span className="text-rose-500">*</span>
                   </span>
                   <select
@@ -635,7 +635,7 @@ export default function InstitutionStudentsSection({
                         onSetEditStudentFormValue('courseOfStudy', '');
                       }
                     }}
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   >
                     <option value="" disabled>Select department</option>
                     {addFormDepartmentOptions.map(option => (
@@ -645,8 +645,8 @@ export default function InstitutionStudentsSection({
                 </label>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-black"><Check size={14} />Save Changes</button>
-                <button type="button" onClick={onCancelEditStudent} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100"><X size={14} />Cancel</button>
+                <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-black"><Check size={14} />Save Changes</button>
+                <button type="button" onClick={onCancelEditStudent} className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"><X size={14} />Cancel</button>
               </div>
             </form>
           </motion.div>

@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+﻿import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { isAxiosError } from 'axios';
@@ -213,7 +213,7 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
           onClick={onClose}
           role="presentation"
         >
@@ -223,26 +223,26 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="w-full max-w-md rounded-lg border border-neutral-200 bg-white shadow-lg"
             onClick={event => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
           <div>
-            <p className="text-sm font-semibold text-slate-900">{prompt.title || 'Security Verification'}</p>
-            <p className="mt-1 text-xs text-slate-500">Email OTP confirmation is required before continuing.</p>
+            <p className="text-sm font-semibold text-neutral-900">{prompt.title || 'Security Verification'}</p>
+            <p className="mt-1 text-xs text-neutral-500">Email OTP confirmation is required before continuing.</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
+            className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
           >
             <X size={15} />
           </button>
             </div>
 
             <form onSubmit={handleVerify} className="space-y-4 p-5">
-          <p className="text-sm text-slate-600">{description}</p>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          <p className="text-sm text-neutral-600">{description}</p>
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
             {isSending
               ? 'Sending OTP'
               : hasChallenge
@@ -250,7 +250,7 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
                 : 'No active OTP challenge. Click Resend Code.'}
           </div>
           <label className="block space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">One-time code</span>
+            <span className="text-xs font-semibold  text-neutral-500">One-time code</span>
             <input
               type="text"
               inputMode="numeric"
@@ -258,7 +258,7 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
               value={otpCode}
               onChange={event => setOtpCode(event.target.value.replace(/\s+/g, ''))}
               placeholder="Enter 6-digit code"
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+              className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm text-neutral-800 outline-none focus:border-neutral-300"
               disabled={isSending || isVerifying}
             />
           </label>
@@ -268,14 +268,14 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
               type="button"
               onClick={() => void handleResend()}
               disabled={isSending || isVerifying}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
             >
               {isSending ? <ButtonLoadingContent label="Sending" /> : 'Resend Code'}
             </button>
             <button
               type="submit"
               disabled={disableVerify}
-              className="rounded-xl border border-slate-900 bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+              className="rounded-lg border border-neutral-900 bg-neutral-900 px-4 py-2 text-xs font-semibold text-white hover:bg-neutral-800 disabled:opacity-50"
             >
               {isVerifying ? <ButtonLoadingContent label="Verifying" /> : 'Verify and Continue'}
             </button>

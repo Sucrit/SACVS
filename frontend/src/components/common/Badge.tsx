@@ -17,27 +17,27 @@ interface BadgeProps {
 }
 
 const statusStyles: Record<BadgeStatus, string> = {
-  PENDING: 'bg-amber-50 text-amber-800 border-amber-200',
-  APPROVED: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  REJECTED: 'bg-rose-50 text-rose-800 border-rose-200',
-  ISSUED: 'bg-slate-100 text-slate-800 border-slate-300',
-  REVOKED: 'bg-slate-100 text-slate-500 border-slate-300 line-through decoration-slate-400',
-  SUSPENDED: 'bg-orange-50 text-orange-800 border-orange-200',
-  EXPIRED: 'bg-zinc-100 text-zinc-700 border-zinc-300',
-  COMPLETED: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  CANCELLED: 'bg-neutral-100 text-neutral-700 border-neutral-300',
+  PENDING: 'bg-warning-50 text-warning-700 border-warning-100',
+  APPROVED: 'bg-success-50 text-success-700 border-success-100',
+  REJECTED: 'bg-error-50 text-error-700 border-error-100',
+  ISSUED: 'bg-primary-50 text-primary-700 border-primary-100',
+  REVOKED: 'bg-neutral-100 text-neutral-500 border-neutral-200 line-through',
+  SUSPENDED: 'bg-warning-50 text-warning-700 border-warning-100',
+  EXPIRED: 'bg-neutral-100 text-neutral-500 border-neutral-200',
+  COMPLETED: 'bg-success-50 text-success-700 border-success-100',
+  CANCELLED: 'bg-neutral-100 text-neutral-500 border-neutral-200',
 };
 
 export default function Badge({ status, className }: BadgeProps) {
   return (
     <span
       className={twMerge(
-        'inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-bold border uppercase tracking-widest shadow-sm',
-        statusStyles[status] || 'bg-gray-100 text-gray-800 border-gray-200',
+        'inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium capitalize',
+        statusStyles[status] || 'bg-neutral-100 text-neutral-600 border-neutral-200',
         className
       )}
     >
-      {status}
+      {status.toLowerCase()}
     </span>
   );
 }

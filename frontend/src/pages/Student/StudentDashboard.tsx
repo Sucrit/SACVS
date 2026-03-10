@@ -69,7 +69,7 @@ export default function StudentDashboard() {
           animatedRequestIds={state.animatedRequestIds}
           initialDetailsRequestId={state.requestDetailsFromQueryId}
           onDetailsRequestConsumed={() => state.setRequestDetailsFromQueryId(null)}
-          requestAction={renderRequestAction('inline-flex h-10 items-center justify-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100')}
+          requestAction={renderRequestAction('inline-flex h-10 items-center justify-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100')}
         />
       )}
 

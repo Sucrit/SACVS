@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
@@ -10,7 +10,6 @@ import {
   ListFilter,
   Mail,
   Search,
-  Server,
   ShieldAlert,
   UserRoundCheck,
   Users,
@@ -108,46 +107,46 @@ export default function AdminDashboard() {
 
   const renderOverview = () => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <Card title="Total Users" className="border-slate-900 bg-slate-900 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-bold text-white">{totalUsers}</p>
-              <p className="mt-1 text-xs uppercase tracking-widest text-slate-300">All accounts</p>
-            </div>
-            <Users size={22} className="text-white" />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+            <Users size={18} />
           </div>
-        </Card>
+          <div>
+            <p className="text-2xl font-semibold text-neutral-900">{totalUsers}</p>
+            <p className="text-xs text-neutral-500">Total users</p>
+          </div>
+        </div>
 
-        <Card title="Approved">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-bold text-emerald-700">{approvedUsers}</p>
-              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Active users</p>
-            </div>
-            <UserRoundCheck size={22} className="text-emerald-700" />
+        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+            <UserRoundCheck size={18} />
           </div>
-        </Card>
+          <div>
+            <p className="text-2xl font-semibold text-neutral-900">{approvedUsers}</p>
+            <p className="text-xs text-neutral-500">Approved</p>
+          </div>
+        </div>
 
-        <Card title="Pending">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-bold text-amber-700">{pendingUsers}</p>
-              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Needs approval</p>
-            </div>
-            <Clock3 size={22} className="text-amber-700" />
+        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+            <Clock3 size={18} />
           </div>
-        </Card>
+          <div>
+            <p className="text-2xl font-semibold text-neutral-900">{pendingUsers}</p>
+            <p className="text-xs text-neutral-500">Pending</p>
+          </div>
+        </div>
 
-        <Card title="Student Accounts">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-bold text-slate-900">{studentAccounts}</p>
-              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Role-level count</p>
-            </div>
-            <Database size={22} className="text-slate-700" />
+        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
+            <Database size={18} />
           </div>
-        </Card>
+          <div>
+            <p className="text-2xl font-semibold text-neutral-900">{studentAccounts}</p>
+            <p className="text-xs text-neutral-500">Students</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -157,16 +156,16 @@ export default function AdminDashboard() {
             action={
               <Link
                 to="/admin/users"
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
               >
                 View All
                 <ArrowRight size={14} />
               </Link>
             }
           >
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <div className="overflow-x-auto rounded-lg border border-neutral-200">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
+                <thead className="bg-neutral-50 text-xs font-medium text-neutral-500">
                   <tr>
                     <th className="px-5 py-3">Name</th>
                     <th className="px-5 py-3">Email</th>
@@ -175,29 +174,29 @@ export default function AdminDashboard() {
                     <th className="px-5 py-3">Created</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
+                <tbody className="divide-y divide-neutral-100 bg-white">
                   {isLoadingUsers && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-500">
+                      <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
                         Loading users...
                       </td>
                     </tr>
                   )}
                   {!isLoadingUsers && recentUsers.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-500">
+                      <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
                         No users found.
                       </td>
                     </tr>
                   )}
                   {!isLoadingUsers &&
                     recentUsers.map(user => (
-                      <tr key={user.id} className="hover:bg-slate-50/70">
+                      <tr key={user.id} className="hover:bg-neutral-50/70">
                         <td className="px-5 py-4">
-                          <p className="font-semibold text-slate-900">{getFullName(user)}</p>
-                          <p className="mt-1 text-xs text-slate-500">ID: {user.id}</p>
+                          <p className="font-semibold text-neutral-900">{getFullName(user)}</p>
+                          <p className="mt-1 text-xs text-neutral-500">ID: {user.id}</p>
                         </td>
-                        <td className="px-5 py-4 text-sm text-slate-600">{user.email}</td>
+                        <td className="px-5 py-4 text-sm text-neutral-600">{user.email}</td>
                         <td className="px-5 py-4">
                           <span className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${getRoleStyles(user.role)}`}>
                             {user.role}
@@ -206,7 +205,7 @@ export default function AdminDashboard() {
                         <td className="px-5 py-4">
                           <Badge status={user.status} />
                         </td>
-                        <td className="px-5 py-4 text-sm text-slate-500">{formatDate(user.createdAt)}</td>
+                        <td className="px-5 py-4 text-sm text-neutral-500">{formatDate(user.createdAt)}</td>
                       </tr>
                     ))}
                 </tbody>
@@ -217,28 +216,22 @@ export default function AdminDashboard() {
 
         <div className="space-y-6">
           <Card title="Role Distribution">
-            <div className="space-y-3">
+            <div className="space-y-2">
               {Object.entries(roleDistribution).map(([role, count]) => (
-                <div key={role} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <Users size={14} className="text-slate-600" />
-                    <span className="text-sm font-semibold text-slate-800">{role}</span>
-                  </div>
-                  <span className="text-sm font-bold text-slate-700">{count}</span>
+                <div key={role} className="flex items-center justify-between py-2">
+                  <span className="text-sm text-neutral-600">{role}</span>
+                  <span className="text-sm font-medium text-neutral-900">{count}</span>
                 </div>
               ))}
             </div>
           </Card>
 
           <Card title="Status Distribution">
-            <div className="space-y-3">
+            <div className="space-y-2">
               {Object.entries(statusDistribution).map(([status, count]) => (
-                <div key={status} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <Server size={14} className="text-slate-600" />
-                    <span className="text-sm font-semibold text-slate-800">{status}</span>
-                  </div>
-                  <span className="text-sm font-bold text-slate-700">{count}</span>
+                <div key={status} className="flex items-center justify-between py-2">
+                  <span className="text-sm text-neutral-600">{status}</span>
+                  <span className="text-sm font-medium text-neutral-900">{count}</span>
                 </div>
               ))}
             </div>
@@ -255,24 +248,24 @@ export default function AdminDashboard() {
       >
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
           <div className="lg:col-span-2">
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-slate-500">Search</label>
+            <label className="mb-1.5 block text-xs font-medium text-neutral-500">Search</label>
             <div className="relative">
-              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
               <input
                 value={search}
                 onChange={event => setSearch(event.target.value)}
                 placeholder="Name, email, role, organization..."
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-400"
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2.5 pl-9 pr-3 text-sm text-neutral-800 placeholder:text-neutral-400"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-slate-500">Role</label>
+            <label className="mb-1.5 block text-xs font-medium text-neutral-500">Role</label>
             <select
               value={roleFilter}
               onChange={event => setRoleFilter(event.target.value as RoleFilter)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-800"
+              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-800"
             >
               {ROLE_OPTIONS.map(role => (
                 <option key={role} value={role}>
@@ -283,11 +276,11 @@ export default function AdminDashboard() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-slate-500">Status</label>
+            <label className="mb-1.5 block text-xs font-medium text-neutral-500">Status</label>
             <select
               value={statusFilter}
               onChange={event => setStatusFilter(event.target.value as StatusFilter)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-800"
+              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-800"
             >
               {STATUS_OPTIONS.map(status => (
                 <option key={status} value={status}>
@@ -298,7 +291,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+        <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-600">
           <ListFilter size={14} />
           Showing {filteredUsers.length} of {users.length} users
         </div>
@@ -307,9 +300,9 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
         <div className="xl:col-span-3">
           <Card title="Accounts">
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <div className="overflow-x-auto rounded-lg border border-neutral-200">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
+                <thead className="bg-neutral-50 text-xs font-medium text-neutral-500">
                   <tr>
                     <th className="px-5 py-3">User</th>
                     <th className="px-5 py-3">Role</th>
@@ -318,17 +311,17 @@ export default function AdminDashboard() {
                     <th className="px-5 py-3">Created</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
+                <tbody className="divide-y divide-neutral-100 bg-white">
                   {isLoadingUsers && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-500">
+                      <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
                         Loading users...
                       </td>
                     </tr>
                   )}
                   {!isLoadingUsers && filteredUsers.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-500">
+                      <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
                         No users matched your filters.
                       </td>
                     </tr>
@@ -340,17 +333,17 @@ export default function AdminDashboard() {
                       return (
                         <tr
                           key={user.id}
-                          className={`cursor-pointer transition-colors hover:bg-slate-50/80 ${isSelected ? 'bg-slate-50' : ''}`}
+                          className={`cursor-pointer transition-colors hover:bg-neutral-50/80 ${isSelected ? 'bg-neutral-50' : ''}`}
                           onClick={() => setSelectedUserId(user.id)}
                         >
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-xs font-bold text-slate-700">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
                                 {getInitials(user)}
                               </div>
                               <div>
-                                <p className="font-semibold text-slate-900">{getFullName(user)}</p>
-                                <p className="text-xs text-slate-500">{user.email}</p>
+                                <p className="font-semibold text-neutral-900">{getFullName(user)}</p>
+                                <p className="text-xs text-neutral-500">{user.email}</p>
                               </div>
                             </div>
                           </td>
@@ -362,8 +355,8 @@ export default function AdminDashboard() {
                           <td className="px-5 py-4">
                             <Badge status={user.status} />
                           </td>
-                          <td className="px-5 py-4 text-sm text-slate-600">{getLinkedOrganizationLabel(user)}</td>
-                          <td className="px-5 py-4 text-sm text-slate-600">{formatDate(user.createdAt)}</td>
+                          <td className="px-5 py-4 text-sm text-neutral-600">{getLinkedOrganizationLabel(user)}</td>
+                          <td className="px-5 py-4 text-sm text-neutral-600">{formatDate(user.createdAt)}</td>
                         </tr>
                       );
                     })}
@@ -375,53 +368,53 @@ export default function AdminDashboard() {
 
         <div className="xl:col-span-2">
           <Card title="Selected User Details">
-            {!selectedUser && <p className="text-sm text-slate-500">Select a user to view account details.</p>}
+            {!selectedUser && <p className="text-sm text-neutral-500">Select a user to view account details.</p>}
 
             {selectedUser && (
               <div className="space-y-5">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-lg font-semibold text-slate-900">{getFullName(selectedUser)}</p>
-                      <p className="mt-1 text-sm text-slate-500">{selectedUser.email}</p>
+                      <p className="text-lg font-semibold text-neutral-900">{getFullName(selectedUser)}</p>
+                      <p className="mt-1 text-sm text-neutral-500">{selectedUser.email}</p>
                     </div>
                     <Badge status={selectedUser.status} />
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <p className="uppercase tracking-widest text-slate-500">User ID</p>
-                      <p className="mt-1 break-all font-semibold text-slate-700">{selectedUser.id}</p>
+                      <p className="text-neutral-500">User ID</p>
+                      <p className="mt-1 break-all font-semibold text-neutral-700">{selectedUser.id}</p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-widest text-slate-500">Role</p>
-                      <p className="mt-1 font-semibold text-slate-700">{selectedUser.role}</p>
+                      <p className="text-neutral-500">Role</p>
+                      <p className="mt-1 font-semibold text-neutral-700">{selectedUser.role}</p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-widest text-slate-500">Organization</p>
-                      <p className="mt-1 font-semibold text-slate-700">{getLinkedOrganizationLabel(selectedUser)}</p>
+                      <p className="text-neutral-500">Organization</p>
+                      <p className="mt-1 font-semibold text-neutral-700">{getLinkedOrganizationLabel(selectedUser)}</p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-widest text-slate-500">Created</p>
-                      <p className="mt-1 font-semibold text-slate-700">{formatDateTime(selectedUser.createdAt)}</p>
+                      <p className="text-neutral-500">Created</p>
+                      <p className="mt-1 font-semibold text-neutral-700">{formatDateTime(selectedUser.createdAt)}</p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-widest text-slate-500">Updated</p>
-                      <p className="mt-1 font-semibold text-slate-700">{formatDateTime(selectedUser.updatedAt)}</p>
+                      <p className="text-neutral-500">Updated</p>
+                      <p className="mt-1 font-semibold text-neutral-700">{formatDateTime(selectedUser.updatedAt)}</p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-widest text-slate-500">Approved At</p>
-                      <p className="mt-1 font-semibold text-slate-700">{formatDateTime(selectedUser.approvedAt)}</p>
+                      <p className="text-neutral-500">Approved At</p>
+                      <p className="mt-1 font-semibold text-neutral-700">{formatDateTime(selectedUser.approvedAt)}</p>
                     </div>
                     <div>
-                      <p className="uppercase tracking-widest text-slate-500">Approved By ID</p>
-                      <p className="mt-1 break-all font-semibold text-slate-700">{selectedUser.approvedById || '-'}</p>
+                      <p className="text-neutral-500">Approved By ID</p>
+                      <p className="mt-1 break-all font-semibold text-neutral-700">{selectedUser.approvedById || '-'}</p>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
+                  <p className="mb-2 flex items-center gap-2 text-xs font-medium text-neutral-500">
                     Role Actions
                     <span className={OTP_BADGE_CLASS}>OTP Required</span>
                   </p>
@@ -433,8 +426,8 @@ export default function AdminDashboard() {
                         onClick={() => void handleRoleUpdate(selectedUser.id, nextRole)}
                         className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                           selectedUser.role === nextRole
-                            ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
-                            : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                            ? 'cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400'
+                            : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
                         }`}
                         title="OTP required before this action is applied"
                       >
@@ -450,7 +443,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-slate-500">
+                  <p className="mb-2 flex items-center gap-2 text-xs font-medium text-neutral-500">
                     Status Actions
                     <span className={OTP_BADGE_CLASS}>OTP Required</span>
                   </p>
@@ -462,8 +455,8 @@ export default function AdminDashboard() {
                         onClick={() => void handleStatusUpdate(selectedUser.id, nextStatus)}
                         className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                           selectedUser.status === nextStatus
-                            ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
-                            : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                            ? 'cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400'
+                            : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
                         }`}
                         title="OTP required before this action is applied"
                       >
@@ -478,7 +471,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-600">
                   Privacy guardrail: student profile data is hidden from admin-level tools by default.
                 </div>
               </div>
@@ -494,8 +487,8 @@ export default function AdminDashboard() {
   const riskWorkerStatusView = useMemo(() => {
     if (!riskWorkerStatus) {
       return {
-        titleClass: 'text-slate-600',
-        dotClass: 'bg-slate-400',
+        titleClass: 'text-neutral-600',
+        dotClass: 'bg-neutral-400',
         label: isLoadingRiskWorkerStatus ? 'Checking worker' : 'Worker unavailable',
         detail: isLoadingRiskWorkerStatus ? 'Loading latest runtime health.' : 'Status could not be loaded.',
       };
@@ -503,8 +496,8 @@ export default function AdminDashboard() {
 
     if (!riskWorkerStatus.autorunEnabled) {
       return {
-        titleClass: 'text-slate-700',
-        dotClass: 'bg-slate-400',
+        titleClass: 'text-neutral-700',
+        dotClass: 'bg-neutral-400',
         label: 'Autorun disabled',
         detail: 'Shadow scoring requires manual execution.',
       };
@@ -563,59 +556,59 @@ export default function AdminDashboard() {
 
   const renderRiskReview = () => (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <Card title="Pending Review">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-bold text-slate-900">{riskSummary.pendingReviewCount}</p>
-              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Needs analyst triage</p>
-            </div>
-            <Clock3 size={22} className="text-slate-700" />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
+            <Clock3 size={18} />
           </div>
-        </Card>
-        <Card title="High Risk">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-bold text-amber-700">{riskSummary.highRiskCount}</p>
-              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">High-band shadow events</p>
-            </div>
-            <AlertTriangle size={22} className="text-amber-700" />
+          <div>
+            <p className="text-2xl font-semibold text-neutral-900">{riskSummary.pendingReviewCount}</p>
+            <p className="text-xs text-neutral-500">Pending review</p>
           </div>
-        </Card>
-        <Card title="Critical Risk">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-bold text-rose-700">{riskSummary.criticalRiskCount}</p>
-              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Critical-band shadow events</p>
-            </div>
-            <ShieldAlert size={22} className="text-rose-700" />
+        </div>
+        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+            <AlertTriangle size={18} />
           </div>
-        </Card>
-        <Card title="Confirmed Abuse">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-3xl font-bold text-slate-900">{riskSummary.confirmedAbuseCount}</p>
-              <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Analyst-confirmed events</p>
-            </div>
-            <UserRoundCheck size={22} className="text-slate-700" />
+          <div>
+            <p className="text-2xl font-semibold text-neutral-900">{riskSummary.highRiskCount}</p>
+            <p className="text-xs text-neutral-500">High risk</p>
           </div>
-        </Card>
+        </div>
+        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+            <ShieldAlert size={18} />
+          </div>
+          <div>
+            <p className="text-2xl font-semibold text-neutral-900">{riskSummary.criticalRiskCount}</p>
+            <p className="text-xs text-neutral-500">Critical risk</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
+            <UserRoundCheck size={18} />
+          </div>
+          <div>
+            <p className="text-2xl font-semibold text-neutral-900">{riskSummary.confirmedAbuseCount}</p>
+            <p className="text-xs text-neutral-500">Confirmed abuse</p>
+          </div>
+        </div>
       </div>
 
       <Card
         title="ML Risk Review Queue"
         action={
           <div className="flex flex-wrap items-center justify-end gap-3">
-            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+            <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-600">
               <span className={`h-2.5 w-2.5 rounded-full ${riskWorkerStatusView.dotClass}`} />
               <div className="text-left">
                 <p className={`font-semibold ${riskWorkerStatusView.titleClass}`}>
                   {riskWorkerStatusView.label}
                 </p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-neutral-500">
                   {riskWorkerStatusView.detail}
                   {riskWorkerStatus && !riskWorkerStatus.isRunning && riskWorkerStatus.autorunEnabled && !riskWorkerStatus.lastErrorMessage
-                    ? ` • Scanned ${riskWorkerStatus.lastScannedCount}, inserted ${riskWorkerStatus.lastInsertedCount}`
+                    ? ` â€¢ Scanned ${riskWorkerStatus.lastScannedCount}, inserted ${riskWorkerStatus.lastInsertedCount}`
                     : ''}
                 </p>
               </div>
@@ -624,7 +617,7 @@ export default function AdminDashboard() {
               type="button"
               onClick={() => void exportReviewedRiskReport()}
               disabled={isExportingRiskReport}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isExportingRiskReport ? <ButtonLoadingContent label="Exporting" /> : 'Export reviewed CSV'}
             </button>
@@ -633,11 +626,11 @@ export default function AdminDashboard() {
       >
         <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Risk Band</label>
+            <label className="mb-1 block text-xs font-medium text-neutral-500">Risk Band</label>
             <select
               value={riskBandFilter}
               onChange={event => setRiskBandFilter(event.target.value as RiskBand | 'ALL')}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800"
             >
               {RISK_BAND_OPTIONS.map(option => (
                 <option key={option} value={option}>
@@ -647,11 +640,11 @@ export default function AdminDashboard() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Review Status</label>
+            <label className="mb-1 block text-xs font-medium text-neutral-500">Review Status</label>
             <select
               value={riskReviewFilter}
               onChange={event => setRiskReviewFilter(event.target.value as RiskReviewStatus | 'ALL')}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800"
             >
               {RISK_REVIEW_OPTIONS.map(option => (
                 <option key={option} value={option}>
@@ -661,11 +654,11 @@ export default function AdminDashboard() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Page Size</label>
+            <label className="mb-1 block text-xs font-medium text-neutral-500">Page Size</label>
             <select
               value={riskPageSize}
               onChange={event => setRiskPageSize(Number(event.target.value))}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800"
             >
               {[10, 20, 50].map(size => (
                 <option key={size} value={size}>
@@ -675,24 +668,24 @@ export default function AdminDashboard() {
             </select>
           </div>
           <div className="flex items-end justify-between gap-3">
-            <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+            <label className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium text-neutral-700">
               <input
                 type="checkbox"
                 checked={reviewedOnly}
                 onChange={event => setReviewedOnly(event.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+                className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-400"
               />
               Reviewed only
             </label>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
               {riskTotal} events
             </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
+        <div className="overflow-x-auto rounded-lg border border-neutral-200">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
+            <thead className="bg-neutral-50 text-xs font-medium text-neutral-500">
               <tr>
                 <th className="px-4 py-3">Action</th>
                 <th className="px-4 py-3">Actor</th>
@@ -704,37 +697,37 @@ export default function AdminDashboard() {
                 <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-neutral-100 bg-white">
               {isLoadingRiskEvents && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-neutral-500">
                     Loading risk events...
                   </td>
                 </tr>
               )}
               {!isLoadingRiskEvents && riskEvents.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-neutral-500">
                     No risk events matched the current filters.
                   </td>
                 </tr>
               )}
               {!isLoadingRiskEvents &&
                 riskEvents.map(event => (
-                  <tr key={event.id} className="align-top hover:bg-slate-50/70">
+                  <tr key={event.id} className="align-top hover:bg-neutral-50/70">
                     <td className="px-4 py-3">
                       <div className="space-y-1">
-                        <p className="text-sm font-semibold text-slate-900">{event.action}</p>
-                        <p className="text-xs text-slate-500">{event.targetType || 'No target'}{event.targetId ? ` • ${event.targetId}` : ''}</p>
+                        <p className="text-sm font-semibold text-neutral-900">{event.action}</p>
+                        <p className="text-xs text-neutral-500">{event.targetType || 'No target'}{event.targetId ? ` â€¢ ${event.targetId}` : ''}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="space-y-1 text-xs text-slate-600">
-                        <p className="font-semibold text-slate-800">{event.actorRole || 'UNKNOWN'}</p>
+                      <div className="space-y-1 text-xs text-neutral-600">
+                        <p className="font-semibold text-neutral-800">{event.actorRole || 'UNKNOWN'}</p>
                         <p>{event.actorId || '-'}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-slate-900">{event.riskScore.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-neutral-900">{event.riskScore.toFixed(2)}</td>
                     <td className="px-4 py-3 text-xs">
                       <span className={`rounded-md border px-2.5 py-1 font-semibold ${getRiskBandStyles(event.riskBand)}`}>
                         {event.riskBand}
@@ -745,21 +738,21 @@ export default function AdminDashboard() {
                         <span className={`inline-flex rounded-md border px-2.5 py-1 font-semibold ${getRiskReviewStyles(event.reviewStatus)}`}>
                           {event.reviewStatus}
                         </span>
-                        <p className="text-slate-500">{event.reviewedAt ? formatDateTime(event.reviewedAt) : 'Not reviewed'}</p>
+                        <p className="text-neutral-500">{event.reviewedAt ? formatDateTime(event.reviewedAt) : 'Not reviewed'}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="max-w-xs space-y-1 text-xs text-slate-600">
+                      <div className="max-w-xs space-y-1 text-xs text-neutral-600">
                         {event.topSignals.length === 0 && <p>-</p>}
                         {event.topSignals.slice(0, 3).map(signal => (
                           <p key={signal} className="truncate">{signal}</p>
                         ))}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-600">
+                    <td className="px-4 py-3 text-xs text-neutral-600">
                       <div className="space-y-1">
                         <p>{formatDateTime(event.observedAt)}</p>
-                        <p className="text-slate-500">Model {event.modelVersion}</p>
+                        <p className="text-neutral-500">Model {event.modelVersion}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -767,7 +760,7 @@ export default function AdminDashboard() {
                         <button
                           onClick={() => void openRiskEventDetails(event.id)}
                           disabled={selectedRiskEventId === event.id && isLoadingSelectedRiskEvent}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           View
                         </button>
@@ -792,7 +785,7 @@ export default function AdminDashboard() {
                         <button
                           onClick={() => void handleRiskReviewUpdate(event.id, 'UNCERTAIN')}
                           disabled={reviewingRiskEventId === event.id || event.reviewStatus === 'UNCERTAIN'}
-                          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Uncertain
                         </button>
@@ -805,21 +798,21 @@ export default function AdminDashboard() {
         </div>
         {!isLoadingRiskEvents && riskTotal > 0 && (
           <div className="mt-3 flex items-center justify-between">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               Page {currentRiskPage} of {totalRiskPages}
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setRiskPage(previous => Math.max(1, previous - 1))}
                 disabled={currentRiskPage <= 1}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 disabled:opacity-50"
               >
                 Previous
               </button>
               <button
                 onClick={() => setRiskPage(previous => Math.min(totalRiskPages, previous + 1))}
                 disabled={currentRiskPage >= totalRiskPages}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 disabled:opacity-50"
               >
                 Next
               </button>
@@ -845,11 +838,11 @@ export default function AdminDashboard() {
       >
         <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-4">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Action</label>
+            <label className="mb-1 block text-xs font-medium text-neutral-500">Action</label>
             <select
               value={auditActionFilter}
               onChange={event => setAuditActionFilter(event.target.value as 'ALL' | AuditAction)}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800"
             >
               {adminAuditActionOptions.map(action => (
                 <option key={action} value={action}>
@@ -859,11 +852,11 @@ export default function AdminDashboard() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Severity</label>
+            <label className="mb-1 block text-xs font-medium text-neutral-500">Severity</label>
             <select
               value={auditSeverityFilter}
               onChange={event => setAuditSeverityFilter(event.target.value as 'ALL' | AuditSeverity)}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800"
             >
               {(['ALL', 'INFO', 'WARNING', 'CRITICAL'] as const).map(severity => (
                 <option key={severity} value={severity}>
@@ -873,11 +866,11 @@ export default function AdminDashboard() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-500">Page Size</label>
+            <label className="mb-1 block text-xs font-medium text-neutral-500">Page Size</label>
             <select
               value={auditPageSize}
               onChange={event => setAuditPageSize(Number(event.target.value))}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800"
+              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800"
             >
               {[10, 20, 50].map(size => (
                 <option key={size} value={size}>
@@ -887,15 +880,15 @@ export default function AdminDashboard() {
             </select>
           </div>
           <div className="flex items-end">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
               {filteredAdminAuditLogs.length} entries
             </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
+        <div className="overflow-x-auto rounded-lg border border-neutral-200">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
+            <thead className="bg-neutral-50 text-xs font-medium text-neutral-500">
               <tr>
                 <th className="px-4 py-3">Timestamp</th>
                 <th className="px-4 py-3">Action</th>
@@ -904,29 +897,29 @@ export default function AdminDashboard() {
                 <th className="px-4 py-3">Description</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-neutral-100 bg-white">
               {isLoadingAuditLogs && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
                     Loading audit logs...
                   </td>
                 </tr>
               )}
               {!isLoadingAuditLogs && filteredAdminAuditLogs.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
                     No admin audit logs found.
                   </td>
                 </tr>
               )}
               {!isLoadingAuditLogs &&
                 pagedAdminAuditLogs.map(log => (
-                  <tr key={log.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3 text-xs text-slate-600">{new Date(log.createdAt).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-xs font-semibold text-slate-800">{log.action}</td>
-                    <td className="px-4 py-3 text-xs text-slate-700">{log.severity}</td>
-                    <td className="px-4 py-3 text-xs text-slate-600">{log.actorEmail || '-'}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{log.description || '-'}</td>
+                  <tr key={log.id} className="hover:bg-neutral-50/70">
+                    <td className="px-4 py-3 text-xs text-neutral-600">{new Date(log.createdAt).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-xs font-semibold text-neutral-800">{log.action}</td>
+                    <td className="px-4 py-3 text-xs text-neutral-700">{log.severity}</td>
+                    <td className="px-4 py-3 text-xs text-neutral-600">{log.actorEmail || '-'}</td>
+                    <td className="px-4 py-3 text-sm text-neutral-700">{log.description || '-'}</td>
                   </tr>
                 ))}
             </tbody>
@@ -934,21 +927,21 @@ export default function AdminDashboard() {
         </div>
         {!isLoadingAuditLogs && filteredAdminAuditLogs.length > 0 && (
           <div className="mt-3 flex items-center justify-between">
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               Page {currentAdminAuditPage} of {totalAdminAuditPages}
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setAuditPage(previous => Math.max(1, previous - 1))}
                 disabled={currentAdminAuditPage <= 1}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 disabled:opacity-50"
               >
                 Previous
               </button>
               <button
                 onClick={() => setAuditPage(previous => Math.min(totalAdminAuditPages, previous + 1))}
                 disabled={currentAdminAuditPage >= totalAdminAuditPages}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
+                className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 disabled:opacity-50"
               >
                 Next
               </button>
@@ -970,10 +963,10 @@ export default function AdminDashboard() {
         <Card title="Pending Approval Queue">
           <div className="space-y-3">
             {pendingQueue.slice(0, 4).map(user => (
-              <div key={user.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <div key={user.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
                 <div className="space-y-1">
-                  <p className="text-sm font-semibold text-slate-900">{getFullName(user)}</p>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                  <p className="text-sm font-semibold text-neutral-900">{getFullName(user)}</p>
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-500">
                     <span className="inline-flex items-center gap-1">
                       <Mail size={12} />
                       {user.email}
@@ -1010,7 +1003,7 @@ export default function AdminDashboard() {
                   <button
                     disabled={isUpdatingStatus === user.id}
                     onClick={() => void handleStatusUpdate(user.id, 'SUSPENDED')}
-                    className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
                     title="OTP required before this action is applied"
                   >
                     <span className="inline-flex items-center gap-1.5">

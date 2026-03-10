@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bell,
   CheckCheck,
@@ -121,15 +121,15 @@ export default function StudentNotificationsSection({
 
   return (
     <Card className="mx-auto w-full max-w-3xl">
-      <div className="mb-4 border-b border-slate-200 pb-3">
+      <div className="mb-4 border-b border-neutral-200 pb-3">
         <div className="flex items-center justify-between">
-          <p className="text-2xl font-bold text-slate-900">Notifications</p>
+          <p className="text-lg font-semibold text-neutral-900">Notifications</p>
           <div className="relative">
             <button
               ref={menuButtonRef}
               type="button"
               onClick={() => setIsMenuOpen(previous => !previous)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700"
               aria-label="Notification options"
               aria-expanded={isMenuOpen}
             >
@@ -137,7 +137,7 @@ export default function StudentNotificationsSection({
             </button>
             {isMenuOpen && (
               <div ref={menuRef} className="absolute right-0 top-10 z-10 min-w-[230px]">
-                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-[0_14px_30px_rgba(15,23,42,0.18)]">
+                <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
                   <button
                     type="button"
                     onClick={() => {
@@ -145,7 +145,7 @@ export default function StudentNotificationsSection({
                       setIsMenuOpen(false);
                     }}
                     disabled={unreadCount === 0 || isMarkingAllRead}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <CheckCheck size={15} />
                     {isMarkingAllRead ? <ButtonLoadingContent label="Marking" /> : 'Mark all as read'}
@@ -153,11 +153,11 @@ export default function StudentNotificationsSection({
                   <button
                     type="button"
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
                   >
                     <Settings size={15} />
                     Notification settings
-                    <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    <span className="ml-auto text-[10px] font-semibold  text-neutral-400">
                       N/a
                     </span>
                   </button>
@@ -169,14 +169,14 @@ export default function StudentNotificationsSection({
       </div>
 
       <div className="mb-4 flex items-center">
-        <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
+        <div className="inline-flex rounded-full border border-neutral-200 bg-neutral-50 p-1">
           <button
             type="button"
             onClick={() => setReadFilter('ALL')}
             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
               readFilter === 'ALL'
-                ? 'bg-slate-900 text-white'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                ? 'bg-neutral-900 text-white'
+                : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-800'
             }`}
           >
             All
@@ -186,8 +186,8 @@ export default function StudentNotificationsSection({
             onClick={() => setReadFilter('UNREAD')}
             className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
               readFilter === 'UNREAD'
-                ? 'bg-slate-900 text-white'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800'
+                ? 'bg-neutral-900 text-white'
+                : 'text-neutral-600 hover:bg-neutral-100 hover:text-neutral-800'
             }`}
           >
             Unread
@@ -198,13 +198,13 @@ export default function StudentNotificationsSection({
       {isLoading && (
         <div className="space-y-2">
           {[1, 2, 3].map(item => (
-            <div key={item} className="h-24 animate-pulse rounded-xl border border-slate-200 bg-slate-100" />
+            <div key={item} className="h-24 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
           ))}
         </div>
       )}
 
       {!isLoading && filteredNotifications.length === 0 && (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-6 py-12 text-center text-sm text-neutral-500">
           No notifications found.
         </div>
       )}
@@ -225,33 +225,33 @@ export default function StudentNotificationsSection({
                     handleNotificationClick(notification);
                   }
                 }}
-                className={`rounded-xl border px-4 py-3 ${
-                  notification.read ? 'border-slate-200 bg-white' : 'border-sky-200 bg-sky-50/50'
-                } cursor-pointer transition hover:bg-slate-50`}
+                className={`rounded-lg border px-4 py-3 ${
+                  notification.read ? 'border-neutral-200 bg-white' : 'border-sky-200 bg-sky-50/50'
+                } cursor-pointer transition hover:bg-neutral-50`}
               >
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-slate-900">{notification.title}</p>
+                      <p className="text-sm font-semibold text-neutral-900">{notification.title}</p>
                       {!notification.read && (
                         <span className="inline-flex h-2 w-2 rounded-full bg-sky-500" />
                       )}
                       {isReissued && (
-                        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold r text-emerald-700">
                           Credential re-issued
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-neutral-600">
                       {getNotificationDisplayMessage(notification, {
                         institutionNameFallback: institutionName,
                       })}
                     </p>
-                    <p className="text-xs text-slate-500">{formatDateTime(notification.createdAt)}</p>
+                    <p className="text-xs text-neutral-500">{formatDateTime(notification.createdAt)}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">
+                <div className="flex items-center gap-2 text-[11px] font-medium  text-neutral-500">
                   <Bell size={12} />
                   {notification.type.replace(/_/g, ' ')}
                 </div>

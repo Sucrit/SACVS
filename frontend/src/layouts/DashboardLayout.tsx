@@ -5,13 +5,14 @@ import {
   Bell,
   ChartColumnBig,
   CheckCheck,
-  ChevronDown,
   FileSearch,
   FileText,
+  GraduationCap,
   History,
-  LayoutGrid,
   LayoutDashboard,
   MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
   Shield,
   User,
   Users,
@@ -27,51 +28,30 @@ import { CredentialService } from '../services/credential.service';
 import { useLegacyAuth } from '../auth/auth-context';
 import { realtimeService } from '../services/realtime.service';
 import logoCompact from '../assets/c-version_logo.png';
-import credentialsIcon from '../assets/credentials.svg';
 import ButtonLoadingContent from '../components/common/ButtonLoadingContent';
 
-const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string }>> = {
+const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string; icon: LucideIcon }>> = {
   STUDENT: [
-    { to: '/student/credentials', label: 'My Credential' },
-    { to: '/student/requests', label: 'Requests' },
-    { to: '/student/profile', label: 'Profile' },
+    { to: '/student/credentials', label: 'Credentials', icon: GraduationCap },
+    { to: '/student/requests', label: 'Requests', icon: FileText },
+    { to: '/student/profile', label: 'Profile', icon: User },
   ],
   INSTITUTION: [
-    { to: '/institution', label: 'Overview' },
-    { to: '/institution/issue', label: 'Student Credentials' },
-    { to: '/institution/students', label: 'Students' },
-    { to: '/institution/requests', label: 'Requests' },
-    { to: '/institution/analytics', label: 'Analytics' },
-    { to: '/institution/receipt-verify', label: 'Receipt Verification' },
-    { to: '/institution/logs', label: 'Audit Logs' },
+    { to: '/institution', label: 'Overview', icon: LayoutDashboard },
+    { to: '/institution/issue', label: 'Credentials', icon: GraduationCap },
+    { to: '/institution/students', label: 'Students', icon: Users },
+    { to: '/institution/requests', label: 'Requests', icon: FileText },
+    { to: '/institution/analytics', label: 'Analytics', icon: ChartColumnBig },
+    { to: '/institution/receipt-verify', label: 'Receipt Verify', icon: FileSearch },
+    { to: '/institution/logs', label: 'Audit Logs', icon: History },
   ],
   ADMIN: [
-    { to: '/admin', label: 'Home' },
-    { to: '/admin/users', label: 'Users' },
-    { to: '/admin/risk', label: 'Risk Review' },
-    { to: '/admin/logs', label: 'Audit Logs' },
+    { to: '/admin', label: 'Overview', icon: LayoutDashboard },
+    { to: '/admin/users', label: 'Users', icon: Users },
+    { to: '/admin/risk', label: 'Risk Review', icon: Shield },
+    { to: '/admin/logs', label: 'Audit Logs', icon: History },
   ],
 };
-
-const NAV_ICONS: Record<string, LucideIcon> = {
-  '/student': LayoutGrid,
-  '/student/requests': FileText,
-  '/student/profile': User,
-  '/institution': LayoutDashboard,
-  '/institution/analytics': ChartColumnBig,
-  '/institution/students': Users,
-  '/institution/requests': FileText,
-  '/institution/receipt-verify': FileSearch,
-  '/admin': LayoutGrid,
-  '/admin/users': Users,
-  '/admin/risk': Shield,
-  '/admin/logs': History,
-};
-
-const CREDENTIAL_ICON_ROUTES = new Set<string>([
-  '/student/credentials',
-  '/institution/issue',
-]);
 
 const formatNotificationDate = (value: string) => {
   const date = new Date(value);
@@ -109,6 +89,7 @@ export default function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isLoading } = useLegacyAuth();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notificationFilter, setNotificationFilter] = useState<'ALL' | 'UNREAD'>('ALL');
@@ -126,7 +107,14 @@ export default function DashboardLayout() {
   const requestIndicatorRefreshTimerRef = useRef<number | null>(null);
 
   if (isLoading) {
-    return <div className="h-screen flex items-center justify-center bg-white text-slate-700 font-medium">Loading session...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center bg-neutral-50">
+        <div className="flex items-center gap-3 text-sm text-neutral-500">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600" />
+          Loading session...
+        </div>
+      </div>
+    );
   }
 
   if (!user) {
@@ -148,12 +136,16 @@ export default function DashboardLayout() {
     INSTITUTION: '/institution',
   };
 
+  const roleLabelMap: Record<UserRole, string> = {
+    STUDENT: 'Student',
+    INSTITUTION: user.institution?.institutionName || 'Institution',
+    ADMIN: 'Admin Console',
+  };
+
   const expectedRoutePrefix = roleRoutes[role];
   const path = location.pathname;
   const navLinks = NAV_LINKS[role] || [];
   const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
-  const welcomeFirstName = user.firstName || displayName;
-  const welcomeText = `Welcome, ${welcomeFirstName}`;
 
   const bellRouteByRole: Record<UserRole, string | null> = {
     STUDENT: '/student/notifications',
@@ -457,265 +449,275 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-white font-sans selection:bg-slate-900 selection:text-white">
-      <div className="relative flex min-h-screen flex-1 flex-col">
-        <div className="bg-slate-50 border-b border-slate-200">
-          <div className="flex h-12 items-center justify-between pl-2 pr-4 sm:h-13 sm:pl-4 sm:pr-6 lg:h-13 lg:pl-5 lg:pr-8">
-            <div className="flex items-center gap-2 sm:gap-2.5">
-              <img src={logoCompact} alt="Credence logo" className="block h-6 w-6 object-contain sm:h-7 sm:w-7" />
-              <div className="h-6 w-px bg-slate-200 sm:h-7" />
-              <p className="text-sm font-medium text-slate-500 sm:text-base">{welcomeText}</p>
-            </div>
-
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <div className="relative">
-                <button
-                  ref={bellButtonRef}
-                  type="button"
-                  onClick={() => setIsNotificationOpen(previous => !previous)}
-                  disabled={isNotificationPageOpen}
-                  className={`relative rounded-full p-2.5 transition-all duration-300 ${isNotificationPageOpen
-                      ? 'cursor-default bg-transparent text-slate-900'
-                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  aria-label="Open notifications"
-                  aria-expanded={isNotificationOpen && !isNotificationPageOpen}
-                  aria-current={isNotificationPageOpen ? 'page' : undefined}
-                >
-                  <Bell
-                    size={22}
-                    className={isNotificationPageOpen ? 'fill-slate-900 text-slate-900' : undefined}
-                  />
-                  {unreadNotificationsCount > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 inline-flex min-h-4.5 min-w-4.5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
-                      {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
-                    </span>
-                  )}
-                </button>
-
-                {isNotificationOpen && (
-                  <div
-                    ref={bellPanelRef}
-                    className="absolute -right-3 top-12 z-50 w-85 sm:top-14 sm:w-90"
-                  >
-                    <div className="pointer-events-none absolute -top-3 right-8 h-3.5 w-3.5 border-r border-t border-slate-200 bg-white [clip-path:polygon(0_100%,100%_0,100%_100%)]" />
-                    <div className="max-h-[75vh] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_22px_45px_rgba(15,23,42,0.2)]">
-                      <div className="max-h-[75vh] overflow-y-auto overscroll-contain">
-                        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-                          <div>
-                            <p className="text-lg font-semibold text-slate-900">Notifications</p>
-                          </div>
-                          <div className="relative">
-                            <button
-                              ref={notificationMenuButtonRef}
-                              type="button"
-                              onClick={() => setIsNotificationMenuOpen(previous => !previous)}
-                              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-                              aria-label="Notification options"
-                              aria-expanded={isNotificationMenuOpen}
-                            >
-                              <MoreHorizontal size={18} />
-                            </button>
-
-                            {isNotificationMenuOpen && (
-                              <div
-                                ref={notificationMenuRef}
-                                className="absolute right-0 top-9 z-10 min-w-55"
-                              >
-                                <div className="pointer-events-none absolute -top-3 right-3 h-3.5 w-3.5 border-r border-t border-slate-200 bg-white [clip-path:polygon(0_100%,100%_0,100%_100%)]" />
-                                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-[0_14px_30px_rgba(15,23,42,0.18)]">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      void markAllHeaderNotificationsRead();
-                                      setIsNotificationMenuOpen(false);
-                                    }}
-                                    disabled={unreadHeaderCount === 0 || isMarkingAllRead}
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                  >
-                                    <CheckCheck size={15} />
-                                    {isMarkingAllRead ? <ButtonLoadingContent label="Marking" /> : 'Mark all as read'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setIsNotificationMenuOpen(false)}
-                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                                  >
-                                    <Bell size={15} />
-                                    Notification settings
-                                    <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                                      N/a
-                                    </span>
-                                  </button>
-                                  {bellTargetRoute && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setIsNotificationMenuOpen(false);
-                                        setIsNotificationOpen(false);
-                                        navigate(bellTargetRoute);
-                                      }}
-                                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                                    >
-                                      <Bell size={15} />
-                                      Open notifications
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between px-4 py-2.5">
-                          <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 p-1">
-                            <button
-                              type="button"
-                              onClick={() => setNotificationFilter('ALL')}
-                              className={`rounded-full px-3 py-1 text-xs font-semibold ${notificationFilter === 'ALL'
-                                  ? 'bg-slate-900 text-white'
-                                  : 'text-slate-600 hover:text-slate-900'
-                                }`}
-                            >
-                              All
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setNotificationFilter('UNREAD')}
-                              className={`rounded-full px-3 py-1 text-xs font-semibold ${notificationFilter === 'UNREAD'
-                                  ? 'bg-slate-900 text-white'
-                                  : 'text-slate-600 hover:text-slate-900'
-                                }`}
-                            >
-                              Unread
-                            </button>
-                          </div>
-                          {bellTargetRoute && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsNotificationOpen(false);
-                                navigate(bellTargetRoute);
-                              }}
-                              className="rounded-lg px-3 py-1.5 text-[13px] font-semibold text-sky-600 transition-colors hover:bg-slate-100"
-                            >
-                              See all
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="px-3 pb-3">
-                          {isLoadingHeaderNotifications && (
-                            <div className="space-y-2 py-1">
-                              {[1, 2, 3].map(item => (
-                                <div key={item} className="h-20 animate-pulse rounded-xl border border-slate-200 bg-slate-100" />
-                              ))}
-                            </div>
-                          )}
-
-                          {!isLoadingHeaderNotifications && filteredHeaderNotifications.length === 0 && (
-                            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
-                              No notifications found.
-                            </div>
-                          )}
-
-                          {!isLoadingHeaderNotifications && filteredHeaderNotifications.length > 0 && (
-                            <div className="space-y-2">
-                              {filteredHeaderNotifications.map(notification => (
-                                <button
-                                  key={notification.id}
-                                  type="button"
-                                  onClick={() => void handleHeaderNotificationClick(notification)}
-                                  className={`w-full rounded-xl border px-3 py-2.5 text-left transition-colors ${notification.read
-                                      ? 'border-slate-200 bg-white hover:bg-slate-50'
-                                      : 'border-sky-200 bg-sky-50/40 hover:bg-sky-50'
-                                    }`}
-                                >
-                                  <div className="mb-1.5 flex items-start justify-between gap-3">
-                                    <p className="text-sm font-semibold text-slate-900">{notification.title}</p>
-                                    {!notification.read && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-sky-500" />}
-                                  </div>
-                                  <p className="text-sm text-slate-600">
-                                    {getNotificationDisplayMessage(notification, {
-                                      institutionNameFallback: user.institution?.institutionName ?? null,
-                                    })}
-                                  </p>
-                                  <div className="mt-1.5 flex items-center justify-between">
-                                    <p className="text-xs text-slate-500">{formatNotificationDate(notification.createdAt)}</p>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="h-8 w-px bg-slate-200" />
-              <div className="relative inline-flex items-center">
-                <UserButton afterSignOutUrl="/" />
-                <span className="pointer-events-none absolute top-4 left-4.5 inline-flex h-3 w-3 items-center justify-center rounded-full border border-slate-300 bg-slate-700 text-white shadow-sm">
-                  <ChevronDown size={8} />
-                </span>
-              </div>
-            </div>
-          </div>
+    <div className="flex h-screen overflow-hidden bg-neutral-50 font-sans selection:bg-primary-600 selection:text-white">
+      {/* ── Sidebar ── */}
+      <aside
+        className={`flex flex-col border-r border-neutral-200 bg-white transition-[width] duration-200 ease-in-out ${
+          sidebarCollapsed ? 'w-16' : 'w-56'
+        }`}
+      >
+        {/* Sidebar header */}
+        <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-neutral-200 px-4">
+          <img
+            src={logoCompact}
+            alt="Credence"
+            className="h-7 w-7 shrink-0 object-contain"
+          />
+          {!sidebarCollapsed && (
+            <span className="truncate text-sm font-semibold text-neutral-900">
+              {roleLabelMap[role]}
+            </span>
+          )}
         </div>
 
-        <div className="sticky top-0 z-40 bg-slate-50">
-          <div className="flex items-center px-4 sm:px-6 lg:px-8">
-            <nav className="flex h-10 items-center gap-1.5 overflow-x-auto lg:h-11 lg:gap-2">
-              {navLinks.map(link => (
+        {/* Nav links */}
+        <nav className="flex-1 overflow-y-auto px-2 py-3">
+          <div className="space-y-0.5">
+            {navLinks.map(link => {
+              const showRequestAlert =
+                role === 'INSTITUTION' &&
+                link.to === '/institution/requests' &&
+                hasNewInstitutionRequests;
+              const NavIcon = link.icon;
+
+              return (
                 <NavLink
                   key={link.to}
                   to={link.to}
                   end={link.to === expectedRoutePrefix}
                   className={({ isActive }) =>
-                    `inline-flex h-full items-center whitespace-nowrap border-b px-3 py-0 text-[13px] font-semibold transition sm:text-sm lg:px-3.5 ${isActive
-                      ? 'border-slate-900 text-slate-900'
-                      : 'border-transparent text-slate-600 hover:text-slate-900'
-                    }`
+                    `group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
+                      isActive
+                        ? 'bg-neutral-100 text-neutral-900'
+                        : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                    } ${sidebarCollapsed ? 'justify-center' : ''}`
                   }
+                  title={sidebarCollapsed ? link.label : undefined}
                 >
-                  {(() => {
-                    const useCredentialSvg = CREDENTIAL_ICON_ROUTES.has(link.to);
-                    const Icon = NAV_ICONS[link.to];
-                    const showRequestAlert =
-                      role === 'INSTITUTION' &&
-                      link.to === '/institution/requests' &&
-                      hasNewInstitutionRequests;
-                    return (
-                      <>
-                        <span className="relative mr-1.5 inline-flex shrink-0">
-                          {useCredentialSvg && (
-                            <img
-                              src={credentialsIcon}
-                              alt=""
-                              aria-hidden="true"
-                              className="h-3.75 w-3.75 object-contain"
-                            />
-                          )}
-                          {!useCredentialSvg && Icon && <Icon size={15} />}
-                          {showRequestAlert && (
-                            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border border-white bg-red-500" />
-                          )}
-                        </span>
-                        {link.label}
-                      </>
-                    );
-                  })()}
+                  <span className="relative shrink-0">
+                    <NavIcon size={16} />
+                    {showRequestAlert && (
+                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-error-500" />
+                    )}
+                  </span>
+                  {!sidebarCollapsed && <span className="truncate">{link.label}</span>}
                 </NavLink>
-              ))}
-            </nav>
+              );
+            })}
           </div>
-          <div className="pointer-events-none h-px bg-slate-200" />
-        </div>
+        </nav>
 
-        <main className="flex-1 bg-white p-8">
-          <div className="mx-auto max-w-7xl space-y-8">
+        {/* Sidebar footer — collapse toggle */}
+        <div className="shrink-0 border-t border-neutral-200 px-2 py-2">
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed(prev => !prev)}
+            className="flex w-full items-center justify-center gap-2 rounded-md px-2 py-2 text-neutral-400 transition-colors hover:bg-neutral-50 hover:text-neutral-600"
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Main area ── */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-6">
+          <div className="flex items-center gap-3">
+            <p className="text-sm font-medium text-neutral-500">
+              {displayName}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {/* Notification bell */}
+            <div className="relative">
+              <button
+                ref={bellButtonRef}
+                type="button"
+                onClick={() => setIsNotificationOpen(previous => !previous)}
+                disabled={isNotificationPageOpen}
+                className={`relative inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
+                  isNotificationPageOpen
+                    ? 'bg-neutral-100 text-neutral-900'
+                    : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'
+                }`}
+                aria-label="Open notifications"
+                aria-expanded={isNotificationOpen && !isNotificationPageOpen}
+              >
+                <Bell size={16} />
+                {unreadNotificationsCount > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-error-500 px-1 text-[10px] font-semibold text-white">
+                    {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification panel */}
+              {isNotificationOpen && (
+                <div
+                  ref={bellPanelRef}
+                  className="absolute right-0 top-10 z-50 w-80 sm:w-[22rem]"
+                >
+                  <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-overlay">
+                    <div className="max-h-[75vh] overflow-y-auto overscroll-contain">
+                      {/* Panel header */}
+                      <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
+                        <h3 className="text-sm font-semibold text-neutral-900">Notifications</h3>
+                        <div className="relative">
+                          <button
+                            ref={notificationMenuButtonRef}
+                            type="button"
+                            onClick={() => setIsNotificationMenuOpen(prev => !prev)}
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+                            aria-label="Notification options"
+                          >
+                            <MoreHorizontal size={14} />
+                          </button>
+
+                          {isNotificationMenuOpen && (
+                            <div
+                              ref={notificationMenuRef}
+                              className="absolute right-0 top-8 z-10 min-w-48 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-lg"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  void markAllHeaderNotificationsRead();
+                                  setIsNotificationMenuOpen(false);
+                                }}
+                                disabled={unreadHeaderCount === 0 || isMarkingAllRead}
+                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <CheckCheck size={14} />
+                                {isMarkingAllRead ? <ButtonLoadingContent label="Marking" /> : 'Mark all as read'}
+                              </button>
+                              {bellTargetRoute && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsNotificationMenuOpen(false);
+                                    setIsNotificationOpen(false);
+                                    navigate(bellTargetRoute);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50"
+                                >
+                                  <Bell size={14} />
+                                  View all notifications
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Filter tabs */}
+                      <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-2">
+                        <div className="inline-flex rounded-md border border-neutral-200 p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setNotificationFilter('ALL')}
+                            className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                              notificationFilter === 'ALL'
+                                ? 'bg-neutral-900 text-white'
+                                : 'text-neutral-600 hover:text-neutral-900'
+                            }`}
+                          >
+                            All
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setNotificationFilter('UNREAD')}
+                            className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                              notificationFilter === 'UNREAD'
+                                ? 'bg-neutral-900 text-white'
+                                : 'text-neutral-600 hover:text-neutral-900'
+                            }`}
+                          >
+                            Unread
+                          </button>
+                        </div>
+                        {bellTargetRoute && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsNotificationOpen(false);
+                              navigate(bellTargetRoute);
+                            }}
+                            className="text-xs font-medium text-primary-600 transition-colors hover:text-primary-700"
+                          >
+                            See all
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Notification list */}
+                      <div className="p-2">
+                        {isLoadingHeaderNotifications && (
+                          <div className="space-y-1.5 py-1">
+                            {[1, 2, 3].map(item => (
+                              <div key={item} className="h-16 rounded-md skeleton-shimmer" />
+                            ))}
+                          </div>
+                        )}
+
+                        {!isLoadingHeaderNotifications && filteredHeaderNotifications.length === 0 && (
+                          <div className="py-10 text-center text-sm text-neutral-400">
+                            No notifications
+                          </div>
+                        )}
+
+                        {!isLoadingHeaderNotifications && filteredHeaderNotifications.length > 0 && (
+                          <div className="space-y-0.5">
+                            {filteredHeaderNotifications.map(notification => (
+                              <button
+                                key={notification.id}
+                                type="button"
+                                onClick={() => void handleHeaderNotificationClick(notification)}
+                                className={`w-full rounded-md px-3 py-2.5 text-left transition-colors ${
+                                  notification.read
+                                    ? 'hover:bg-neutral-50'
+                                    : 'bg-primary-50/40 hover:bg-primary-50'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className="text-sm font-medium text-neutral-900">{notification.title}</p>
+                                  {!notification.read && (
+                                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-500" />
+                                  )}
+                                </div>
+                                <p className="mt-0.5 text-xs text-neutral-500 line-clamp-2">
+                                  {getNotificationDisplayMessage(notification, {
+                                    institutionNameFallback: user.institution?.institutionName ?? null,
+                                  })}
+                                </p>
+                                <p className="mt-1 text-[11px] text-neutral-400">
+                                  {formatNotificationDate(notification.createdAt)}
+                                </p>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mx-1 h-5 w-px bg-neutral-200" />
+
+            {/* User avatar */}
+            <div className="relative inline-flex items-center">
+              <UserButton afterSignOutUrl="/" />
+            </div>
+          </div>
+        </header>
+
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-6xl px-6 py-6">
             <Outlet />
           </div>
         </main>

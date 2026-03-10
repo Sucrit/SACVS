@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+﻿import { FormEvent, useEffect, useState } from 'react';
 import {
   BookOpen,
   Building2,
@@ -135,13 +135,13 @@ export default function StudentProfileSection({
   }, [user]);
 
   if (isLoading) {
-    return <div className="h-[560px] animate-pulse rounded-3xl border border-slate-200 bg-slate-100" />;
+    return <div className="h-[560px] animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />;
   }
 
   if (!user) {
     return (
       <Card title="Student Profile">
-        <p className="text-sm text-slate-500">No profile data available for this account yet.</p>
+        <p className="text-sm text-neutral-500">No profile data available for this account yet.</p>
       </Card>
     );
   }
@@ -209,51 +209,51 @@ export default function StudentProfileSection({
   return (
     <Card
       title="Student Profile"
-      className="rounded-3xl"
+      className="rounded-lg"
     >
       <div className="space-y-6">
         <div className="space-y-1">
-          <p className="text-2xl font-semibold text-slate-900">{valueOrDash(fullName)}</p>
-          <p className="text-sm text-slate-600">{valueOrDash(user.email)}</p>
+          <p className="text-lg font-semibold text-neutral-900">{valueOrDash(fullName)}</p>
+          <p className="text-sm text-neutral-600">{valueOrDash(user.email)}</p>
         </div>
 
-        <div className="border-t border-slate-200 pt-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Academic Information</p>
+        <div className="border-t border-neutral-200 pt-6">
+          <p className="text-xs font-semibold  text-neutral-500">Academic Information</p>
           <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.08em] text-slate-500">Student Number</p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{valueOrDash(profile?.studentNumber)}</p>
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
+              <p className="text-xs  text-neutral-500">Student Number</p>
+              <p className="mt-1 text-sm font-semibold text-neutral-900">{valueOrDash(profile?.studentNumber)}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
+              <p className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                 <BookOpen size={14} />
                 Course
               </p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{valueOrDash(profile?.courseOfStudy)}</p>
+              <p className="mt-1 text-sm font-semibold text-neutral-900">{valueOrDash(profile?.courseOfStudy)}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
+              <p className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                 <GraduationCap size={14} />
                 Year Level
               </p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{valueOrDash(profile?.yearLevel)}</p>
+              <p className="mt-1 text-sm font-semibold text-neutral-900">{valueOrDash(profile?.yearLevel)}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <p className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
+              <p className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                 <Building2 size={14} />
                 Department
               </p>
-              <p className="mt-1 text-sm font-semibold text-slate-900">{valueOrDash(profile?.department)}</p>
+              <p className="mt-1 text-sm font-semibold text-neutral-900">{valueOrDash(profile?.department)}</p>
             </div>
           </div>
         </div>
 
-        <form className="space-y-6 border-t border-slate-200 pt-6" onSubmit={handleSavePersonalInfo}>
+        <form className="space-y-6 border-t border-neutral-200 pt-6" onSubmit={handleSavePersonalInfo}>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Address Information</p>
+            <p className="text-xs font-semibold  text-neutral-500">Address Information</p>
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
               <label className="space-y-1">
-                <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                   <MapPin size={14} />
                   Street
                 </span>
@@ -262,11 +262,11 @@ export default function StudentProfileSection({
                   value={street}
                   onChange={event => setStreet(event.target.value)}
                   placeholder="Street"
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+                  className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm text-neutral-800 outline-none focus:border-neutral-300"
                 />
               </label>
               <label className="space-y-1">
-                <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                   <MapPin size={14} />
                   Barangay
                 </span>
@@ -275,11 +275,11 @@ export default function StudentProfileSection({
                   value={barangay}
                   onChange={event => setBarangay(event.target.value)}
                   placeholder="Barangay"
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+                  className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm text-neutral-800 outline-none focus:border-neutral-300"
                 />
               </label>
               <label className="space-y-1">
-                <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                   <MapPin size={14} />
                   City
                 </span>
@@ -288,11 +288,11 @@ export default function StudentProfileSection({
                   value={city}
                   onChange={event => setCity(event.target.value)}
                   placeholder="City"
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+                  className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm text-neutral-800 outline-none focus:border-neutral-300"
                 />
               </label>
               <label className="space-y-1">
-                <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                   <MapPin size={14} />
                   Province
                 </span>
@@ -301,11 +301,11 @@ export default function StudentProfileSection({
                   value={province}
                   onChange={event => setProvince(event.target.value)}
                   placeholder="Province"
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+                  className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm text-neutral-800 outline-none focus:border-neutral-300"
                 />
               </label>
               <label className="space-y-1">
-                <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                   <MapPin size={14} />
                   Zip Code
                 </span>
@@ -315,22 +315,22 @@ export default function StudentProfileSection({
                   value={zipCode}
                   onChange={event => setZipCode(event.target.value)}
                   placeholder="Zip code"
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+                  className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm text-neutral-800 outline-none focus:border-neutral-300"
                 />
               </label>
             </div>
           </div>
 
-          <div className="border-t border-slate-200 pt-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Personal Information</p>
+          <div className="border-t border-neutral-200 pt-6">
+            <p className="text-xs font-semibold  text-neutral-500">Personal Information</p>
             <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
               <label className="space-y-1">
-                <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                   <Phone size={14} />
                   Contact Number
                 </span>
-                <div className="flex h-10 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 focus-within:border-slate-300">
-                  <div className="inline-flex items-center border-r border-slate-200 bg-white px-3 text-sm font-medium text-slate-700">
+                <div className="flex h-10 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 focus-within:border-neutral-300">
+                  <div className="inline-flex items-center border-r border-neutral-200 bg-white px-3 text-sm font-medium text-neutral-700">
                     <span>+63</span>
                   </div>
                   <input
@@ -339,13 +339,13 @@ export default function StudentProfileSection({
                     value={formatLocalPhNumber(phoneLocal)}
                     onChange={event => setPhoneLocal(event.target.value.replace(/\D/g, '').slice(0, 10))}
                     placeholder="912 345 6789"
-                    className="h-full w-full bg-transparent px-3 text-sm text-slate-800 outline-none"
+                    className="h-full w-full bg-transparent px-3 text-sm text-neutral-800 outline-none"
                   />
                 </div>
               </label>
 
               <label className="space-y-1">
-                <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                   <CalendarDays size={14} />
                   Birthday
                 </span>
@@ -354,12 +354,12 @@ export default function StudentProfileSection({
                   value={birthday}
                   onChange={event => setBirthday(event.target.value)}
                   disabled={birthdayLocked}
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                  className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm text-neutral-800 outline-none focus:border-neutral-300 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
                 />
               </label>
 
               <label className="space-y-1">
-                <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                   <UserRound size={14} />
                   Sex
                 </span>
@@ -367,7 +367,7 @@ export default function StudentProfileSection({
                   value={sex}
                   onChange={event => setSex((event.target.value as StudentSex | '') || '')}
                   disabled={sexLocked}
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                  className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm text-neutral-800 outline-none focus:border-neutral-300 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
                 >
                   <option value="">Select sex</option>
                   <option value="MALE">Male</option>
@@ -378,7 +378,7 @@ export default function StudentProfileSection({
               </label>
 
               <label className="space-y-1">
-                <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                   <UserIcon size={14} />
                   Guardian Full Name
                 </span>
@@ -387,19 +387,19 @@ export default function StudentProfileSection({
                   value={guardianFullName}
                   onChange={event => setGuardianFullName(event.target.value)}
                   placeholder="Guardian full name"
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+                  className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm text-neutral-800 outline-none focus:border-neutral-300"
                 />
               </label>
 
               <label className="space-y-1">
-                <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                <span className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                   <HeartHandshake size={14} />
                   Relationship to Guardian
                 </span>
                 <select
                   value={guardianRelationship}
                   onChange={event => setGuardianRelationship(event.target.value)}
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+                  className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm text-neutral-800 outline-none focus:border-neutral-300"
                 >
                   <option value="">Select relationship</option>
                   {GUARDIAN_RELATIONSHIP_OPTIONS.map(option => (
@@ -409,7 +409,7 @@ export default function StudentProfileSection({
               </label>
               {guardianRelationship === 'Other' && (
                 <label className="space-y-1">
-                  <span className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.08em] text-slate-500">
+                  <span className="inline-flex items-center gap-1.5 text-xs  text-neutral-500">
                     <HeartHandshake size={14} />
                     Other Relationship
                   </span>
@@ -418,7 +418,7 @@ export default function StudentProfileSection({
                     value={guardianRelationshipCustom}
                     onChange={event => setGuardianRelationshipCustom(event.target.value)}
                     placeholder="Specify relationship"
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none focus:border-slate-300"
+                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm text-neutral-800 outline-none focus:border-neutral-300"
                   />
                 </label>
               )}
@@ -426,15 +426,15 @@ export default function StudentProfileSection({
           </div>
 
           {saveError && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
               {saveError}
             </div>
           )}
-          <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
+          <div className="flex items-center justify-end gap-3 border-t border-neutral-200 pt-4">
             <button
               type="submit"
               disabled={isSavingPersonalInfo}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-900 bg-slate-900 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-neutral-900 bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSavingPersonalInfo ? <ButtonLoadingContent label="Saving" /> : 'Save Information'}
             </button>

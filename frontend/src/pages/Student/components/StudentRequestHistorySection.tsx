@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+﻿import { ReactNode, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Activity,
@@ -281,20 +281,20 @@ export default function StudentRequestHistorySection({
     <Card>
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:max-w-xs">
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
           <input
             type="text"
             value={searchTerm}
             onChange={event => setSearchTerm(event.target.value)}
             placeholder="Search requests..."
-            className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none focus:border-slate-300"
+            className="h-10 w-full rounded-full border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm text-neutral-700 outline-none focus:border-neutral-300"
           />
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <select
             value={typeFilter}
             onChange={event => setTypeFilter(event.target.value as RequestTypeFilter)}
-            className="h-10 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-slate-300"
+            className="h-10 rounded-full border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-700 outline-none focus:border-neutral-300"
             aria-label="Filter requests by credential type"
           >
             <option value="ALL">All types</option>
@@ -309,7 +309,7 @@ export default function StudentRequestHistorySection({
           <select
             value={dateFilter}
             onChange={event => setDateFilter(event.target.value as DateRangeFilter)}
-            className="h-10 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-slate-300"
+            className="h-10 rounded-full border border-neutral-200 bg-white px-3 text-xs font-semibold text-neutral-700 outline-none focus:border-neutral-300"
             aria-label="Filter requests by submitted date"
           >
             {dateRangeFilters.map(filter => (
@@ -325,13 +325,13 @@ export default function StudentRequestHistorySection({
       {isLoadingRequests && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map(key => (
-            <div key={key} className="h-44 animate-pulse rounded-xl border border-slate-200 bg-slate-100" />
+            <div key={key} className="h-44 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
           ))}
         </div>
       )}
 
       {!isLoadingRequests && filteredRequests.length === 0 && (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-12 text-center text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-5 py-12 text-center text-sm text-neutral-500">
           No requests match your current filter.
         </div>
       )}
@@ -354,12 +354,12 @@ export default function StudentRequestHistorySection({
                   animate={isAnimated ? { opacity: 1, y: 0, scale: [1, 1.02, 1] } : { opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -12, scale: 0.985 }}
                   transition={{ duration: 0.24, ease: 'easeOut' }}
-                  className="relative rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                  className="relative rounded-lg border border-neutral-200 bg-white p-4 shadow-sm"
                 >
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <div className="space-y-1">
-                      <p className="line-clamp-1 text-sm font-semibold text-slate-900">{request.title}</p>
-                      <div className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-600">
+                      <p className="line-clamp-1 text-sm font-semibold text-neutral-900">{request.title}</p>
+                      <div className="inline-flex items-center gap-1 rounded-full border border-neutral-200 bg-neutral-50 px-2 py-1 text-[11px] text-neutral-600">
                         <CalendarDays size={12} />
                         {formatDate(request.createdAt)}
                       </div>
@@ -371,21 +371,21 @@ export default function StudentRequestHistorySection({
                         onClick={() =>
                           setOpenMenuRequestId(previous => (previous === request.id ? null : request.id))
                         }
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50 hover:text-neutral-700"
                         aria-label="Open request actions"
                       >
                         <MoreHorizontal size={14} />
                       </button>
 
                       {openMenuRequestId === request.id && (
-                        <div className="absolute right-0 top-9 z-20 min-w-37.5 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+                        <div className="absolute right-0 top-9 z-20 min-w-37.5 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg">
                           <button
                             type="button"
                             onClick={() => {
                               setDetailsRequest(request);
                               setOpenMenuRequestId(null);
                             }}
-                            className="w-full px-3 py-2 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            className="w-full px-3 py-2 text-left text-xs font-semibold text-neutral-700 hover:bg-neutral-50"
                           >
                             Details
                           </button>
@@ -432,21 +432,21 @@ export default function StudentRequestHistorySection({
                     </div>
                   </div>
 
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.09em] text-slate-500">{request.type}</p>
-                  <p className="line-clamp-2 min-h-10 text-sm text-slate-600">
+                  <p className="mb-2 text-xs font-semibold  text-neutral-500">{request.type}</p>
+                  <p className="line-clamp-2 min-h-10 text-sm text-neutral-600">
                     {request.purpose?.trim() || request.description?.trim() || 'No purpose provided.'}
                   </p>
 
                   <div className="mt-3">
-                    <p className="mb-1 text-xs font-semibold text-slate-600">Progress: {progressValue}%</p>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                    <p className="mb-1 text-xs font-semibold text-neutral-600">Progress: {progressValue}%</p>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100">
                       <motion.div
                         className={`h-full rounded-full ${
                           request.status === 'REJECTED' || request.status === 'CANCELLED'
                             ? 'bg-rose-400'
                             : request.status === 'COMPLETED'
                               ? 'bg-emerald-500'
-                              : 'bg-slate-900'
+                              : 'bg-neutral-900'
                         }`}
                         animate={{ width: `${progressValue}%` }}
                         transition={{ duration: 0.3, ease: 'easeOut' }}
@@ -468,7 +468,7 @@ export default function StudentRequestHistorySection({
             exit="exit"
             variants={MODAL_BACKDROP_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
             onClick={() => setDetailsRequest(null)}
           >
             <motion.div
@@ -477,20 +477,20 @@ export default function StudentRequestHistorySection({
               exit="exit"
               variants={MODAL_PANEL_VARIANTS}
               transition={MODAL_TRANSITION}
-              className="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+              className="w-full max-w-xl overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-2xl"
               onClick={event => event.stopPropagation()}
             >
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Request Details</p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="text-sm font-semibold text-neutral-900">Request Details</p>
+                <p className="mt-1 text-xs text-neutral-500">
                   Review your credential request information.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setDetailsRequest(null)}
-                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
+                className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
                 aria-label="Close details"
               >
                 <X size={14} />
@@ -499,85 +499,85 @@ export default function StudentRequestHistorySection({
 
             <div className="max-h-[70vh] space-y-3 overflow-y-auto px-5 py-4">
               <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
-                <p className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
                   <FileText size={14} />
                   Title
                 </p>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900">
                   {detailsRequest.title}
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
-                <p className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
                   <Activity size={14} />
                   Status
                 </p>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
                   <Badge status={detailsRequest.status} />
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
-                <p className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
                   <Tag size={14} />
                   Type
                 </p>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800">
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-800">
                   {formatEnumLabel(detailsRequest.type)}
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
-                <p className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
                   <Truck size={14} />
                   Delivery
                 </p>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800">
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-800">
                   {formatEnumLabel(detailsRequest.deliveryMethod)}
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
-                <p className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
                   <CalendarDays size={14} />
                   Submitted
                 </p>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800">
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-800">
                   {formatDate(detailsRequest.createdAt)}
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
-                <p className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
                   <RefreshCcw size={14} />
                   Updated
                 </p>
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800">
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-800">
                   {formatDate(detailsRequest.updatedAt)}
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-start">
-                <p className="flex items-center gap-2 pt-2 text-sm font-medium text-slate-600">
+                <p className="flex items-center gap-2 pt-2 text-sm font-medium text-neutral-600">
                   <Info size={14} />
                   Purpose
                 </p>
-                <div className="min-h-11 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <div className="min-h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
                   {detailsRequest.purpose || 'No purpose provided.'}
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-start">
-                <p className="flex items-center gap-2 pt-2 text-sm font-medium text-slate-600">
+                <p className="flex items-center gap-2 pt-2 text-sm font-medium text-neutral-600">
                   <FileText size={14} />
                   Description
                 </p>
-                <div className="min-h-11 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <div className="min-h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
                   {detailsRequest.description || 'No description provided.'}
                 </div>
               </div>
 
               {detailsRequest.processedAt && (
                 <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
-                  <p className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                  <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
                     <CalendarDays size={14} />
                     Processed
                   </p>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800">
+                  <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-800">
                     {formatDate(detailsRequest.processedAt)}
                   </div>
                 </div>
@@ -585,11 +585,11 @@ export default function StudentRequestHistorySection({
 
               {detailsRequest.notes && (
                 <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-start">
-                  <p className="flex items-center gap-2 pt-2 text-sm font-medium text-slate-600">
+                  <p className="flex items-center gap-2 pt-2 text-sm font-medium text-neutral-600">
                     <MessageSquare size={14} />
                     Institution Note
                   </p>
-                  <div className="min-h-11 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  <div className="min-h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
                     {detailsRequest.notes}
                   </div>
                 </div>
@@ -676,7 +676,7 @@ export default function StudentRequestHistorySection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
           onClick={() => {
             setReceiptModalOpen(false);
             setShowReceiptNote(false);
@@ -688,13 +688,13 @@ export default function StudentRequestHistorySection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="max-h-[86vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-2xl"
             onClick={event => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Approval Receipt</p>
-                <p className="mt-1 text-xs text-slate-500">Use this one-time QR at registrar check-in.</p>
+                <p className="text-sm font-semibold text-neutral-900">Approval Receipt</p>
+                <p className="mt-1 text-xs text-neutral-500">Use this one-time QR at registrar check-in.</p>
               </div>
               <button
                 type="button"
@@ -702,18 +702,18 @@ export default function StudentRequestHistorySection({
                   setReceiptModalOpen(false);
                   setShowReceiptNote(false);
                 }}
-                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
+                className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
               >
                 <X size={14} />
               </button>
             </div>
             <div className="space-y-4 p-5">
             <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
                 {receiptQrDataUrl ? (
                   <img src={receiptQrDataUrl} alt="Approval receipt QR" className="h-auto w-full rounded-lg bg-white p-2" />
                 ) : (
-                  <div className="flex h-[260px] items-center justify-center rounded-lg bg-white text-xs text-slate-500">
+                  <div className="flex h-[260px] items-center justify-center rounded-lg bg-white text-xs text-neutral-500">
                     QR unavailable
                   </div>
                 )}
@@ -722,14 +722,14 @@ export default function StudentRequestHistorySection({
                 <p className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700">
                   Receipt Code: <span className="font-mono">{activeReceipt.receiptCode}</span>
                 </p>
-                <p><span className="text-slate-500">Student</span>: <span className="font-semibold text-slate-900">{activeReceipt.studentName}</span></p>
-                <p><span className="text-slate-500">Student Number</span>: <span className="font-semibold text-slate-900">{activeReceipt.studentNumber || '-'}</span></p>
-                <p><span className="text-slate-500">Request ID</span>: <span className="font-semibold text-slate-900">{activeReceipt.requestId}</span></p>
-                <p><span className="text-slate-500">Type</span>: <span className="font-semibold text-slate-900">{activeReceipt.type}</span></p>
-                <p><span className="text-slate-500">Delivery</span>: <span className="font-semibold text-slate-900">{activeReceipt.deliveryMethod}</span></p>
-                <p><span className="text-slate-500">Approved At</span>: <span className="font-semibold text-slate-900">{activeReceipt.approvedAt ? formatDate(activeReceipt.approvedAt) : '-'}</span></p>
-                <p><span className="text-slate-500">Institution</span>: <span className="font-semibold text-slate-900">{activeReceipt.institutionName}</span></p>
-                <p><span className="text-slate-500">Expires</span>: <span className="font-semibold text-slate-900">{formatDate(activeReceipt.expiresAt)}</span></p>
+                <p><span className="text-neutral-500">Student</span>: <span className="font-semibold text-neutral-900">{activeReceipt.studentName}</span></p>
+                <p><span className="text-neutral-500">Student Number</span>: <span className="font-semibold text-neutral-900">{activeReceipt.studentNumber || '-'}</span></p>
+                <p><span className="text-neutral-500">Request ID</span>: <span className="font-semibold text-neutral-900">{activeReceipt.requestId}</span></p>
+                <p><span className="text-neutral-500">Type</span>: <span className="font-semibold text-neutral-900">{activeReceipt.type}</span></p>
+                <p><span className="text-neutral-500">Delivery</span>: <span className="font-semibold text-neutral-900">{activeReceipt.deliveryMethod}</span></p>
+                <p><span className="text-neutral-500">Approved At</span>: <span className="font-semibold text-neutral-900">{activeReceipt.approvedAt ? formatDate(activeReceipt.approvedAt) : '-'}</span></p>
+                <p><span className="text-neutral-500">Institution</span>: <span className="font-semibold text-neutral-900">{activeReceipt.institutionName}</span></p>
+                <p><span className="text-neutral-500">Expires</span>: <span className="font-semibold text-neutral-900">{formatDate(activeReceipt.expiresAt)}</span></p>
               </div>
             </div>
             <div className="mt-4">
@@ -752,14 +752,14 @@ export default function StudentRequestHistorySection({
               <button
                 type="button"
                 onClick={() => void navigator.clipboard.writeText(activeReceipt.verificationUrl)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50"
               >
                 Copy verification URL
               </button>
               <button
                 type="button"
                 onClick={() => buildReceiptPdf(activeReceipt, receiptQrDataUrl)}
-                className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+                className="rounded-lg bg-neutral-900 px-3 py-2 text-xs font-semibold text-white hover:bg-neutral-800"
               >
                 Download Receipt (PDF)
               </button>

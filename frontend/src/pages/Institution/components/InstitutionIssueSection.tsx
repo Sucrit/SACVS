@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+﻿import { FormEvent, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ClipboardCheck, Eye, Upload, X } from 'lucide-react';
@@ -32,7 +32,7 @@ type CertificateCategory = 'ACADEMIC' | 'PROFESSIONAL';
 const DEFAULT_CERTIFICATE_CATEGORY: CertificateCategory = 'ACADEMIC';
 const CERTIFICATE_CATEGORIES: CertificateCategory[] = ['ACADEMIC', 'PROFESSIONAL'];
 const OTP_BADGE_CLASS =
-  'rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700';
+  'rounded-full border border-warning-200 bg-warning-50 px-1.5 py-0.5 text-[10px] font-medium text-warning-700';
 const DIRECT_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 const DIRECT_UPLOAD_ACCEPTED_MIME = new Set(['application/pdf', 'image/png', 'image/jpeg']);
 
@@ -242,7 +242,7 @@ export default function InstitutionIssueSection({
         <button
           type="button"
           onClick={() => setIsDirectIssueModalOpen(true)}
-          className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+          className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
           title="Issue credential directly via modal form"
         >
           <ClipboardCheck size={14} />
@@ -259,7 +259,7 @@ export default function InstitutionIssueSection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-90 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-[1px]"
+          className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
           onClick={() => setIsDirectIssueModalOpen(false)}
         >
           <motion.div
@@ -268,20 +268,20 @@ export default function InstitutionIssueSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg"
             onClick={event => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Direct Credential Issuance</p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="text-sm font-semibold text-neutral-900">Direct Credential Issuance</p>
+                <p className="mt-1 text-xs text-neutral-500">
                   Issue a credential directly to a selected student account.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsDirectIssueModalOpen(false)}
-                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
+                className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
                 aria-label="Close modal"
               >
                 <X size={16} />
@@ -293,7 +293,7 @@ export default function InstitutionIssueSection({
                 <select
                   value={directForm.studentId}
                   onChange={event => setDirectForm(previous => ({ ...previous, studentId: event.target.value }))}
-                  className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   required
                 >
                   <option value="">Select student</option>
@@ -316,7 +316,7 @@ export default function InstitutionIssueSection({
                       };
                     })
                   }
-                  className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                 >
                   {CREDENTIAL_TYPES.map(type => (
                     <option key={type} value={type}>
@@ -328,14 +328,14 @@ export default function InstitutionIssueSection({
                   value={directForm.title}
                   onChange={event => setDirectForm(previous => ({ ...previous, title: event.target.value }))}
                   placeholder="Credential title (e.g. Bachelor of Science in IT)"
-                  className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   required
                 />
                 <input
                   value={directForm.description}
                   onChange={event => setDirectForm(previous => ({ ...previous, description: event.target.value }))}
                   placeholder="Description (optional)"
-                  className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                  className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                 />
                 {directForm.type === 'CERTIFICATE' && (
                   <select
@@ -346,7 +346,7 @@ export default function InstitutionIssueSection({
                         certificateCategory: event.target.value as CertificateCategory,
                       }))
                     }
-                    className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                    className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                   >
                     {CERTIFICATE_CATEGORIES.map(category => (
                       <option key={category} value={category}>
@@ -357,13 +357,13 @@ export default function InstitutionIssueSection({
                 )}
                 {supportsExpiryDate(directForm.type) && (
                   <div className="space-y-1">
-                    <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">Expiry Date</p>
+                    <p className="text-[11px] font-medium  text-neutral-500">Expiry Date</p>
                     <input
                       type="date"
                       value={directForm.expiryDate}
                       onChange={event => setDirectForm(previous => ({ ...previous, expiryDate: event.target.value }))}
                       aria-label="Expiry Date"
-                      className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none"
+                      className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
                       required={requiresExpiryDate(directForm.type, directForm.certificateCategory)}
                     />
                   </div>
@@ -371,12 +371,12 @@ export default function InstitutionIssueSection({
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-slate-800">Upload student credential</p>
+                <p className="text-sm font-semibold text-neutral-800">Upload student credential</p>
                 <label
-                  className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-4 py-6 text-center transition-colors ${
+                  className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors ${
                     isDirectFileDragActive
                       ? 'border-sky-300 bg-sky-50'
-                      : 'border-slate-300 bg-slate-50 hover:bg-slate-100'
+                      : 'border-neutral-300 bg-neutral-50 hover:bg-neutral-100'
                   }`}
                   onDragOver={event => {
                     event.preventDefault();
@@ -402,15 +402,15 @@ export default function InstitutionIssueSection({
                     className="hidden"
                     onChange={event => handleDirectFileSelection(event.target.files?.[0] ?? null)}
                   />
-                  <Upload size={20} className="mb-3 mt-15 text-slate-400" />
-                  <p className="text-sm text-slate-700">
+                  <Upload size={20} className="mb-3 mt-15 text-neutral-400" />
+                  <p className="text-sm text-neutral-700">
                     <span className="font-semibold text-sky-600">Upload a file</span> or drag and drop
                   </p>
-                  <p className="mt-1 mb-15 text-xs text-slate-500">PDF, PNG, JPG up to 10MB</p>
+                  <p className="mt-1 mb-15 text-xs text-neutral-500">PDF, PNG, JPG up to 10MB</p>
                 </label>
                 {directFile && (
-                  <p className="text-xs text-slate-600">
-                    Selected: <span className="font-semibold text-slate-800">{directFile.name}</span>
+                  <p className="text-xs text-neutral-600">
+                    Selected: <span className="font-semibold text-neutral-800">{directFile.name}</span>
                   </p>
                 )}
               </div>
@@ -429,7 +429,7 @@ export default function InstitutionIssueSection({
                 <button
                   type="button"
                   onClick={() => setIsDirectIssueModalOpen(false)}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
                 >
                   <X size={14} />
                   Close
@@ -443,9 +443,9 @@ export default function InstitutionIssueSection({
       , modalRoot)}
 
       <Card title="Issue From Approved Requests">
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
+        <div className="overflow-x-auto rounded-lg border border-neutral-200">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
+            <thead className="bg-neutral-50 text-xs font-semibold  text-neutral-500">
               <tr>
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Request</th>
@@ -456,60 +456,60 @@ export default function InstitutionIssueSection({
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-neutral-100 bg-white">
               {isLoadingRequests && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={7} className="px-5 py-8 text-center text-sm text-neutral-500">
                     Loading approved requests...
                   </td>
                 </tr>
               )}
               {!isLoadingRequests && readyToIssue.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={7} className="px-5 py-8 text-center text-sm text-neutral-500">
                     No approved requests ready for issuance.
                   </td>
                 </tr>
               )}
               {!isLoadingRequests &&
                 readyToIssue.map(request => (
-                  <tr key={request.id} className="hover:bg-slate-50/70">
+                  <tr key={request.id} className="hover:bg-neutral-50/70">
                     {(() => {
                       const requestCertificateCategory =
                         request.type === 'CERTIFICATE' ? getRequestCertificateCategory(request) : DEFAULT_CERTIFICATE_CATEGORY;
                       const requestRequiresExpiry = requiresExpiryDate(request.type, requestCertificateCategory);
                       return (
                         <>
-                    <td className="px-4 py-3 text-sm text-slate-700">{studentNameById.get(request.studentId) || request.studentId}</td>
+                    <td className="px-4 py-3 text-sm text-neutral-700">{studentNameById.get(request.studentId) || request.studentId}</td>
                     <td className="px-4 py-3">
-                      <p className="text-sm font-semibold text-slate-900">{request.title}</p>
-                      <p className="mt-1 text-xs text-slate-500">{request.id}</p>
+                      <p className="text-sm font-semibold text-neutral-900">{request.title}</p>
+                      <p className="mt-1 text-xs text-neutral-500">{request.id}</p>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{getRequestTypeLabel(request)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{formatDateTime(request.createdAt)}</td>
+                    <td className="px-4 py-3 text-sm text-neutral-600">{getRequestTypeLabel(request)}</td>
+                    <td className="px-4 py-3 text-sm text-neutral-600">{formatDateTime(request.createdAt)}</td>
                     <td className="px-4 py-3">
                       {supportsExpiryDate(request.type) ? (
                         <div className="space-y-1">
-                          <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-500">Expiry</p>
+                          <p className="text-[10px] font-medium  text-neutral-500">Expiry</p>
                           <input
                             type="date"
                             value={issueExpiryByRequestId[request.id] || ''}
                             onChange={event => onIssueExpiryChange(request.id, event.target.value)}
                             aria-label="Expiry Date"
-                            className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none"
+                            className="h-9 rounded-lg border border-neutral-200 bg-neutral-50 px-2 text-xs outline-none"
                             required={requestRequiresExpiry}
                           />
                         </div>
                       ) : (
-                        <span className="text-xs text-slate-400">Not applicable</span>
+                        <span className="text-xs text-neutral-400">Not applicable</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <label
-                        className={`inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 ${
+                        className={`inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 ${
                           request.deliveryMethod === 'PHYSICAL'
                             ? 'cursor-not-allowed opacity-60'
-                            : 'cursor-pointer hover:bg-slate-100'
+                            : 'cursor-pointer hover:bg-neutral-100'
                         }`}
                         title={
                           request.deliveryMethod === 'PHYSICAL'
@@ -578,9 +578,9 @@ export default function InstitutionIssueSection({
       </Card>
 
       <Card title="Manage Student Credentials">
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
+        <div className="overflow-x-auto rounded-lg border border-neutral-200">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
+            <thead className="bg-neutral-50 text-xs font-semibold  text-neutral-500">
               <tr>
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Credential</th>
@@ -590,24 +590,24 @@ export default function InstitutionIssueSection({
                 <th className="px-4 py-3 text-right">Update</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-neutral-100 bg-white">
               {isLoadingCredentials && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-neutral-500">
                     Loading institution credentials...
                   </td>
                 </tr>
               )}
               {!isLoadingCredentials && institutionCredentials.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-500">
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-neutral-500">
                     No credentials found for your institution.
                   </td>
                 </tr>
               )}
               {!isLoadingCredentials &&
                 institutionCredentials.map(credential => (
-                  <tr key={credential.id} className="hover:bg-slate-50/70">
+                  <tr key={credential.id} className="hover:bg-neutral-50/70">
                     {(() => {
                       const isRevoked = credential.status === 'REVOKED';
                       const isExpired = credential.status === 'EXPIRED';
@@ -618,19 +618,19 @@ export default function InstitutionIssueSection({
                       const isStatusUnchanged = targetStatus === credential.status;
                       return (
                         <>
-                    <td className="px-4 py-3 text-sm text-slate-700">
+                    <td className="px-4 py-3 text-sm text-neutral-700">
                       {studentNameById.get(credential.studentId) || credential.studentId}
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-sm font-semibold text-slate-900">{credential.title}</p>
-                      <p className="mt-1 text-xs text-slate-500">{credential.type}</p>
+                      <p className="text-sm font-semibold text-neutral-900">{credential.title}</p>
+                      <p className="mt-1 text-xs text-neutral-500">{credential.type}</p>
                     </td>
                     <td className="px-4 py-3">
                       <Badge status={credential.status} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{formatDateTime(credential.updatedAt)}</td>
+                    <td className="px-4 py-3 text-sm text-neutral-600">{formatDateTime(credential.updatedAt)}</td>
                     <td className="px-4 py-3">
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-100">
                         <input
                           type="file"
                           accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
@@ -657,7 +657,7 @@ export default function InstitutionIssueSection({
                             }))
                           }
                           disabled={isLockedForStatusUpdate}
-                          className="h-9 rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          className="h-9 rounded-lg border border-neutral-200 bg-neutral-50 px-2 text-xs outline-none disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {allowedStatusOptions.map(status => (
                             <option key={status} value={status}>
@@ -667,7 +667,7 @@ export default function InstitutionIssueSection({
                         </select>
                         <button
                           onClick={() => onViewCredentialDetails(credential.id)}
-                          className="inline-flex h-9 items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                          className="inline-flex h-9 items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
                           title="View credential details"
                         >
                           <Eye size={12} />
@@ -683,7 +683,7 @@ export default function InstitutionIssueSection({
                               );
                           }}
                           disabled={updatingCredentialId === credential.id || isLockedForStatusUpdate || isStatusUnchanged}
-                          className="inline-flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                          className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
                         >
                           Save
                         </button>
@@ -713,7 +713,7 @@ export default function InstitutionIssueSection({
                           <span className={OTP_BADGE_CLASS}>OTP</span>
                         </button>
                         {isLockedForStatusUpdate && (
-                          <span className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-rose-700">
+                          <span className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold  text-rose-700">
                             Locked
                           </span>
                         )}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Clock3, Download, Eye, ShieldCheck, XCircle } from 'lucide-react';
 import { CredentialService, QrVerificationResult } from '../../services/credential.service';
@@ -112,22 +112,22 @@ export default function CredentialQrVerifyPage() {
 
   return (
     <main className="credence-font min-h-screen bg-white px-4 py-8 sm:py-10">
-      <div className="mx-auto w-full max-w-4xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_20px_45px_rgba(15,23,42,0.10)]">
-        <div className="border-b border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-6 py-5 text-white sm:px-8">
+      <div className="mx-auto w-full max-w-4xl overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-[0_20px_45px_rgba(15,23,42,0.10)]">
+        <div className="border-b border-neutral-200 bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 px-6 py-5 text-white sm:px-8">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="inline-flex items-center gap-2 text-2xl font-black tracking-tight">
                 <ShieldCheck size={22} />
                 Credential Verification
               </p>
-              <p className="mt-1 text-sm text-slate-300">
+              <p className="mt-1 text-sm text-neutral-300">
                 Public one-time token validation for academic credentials.
               </p>
             </div>
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20"
+              className="rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/20"
             >
               Back
             </button>
@@ -135,23 +135,23 @@ export default function CredentialQrVerifyPage() {
         </div>
 
         <div className="space-y-5 px-6 py-6 sm:px-8 sm:py-7">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
-            Token: <span className="font-mono text-slate-800">{token || '-'}</span>
+          <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-semibold text-neutral-600">
+            Token: <span className="font-mono text-neutral-800">{token || '-'}</span>
           </div>
 
           {isLoading && (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-6">
               <div className="animate-pulse space-y-3">
-                <div className="h-5 w-52 rounded bg-slate-200" />
-                <div className="h-4 w-full rounded bg-slate-200" />
-                <div className="h-4 w-3/4 rounded bg-slate-200" />
+                <div className="h-5 w-52 rounded bg-neutral-200" />
+                <div className="h-4 w-full rounded bg-neutral-200" />
+                <div className="h-4 w-3/4 rounded bg-neutral-200" />
               </div>
-              <p className="mt-4 text-sm font-medium text-slate-600">Verifying one-time QR token...</p>
+              <p className="mt-4 text-sm font-medium text-neutral-600">Verifying one-time QR token...</p>
             </div>
           )}
 
           {!isLoading && error && (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
               <p className="inline-flex items-center gap-2 text-base font-semibold">
                 <AlertCircle size={16} />
                 Verification Failed
@@ -162,7 +162,7 @@ export default function CredentialQrVerifyPage() {
 
           {!isLoading && !error && result && result.valid && result.credential && (
             <div className="space-y-5">
-              <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4 text-emerald-900">
+              <div className="rounded-lg border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4 text-emerald-900">
                 <p className="inline-flex items-center gap-2 text-lg font-bold">
                   <CheckCircle2 size={18} />
                   Credential is valid
@@ -171,63 +171,63 @@ export default function CredentialQrVerifyPage() {
               </div>
 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Student Identity</p>
+                <section className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                  <p className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-neutral-500">Student Identity</p>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-500">Full Name</span>
-                      <span className="text-right font-semibold text-slate-900">{result.credential.studentOwner}</span>
+                      <span className="text-neutral-500">Full Name</span>
+                      <span className="text-right font-semibold text-neutral-900">{result.credential.studentOwner}</span>
                     </div>
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-500">Student Number</span>
-                      <span className="font-semibold text-slate-900">{result.credential.studentNumber || '-'}</span>
+                      <span className="text-neutral-500">Student Number</span>
+                      <span className="font-semibold text-neutral-900">{result.credential.studentNumber || '-'}</span>
                     </div>
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-500">Email</span>
-                      <span className="text-right font-semibold text-slate-900">{result.credential.studentEmail}</span>
+                      <span className="text-neutral-500">Email</span>
+                      <span className="text-right font-semibold text-neutral-900">{result.credential.studentEmail}</span>
                     </div>
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <p className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Credential Details</p>
+                <section className="rounded-lg border border-neutral-200 bg-white p-4">
+                  <p className="mb-3 text-xs font-bold uppercase tracking-[0.12em] text-neutral-500">Credential Details</p>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-500">Title</span>
-                      <span className="text-right font-semibold text-slate-900">{result.credential.title}</span>
+                      <span className="text-neutral-500">Title</span>
+                      <span className="text-right font-semibold text-neutral-900">{result.credential.title}</span>
                     </div>
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-500">Type</span>
-                      <span className="font-semibold text-slate-900">{result.credential.type}</span>
+                      <span className="text-neutral-500">Type</span>
+                      <span className="font-semibold text-neutral-900">{result.credential.type}</span>
                     </div>
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-500">Status</span>
-                      <span className="font-semibold text-slate-900">{result.credential.status}</span>
+                      <span className="text-neutral-500">Status</span>
+                      <span className="font-semibold text-neutral-900">{result.credential.status}</span>
                     </div>
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-500">Institution</span>
-                      <span className="text-right font-semibold text-slate-900">{result.credential.institutionName}</span>
+                      <span className="text-neutral-500">Institution</span>
+                      <span className="text-right font-semibold text-neutral-900">{result.credential.institutionName}</span>
                     </div>
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-500">Issued</span>
-                      <span className="text-right font-semibold text-slate-900">{formatDateTime(result.credential.issuedDate)}</span>
+                      <span className="text-neutral-500">Issued</span>
+                      <span className="text-right font-semibold text-neutral-900">{formatDateTime(result.credential.issuedDate)}</span>
                     </div>
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-500">Expiry</span>
-                      <span className="text-right font-semibold text-slate-900">{formatDateTime(result.credential.expiryDate)}</span>
+                      <span className="text-neutral-500">Expiry</span>
+                      <span className="text-right font-semibold text-neutral-900">{formatDateTime(result.credential.expiryDate)}</span>
                     </div>
                     <div className="flex items-start justify-between gap-3">
-                      <span className="text-slate-500">Blockchain</span>
-                      <span className="font-semibold text-slate-900">{result.credential.chain || 'Not anchored'}</span>
+                      <span className="text-neutral-500">Blockchain</span>
+                      <span className="font-semibold text-neutral-900">{result.credential.chain || 'Not anchored'}</span>
                     </div>
                   </div>
                 </section>
               </div>
 
               {result.documentAccess && (result.documentAccess.previewEnabled || result.documentAccess.downloadEnabled) && (
-                <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Shared Document Access</p>
-                  <p className="mt-1 text-sm text-slate-700">
+                <section className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-500">Shared Document Access</p>
+                  <p className="mt-1 text-sm text-neutral-700">
                     Expires at <span className="font-semibold">{formatDateTime(result.documentAccess.expiresAt)}</span>
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -236,7 +236,7 @@ export default function CredentialQrVerifyPage() {
                         type="button"
                         onClick={() => void handleOpenSharedDocument('preview')}
                         disabled={isLoadingDocument}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-60"
                       >
                         <Eye size={13} />
                         {isLoadingDocument ? <ButtonLoadingContent label="Opening" /> : 'Preview Document'}
@@ -247,7 +247,7 @@ export default function CredentialQrVerifyPage() {
                         type="button"
                         onClick={() => void handleOpenSharedDocument('download')}
                         disabled={isLoadingDocument}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-60"
                       >
                         <Download size={13} />
                         {isLoadingDocument ? <ButtonLoadingContent label="Preparing" /> : 'Download Document'}
@@ -256,7 +256,7 @@ export default function CredentialQrVerifyPage() {
                   </div>
                   {documentError && <p className="mt-2 text-xs font-semibold text-rose-700">{documentError}</p>}
                   {documentPreviewUrl && (
-                    <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                    <div className="mt-3 overflow-hidden rounded-lg border border-neutral-200 bg-white">
                       <iframe src={documentPreviewUrl} title="Shared credential preview" className="h-[560px] w-full" />
                     </div>
                   )}
@@ -266,7 +266,7 @@ export default function CredentialQrVerifyPage() {
           )}
 
           {!isLoading && !error && result && !result.valid && (
-            <div className="rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 text-amber-900">
+            <div className="rounded-lg border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-5 py-4 text-amber-900">
               <p className="inline-flex items-center gap-2 text-base font-semibold">
                 {result.reason === 'EXPIRED' ? <Clock3 size={16} /> : <XCircle size={16} />}
                 {result.reason === 'EXPIRED' ? 'Token Expired' : 'Token Invalid or Used'}

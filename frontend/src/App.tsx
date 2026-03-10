@@ -20,7 +20,7 @@ function RequireAuth({ children }: { children: ReactElement }) {
   const { isAuthenticated, isLoading } = useLegacyAuth();
 
   if (isLoading) {
-    return <div className="h-screen flex items-center justify-center bg-[#f7f7f8] text-slate-700 font-medium">Loading session...</div>;
+    return <div className="h-screen flex items-center justify-center bg-[#f7f7f8] text-neutral-700 font-medium">Loading session...</div>;
   }
 
   if (!isAuthenticated) {

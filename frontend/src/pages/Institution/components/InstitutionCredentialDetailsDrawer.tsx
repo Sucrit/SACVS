@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Download, ExternalLink, Link2, X } from 'lucide-react';
 import Badge from '../../../components/common/Badge';
 import { useToast } from '../../../hooks/useToast';
@@ -190,22 +190,22 @@ export default function InstitutionCredentialDetailsDrawer({
     <div className={`fixed inset-0 z-[95] transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
       <button
         type="button"
-        className={`absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-0 bg-neutral-950/40 backdrop-blur-[2px] transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
         aria-label="Close credential details"
       />
       <aside
-        className={`absolute right-0 top-0 h-full w-full max-w-2xl overflow-hidden border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-out ${
+        className={`absolute right-0 top-0 h-full w-full max-w-2xl overflow-hidden border-l border-neutral-200 bg-white shadow-lg transition-transform duration-300 ease-out ${
           isVisible ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-            <h3 className="text-lg font-semibold text-slate-900">Credential Details</h3>
+          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+            <h3 className="text-lg font-semibold text-neutral-900">Credential Details</h3>
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
+              className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
               aria-label="Close drawer"
             >
               <X size={16} />
@@ -216,11 +216,11 @@ export default function InstitutionCredentialDetailsDrawer({
             {isLoading && (
               <div className="flex min-h-[420px] flex-col items-center justify-center px-6 text-center">
                 <span
-                  className="mb-4 inline-flex h-12 w-12 animate-spin rounded-full border-4 border-slate-300 border-t-slate-700"
+                  className="mb-4 inline-flex h-12 w-12 animate-spin rounded-full border-4 border-neutral-300 border-t-neutral-700"
                   aria-hidden="true"
                 />
-                <p className="text-lg font-semibold text-slate-900">Loading credential details</p>
-                <p className="mt-2 max-w-xl text-sm text-slate-600">
+                <p className="text-lg font-semibold text-neutral-900">Loading credential details</p>
+                <p className="mt-2 max-w-xl text-sm text-neutral-600">
                   Fetching document metadata, student context, and credential verification details.
                 </p>
               </div>
@@ -229,22 +229,22 @@ export default function InstitutionCredentialDetailsDrawer({
             {!isLoading && credential && (
               <>
                 <section className="pb-4">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Document Preview</p>
-                  <div className="mt-3 rounded-lg border border-slate-200 bg-white p-2">
+                  <p className="text-xs font-semibold  text-neutral-500">Document Preview</p>
+                  <div className="mt-3 rounded-lg border border-neutral-200 bg-white p-2">
                     {credential.storageKey && isLoadingDocument && (
-                      <div className="min-h-[240px] space-y-3 rounded-lg bg-slate-50 p-4">
-                        <div className="h-4 w-28 animate-pulse rounded bg-slate-200" />
-                        <div className="h-40 w-full animate-pulse rounded bg-slate-200" />
-                        <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
+                      <div className="min-h-[240px] space-y-3 rounded-lg bg-neutral-50 p-4">
+                        <div className="h-4 w-28 animate-pulse rounded bg-neutral-200" />
+                        <div className="h-40 w-full animate-pulse rounded bg-neutral-200" />
+                        <div className="h-4 w-40 animate-pulse rounded bg-neutral-200" />
                       </div>
                     )}
                     {!credential.storageKey && (
-                      <div className="flex min-h-[240px] items-center justify-center text-sm text-slate-500">
+                      <div className="flex min-h-[240px] items-center justify-center text-sm text-neutral-500">
                         No file attached.
                       </div>
                     )}
                     {credential.storageKey && !documentBlob && !isLoadingDocument && (
-                      <div className="flex min-h-[240px] items-center justify-center text-sm text-slate-500">
+                      <div className="flex min-h-[240px] items-center justify-center text-sm text-neutral-500">
                         No inline preview available.
                       </div>
                     )}
@@ -255,73 +255,73 @@ export default function InstitutionCredentialDetailsDrawer({
                       <iframe title="Credential PDF preview" src={previewUrl} className="h-[360px] w-full rounded-lg border-0" />
                     )}
                     {previewUrl && !isImage && !isPdf && (
-                      <div className="flex min-h-[240px] items-center justify-center text-sm text-slate-500">
+                      <div className="flex min-h-[240px] items-center justify-center text-sm text-neutral-500">
                         No inline preview available.
                       </div>
                     )}
                   </div>
                 </section>
 
-                <section className="border-t border-slate-200 pt-5">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Credential</p>
-                  <h4 className="mt-2 text-xl font-semibold text-slate-900">{credential.title}</h4>
+                <section className="border-t border-neutral-200 pt-5">
+                  <p className="text-xs font-semibold  text-neutral-500">Credential</p>
+                  <h4 className="mt-2 text-xl font-semibold text-neutral-900">{credential.title}</h4>
                   <div className="mt-2 flex items-center gap-2">
-                    <span className="text-sm text-slate-500">{credential.type}</span>
+                    <span className="text-sm text-neutral-500">{credential.type}</span>
                     <Badge status={credential.status} />
                   </div>
 
                   <dl className="mt-4 grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
                     <div>
-                      <dt className="text-slate-500">Student</dt>
-                      <dd className="font-semibold text-slate-900">{getStudentName(credential)}</dd>
+                      <dt className="text-neutral-500">Student</dt>
+                      <dd className="font-semibold text-neutral-900">{getStudentName(credential)}</dd>
                     </div>
                     <div>
-                      <dt className="text-slate-500">Student Email</dt>
-                      <dd className="font-semibold text-slate-900">{credential.student?.email || '--'}</dd>
+                      <dt className="text-neutral-500">Student Email</dt>
+                      <dd className="font-semibold text-neutral-900">{credential.student?.email || '--'}</dd>
                     </div>
                     <div>
-                      <dt className="text-slate-500">Student Number</dt>
-                      <dd className="font-semibold text-slate-900">{credential.student?.profile?.studentNumber || '--'}</dd>
+                      <dt className="text-neutral-500">Student Number</dt>
+                      <dd className="font-semibold text-neutral-900">{credential.student?.profile?.studentNumber || '--'}</dd>
                     </div>
                     <div>
-                      <dt className="text-slate-500">Program</dt>
-                      <dd className="font-semibold text-slate-900">{credential.student?.profile?.courseOfStudy || '--'}</dd>
+                      <dt className="text-neutral-500">Program</dt>
+                      <dd className="font-semibold text-neutral-900">{credential.student?.profile?.courseOfStudy || '--'}</dd>
                     </div>
                     <div>
-                      <dt className="text-slate-500">Institution</dt>
-                      <dd className="font-semibold text-slate-900">{getInstitutionName(credential)}</dd>
+                      <dt className="text-neutral-500">Institution</dt>
+                      <dd className="font-semibold text-neutral-900">{getInstitutionName(credential)}</dd>
                     </div>
                     <div>
-                      <dt className="text-slate-500">Issued Date</dt>
-                      <dd className="font-semibold text-slate-900">{formatDateTime(credential.issuedDate)}</dd>
+                      <dt className="text-neutral-500">Issued Date</dt>
+                      <dd className="font-semibold text-neutral-900">{formatDateTime(credential.issuedDate)}</dd>
                     </div>
                     <div>
-                      <dt className="text-slate-500">Expiry Date</dt>
-                      <dd className="font-semibold text-slate-900">{formatDateTime(credential.expiryDate)}</dd>
+                      <dt className="text-neutral-500">Expiry Date</dt>
+                      <dd className="font-semibold text-neutral-900">{formatDateTime(credential.expiryDate)}</dd>
                     </div>
                     <div>
-                      <dt className="text-slate-500">File Hash</dt>
-                      <dd className="break-all font-semibold text-slate-900">{credential.fileHash || '--'}</dd>
+                      <dt className="text-neutral-500">File Hash</dt>
+                      <dd className="break-all font-semibold text-neutral-900">{credential.fileHash || '--'}</dd>
                     </div>
                     <div>
-                      <dt className="text-slate-500">Chain</dt>
-                      <dd className="font-semibold text-slate-900">{credential.chain || '--'}</dd>
+                      <dt className="text-neutral-500">Chain</dt>
+                      <dd className="font-semibold text-neutral-900">{credential.chain || '--'}</dd>
                     </div>
                     <div>
-                      <dt className="text-slate-500">Block Number</dt>
-                      <dd className="font-semibold text-slate-900">
+                      <dt className="text-neutral-500">Block Number</dt>
+                      <dd className="font-semibold text-neutral-900">
                         {typeof credential.blockNumber === 'number' ? credential.blockNumber : '--'}
                       </dd>
                     </div>
                     <div className="md:col-span-2">
-                      <dt className="text-slate-500">Transaction Hash</dt>
-                      <dd className="flex items-center gap-2 break-all font-semibold text-slate-900">
+                      <dt className="text-neutral-500">Transaction Hash</dt>
+                      <dd className="flex items-center gap-2 break-all font-semibold text-neutral-900">
                         <span>{credential.txHash || '--'}</span>
                         {credential.txHash && (
                           <button
                             type="button"
                             onClick={handleCopyTxHash}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-100"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-100"
                             title="Copy transaction hash"
                           >
                             <Link2 size={13} />
@@ -335,14 +335,14 @@ export default function InstitutionCredentialDetailsDrawer({
             )}
           </div>
 
-          <div className="border-t border-slate-200 px-5 py-3">
+          <div className="border-t border-neutral-200 px-5 py-3">
             <div className="flex flex-wrap items-center justify-end gap-2">
               {previewUrl && (
                 <a
                   href={previewUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
                 >
                   <ExternalLink size={14} />
                   Preview
@@ -352,7 +352,7 @@ export default function InstitutionCredentialDetailsDrawer({
                 type="button"
                 onClick={handleDownload}
                 disabled={!documentBlob}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
               >
                 <Download size={14} />
                 Download

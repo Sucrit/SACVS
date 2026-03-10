@@ -7,13 +7,13 @@ export default function Card({ title, children, className, action }: { title?: s
   return (
     <div
       className={twMerge(
-        'rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_8px_28px_rgba(15,23,42,0.05)] transition-shadow duration-200 hover:shadow-[0_14px_32px_rgba(15,23,42,0.08)]',
+        'rounded-lg border border-neutral-200 bg-white p-5',
         className,
       )}
     >
       {hasHeader && (
-        <div className="mb-5 flex items-center justify-between gap-4">
-          {title ? <h3 className="text-lg font-semibold text-slate-900">{title}</h3> : <div></div>}
+        <div className="mb-4 flex items-center justify-between gap-3">
+          {title ? <h3 className="text-sm font-semibold text-neutral-900">{title}</h3> : <div></div>}
           {action && <div>{action}</div>}
         </div>
       )}

@@ -4,7 +4,6 @@ import { AlertTriangle, Download, FileText, Link2, MoreHorizontal, Search, Share
 import QRCode from 'qrcode';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import Card from '../../../components/common/Card';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import {
   Credential,
@@ -40,11 +39,7 @@ const dateRangeFilters: Array<{ value: DateRangeFilter; label: string }> = [
   { value: 'THIS_MONTH', label: 'This month' },
 ];
 
-const paperTextureStyle = {
-  backgroundColor: '#ffffff',
-  backgroundImage:
-    "url(\"data:image/svg+xml,%3Csvg width='90' height='90' viewBox='0 0 90 90' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%230f172a' fill-opacity='0.04'%3E%3Ccircle cx='10' cy='10' r='1.3'/%3E%3Ccircle cx='45' cy='25' r='1.3'/%3E%3Ccircle cx='75' cy='52' r='1.3'/%3E%3Ccircle cx='20' cy='70' r='1.3'/%3E%3C/g%3E%3C/svg%3E\")",
-};
+
 
 const isPdfFile = (credential: Credential) => {
   if (credential.mimeType === 'application/pdf') return true;
@@ -130,9 +125,9 @@ const CredentialPreview = ({
 
   if (isRevoked) {
     return (
-      <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500">
+      <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-neutral-100 text-neutral-500">
         <FileText size={24} />
-        <p className="text-xs font-semibold uppercase tracking-[0.08em]">This credential has been revoked.</p>
+        <p className="text-xs font-medium uppercase tracking-wide">This credential has been revoked.</p>
       </div>
     );
   }
@@ -161,7 +156,7 @@ const CredentialPreview = ({
     }
     if (isPdfLoading) {
       return (
-        <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500">
+        <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-neutral-50 text-neutral-400">
           <FileText size={24} />
           <p className="text-xs font-medium">Rendering PDF Preview...</p>
         </div>
@@ -170,7 +165,7 @@ const CredentialPreview = ({
   }
 
   return (
-    <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-500">
+    <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-neutral-50 text-neutral-400">
       <FileText size={24} />
       <p className="text-xs font-medium">{isPdf ? 'PDF Document' : 'No Preview Available'}</p>
       <canvas ref={canvasRef} className="hidden" />
@@ -383,25 +378,25 @@ export default function StudentCredentialsSection({
   }, [credentials, dateFilter, searchTerm, typeFilter]);
 
   return (
-    <Card>
-      <div className="space-y-5">
-        {heading && <h2 className="text-2xl font-semibold text-slate-900">{heading}</h2>}
+    <div>
+      <div className="space-y-4">
+        {heading && <h2 className="text-lg font-semibold text-neutral-900">{heading}</h2>}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative w-full lg:max-w-xs">
-            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={event => setSearchTerm(event.target.value)}
               placeholder="Search credentials..."
-              className="h-10 w-full rounded-full border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none focus:border-slate-300"
+              className="h-9 w-full rounded-lg border border-neutral-200 bg-white pl-9 pr-3 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
             />
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <select
               value={typeFilter}
               onChange={event => setTypeFilter(event.target.value as CredentialTypeFilter)}
-              className="h-10 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-slate-300"
+              className="h-9 rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
               aria-label="Filter credentials by type"
             >
               <option value="ALL">All types</option>
@@ -416,7 +411,7 @@ export default function StudentCredentialsSection({
             <select
               value={dateFilter}
               onChange={event => setDateFilter(event.target.value as DateRangeFilter)}
-              className="h-10 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-slate-300"
+              className="h-9 rounded-lg border border-neutral-200 bg-white px-3 text-sm text-neutral-700 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
               aria-label="Filter credentials by date"
             >
               {dateRangeFilters.map(filter => (
@@ -428,17 +423,17 @@ export default function StudentCredentialsSection({
           </div>
         </div>
         {isLoadingCredentials && (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {[1, 2, 3, 4].map(key => (
-              <div key={key} className="h-52 animate-pulse rounded-xl border border-slate-200 bg-slate-100"></div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map(key => (
+              <div key={key} className="h-52 rounded-lg border border-neutral-200 skeleton-shimmer"></div>
             ))}
           </div>
         )}
 
         {!isLoadingCredentials && filteredCredentials.length === 0 && (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
-            <p className="text-sm font-semibold text-slate-700">No credentials match your current filter.</p>
-            <p className="mt-1 text-xs text-slate-500">Try another search keyword or type filter.</p>
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50/50 px-6 py-16 text-center">
+            <p className="text-sm font-medium text-neutral-900">No credentials match your filter</p>
+            <p className="mt-1 text-sm text-neutral-500">Try adjusting your search or filter criteria.</p>
           </div>
         )}
 
@@ -452,22 +447,22 @@ export default function StudentCredentialsSection({
                 <article
                   key={credential.id}
                   onClick={() => onSelectCredential(credential.id)}
-                  className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md ${isSelected ? 'border-slate-900 ring-1 ring-slate-900' : 'border-slate-200'} ${isRevoked ? 'ring-1 ring-rose-200' : ''}`}
+                  className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-lg border bg-white transition-all duration-150 hover:shadow-md ${isSelected ? 'border-neutral-900 ring-1 ring-neutral-900' : 'border-neutral-200'} ${isRevoked ? 'border-error-200' : ''}`}
                 >
-                  <div className="flex flex-1 flex-col p-3" style={paperTextureStyle}>
-                    <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="flex flex-1 flex-col p-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.11em] text-slate-400">
+                        <span className="text-[11px] font-medium text-neutral-500">
                           {credential.type}
-                        </p>
+                        </span>
                         {isRevoked && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-700">
+                          <span className="inline-flex items-center gap-1 rounded-md border border-error-200 bg-error-50 px-1.5 py-0.5 text-[10px] font-medium text-error-700">
                             <AlertTriangle size={10} />
                             Revoked
                           </span>
                         )}
                       </div>
-                      <div className="inline-flex items-center gap-1">
+                      <div className="inline-flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                         <button
                           type="button"
                           onClick={event => {
@@ -475,9 +470,9 @@ export default function StudentCredentialsSection({
                             onSelectCredential(credential.id);
                             onOpenDetails(credential.id);
                           }}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-                          title="More"
-                          aria-label="More"
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
+                          title="Details"
+                          aria-label="Details"
                         >
                           <MoreHorizontal size={14} />
                         </button>
@@ -485,14 +480,8 @@ export default function StudentCredentialsSection({
                           type="button"
                           onClick={event => void handleShare(credential, event)}
                           disabled={isRevoked || credential.status !== 'ISSUED'}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                          title={
-                            isRevoked
-                              ? 'Revoked credentials cannot be shared'
-                              : credential.status !== 'ISSUED'
-                                ? 'Only issued credentials can be shared'
-                                : 'Share (OTP required only if document download is enabled)'
-                          }
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 disabled:cursor-not-allowed disabled:opacity-30"
+                          title="Share"
                           aria-label="Share"
                         >
                           <Share2 size={14} />
@@ -501,8 +490,8 @@ export default function StudentCredentialsSection({
                           type="button"
                           onClick={event => void handleDownload(credential, event)}
                           disabled={isRevoked}
-                          className={`inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 ${isRevoked ? 'cursor-not-allowed opacity-40' : ''}`}
-                          title={isRevoked ? 'Revoked credentials cannot be downloaded' : 'Download'}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 disabled:cursor-not-allowed disabled:opacity-30"
+                          title="Download"
                           aria-label="Download"
                         >
                           <Download size={14} />
@@ -510,10 +499,10 @@ export default function StudentCredentialsSection({
                       </div>
                     </div>
 
-                    <div className="relative mb-3 overflow-hidden rounded-xl bg-slate-50">
+                    <div className="relative mb-3 overflow-hidden rounded-md bg-neutral-50">
                       <CredentialPreview credential={credential} isRevoked={isRevoked} />
                     </div>
-                    <h3 className="line-clamp-2 text-center text-xl font-semibold leading-tight text-slate-900">{credential.title}</h3>
+                    <h3 className="line-clamp-2 text-center text-sm font-semibold leading-snug text-neutral-900">{credential.title}</h3>
                   </div>
                 </article>
               );
@@ -529,7 +518,7 @@ export default function StudentCredentialsSection({
           exit="exit"
           variants={MODAL_BACKDROP_VARIANTS}
           transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 px-4 py-4 backdrop-blur-[1px] sm:items-center"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-neutral-900/50 px-4 py-8 backdrop-blur-[2px] sm:items-center"
           onClick={() => {
             setShareCredential(null);
             setQrToken(null);
@@ -542,14 +531,14 @@ export default function StudentCredentialsSection({
             exit="exit"
             variants={MODAL_PANEL_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="max-h-[92vh] w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="max-h-[92vh] w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-overlay"
             onClick={event => event.stopPropagation()}
           >
             <div className="max-h-[92vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
               <div>
-                <p className="text-sm font-semibold text-slate-900">Share One-Time QR</p>
-                <p className="mt-1 text-xs text-slate-500">Generate a short-lived, single-use verification QR for this credential.</p>
+                <p className="text-sm font-semibold text-neutral-900">Share One-Time QR</p>
+                <p className="mt-0.5 text-xs text-neutral-500">Generate a short-lived, single-use verification QR.</p>
               </div>
               <button
                 type="button"
@@ -558,29 +547,29 @@ export default function StudentCredentialsSection({
                   setQrToken(null);
                   setQrDataUrl(null);
                 }}
-                className="inline-flex h-7 w-7 items-center justify-center text-slate-500 transition-colors hover:text-slate-900"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
               >
-                <X size={15} />
+                <X size={16} />
               </button>
             </div>
             <div className="p-5">
-            <p className="text-sm text-slate-600">
-              <span className="font-semibold text-slate-900">{shareCredential.title}</span> verification QR expires in{' '}
-              <span className="font-semibold text-amber-700">{formatQrCountdown(qrSecondsRemaining)}</span>.
+            <p className="text-sm text-neutral-600">
+              <span className="font-medium text-neutral-900">{shareCredential.title}</span> verification QR expires in{' '}
+              <span className="font-semibold text-warning-700">{formatQrCountdown(qrSecondsRemaining)}</span>.
             </p>
-            <div className="mt-4 flex justify-center rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mt-4 flex justify-center rounded-lg border border-neutral-200 bg-neutral-50 p-4">
               {qrDataUrl ? (
-                <img src={qrDataUrl} alt="One-time credential verification QR" className="h-64 w-64" />
+                <img src={qrDataUrl} alt="One-time credential verification QR" className="h-56 w-56" />
               ) : (
-                <p className="text-sm text-slate-500">{isGeneratingQr ? 'Generating QR...' : 'Rendering QR...'}</p>
+                <p className="text-sm text-neutral-500">{isGeneratingQr ? 'Generating QR...' : 'Rendering QR...'}</p>
               )}
             </div>
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <div className="mt-3 rounded-md border border-warning-100 bg-warning-50 px-3 py-2 text-xs text-warning-700">
               This QR is single-use and short-lived. Regenerate if you suspect it was leaked.
             </div>
-            <div className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Shared document access</p>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+            <div className="mt-3 space-y-2 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-3">
+              <p className="text-xs font-medium text-neutral-500">Shared document access</p>
+              <label className="flex items-center gap-2 text-sm text-neutral-700">
                 <input
                   type="checkbox"
                   checked={allowDocumentPreview}
@@ -592,7 +581,7 @@ export default function StudentCredentialsSection({
                 />
                 Allow document preview
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
+              <label className="flex items-center gap-2 text-sm text-neutral-700">
                 <input
                   type="checkbox"
                   checked={allowDocumentDownload}
@@ -601,10 +590,10 @@ export default function StudentCredentialsSection({
                 />
                 Allow document download
                 <span
-                  className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700"
+                  className="rounded-md border border-warning-100 bg-warning-50 px-1.5 py-0.5 text-[10px] font-medium text-warning-700"
                   title="Enabling download requires OTP verification"
                 >
-                  OTP Required
+                  OTP
                 </span>
               </label>
             </div>
@@ -612,7 +601,7 @@ export default function StudentCredentialsSection({
               <button
                 type="button"
                 onClick={() => void handleCopyQrLink()}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
               >
                 <Link2 size={13} />
                 Copy Link
@@ -621,12 +610,12 @@ export default function StudentCredentialsSection({
                 type="button"
                 onClick={() => void handleRegenerateQr()}
                 disabled={isGeneratingQr}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-900 bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
                 title={allowDocumentDownload ? 'OTP required when regenerating with download enabled' : 'Regenerate one-time QR'}
               >
                 {isGeneratingQr ? <ButtonLoadingContent label="Regenerating" /> : 'Regenerate'}
                 {allowDocumentDownload && (
-                  <span className="rounded-full border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+                  <span className="rounded-md border border-warning-100 bg-warning-50 px-1.5 py-0.5 text-[10px] font-medium text-warning-700">
                     OTP
                   </span>
                 )}
@@ -639,6 +628,6 @@ export default function StudentCredentialsSection({
       )}
       </AnimatePresence>
       {stepUpModal}
-    </Card>
+    </div>
   );
 }

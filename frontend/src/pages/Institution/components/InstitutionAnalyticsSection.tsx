@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Credential, CredentialRequest, CredentialStatus, CredentialType } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
 import Card from '../../../components/common/Card';
@@ -492,7 +492,7 @@ export default function InstitutionAnalyticsSection({
           [key]: event.target.value as DateRangePreset,
         }))
       }
-      className="h-9 min-w-[136px] rounded-lg border border-slate-200 bg-slate-50 px-2 text-xs font-semibold text-slate-700 outline-none"
+      className="h-9 min-w-[136px] rounded-lg border border-neutral-200 bg-neutral-50 px-2 text-xs font-semibold text-neutral-700 outline-none"
     >
       {DATE_RANGE_OPTIONS.map(option => (
         <option key={option.value} value={option.value}>
@@ -510,7 +510,7 @@ export default function InstitutionAnalyticsSection({
             <Doughnut data={requestStatusChart} options={doughnutOptions} />
           </div>
           {!isLoading && requestStatusTotal === 0 && (
-            <p className="mt-2 text-sm text-slate-500">No request records yet.</p>
+            <p className="mt-2 text-sm text-neutral-500">No request records yet.</p>
           )}
         </Card>
 
@@ -519,7 +519,7 @@ export default function InstitutionAnalyticsSection({
             <Doughnut data={credentialStatusChart} options={doughnutOptions} />
           </div>
           {!isLoading && credentialStatusTotal === 0 && (
-            <p className="mt-2 text-sm text-slate-500">No credentials yet.</p>
+            <p className="mt-2 text-sm text-neutral-500">No credentials yet.</p>
           )}
         </Card>
       </div>
@@ -539,7 +539,7 @@ export default function InstitutionAnalyticsSection({
             <Doughnut data={deliveryChart} options={doughnutOptions} />
           </div>
           {!isLoading && deliveryTotal === 0 && (
-            <p className="mt-2 text-sm text-slate-500">No delivery data yet.</p>
+            <p className="mt-2 text-sm text-neutral-500">No delivery data yet.</p>
           )}
         </Card>
       </div>
@@ -550,7 +550,7 @@ export default function InstitutionAnalyticsSection({
             <Bar data={credentialTypesChart} options={barOptions} />
           </div>
           {!isLoading && credentialTypeTotal === 0 && (
-            <p className="mt-2 text-sm text-slate-500">No type data yet.</p>
+            <p className="mt-2 text-sm text-neutral-500">No type data yet.</p>
           )}
         </Card>
 
@@ -577,7 +577,7 @@ export default function InstitutionAnalyticsSection({
             />
           </div>
           {!isLoading && departmentOptions.length === 0 && (
-            <p className="mt-2 text-sm text-slate-500">No department request data yet.</p>
+            <p className="mt-2 text-sm text-neutral-500">No department request data yet.</p>
           )}
         </Card>
       </div>
