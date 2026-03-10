@@ -6,6 +6,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
+import TopNavPortal from '../../../components/common/TopNavPortal';
 import {
   Credential,
   CredentialService,
@@ -407,7 +408,7 @@ export default function StudentCredentialsSection({
     <div>
       <div className="space-y-4">
         {heading && <h2 className="text-lg font-semibold text-neutral-900">{heading}</h2>}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <TopNavPortal>
           <div className="flex w-full items-center gap-2 lg:max-w-xl">
             <div className="relative flex-1">
               <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -420,13 +421,12 @@ export default function StudentCredentialsSection({
               />
             </div>
             <SearchFilterModal
+              hideLabel
               groups={filterGroups}
               description="Refine the credential gallery by type or issuance window."
             />
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-          </div>
-        </div>
+        </TopNavPortal>
         {isLoadingCredentials && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map(key => (

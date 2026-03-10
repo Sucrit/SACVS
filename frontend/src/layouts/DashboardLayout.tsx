@@ -561,7 +561,8 @@ export default function DashboardLayout() {
             </p>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex flex-1 items-center justify-end gap-1">
+            <div id="top-nav-search-portal" className="flex flex-1 justify-end mx-2 sm:mx-4" />
             {/* Notification bell */}
             <div className="relative">
               <button

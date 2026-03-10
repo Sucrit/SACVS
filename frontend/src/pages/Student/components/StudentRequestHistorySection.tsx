@@ -21,6 +21,7 @@ import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
+import TopNavPortal from '../../../components/common/TopNavPortal';
 import {
   ApprovalReceipt,
   CredentialRequest,
@@ -305,7 +306,7 @@ export default function StudentRequestHistorySection({
 
   return (
     <Card>
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <TopNavPortal>
         <div className="flex w-full items-center gap-2 lg:max-w-xl">
           <div className="relative flex-1">
             <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -318,14 +319,18 @@ export default function StudentRequestHistorySection({
             />
           </div>
           <SearchFilterModal
+            hideLabel
             groups={filterGroups}
             description="Refine request history by document type and submission date."
           />
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+      </TopNavPortal>
+
+      {requestAction && (
+        <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
           {requestAction}
         </div>
-      </div>
+      )}
 
       {isLoadingRequests && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">

@@ -36,6 +36,7 @@ export type SearchFilterGroup = SearchFilterOptionsGroup | SearchFilterBooleanGr
 interface SearchFilterModalProps {
   groups: SearchFilterGroup[];
   buttonLabel?: string;
+  hideLabel?: boolean;
   title?: string;
   description?: string;
   emptyLabel?: string;
@@ -47,6 +48,7 @@ const getIsGroupActive = (group: SearchFilterGroup) => group.value !== group.def
 export default function SearchFilterModal({
   groups,
   buttonLabel = 'Filters',
+  hideLabel = false,
   title = 'Search filters',
   description = 'Refine results across the current view.',
   emptyLabel = 'No filters available for this view.',
@@ -73,9 +75,10 @@ export default function SearchFilterModal({
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-800 transition-colors hover:bg-neutral-50"
+        title={buttonLabel}
       >
         <SlidersHorizontal size={15} />
-        {buttonLabel}
+        {!hideLabel && buttonLabel}
         {activeFilterCount > 0 && (
           <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-neutral-900 px-1.5 py-0.5 text-[11px] font-semibold text-white">
             {activeFilterCount}

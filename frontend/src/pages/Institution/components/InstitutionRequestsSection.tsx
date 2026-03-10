@@ -3,6 +3,7 @@ import { Check, ClipboardCheck, FileText, Search, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
+import TopNavPortal from '../../../components/common/TopNavPortal';
 import { CredentialRequest, CredentialType } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
 import { REQUEST_STATUS_OPTIONS, RequestStatusFilter } from '../types';
@@ -92,26 +93,30 @@ export default function InstitutionRequestsSection({
 
   return (
     <div className="space-y-6">
+      <TopNavPortal>
+        <div className="flex w-full max-w-md items-center gap-2 justify-end">
+          <div className="relative flex-1">
+            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <input
+              value={requestSearch}
+              onChange={event => onSearchChange(event.target.value)}
+              placeholder="Search request ID, student, title, type..."
+              className="h-9 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-100"
+            />
+          </div>
+          <SearchFilterModal
+            hideLabel
+            groups={filterGroups}
+            description="Refine incoming requests by their current approval state."
+          />
+        </div>
+      </TopNavPortal>
+
       <Card title="Student's Credential Requests">
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex w-full items-center gap-2 lg:max-w-xl">
-              <div className="relative flex-1">
-                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-                <input
-                  value={requestSearch}
-                  onChange={event => onSearchChange(event.target.value)}
-                  placeholder="Search request ID, student, title, type..."
-                  className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none"
-                />
-              </div>
-              <SearchFilterModal
-                groups={filterGroups}
-                description="Refine incoming requests by their current approval state."
-              />
-            </div>
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <button onClick={() => void onBulkAction('APPROVE')} className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Bulk Approve</button>
-              <button onClick={() => void onBulkAction('REJECT')} className="inline-flex h-10 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-800 hover:bg-rose-100">Bulk Reject</button>
+              <button onClick={() => void onBulkAction('APPROVE')} className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Bulk Approve</button>
+              <button onClick={() => void onBulkAction('REJECT')} className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-800 hover:bg-rose-100">Bulk Reject</button>
             </div>
         </div>
 
