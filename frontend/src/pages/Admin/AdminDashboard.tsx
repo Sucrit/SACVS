@@ -1,25 +1,21 @@
 ﻿import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import TopNavPortal from '../../components/common/TopNavPortal';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
 import {
   AlertTriangle,
-  ArrowRight,
   Clock3,
-  Database,
   ListFilter,
-  Mail,
   Search,
   ShieldAlert,
   UserRoundCheck,
-  Users,
 } from 'lucide-react';
 import { AuditAction, AuditSeverity } from '../../services/audit.service';
 import { RiskBand, RiskReviewStatus } from '../../services/risk.service';
 import ButtonLoadingContent from '../../components/common/ButtonLoadingContent';
 import AdminRiskEventDetailsDrawer from './components/AdminRiskEventDetailsDrawer';
+import AdminOverviewSection from './components/AdminOverviewSection';
 import { formatDate, formatDateTime } from '../../utils/formatting';
 import {
   useAdminDashboardState,
@@ -59,13 +55,10 @@ export default function AdminDashboard() {
     handleStatusUpdate,
     handleRoleUpdate,
     totalUsers,
-    approvedUsers,
     pendingUsers,
-    studentAccounts,
     roleDistribution,
-    statusDistribution,
-    recentUsers,
     pendingQueue,
+    auditLogs: _auditLogs,
     isLoadingAuditLogs,
     auditActionFilter,
     setAuditActionFilter,
@@ -213,142 +206,6 @@ export default function AdminDashboard() {
       onChange: value => setAuditPageSize(Number(value)),
     },
   ], [adminAuditActionOptions, auditActionFilter, auditPageSize, auditSeverityFilter, setAuditActionFilter, setAuditPageSize, setAuditSeverityFilter]);
-
-  const renderOverview = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
-            <Users size={18} />
-          </div>
-          <div>
-            <p className="text-2xl font-semibold text-neutral-900">{totalUsers}</p>
-            <p className="text-xs text-neutral-500">Total users</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
-            <UserRoundCheck size={18} />
-          </div>
-          <div>
-            <p className="text-2xl font-semibold text-neutral-900">{approvedUsers}</p>
-            <p className="text-xs text-neutral-500">Approved</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-            <Clock3 size={18} />
-          </div>
-          <div>
-            <p className="text-2xl font-semibold text-neutral-900">{pendingUsers}</p>
-            <p className="text-xs text-neutral-500">Pending</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
-            <Database size={18} />
-          </div>
-          <div>
-            <p className="text-2xl font-semibold text-neutral-900">{studentAccounts}</p>
-            <p className="text-xs text-neutral-500">Students</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="xl:col-span-2">
-          <Card
-            title="Recent User Registrations"
-            action={
-              <Link
-                to="/admin/users"
-                className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
-              >
-                View All
-                <ArrowRight size={14} />
-              </Link>
-            }
-          >
-            <div className="overflow-x-auto rounded-lg border border-neutral-200">
-              <table className="w-full text-left">
-                <thead className="bg-neutral-50 text-xs font-medium text-neutral-500">
-                  <tr>
-                    <th className="px-5 py-3">Name</th>
-                    <th className="hidden px-5 py-3 sm:table-cell">Email</th>
-                    <th className="px-5 py-3">Role</th>
-                    <th className="px-5 py-3">Status</th>
-                    <th className="hidden px-5 py-3 md:table-cell">Created</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-100 bg-white">
-                  {isLoadingUsers && (
-                    <tr>
-                      <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
-                        Loading users...
-                      </td>
-                    </tr>
-                  )}
-                  {!isLoadingUsers && recentUsers.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
-                        No users found.
-                      </td>
-                    </tr>
-                  )}
-                  {!isLoadingUsers &&
-                    recentUsers.map(user => (
-                      <tr key={user.id} className="hover:bg-neutral-50/70">
-                        <td className="px-5 py-4">
-                          <p className="font-semibold text-neutral-900">{getFullName(user)}</p>
-                          <p className="mt-1 text-xs text-neutral-500">ID: {user.id}</p>
-                        </td>
-                        <td className="hidden px-5 py-4 text-sm text-neutral-600 sm:table-cell">{user.email}</td>
-                        <td className="px-5 py-4">
-                          <span className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${getRoleStyles(user.role)}`}>
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4">
-                          <Badge status={user.status} />
-                        </td>
-                        <td className="hidden px-5 py-4 text-sm text-neutral-500 md:table-cell">{formatDate(user.createdAt)}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          <Card title="Role Distribution">
-            <div className="space-y-2">
-              {Object.entries(roleDistribution).map(([role, count]) => (
-                <div key={role} className="flex items-center justify-between py-2">
-                  <span className="text-sm text-neutral-600">{role}</span>
-                  <span className="text-sm font-medium text-neutral-900">{count}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card title="Status Distribution">
-            <div className="space-y-2">
-              {Object.entries(statusDistribution).map(([status, count]) => (
-                <div key={status} className="flex items-center justify-between py-2">
-                  <span className="text-sm text-neutral-600">{status}</span>
-                  <span className="text-sm font-medium text-neutral-900">{count}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
 
   const renderUserManagement = () => (
     <div className="space-y-6">
@@ -958,69 +815,24 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {section === 'overview' && renderOverview()}
+      {section === 'overview' && (
+        <AdminOverviewSection
+          users={users}
+          isLoadingUsers={isLoadingUsers}
+          totalUsers={totalUsers}
+          pendingUsers={pendingUsers}
+          roleDistribution={roleDistribution}
+          pendingQueue={pendingQueue}
+          isUpdatingStatus={isUpdatingStatus}
+          handleStatusUpdate={handleStatusUpdate}
+          riskSummary={riskSummary}
+          riskEvents={riskEvents}
+          isLoadingRiskEvents={isLoadingRiskEvents}
+        />
+      )}
       {section === 'users' && renderUserManagement()}
       {section === 'risk' && renderRiskReview()}
       {section === 'logs' && renderLogsPlaceholder()}
-
-      {section === 'overview' && pendingQueue.length > 0 && (
-        <Card title="Pending Approval Queue">
-          <div className="space-y-3">
-            {pendingQueue.slice(0, 4).map(user => (
-              <div key={user.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-neutral-900">{getFullName(user)}</p>
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-500">
-                    <span className="inline-flex items-center gap-1">
-                      <Mail size={12} />
-                      {user.email}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      {user.role}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    disabled={isUpdatingStatus === user.id}
-                    onClick={() => void handleStatusUpdate(user.id, 'APPROVED')}
-                    className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-                    title="OTP required before this action is applied"
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      Approve
-                      <span className={OTP_BADGE_CLASS}>OTP</span>
-                    </span>
-                  </button>
-                  <button
-                    disabled={isUpdatingStatus === user.id}
-                    onClick={() => void handleStatusUpdate(user.id, 'REJECTED')}
-                    className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
-                    title="OTP required before this action is applied"
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      Reject
-                      <span className={OTP_BADGE_CLASS}>OTP</span>
-                    </span>
-                  </button>
-                  <button
-                    disabled={isUpdatingStatus === user.id}
-                    onClick={() => void handleStatusUpdate(user.id, 'SUSPENDED')}
-                    className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
-                    title="OTP required before this action is applied"
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      Suspend
-                      <span className={OTP_BADGE_CLASS}>OTP</span>
-                    </span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
 
       {stepUpModal}
     </div>

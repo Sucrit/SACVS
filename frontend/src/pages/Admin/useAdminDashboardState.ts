@@ -10,6 +10,7 @@ import {
   RiskWorkerStatus,
 } from '../../services/risk.service';
 import { User, UserRole, UserService, UserStatus } from '../../services/user.service';
+import { CredentialRequest, CredentialService } from '../../services/credential.service';
 import { useStepUp } from '../../hooks/useStepUp';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { useToast } from '../../hooks/useToast';
@@ -115,6 +116,10 @@ export interface AdminDashboardState {
   recentUsers: User[];
   pendingQueue: User[];
 
+  // Credential requests
+  credentialRequests: CredentialRequest[];
+  isLoadingCredentialRequests: boolean;
+
   // Audit logs
   auditLogs: AuditLogEntry[];
   isLoadingAuditLogs: boolean;
@@ -188,6 +193,10 @@ export function useAdminDashboardState(): AdminDashboardState {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  // --- Credential requests state ---
+  const [credentialRequests, setCredentialRequests] = useState<CredentialRequest[]>([]);
+  const [isLoadingCredentialRequests, setIsLoadingCredentialRequests] = useState(true);
 
   // --- Audit logs state ---
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
@@ -293,9 +302,21 @@ export function useAdminDashboardState(): AdminDashboardState {
     }
   }, [showToast]);
 
+  const loadCredentialRequests = useCallback(async () => {
+    setIsLoadingCredentialRequests(true);
+    try {
+      setCredentialRequests(await CredentialService.listRequests());
+    } catch {
+      setCredentialRequests([]);
+    } finally {
+      setIsLoadingCredentialRequests(false);
+    }
+  }, []);
+
   // --- Section-based loading ---
 
   useEffect(() => { void loadUsers(); }, [loadUsers]);
+  useEffect(() => { void loadCredentialRequests(); }, [loadCredentialRequests]);
 
   useEffect(() => {
     if (section === 'logs' && !hasLoadedAuditLogs) void loadAuditLogs();
@@ -312,11 +333,12 @@ export function useAdminDashboardState(): AdminDashboardState {
 
   const realtimeRefreshMap = useMemo(() => ({
     users: () => { if (section !== 'logs') void loadUsers(); },
+    credentialRequests: () => { void loadCredentialRequests(); },
     audit: () => { if (section === 'logs') void loadAuditLogs(); },
     'security:SECURITY_RISK_EVENTS_UPDATED': () => {
       if (section === 'risk') { void loadRiskEvents(); void loadRiskWorkerStatus(); }
     },
-  }), [loadAuditLogs, loadRiskEvents, loadRiskWorkerStatus, loadUsers, section]);
+  }), [loadAuditLogs, loadCredentialRequests, loadRiskEvents, loadRiskWorkerStatus, loadUsers, section]);
 
   useRealtimeSync(realtimeRefreshMap);
 
@@ -579,6 +601,9 @@ export function useAdminDashboardState(): AdminDashboardState {
     statusDistribution,
     recentUsers,
     pendingQueue,
+
+    credentialRequests,
+    isLoadingCredentialRequests,
 
     auditLogs,
     isLoadingAuditLogs,
