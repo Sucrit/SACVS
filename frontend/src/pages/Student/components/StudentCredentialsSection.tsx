@@ -408,21 +408,23 @@ export default function StudentCredentialsSection({
       <div className="space-y-4">
         {heading && <h2 className="text-lg font-semibold text-neutral-900">{heading}</h2>}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative w-full lg:max-w-xs">
-            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={event => setSearchTerm(event.target.value)}
-              placeholder="Search credentials..."
-              className="h-9 w-full rounded-lg border border-neutral-200 bg-white pl-9 pr-3 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-            />
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex w-full items-center gap-2 lg:max-w-md">
+            <div className="relative flex-1">
+              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={event => setSearchTerm(event.target.value)}
+                placeholder="Search credentials..."
+                className="h-9 w-full rounded-lg border border-neutral-200 bg-white pl-9 pr-3 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+              />
+            </div>
             <SearchFilterModal
               groups={filterGroups}
               description="Refine the credential gallery by type or issuance window."
             />
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
           </div>
         </div>
         {isLoadingCredentials && (

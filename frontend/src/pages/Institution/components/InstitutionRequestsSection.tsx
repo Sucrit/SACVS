@@ -94,22 +94,22 @@ export default function InstitutionRequestsSection({
     <div className="space-y-6">
       <Card title="Request Filters & Bulk Actions">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative w-full lg:max-w-2xl">
-            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-            <input
-              value={requestSearch}
-              onChange={event => onSearchChange(event.target.value)}
-              placeholder="Search request ID, student, title, type..."
-              className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none"
-            />
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <SearchFilterModal
-              groups={filterGroups}
-              description="Refine incoming requests by their current approval state."
-            />
-            <button onClick={() => void onBulkAction('APPROVE')} className="inline-flex h-10 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Bulk Approve</button>
-            <button onClick={() => void onBulkAction('REJECT')} className="inline-flex h-10 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-800 hover:bg-rose-100">Bulk Reject</button>
+            <div className="flex w-full items-center gap-2 lg:max-w-2xl">
+              <div className="relative flex-1">
+                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <input
+                  value={requestSearch}
+                  onChange={event => onSearchChange(event.target.value)}
+                  placeholder="Search request ID, student, title, type..."
+                  className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none"
+                />
+              </div>
+              <SearchFilterModal
+                groups={filterGroups}
+                description="Refine incoming requests by their current approval state."
+              />
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
             <button onClick={() => void onBulkAction('ISSUE')} className="inline-flex h-10 items-center justify-center rounded-lg border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-800 hover:bg-cyan-100">Bulk Issue</button>
           </div>
         </div>

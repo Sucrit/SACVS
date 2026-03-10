@@ -355,23 +355,26 @@ export default function AdminDashboard() {
         title="User Management"
       >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="w-full lg:max-w-2xl">
-            <label className="mb-1.5 block text-xs font-medium text-neutral-500">Search</label>
-            <div className="relative">
-              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-              <input
-                value={search}
-                onChange={event => setSearch(event.target.value)}
-                placeholder="Name, email, role, organization..."
-                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2.5 pl-9 pr-3 text-sm text-neutral-800 placeholder:text-neutral-400"
-              />
+          <div className="flex w-full items-end gap-2 lg:max-w-2xl">
+            <div className="w-full">
+              <label className="mb-1.5 block text-xs font-medium text-neutral-500">Search</label>
+              <div className="relative">
+                <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <input
+                  value={search}
+                  onChange={event => setSearch(event.target.value)}
+                  placeholder="Name, email, role, organization..."
+                  className="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2.5 pl-9 pr-3 text-sm text-neutral-800 placeholder:text-neutral-400"
+                />
+              </div>
             </div>
-          </div>
-          <div className="flex items-center justify-end gap-2">
             <SearchFilterModal
               groups={userFilterGroups}
               description="Refine the user directory by account role and approval status."
             />
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            {/* Action buttons could go here */}
           </div>
         </div>
 
