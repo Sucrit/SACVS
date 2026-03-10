@@ -13,7 +13,6 @@ import {
   LayoutGrid,
   LayoutDashboard,
   MoreHorizontal,
-  Settings,
   Shield,
   User,
   Users,
@@ -59,7 +58,6 @@ const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string }>> = {
     { to: '/admin/users', label: 'Users' },
     { to: '/admin/risk', label: 'Risk Review' },
     { to: '/admin/logs', label: 'Audit Logs' },
-    { to: '/admin/settings', label: 'Settings' },
   ],
 };
 
@@ -81,7 +79,6 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   '/admin/users': Users,
   '/admin/risk': Shield,
   '/admin/logs': History,
-  '/admin/settings': Settings,
 };
 
 const CREDENTIAL_ICON_ROUTES = new Set<string>([
@@ -566,7 +563,7 @@ export default function DashboardLayout() {
                                     onClick={() => setIsNotificationMenuOpen(false)}
                                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
                                   >
-                                    <Settings size={15} />
+                                    <Bell size={15} />
                                     Notification settings
                                     <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                                       N/a

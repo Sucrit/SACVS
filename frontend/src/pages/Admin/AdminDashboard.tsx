@@ -31,7 +31,7 @@ import ButtonLoadingContent from '../../components/common/ButtonLoadingContent';
 import { useToast } from '../../hooks/useToast';
 import AdminRiskEventDetailsDrawer from './components/AdminRiskEventDetailsDrawer';
 
-type AdminSection = 'overview' | 'users' | 'risk' | 'logs' | 'settings';
+type AdminSection = 'overview' | 'users' | 'risk' | 'logs';
 type RoleFilter = UserRole | 'ALL';
 type StatusFilter = UserStatus | 'ALL';
 
@@ -86,7 +86,6 @@ const getSection = (pathname: string): AdminSection => {
   if (pathname.includes('/admin/users')) return 'users';
   if (pathname.includes('/admin/risk')) return 'risk';
   if (pathname.includes('/admin/logs')) return 'logs';
-  if (pathname.includes('/admin/settings')) return 'settings';
   return 'overview';
 };
 
@@ -1458,23 +1457,12 @@ export default function AdminDashboard() {
     </div>
   );
 
-  const renderSettingsPlaceholder = () => (
-    <Card title="Admin Settings">
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-        <p className="text-sm text-slate-700">
-          TODO: Admin system page
-        </p>
-      </div>
-    </Card>
-  );
-
   return (
     <div className="space-y-6">
       {section === 'overview' && renderOverview()}
       {section === 'users' && renderUserManagement()}
       {section === 'risk' && renderRiskReview()}
       {section === 'logs' && renderLogsPlaceholder()}
-      {section === 'settings' && renderSettingsPlaceholder()}
 
       {section === 'overview' && pendingQueue.length > 0 && (
         <Card title="Pending Approval Queue">
