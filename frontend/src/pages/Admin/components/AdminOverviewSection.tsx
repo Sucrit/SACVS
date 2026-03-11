@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import { formatDate, formatDateTime } from '../../../utils/formatting';
-import { getFullName, getRoleStyles, getRiskBandStyles } from '../useAdminDashboardState';
+import { getFullName, getInitials, getRoleStyles, getRiskBandStyles } from '../useAdminDashboardState';
 import type { RiskEventRecord } from '../../../services/risk.service';
 import type { User } from '../../../services/user.service';
 import type { CredentialRequest } from '../../../services/credential.service';
@@ -50,8 +50,6 @@ interface AdminOverviewSectionProps {
   totalUsers: number;
   roleDistribution: Record<'STUDENT' | 'INSTITUTION' | 'ADMIN', number>;
   pendingQueue: User[];
-  isUpdatingStatus: string | null;
-  handleStatusUpdate: (userId: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING') => Promise<void>;
   // Risk
   riskSummary: {
     pendingReviewCount: number;
@@ -70,8 +68,8 @@ export default function AdminOverviewSection({
   totalUsers,
   roleDistribution,
   pendingQueue,
-  isUpdatingStatus,
-  handleStatusUpdate,
+  // isUpdatingStatus,
+  // handleStatusUpdate,
   riskSummary,
   riskEvents,
   credentialRequests,
@@ -441,48 +439,50 @@ export default function AdminOverviewSection({
             )}
             {!isLoadingUsers && pendingQueue.length > 0 && (
               <div className="space-y-3">
-                {pendingQueue.slice(0, 5).map(user => (
-                  <div key={user.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-neutral-900">{getFullName(user)}</p>
-                        <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${getRoleStyles(user.role)}`}>
-                          {user.role}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-500">
-                        <span className="inline-flex items-center gap-1">
-                          <Mail size={12} />
-                          {user.email}
-                        </span>
-                        <span>Registered {formatDate(user.createdAt)}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        disabled={isUpdatingStatus === user.id}
-                        onClick={() => void handleStatusUpdate(user.id, 'APPROVED')}
-                        className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        disabled={isUpdatingStatus === user.id}
-                        onClick={() => void handleStatusUpdate(user.id, 'REJECTED')}
-                        className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                <div className="overflow-x-auto rounded-lg border border-neutral-200">
+                  <table className="min-w-full divide-y divide-neutral-200 bg-white text-sm">
+                    <thead className="bg-neutral-50 text-left">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold text-neutral-600">Institution Name</th>
+                        <th className="px-4 py-3 font-semibold text-neutral-600">Email</th>
+                        <th className="px-4 py-3 font-semibold text-neutral-600">Role</th>
+                        <th className="px-4 py-3 font-semibold text-neutral-600">Registered</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-200">
+                      {pendingQueue.slice(0, 5).map(user => (
+                        <tr key={user.id} className="hover:bg-neutral-50/50">
+                          <td className="px-4 py-3 font-medium text-neutral-900">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700">
+                                {getInitials(user)}
+                              </div>
+                              {getFullName(user)}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-neutral-500">
+                            <span className="inline-flex items-center gap-1">
+                              <Mail size={12} />
+                              {user.email}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${getRoleStyles(user.role)}`}>
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-neutral-500">{formatDate(user.createdAt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 {pendingQueue.length > 5 && (
                   <Link
                     to="/admin/users"
                     className="block text-center text-xs font-medium text-primary-600 hover:text-primary-700"
                   >
-                    View all {pendingQueue.length} pending users →
+                    View all {pendingQueue.length} pending users &rarr;
                   </Link>
                 )}
               </div>

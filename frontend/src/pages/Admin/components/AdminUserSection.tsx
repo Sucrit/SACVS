@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Check, ListFilter, PauseCircle, Search, XCircle } from 'lucide-react';
 import ActionMenu from '../../../components/common/ActionMenu';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
+import PaginationControls from '../../../components/common/PaginationControls';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
-import TopNavPortal from '../../../components/common/TopNavPortal';
 import AdminUserDetailsDrawer from './AdminUserDetailsDrawer';
 import { User, UserRole, UserStatus } from '../../../services/user.service';
 import { formatDate } from '../../../utils/formatting';
@@ -55,6 +55,9 @@ export default function AdminUserSection({
   handleStatusUpdate,
   handleRoleUpdate,
 }: AdminUserSectionProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 12;
+
   const filterGroups = useMemo<SearchFilterGroup[]>(() => [
     {
       id: 'admin-user-role',
@@ -80,29 +83,37 @@ export default function AdminUserSection({
     },
   ], [roleFilter, setRoleFilter, setStatusFilter, statusFilter]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, roleFilter, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pagedUsers = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredUsers.slice(start, start + pageSize);
+  }, [filteredUsers, safeCurrentPage]);
+
   return (
     <div className="min-h-[calc(100vh-220px)] space-y-4 pb-4">
-      <TopNavPortal>
-        <div className="flex w-full max-w-md items-center gap-2 justify-end">
-          <div className="relative flex-1">
-            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-            <input
-              value={search}
-              onChange={event => setSearch(event.target.value)}
-              placeholder="Search name, email, role, organization..."
-              className="h-9 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all"
+      <Card title="User Management">
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex w-full max-w-xl items-center gap-2">
+            <div className="relative flex-1">
+              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                value={search}
+                onChange={event => setSearch(event.target.value)}
+                placeholder="Search name, email, role, organization..."
+                className="h-9 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all"
+              />
+            </div>
+            <SearchFilterModal
+              hideLabel
+              groups={filterGroups}
+              description="Refine the user directory by account role and approval status."
             />
           </div>
-          <SearchFilterModal
-            hideLabel
-            groups={filterGroups}
-            description="Refine the user directory by account role and approval status."
-          />
-        </div>
-      </TopNavPortal>
-
-      <Card title="User Management">
-        <div className="mb-4 flex items-center justify-end">
           <div className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-600">
             <ListFilter size={14} />
             Showing {filteredUsers.length} of {users.length} users
@@ -136,7 +147,7 @@ export default function AdminUserSection({
                   </td>
                 </tr>
               )}
-              {!isLoadingUsers && filteredUsers.map(user => (
+              {!isLoadingUsers && pagedUsers.map(user => (
                 <tr
                   key={user.id}
                   className={`cursor-pointer transition-colors hover:bg-neutral-50/80 ${user.id === selectedUserId ? 'bg-neutral-50' : ''}`}
@@ -207,6 +218,16 @@ export default function AdminUserSection({
             </tbody>
           </table>
         </div>
+
+        {!isLoadingUsers && filteredUsers.length > 0 && (
+          <PaginationControls
+            currentPage={safeCurrentPage}
+            totalItems={filteredUsers.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            itemLabel="users"
+          />
+        )}
       </Card>
 
       <AdminUserDetailsDrawer

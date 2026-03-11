@@ -6,7 +6,6 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
-import TopNavPortal from '../../../components/common/TopNavPortal';
 import {
   Credential,
   CredentialService,
@@ -408,25 +407,23 @@ export default function StudentCredentialsSection({
     <div>
       <div className="space-y-4">
         {heading && <h2 className="text-lg font-semibold text-neutral-900">{heading}</h2>}
-        <TopNavPortal>
-          <div className="flex w-full items-center gap-2 lg:max-w-xl">
-            <div className="relative flex-1">
-              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={event => setSearchTerm(event.target.value)}
-                placeholder="Search credentials..."
-                className="h-9 w-full rounded-lg border border-neutral-200 bg-white pl-9 pr-3 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
-              />
-            </div>
-            <SearchFilterModal
-              hideLabel
-              groups={filterGroups}
-              description="Refine the credential gallery by type or issuance window."
+        <div className="flex w-full items-center gap-2 lg:max-w-xl">
+          <div className="relative flex-1">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={event => setSearchTerm(event.target.value)}
+              placeholder="Search credentials..."
+              className="h-9 w-full rounded-lg border border-neutral-200 bg-white pl-9 pr-3 text-sm text-neutral-900 placeholder:text-neutral-400 outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
             />
           </div>
-        </TopNavPortal>
+          <SearchFilterModal
+            hideLabel
+            groups={filterGroups}
+            description="Refine the credential gallery by type or issuance window."
+          />
+        </div>
         {isLoadingCredentials && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map(key => (

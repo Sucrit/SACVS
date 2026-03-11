@@ -1,5 +1,6 @@
 ﻿import { useMemo, useState } from 'react';
 import { AuditAction, AuditSeverity } from '../../services/audit.service';
+import Card from '../../components/common/Card';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
 import RecordDetailsDrawer from '../../components/common/RecordDetailsDrawer';
 import InstitutionStudentsSection from './components/InstitutionStudentsSection';
@@ -203,89 +204,94 @@ export default function InstitutionDashboard() {
       )}
 
       {state.section === 'logs' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-xl font-semibold text-slate-900">Institution Audit Logs</h2>
-            <SearchFilterModal
-              groups={institutionAuditFilterGroups}
-              description="Refine institution logs by action, severity, and page size."
-            />
-          </div>
-          <div className="flex justify-end">
-            <div className="flex items-end">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+        <>
+          <Card title="Institution Audit Logs">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <SearchFilterModal
+                groups={institutionAuditFilterGroups}
+                description="Refine institution logs by action, severity, and page size."
+              />
+              <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
                 {state.filteredInstitutionAuditLogs.length} entries
               </div>
             </div>
-          </div>
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-widest text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">Timestamp</th>
-                  <th className="px-4 py-3">Action</th>
-                  <th className="px-4 py-3">Severity</th>
-                  <th className="px-4 py-3">Actor</th>
-                  <th className="px-4 py-3">Description</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {state.isLoadingAuditLogs && (
+
+            <div className="overflow-hidden rounded-lg border border-neutral-200">
+              <table className="w-full min-w-[640px] text-left">
+                <thead className="bg-neutral-50 text-xs font-medium uppercase tracking-widest text-neutral-500">
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
-                      Loading audit logs...
-                    </td>
+                    <th className="px-5 py-3">Timestamp</th>
+                    <th className="px-5 py-3">Action</th>
+                    <th className="hidden px-5 py-3 sm:table-cell">Severity</th>
+                    <th className="hidden px-5 py-3 md:table-cell">Actor</th>
+                    <th className="hidden px-5 py-3 lg:table-cell">Description</th>
                   </tr>
-                )}
-                {!state.isLoadingAuditLogs && state.filteredInstitutionAuditLogs.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
-                      No audit logs found for institution scope.
-                    </td>
-                  </tr>
-                )}
-                {!state.isLoadingAuditLogs &&
-                  state.pagedInstitutionAuditLogs.map(log => (
-                    <tr
-                      key={log.id}
-                      className="cursor-pointer hover:bg-slate-50/70"
-                      onClick={() => setSelectedAuditLogId(log.id)}
-                    >
-                      <td className="px-4 py-3 text-xs text-slate-600">{new Date(log.createdAt).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-xs font-semibold text-slate-800">{log.action}</td>
-                      <td className="px-4 py-3 text-xs text-slate-700">{log.severity}</td>
-                      <td className="px-4 py-3 text-xs text-slate-600">{log.actorEmail || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{log.description || '-'}</td>
+                </thead>
+                <tbody className="divide-y divide-neutral-200 bg-white">
+                  {state.isLoadingAuditLogs && (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-10 text-center text-sm text-neutral-500">
+                        Loading audit logs...
+                      </td>
                     </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-          {!state.isLoadingAuditLogs && state.filteredInstitutionAuditLogs.length > 0 && (
-            <div className="mt-3 flex items-center justify-between">
-              <p className="text-xs text-slate-500">
-                Page {state.currentInstitutionAuditPage} of {state.totalInstitutionAuditPages}
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => state.setAuditPage(previous => Math.max(1, previous - 1))}
-                  disabled={state.currentInstitutionAuditPage <= 1}
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() =>
-                    state.setAuditPage(previous => Math.min(state.totalInstitutionAuditPages, previous + 1))
-                  }
-                  disabled={state.currentInstitutionAuditPage >= state.totalInstitutionAuditPages}
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 disabled:opacity-50"
-                >
-                  Next
-                </button>
-              </div>
+                  )}
+                  {!state.isLoadingAuditLogs && state.filteredInstitutionAuditLogs.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-10 text-center text-sm text-neutral-500">
+                        No audit logs found for institution scope.
+                      </td>
+                    </tr>
+                  )}
+                  {!state.isLoadingAuditLogs &&
+                    state.pagedInstitutionAuditLogs.map(log => (
+                      <tr
+                        key={log.id}
+                        className="cursor-pointer transition-colors hover:bg-neutral-50/70"
+                        onClick={() => setSelectedAuditLogId(log.id)}
+                      >
+                        <td className="px-5 py-4 text-sm text-neutral-600">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </td>
+                        <td className="px-5 py-4 text-sm font-medium text-neutral-900">{log.action}</td>
+                        <td className="hidden px-5 py-4 text-sm text-neutral-600 sm:table-cell">{log.severity}</td>
+                        <td className="hidden px-5 py-4 text-sm text-neutral-600 md:table-cell">
+                          {log.actorEmail || '-'}
+                        </td>
+                        <td className="hidden px-5 py-4 text-sm text-neutral-600 lg:table-cell">
+                          {log.description || '-'}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
             </div>
-          )}
+
+            {!state.isLoadingAuditLogs && state.filteredInstitutionAuditLogs.length > 0 && (
+              <div className="flex items-center justify-between pt-4 text-sm text-neutral-500">
+                <span>
+                  Page {state.currentInstitutionAuditPage} of {state.totalInstitutionAuditPages}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => state.setAuditPage(previous => Math.max(1, previous - 1))}
+                    disabled={state.currentInstitutionAuditPage <= 1}
+                    className="rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() =>
+                      state.setAuditPage(previous => Math.min(state.totalInstitutionAuditPages, previous + 1))
+                    }
+                    disabled={state.currentInstitutionAuditPage >= state.totalInstitutionAuditPages}
+                    className="rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </Card>
 
           <RecordDetailsDrawer
             open={selectedAuditLog !== null}
@@ -315,7 +321,7 @@ export default function InstitutionDashboard() {
               },
             ] : []}
           />
-        </div>
+        </>
       )}
       {state.stepUpModal}
       <InstitutionCredentialDetailsDrawer

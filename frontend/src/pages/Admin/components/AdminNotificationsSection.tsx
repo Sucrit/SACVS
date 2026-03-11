@@ -1,9 +1,11 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AlertTriangle,
   Bell,
   CheckCheck,
   MoreHorizontal,
   Settings,
+  Users,
 } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
@@ -12,27 +14,24 @@ import {
   AppNotification,
   getNotificationDisplayMessage,
 } from '../../../services/notification.service';
-import { formatDateTime } from '../utils';
+import { formatDateTime } from '../../../utils/formatting';
 
-interface StudentNotificationsSectionProps {
+interface AdminNotificationsSectionProps {
   notifications: AppNotification[];
-  institutionName?: string | null;
   isLoading: boolean;
+  isMarkingAllRead: boolean;
   onMarkAllRead: () => void;
   onMarkRead: (id: string) => void | Promise<void>;
-  onOpenCredential: (credentialId: string) => void;
-  onOpenRequest: (requestId: string) => void;
+  onOpenUsers: (options?: { userId?: string | null }) => void;
+  onOpenRiskReview: (options?: {
+    riskEventId?: string | null;
+    targetId?: string | null;
+    actorId?: string | null;
+  }) => void;
   onOpenNotificationsPage: () => void;
-  isMarkingAllRead: boolean;
 }
 
 type ReadFilter = 'ALL' | 'UNREAD';
-
-const getMetadataEvent = (metadata: Record<string, unknown> | null): string | null => {
-  if (!metadata) return null;
-  const value = metadata.event;
-  return typeof value === 'string' ? value : null;
-};
 
 const parseMetadataString = (
   metadata: Record<string, unknown> | null,
@@ -40,26 +39,25 @@ const parseMetadataString = (
 ): string | null => {
   if (!metadata) return null;
   const value = metadata[key];
-  return typeof value === 'string' && value.trim().length > 0 ? value : null;
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 };
 
-const isCredentialReissued = (notification: AppNotification): boolean => {
-  const metadataEvent = getMetadataEvent(notification.metadata);
-  if (metadataEvent === 'REISSUED') return true;
-  return /credential re-issued/i.test(notification.title) || /re-issued/i.test(notification.message);
+const getNotificationIcon = (notification: AppNotification) => {
+  if (notification.type === 'SECURITY_ALERT') return AlertTriangle;
+  if (notification.type === 'ACCOUNT_APPROVED' || notification.type === 'ACCOUNT_REJECTED') return Users;
+  return Bell;
 };
 
-export default function StudentNotificationsSection({
+export default function AdminNotificationsSection({
   notifications,
-  institutionName,
   isLoading,
+  isMarkingAllRead,
   onMarkAllRead,
   onMarkRead,
-  onOpenCredential,
-  onOpenRequest,
+  onOpenUsers,
+  onOpenRiskReview,
   onOpenNotificationsPage,
-  isMarkingAllRead,
-}: StudentNotificationsSectionProps) {
+}: AdminNotificationsSectionProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [readFilter, setReadFilter] = useState<ReadFilter>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
@@ -118,15 +116,38 @@ export default function StudentNotificationsSection({
       void onMarkRead(notification.id);
     }
 
+    const riskEventId =
+      parseMetadataString(notification.metadata, 'riskEventId') ||
+      parseMetadataString(notification.metadata, 'eventId');
+    const requestId = parseMetadataString(notification.metadata, 'requestId');
     const credentialId = parseMetadataString(notification.metadata, 'credentialId');
-    if (credentialId) {
-      onOpenCredential(credentialId);
+    const actorId = parseMetadataString(notification.metadata, 'actorId');
+    const userId =
+      parseMetadataString(notification.metadata, 'studentId') ||
+      parseMetadataString(notification.metadata, 'processedById') ||
+      parseMetadataString(notification.metadata, 'userId');
+    const targetId =
+      parseMetadataString(notification.metadata, 'targetId') ||
+      credentialId ||
+      requestId;
+
+    if (notification.type === 'SECURITY_ALERT') {
+      onOpenRiskReview({ riskEventId, targetId, actorId });
       return;
     }
 
-    const requestId = parseMetadataString(notification.metadata, 'requestId');
-    if (requestId) {
-      onOpenRequest(requestId);
+    if (notification.type === 'ACCOUNT_APPROVED' || notification.type === 'ACCOUNT_REJECTED') {
+      onOpenUsers({ userId });
+      return;
+    }
+
+    if (riskEventId || targetId || actorId) {
+      onOpenRiskReview({ riskEventId, targetId, actorId });
+      return;
+    }
+
+    if (userId) {
+      onOpenUsers({ userId });
       return;
     }
 
@@ -134,7 +155,7 @@ export default function StudentNotificationsSection({
   };
 
   return (
-    <Card className="mx-auto w-full max-w-3xl">
+    <Card className="w-full">
       <div className="mb-4 border-b border-neutral-200 pb-3">
         <div className="flex items-center justify-between">
           <p className="text-lg font-semibold text-neutral-900">Notifications</p>
@@ -171,9 +192,7 @@ export default function StudentNotificationsSection({
                   >
                     <Settings size={15} />
                     Notification settings
-                    <span className="ml-auto text-[10px] font-semibold  text-neutral-400">
-                      N/a
-                    </span>
+                    <span className="ml-auto text-[10px] font-semibold text-neutral-400">N/a</span>
                   </button>
                 </div>
               </div>
@@ -226,7 +245,8 @@ export default function StudentNotificationsSection({
       {!isLoading && filteredNotifications.length > 0 && (
         <div className="space-y-2">
           {pagedNotifications.map(notification => {
-            const isReissued = isCredentialReissued(notification);
+            const NotificationIcon = getNotificationIcon(notification);
+
             return (
               <article
                 key={notification.id}
@@ -239,9 +259,9 @@ export default function StudentNotificationsSection({
                     handleNotificationClick(notification);
                   }
                 }}
-                className={`rounded-lg border px-4 py-3 ${
+                className={`cursor-pointer rounded-lg border px-4 py-3 transition hover:bg-neutral-50 ${
                   notification.read ? 'border-neutral-200 bg-white' : 'border-sky-200 bg-sky-50/50'
-                } cursor-pointer transition hover:bg-neutral-50`}
+                }`}
               >
                 <div className="mb-2 flex items-start justify-between gap-3">
                   <div className="space-y-1">
@@ -250,23 +270,16 @@ export default function StudentNotificationsSection({
                       {!notification.read && (
                         <span className="inline-flex h-2 w-2 rounded-full bg-sky-500" />
                       )}
-                      {isReissued && (
-                        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold r text-emerald-700">
-                          Credential re-issued
-                        </span>
-                      )}
                     </div>
                     <p className="text-sm text-neutral-600">
-                      {getNotificationDisplayMessage(notification, {
-                        institutionNameFallback: institutionName,
-                      })}
+                      {getNotificationDisplayMessage(notification)}
                     </p>
                     <p className="text-xs text-neutral-500">{formatDateTime(notification.createdAt)}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-[11px] font-medium  text-neutral-500">
-                  <Bell size={12} />
+                <div className="flex items-center gap-2 text-[11px] font-medium text-neutral-500">
+                  <NotificationIcon size={12} />
                   {notification.type.replace(/_/g, ' ')}
                 </div>
               </article>

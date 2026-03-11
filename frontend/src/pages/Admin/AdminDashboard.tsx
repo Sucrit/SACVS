@@ -1,6 +1,6 @@
 ﻿import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../../components/common/Card';
-import TopNavPortal from '../../components/common/TopNavPortal';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
 import ActionMenu from '../../components/common/ActionMenu';
 import {
@@ -17,6 +17,7 @@ import { AuditAction, AuditSeverity } from '../../services/audit.service';
 import { RiskBand, RiskReviewStatus } from '../../services/risk.service';
 import ButtonLoadingContent from '../../components/common/ButtonLoadingContent';
 import AdminRiskEventDetailsDrawer from './components/AdminRiskEventDetailsDrawer';
+import AdminNotificationsSection from './components/AdminNotificationsSection';
 import AdminOverviewSection from './components/AdminOverviewSection';
 import AdminUserSection from './components/AdminUserSection';
 import { formatDateTime } from '../../utils/formatting';
@@ -29,6 +30,7 @@ import {
 } from './useAdminDashboardState';
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const {
     section,
     users,
@@ -50,6 +52,11 @@ export default function AdminDashboard() {
     totalUsers,
     roleDistribution,
     pendingQueue,
+    notifications,
+    isLoadingNotifications,
+    isMarkingAllNotificationsRead,
+    handleMarkNotificationRead,
+    handleMarkAllNotificationsRead,
     auditLogs: _auditLogs,
     isLoadingAuditLogs,
     auditActionFilter,
@@ -317,14 +324,14 @@ export default function AdminDashboard() {
           </div>
         }
       >
-        <TopNavPortal>
-          <SearchFilterModal
-            hideLabel
-            groups={riskFilterGroups}
-            description="Refine the risk queue by band, review state, scope, and result size."
-          />
-        </TopNavPortal>
         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2">
+            <SearchFilterModal
+              hideLabel
+              groups={riskFilterGroups}
+              description="Refine the risk queue by band, review state, scope, and result size."
+            />
+          </div>
           <div className="flex items-center gap-2">
             <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
               {riskTotal} events
@@ -483,14 +490,14 @@ export default function AdminDashboard() {
       <Card
         title="Admin Governance Audit Logs"
       >
-        <TopNavPortal>
-          <SearchFilterModal
-            hideLabel
-            groups={auditFilterGroups}
-            description="Refine governance logs by action, severity, and page size."
-          />
-        </TopNavPortal>
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2">
+            <SearchFilterModal
+              hideLabel
+              groups={auditFilterGroups}
+              description="Refine governance logs by action, severity, and page size."
+            />
+          </div>
           <div className="flex items-end">
             <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
               {filteredAdminAuditLogs.length} entries
@@ -573,8 +580,8 @@ export default function AdminDashboard() {
           totalUsers={totalUsers}
           roleDistribution={roleDistribution}
           pendingQueue={pendingQueue}
-          isUpdatingStatus={isUpdatingStatus}
-          handleStatusUpdate={handleStatusUpdate}
+          // isUpdatingStatus={isUpdatingStatus}
+          // handleStatusUpdate={handleStatusUpdate}
           riskSummary={riskSummary}
           riskEvents={riskEvents}
           credentialRequests={credentialRequests}
@@ -599,6 +606,34 @@ export default function AdminDashboard() {
           isUpdatingRole={isUpdatingRole}
           handleStatusUpdate={handleStatusUpdate}
           handleRoleUpdate={handleRoleUpdate}
+        />
+      )}
+      {section === 'notifications' && (
+        <AdminNotificationsSection
+          notifications={notifications}
+          isLoading={isLoadingNotifications}
+          isMarkingAllRead={isMarkingAllNotificationsRead}
+          onMarkAllRead={() => void handleMarkAllNotificationsRead()}
+          onMarkRead={(id: string) => void handleMarkNotificationRead(id)}
+          onOpenUsers={(options) => {
+            const userId = options?.userId?.trim();
+            if (userId) {
+              setSelectedUserId(userId);
+              navigate(`/admin/users?userId=${encodeURIComponent(userId)}`);
+              return;
+            }
+
+            navigate('/admin/users');
+          }}
+          onOpenRiskReview={(options) => {
+            const params = new URLSearchParams();
+            if (options?.riskEventId) params.set('riskEventId', options.riskEventId);
+            if (options?.targetId) params.set('targetId', options.targetId);
+            if (options?.actorId) params.set('actorId', options.actorId);
+            const query = params.toString();
+            navigate(`/admin/risk${query ? `?${query}` : ''}`);
+          }}
+          onOpenNotificationsPage={() => navigate('/admin/notifications')}
         />
       )}
       {section === 'risk' && renderRiskReview()}

@@ -21,7 +21,6 @@ import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
-import TopNavPortal from '../../../components/common/TopNavPortal';
 import {
   ApprovalReceipt,
   CredentialRequest,
@@ -306,25 +305,23 @@ export default function StudentRequestHistorySection({
 
   return (
     <Card>
-      <TopNavPortal>
-        <div className="flex w-full items-center gap-2 lg:max-w-xl">
-          <div className="relative flex-1">
-            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={event => setSearchTerm(event.target.value)}
-              placeholder="Search requests..."
-              className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm text-neutral-700 outline-none focus:border-neutral-300"
-            />
-          </div>
-          <SearchFilterModal
-            hideLabel
-            groups={filterGroups}
-            description="Refine request history by document type and submission date."
+      <div className="mb-4 flex w-full items-center gap-2 lg:max-w-xl">
+        <div className="relative flex-1">
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={event => setSearchTerm(event.target.value)}
+            placeholder="Search requests..."
+            className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm text-neutral-700 outline-none focus:border-neutral-300"
           />
         </div>
-      </TopNavPortal>
+        <SearchFilterModal
+          hideLabel
+          groups={filterGroups}
+          description="Refine request history by document type and submission date."
+        />
+      </div>
 
       {requestAction && (
         <div className="mb-4 flex flex-wrap items-center justify-end gap-2">

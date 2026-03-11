@@ -1,7 +1,8 @@
-﻿import { FormEvent, useMemo, useState } from 'react';
+﻿import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Bell } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import PaginationControls from '../../../components/common/PaginationControls';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import { NotificationTarget, OutboundNotification } from '../types';
 import { formatDateTime } from '../utils';
@@ -36,10 +37,22 @@ export default function InstitutionNotificationsSection({
   onSubmit,
 }: InstitutionNotificationsSectionProps) {
   const [selectedNotificationId, setSelectedNotificationId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const selectedNotification = useMemo(
     () => notifications.find(notification => notification.id === selectedNotificationId) || null,
     [notifications, selectedNotificationId],
   );
+  const totalPages = Math.max(1, Math.ceil(notifications.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pagedNotifications = useMemo(() => {
+    const start = (safeCurrentPage - 1) * pageSize;
+    return notifications.slice(start, start + pageSize);
+  }, [notifications, safeCurrentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [notifications.length]);
 
   return (
     <div className="space-y-6">
@@ -114,7 +127,7 @@ export default function InstitutionNotificationsSection({
                   </td>
                 </tr>
               )}
-              {notifications.map(item => (
+              {pagedNotifications.map(item => (
                 <tr
                   key={item.id}
                   className="cursor-pointer hover:bg-neutral-50/70"
@@ -131,6 +144,16 @@ export default function InstitutionNotificationsSection({
             </tbody>
           </table>
         </div>
+
+        {notifications.length > 0 && (
+          <PaginationControls
+            currentPage={safeCurrentPage}
+            totalItems={notifications.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            itemLabel="notifications"
+          />
+        )}
       </Card>
 
       <RecordDetailsDrawer

@@ -6,7 +6,6 @@ import Badge from '../../../components/common/Badge';
 import ActionMenu from '../../../components/common/ActionMenu';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
-import TopNavPortal from '../../../components/common/TopNavPortal';
 import { User, UserStatus } from '../../../services/user.service';
 import { StudentFormState, StudentStatusFilter, STUDENT_STATUS_OPTIONS } from '../types';
 import { getStudentFullName, getUserInitials } from '../utils';
@@ -206,24 +205,26 @@ export default function InstitutionStudentsSection({
 
   return (
     <div className="min-h-[calc(100vh-220px)] space-y-4 pb-4">
-      <TopNavPortal>
-        <div className="flex w-full max-w-md items-center gap-2 justify-end">
-          <div className="relative flex-1">
-            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-            <input value={studentSearch} onChange={event => onStudentSearchChange(event.target.value)} placeholder="Search name, email, student #, department..." className="h-9 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all" />
-          </div>
-          <SearchFilterModal
-            hideLabel
-            groups={filterGroups}
-            description="Refine the student roster by account status or department."
-          />
-        </div>
-      </TopNavPortal>
-
       <Card
         title="Institution's Student Management"
       >
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex w-full max-w-xl items-center gap-2">
+            <div className="relative flex-1">
+              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+              <input
+                value={studentSearch}
+                onChange={event => onStudentSearchChange(event.target.value)}
+                placeholder="Search name, email, student #, department..."
+                className="h-9 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all"
+              />
+            </div>
+            <SearchFilterModal
+              hideLabel
+              groups={filterGroups}
+              description="Refine the student roster by account status or department."
+            />
+          </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"

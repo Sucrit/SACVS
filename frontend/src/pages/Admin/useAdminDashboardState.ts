@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../services/audit.service';
 import {
@@ -11,13 +11,14 @@ import {
 } from '../../services/risk.service';
 import { User, UserRole, UserService, UserStatus } from '../../services/user.service';
 import { CredentialRequest, CredentialService } from '../../services/credential.service';
+import { AppNotification, NotificationService } from '../../services/notification.service';
 import { useStepUp } from '../../hooks/useStepUp';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { useToast } from '../../hooks/useToast';
 import { getApiErrorMessage } from '../../utils/errors';
 
 // --- Types ---
-export type AdminSection = 'overview' | 'users' | 'risk' | 'logs';
+export type AdminSection = 'overview' | 'users' | 'risk' | 'logs' | 'notifications';
 export type RoleFilter = UserRole | 'ALL';
 export type StatusFilter = UserStatus | 'ALL';
 
@@ -62,6 +63,7 @@ const getSection = (pathname: string): AdminSection => {
   if (pathname.includes('/admin/users')) return 'users';
   if (pathname.includes('/admin/risk')) return 'risk';
   if (pathname.includes('/admin/logs')) return 'logs';
+  if (pathname.includes('/admin/notifications')) return 'notifications';
   return 'overview';
 };
 
@@ -112,6 +114,13 @@ export interface AdminDashboardState {
   statusDistribution: Record<'APPROVED' | 'PENDING' | 'REJECTED' | 'SUSPENDED', number>;
   recentUsers: User[];
   pendingQueue: User[];
+
+  // Notifications
+  notifications: AppNotification[];
+  isLoadingNotifications: boolean;
+  isMarkingAllNotificationsRead: boolean;
+  handleMarkNotificationRead: (notificationId: string) => Promise<void>;
+  handleMarkAllNotificationsRead: () => Promise<void>;
 
   // Credential requests
   credentialRequests: CredentialRequest[];
@@ -179,6 +188,7 @@ export interface AdminDashboardState {
 export function useAdminDashboardState(): AdminDashboardState {
   const location = useLocation();
   const section = getSection(location.pathname);
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
 
   // --- Users state ---
   const [users, setUsers] = useState<User[]>([]);
@@ -190,6 +200,12 @@ export function useAdminDashboardState(): AdminDashboardState {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  // --- Notification state ---
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [hasLoadedNotifications, setHasLoadedNotifications] = useState(false);
+  const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
 
   // --- Credential requests state ---
   const [credentialRequests, setCredentialRequests] = useState<CredentialRequest[]>([]);
@@ -226,6 +242,8 @@ export function useAdminDashboardState(): AdminDashboardState {
   const [selectedRiskEvent, setSelectedRiskEvent] = useState<RiskEventRecord | null>(null);
   const [isLoadingSelectedRiskEvent, setIsLoadingSelectedRiskEvent] = useState(false);
   const [isExportingRiskReport, setIsExportingRiskReport] = useState(false);
+  const handledUserQueryRef = useRef<string | null>(null);
+  const handledRiskQueryRef = useRef<string | null>(null);
 
   // --- External hooks ---
   const { requestStepUpToken, stepUpModal } = useStepUp();
@@ -310,6 +328,22 @@ export function useAdminDashboardState(): AdminDashboardState {
     }
   }, []);
 
+  const loadNotifications = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setIsLoadingNotifications(true);
+    try {
+      const data = await NotificationService.list({ page: 1, pageSize: 100 });
+      setNotifications(data.items);
+      setHasLoadedNotifications(true);
+    } catch (error) {
+      if (!silent) {
+        setNotifications([]);
+        showToast({ variant: 'error', message: getApiErrorMessage(error) || 'Unable to load admin notifications.' });
+      }
+    } finally {
+      if (!silent) setIsLoadingNotifications(false);
+    }
+  }, [showToast]);
+
   // --- Section-based loading ---
 
   useEffect(() => { void loadUsers(); }, [loadUsers]);
@@ -320,11 +354,32 @@ export function useAdminDashboardState(): AdminDashboardState {
   }, [hasLoadedAuditLogs, loadAuditLogs, section]);
 
   useEffect(() => {
+    if (section === 'notifications' && !hasLoadedNotifications) void loadNotifications();
+  }, [hasLoadedNotifications, loadNotifications, section]);
+
+  useEffect(() => {
     if (section === 'risk' || section === 'overview') {
       void loadRiskEvents();
       void loadRiskWorkerStatus();
     }
   }, [loadRiskEvents, loadRiskWorkerStatus, section]);
+
+  useEffect(() => {
+    const userId = searchParams.get('userId');
+    if (section !== 'users' || !userId) {
+      handledUserQueryRef.current = null;
+      return;
+    }
+
+    if (handledUserQueryRef.current === userId) {
+      return;
+    }
+
+    if (users.some(user => user.id === userId)) {
+      setSelectedUserId(userId);
+      handledUserQueryRef.current = userId;
+    }
+  }, [searchParams, section, users]);
 
   // --- Realtime sync ---
 
@@ -332,10 +387,11 @@ export function useAdminDashboardState(): AdminDashboardState {
     users: () => { if (section !== 'logs') void loadUsers(); },
     credentialRequests: () => { void loadCredentialRequests(); },
     audit: () => { if (section === 'logs') void loadAuditLogs(); },
+    notifications: () => { if (section === 'notifications') void loadNotifications({ silent: true }); },
     'security:SECURITY_RISK_EVENTS_UPDATED': () => {
       if (section === 'risk' || section === 'overview') { void loadRiskEvents(); void loadRiskWorkerStatus(); }
     },
-  }), [loadAuditLogs, loadCredentialRequests, loadRiskEvents, loadRiskWorkerStatus, loadUsers, section]);
+  }), [loadAuditLogs, loadCredentialRequests, loadNotifications, loadRiskEvents, loadRiskWorkerStatus, loadUsers, section]);
 
   useRealtimeSync(realtimeRefreshMap);
 
@@ -392,6 +448,45 @@ export function useAdminDashboardState(): AdminDashboardState {
     () => users.filter(u => u.status === 'PENDING').sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
     [users],
   );
+
+  const handleMarkNotificationRead = useCallback(async (notificationId: string) => {
+    const target = notifications.find(item => item.id === notificationId);
+    if (!target || target.read) return;
+
+    setNotifications(previous =>
+      previous.map(item => (item.id === notificationId ? { ...item, read: true } : item)),
+    );
+
+    try {
+      const updated = await NotificationService.markRead(notificationId, true);
+      setNotifications(previous =>
+        previous.map(item => (item.id === notificationId ? updated : item)),
+      );
+    } catch (error) {
+      setNotifications(previous =>
+        previous.map(item => (item.id === notificationId ? target : item)),
+      );
+      showToast({ variant: 'error', message: getApiErrorMessage(error) || 'Unable to update notification state.' });
+    }
+  }, [notifications, showToast]);
+
+  const handleMarkAllNotificationsRead = useCallback(async () => {
+    const hasUnread = notifications.some(item => !item.read);
+    if (!hasUnread) return;
+
+    const previousNotifications = notifications;
+    setIsMarkingAllNotificationsRead(true);
+    setNotifications(previous => previous.map(item => ({ ...item, read: true })));
+
+    try {
+      await NotificationService.markAllRead();
+    } catch (error) {
+      setNotifications(previousNotifications);
+      showToast({ variant: 'error', message: getApiErrorMessage(error) || 'Unable to mark notifications as read.' });
+    } finally {
+      setIsMarkingAllNotificationsRead(false);
+    }
+  }, [notifications, showToast]);
 
   // Audit computed
   const adminAuditActionOptions = useMemo(
@@ -538,6 +633,38 @@ export function useAdminDashboardState(): AdminDashboardState {
     setIsLoadingSelectedRiskEvent(false);
   }, []);
 
+  useEffect(() => {
+    const riskEventId = searchParams.get('riskEventId');
+    const targetId = searchParams.get('targetId');
+    const actorId = searchParams.get('actorId');
+    const riskQueryKey = [riskEventId || '', targetId || '', actorId || ''].join('|');
+
+    if (section !== 'risk' || (!riskEventId && !targetId && !actorId)) {
+      handledRiskQueryRef.current = null;
+      return;
+    }
+
+    if (handledRiskQueryRef.current === riskQueryKey) {
+      return;
+    }
+
+    if (riskEventId) {
+      handledRiskQueryRef.current = riskQueryKey;
+      void openRiskEventDetails(riskEventId);
+      return;
+    }
+
+    const matchingEvent = riskEvents.find(event => (
+      (targetId && event.targetId === targetId) ||
+      (actorId && event.actorId === actorId)
+    ));
+
+    if (matchingEvent) {
+      handledRiskQueryRef.current = riskQueryKey;
+      void openRiskEventDetails(matchingEvent.id);
+    }
+  }, [openRiskEventDetails, riskEvents, searchParams, section]);
+
   const exportReviewedRiskReport = useCallback(async () => {
     setIsExportingRiskReport(true);
     try {
@@ -592,6 +719,12 @@ export function useAdminDashboardState(): AdminDashboardState {
     statusDistribution,
     recentUsers,
     pendingQueue,
+
+    notifications,
+    isLoadingNotifications,
+    isMarkingAllNotificationsRead,
+    handleMarkNotificationRead,
+    handleMarkAllNotificationsRead,
 
     credentialRequests,
     isLoadingCredentialRequests,
