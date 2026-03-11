@@ -1,10 +1,11 @@
 ﻿import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, CheckCheck } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import PaginationControls from '../../../components/common/PaginationControls';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import { NotificationTarget, OutboundNotification } from '../types';
+import { AppNotification, getNotificationDisplayMessage } from '../../../services/notification.service';
 import { formatDateTime } from '../utils';
 
 interface InstitutionNotificationsSectionProps {
@@ -15,6 +16,11 @@ interface InstitutionNotificationsSectionProps {
   pendingStudentCount: number;
   suspendedStudentCount: number;
   notifications: OutboundNotification[];
+  inboundNotifications: AppNotification[];
+  isLoadingInboundNotifications: boolean;
+  isMarkingAllNotificationsRead: boolean;
+  onMarkNotificationRead: (id: string) => void;
+  onMarkAllNotificationsRead: () => void;
   isSubmitting: boolean;
   onTargetChange: (target: NotificationTarget) => void;
   onTitleChange: (title: string) => void;
@@ -30,6 +36,11 @@ export default function InstitutionNotificationsSection({
   pendingStudentCount,
   suspendedStudentCount,
   notifications,
+  inboundNotifications,
+  isLoadingInboundNotifications,
+  isMarkingAllNotificationsRead,
+  onMarkNotificationRead,
+  onMarkAllNotificationsRead,
   isSubmitting,
   onTargetChange,
   onTitleChange,
@@ -39,10 +50,15 @@ export default function InstitutionNotificationsSection({
   const [selectedNotificationId, setSelectedNotificationId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+  
+  const [inboundPage, setInboundPage] = useState(1);
+  const inboundPageSize = 5;
+
   const selectedNotification = useMemo(
     () => notifications.find(notification => notification.id === selectedNotificationId) || null,
     [notifications, selectedNotificationId],
   );
+  
   const totalPages = Math.max(1, Math.ceil(notifications.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const pagedNotifications = useMemo(() => {
@@ -50,9 +66,22 @@ export default function InstitutionNotificationsSection({
     return notifications.slice(start, start + pageSize);
   }, [notifications, safeCurrentPage]);
 
+  const totalInboundPages = Math.max(1, Math.ceil(inboundNotifications.length / inboundPageSize));
+  const safeInboundPage = Math.min(inboundPage, totalInboundPages);
+  const pagedInboundNotifications = useMemo(() => {
+    const start = (safeInboundPage - 1) * inboundPageSize;
+    return inboundNotifications.slice(start, start + inboundPageSize);
+  }, [inboundNotifications, safeInboundPage]);
+
+  const unreadInboundCount = inboundNotifications.filter(n => !n.read).length;
+
   useEffect(() => {
     setCurrentPage(1);
   }, [notifications.length]);
+  
+  useEffect(() => {
+    setInboundPage(1);
+  }, [inboundNotifications.length]);
 
   return (
     <div className="space-y-6">
@@ -105,6 +134,74 @@ export default function InstitutionNotificationsSection({
           </div>
         </Card>
       </div>
+
+      <Card>
+        <div className="mb-4 flex items-center justify-between border-b border-neutral-200 pb-4">
+          <p className="font-semibold text-neutral-900">Institution Inbox</p>
+          {unreadInboundCount > 0 && (
+            <button
+              type="button"
+              onClick={onMarkAllNotificationsRead}
+              disabled={isMarkingAllNotificationsRead}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-neutral-600 hover:text-neutral-900"
+            >
+              <CheckCheck size={16} />
+              Mark all as read
+            </button>
+          )}
+        </div>
+        
+        <div className="space-y-3">
+          {inboundNotifications.length === 0 ? (
+            <div className="py-8 text-center text-sm text-neutral-500">
+              {isLoadingInboundNotifications ? 'Loading notifications...' : 'No notifications received.'}
+            </div>
+          ) : (
+            pagedInboundNotifications.map((notification) => (
+              <div
+                key={notification.id}
+                className={`relative flex items-start gap-3 rounded-xl border p-4 transition ${
+                  notification.read ? 'border-neutral-200 bg-white' : 'border-neutral-300 bg-neutral-50 shadow-sm'
+                }`}
+              >
+                {!notification.read && (
+                  <div className="absolute -left-1.5 -top-1.5 h-3 w-3 rounded-full bg-blue-500 shadow-sm ring-2 ring-white" />
+                )}
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center justify-between">
+                    <p className={`text-sm ${notification.read ? 'font-medium text-neutral-700' : 'font-semibold text-neutral-900'}`}>
+                      {notification.title}
+                    </p>
+                    <span className="shrink-0 text-xs text-neutral-500">{formatDateTime(notification.createdAt)}</span>
+                  </div>
+                  <p className="text-sm text-neutral-600">{getNotificationDisplayMessage(notification)}</p>
+                </div>
+                {!notification.read && (
+                  <button
+                    type="button"
+                    onClick={() => onMarkNotificationRead(notification.id)}
+                    className="shrink-0 rounded bg-white px-2 py-1 text-xs font-semibold text-neutral-600 shadow-sm ring-1 ring-inset ring-neutral-300 hover:bg-neutral-50"
+                  >
+                    Mark read
+                  </button>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {inboundNotifications.length > 0 && (
+          <div className="mt-4">
+            <PaginationControls
+              currentPage={safeInboundPage}
+              totalItems={inboundNotifications.length}
+              pageSize={inboundPageSize}
+              onPageChange={setInboundPage}
+              itemLabel="received notifications"
+            />
+          </div>
+        )}
+      </Card>
 
       <Card title="Notification Activity Log">
         <div className="overflow-x-auto rounded-lg border border-neutral-200">

@@ -195,6 +195,11 @@ export default function InstitutionDashboard() {
           pendingStudentCount={state.studentCounts.pending}
           suspendedStudentCount={state.studentCounts.suspended}
           notifications={state.outboundNotifications}
+          inboundNotifications={state.inboundNotifications}
+          isLoadingInboundNotifications={state.isLoadingInboundNotifications}
+          isMarkingAllNotificationsRead={state.isMarkingAllNotificationsRead}
+          onMarkNotificationRead={state.handleMarkNotificationRead}
+          onMarkAllNotificationsRead={state.handleMarkAllNotificationsRead}
           isSubmitting={state.isSubmittingNotification}
           onTargetChange={state.setNotificationTarget}
           onTitleChange={state.setNotificationTitle}

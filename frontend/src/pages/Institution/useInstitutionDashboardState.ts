@@ -15,7 +15,7 @@ import {
   UserService,
   UserStatus,
 } from '../../services/user.service';
-import { NotificationService } from '../../services/notification.service';
+import { AppNotification, NotificationService } from '../../services/notification.service';
 import {
   ActivityEvent,
   DEFAULT_STUDENT_FORM,
@@ -149,6 +149,11 @@ export interface InstitutionDashboardState {
 
   // Notifications
   outboundNotifications: OutboundNotification[];
+  inboundNotifications: AppNotification[];
+  isLoadingInboundNotifications: boolean;
+  isMarkingAllNotificationsRead: boolean;
+  handleMarkNotificationRead: (notificationId: string) => Promise<void>;
+  handleMarkAllNotificationsRead: () => Promise<void>;
   notificationTarget: NotificationTarget;
   notificationTitle: string;
   notificationMessage: string;
@@ -234,6 +239,10 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   // --- Notifications state ---
   const [, setActivityEvents] = useState<ActivityEvent[]>([]);
   const [outboundNotifications, setOutboundNotifications] = useState<OutboundNotification[]>([]);
+  const [inboundNotifications, setInboundNotifications] = useState<AppNotification[]>([]);
+  const [isLoadingInboundNotifications, setIsLoadingInboundNotifications] = useState(false);
+  const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
+  const [hasLoadedInboundNotifications, setHasLoadedInboundNotifications] = useState(false);
   const [notificationTarget, setNotificationTarget] = useState<NotificationTarget>('ALL');
   const [notificationTitle, setNotificationTitle] = useState('');
   const [notificationMessage, setNotificationMessage] = useState('');
@@ -332,6 +341,23 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     }
   }, []);
 
+  const loadInboundNotifications = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setIsLoadingInboundNotifications(true);
+    try {
+      const data = await NotificationService.list({ page: 1, pageSize: 100 });
+      setInboundNotifications(data.items);
+      setHasLoadedInboundNotifications(true);
+    } catch (error) {
+      console.error('Failed to load inbound notifications:', error);
+      if (!silent) {
+        setInboundNotifications([]);
+        setNotificationError('Unable to load received notifications.');
+      }
+    } finally {
+      if (!silent) setIsLoadingInboundNotifications(false);
+    }
+  }, []);
+
   const loadAuditLogs = useCallback(async () => {
     setIsLoadingAuditLogs(true);
     try {
@@ -357,6 +383,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     if (section === 'students' && !hasLoadedStudents) void loadStudents();
     if (section === 'notifications') {
       if (!hasLoadedNotifications) void loadOutboundNotifications();
+      if (!hasLoadedInboundNotifications) void loadInboundNotifications();
       if (!hasLoadedRequests) void loadRequests();
       if (!hasLoadedStudents) void loadStudents();
     }
@@ -373,7 +400,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
       createEvent('SYSTEM', 'Institution workspace initialized', 'Institution frontend sections loaded.');
       hasInitializedRef.current = true;
     }
-  }, [createEvent, hasLoadedCredentials, hasLoadedNotifications, hasLoadedRequests, hasLoadedStudents, loadOutboundNotifications, loadCredentials, loadRequests, loadStudents, section]);
+  }, [createEvent, hasLoadedCredentials, hasLoadedNotifications, hasLoadedInboundNotifications, hasLoadedRequests, hasLoadedStudents, loadOutboundNotifications, loadInboundNotifications, loadCredentials, loadRequests, loadStudents, section]);
 
   useEffect(() => {
     if (section !== 'logs' || hasLoadedAuditLogs) return;
@@ -392,10 +419,13 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     credentials: () => {
       if (section === 'issue' || section === 'overview' || section === 'analytics') void loadCredentials();
     },
+    notifications: () => {
+      if (section === 'notifications') void loadInboundNotifications({ silent: true });
+    },
     audit: () => {
       if (section === 'logs') void loadAuditLogs();
     },
-  }), [loadAuditLogs, loadCredentials, loadRequests, loadStudents, section]);
+  }), [loadAuditLogs, loadCredentials, loadInboundNotifications, loadRequests, loadStudents, section]);
 
   useRealtimeSync(realtimeRefreshMap);
 
@@ -935,6 +965,29 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     }
   };
 
+  const handleMarkNotificationRead = useCallback(async (notificationId: string) => {
+    try {
+      const updated = await NotificationService.markRead(notificationId, true);
+      setInboundNotifications(previous => previous.map(n => (n.id === updated.id ? updated : n)));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  }, []);
+
+  const handleMarkAllNotificationsRead = useCallback(async () => {
+    if (isMarkingAllNotificationsRead || inboundNotifications.every(n => n.read)) return;
+    setIsMarkingAllNotificationsRead(true);
+    try {
+      await NotificationService.markAllRead();
+      setInboundNotifications(previous => previous.map(n => ({ ...n, read: true })));
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      showToast({ variant: 'error', message: 'Unable to mark notifications as read.' });
+    } finally {
+      setIsMarkingAllNotificationsRead(false);
+    }
+  }, [inboundNotifications, isMarkingAllNotificationsRead, showToast]);
+
   // --- Return ---
 
   return {
@@ -997,6 +1050,11 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     setIsCredentialDrawerOpen,
 
     outboundNotifications,
+    inboundNotifications,
+    isLoadingInboundNotifications,
+    isMarkingAllNotificationsRead,
+    handleMarkNotificationRead,
+    handleMarkAllNotificationsRead,
     notificationTarget,
     notificationTitle,
     notificationMessage,
