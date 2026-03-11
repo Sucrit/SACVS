@@ -320,7 +320,7 @@ export function useAdminDashboardState(): AdminDashboardState {
   }, [hasLoadedAuditLogs, loadAuditLogs, section]);
 
   useEffect(() => {
-    if (section === 'risk') {
+    if (section === 'risk' || section === 'overview') {
       void loadRiskEvents();
       void loadRiskWorkerStatus();
     }
@@ -333,7 +333,7 @@ export function useAdminDashboardState(): AdminDashboardState {
     credentialRequests: () => { void loadCredentialRequests(); },
     audit: () => { if (section === 'logs') void loadAuditLogs(); },
     'security:SECURITY_RISK_EVENTS_UPDATED': () => {
-      if (section === 'risk') { void loadRiskEvents(); void loadRiskWorkerStatus(); }
+      if (section === 'risk' || section === 'overview') { void loadRiskEvents(); void loadRiskWorkerStatus(); }
     },
   }), [loadAuditLogs, loadCredentialRequests, loadRiskEvents, loadRiskWorkerStatus, loadUsers, section]);
 

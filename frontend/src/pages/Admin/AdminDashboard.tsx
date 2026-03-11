@@ -65,6 +65,7 @@ export default function AdminDashboard() {
     currentAdminAuditPage,
     pagedAdminAuditLogs,
     riskEvents,
+    credentialRequests,
     isLoadingRiskEvents,
     riskBandFilter,
     setRiskBandFilter,
@@ -576,6 +577,7 @@ export default function AdminDashboard() {
           handleStatusUpdate={handleStatusUpdate}
           riskSummary={riskSummary}
           riskEvents={riskEvents}
+          credentialRequests={credentialRequests}
           isLoadingRiskEvents={isLoadingRiskEvents}
         />
       )}
