@@ -66,6 +66,16 @@ export interface RiskEventListResponse {
   };
 }
 
+export interface RiskOverviewSummary {
+  pendingReviewCount: number;
+  highRiskCount: number;
+  criticalRiskCount: number;
+  confirmedAbuseCount: number;
+  highAndCriticalTrendLast7Days: number[];
+  recentHighAndCriticalScores: number[];
+  recentPendingHighRiskEvents: RiskEventRecord[];
+}
+
 export interface RiskWorkerStatus {
   autorunEnabled: boolean;
   isRunning: boolean;
@@ -97,6 +107,11 @@ export const RiskService = {
         reviewStatus: query.reviewStatus === 'ALL' ? undefined : query.reviewStatus,
       },
     });
+    return response.data;
+  },
+
+  getOverviewSummary: async () => {
+    const response = await api.get<RiskOverviewSummary>('/security/risk-events/summary');
     return response.data;
   },
 

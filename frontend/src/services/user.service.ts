@@ -107,6 +107,30 @@ export interface UserListQuery {
   pageSize?: number;
 }
 
+export interface AdminOverviewUserPreview {
+  id: string;
+  firstName: string;
+  middleName: string | null;
+  lastName: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: string;
+}
+
+export interface AdminUserOverviewSummary {
+  totalUsers: number;
+  approvedUsers: number;
+  pendingUsers: number;
+  rejectedUsers: number;
+  suspendedUsers: number;
+  studentAccounts: number;
+  roleDistribution: Record<'STUDENT' | 'INSTITUTION' | 'ADMIN', number>;
+  statusDistribution: Record<'APPROVED' | 'PENDING' | 'REJECTED' | 'SUSPENDED', number>;
+  registrationsLast7Days: number[];
+  pendingQueuePreview: AdminOverviewUserPreview[];
+}
+
 export interface UpdateUserRolePayload {
   role: UserRole;
 }
@@ -189,6 +213,11 @@ export const UserService = {
 
   list: async (query: UserListQuery = {}) => {
     const response = await api.get<User[]>('/users', { params: query });
+    return response.data;
+  },
+
+  getAdminOverviewSummary: async () => {
+    const response = await api.get<AdminUserOverviewSummary>('/users/summary');
     return response.data;
   },
 

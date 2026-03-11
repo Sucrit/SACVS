@@ -73,6 +73,12 @@ router.get(
   requireRoles('ADMIN'),
   userController.listUsers.bind(userController),
 );
+router.get(
+  '/summary',
+  requireAuth,
+  requireRoles('ADMIN'),
+  userController.getAdminOverviewSummary.bind(userController),
+);
 router.post(
   '/',
   requireAuth,

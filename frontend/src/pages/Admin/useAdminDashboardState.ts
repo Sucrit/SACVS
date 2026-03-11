@@ -4,13 +4,13 @@ import { AuditAction, AuditLogEntry, AuditService, AuditSeverity } from '../../s
 import {
   RiskBand,
   RiskEventRecord,
+  RiskOverviewSummary,
   RiskReviewReasonCode,
   RiskReviewStatus,
   RiskService,
   RiskWorkerStatus,
 } from '../../services/risk.service';
-import { User, UserRole, UserService, UserStatus } from '../../services/user.service';
-import { CredentialRequest, CredentialService } from '../../services/credential.service';
+import { AdminUserOverviewSummary, User, UserRole, UserService, UserStatus } from '../../services/user.service';
 import { useStepUp } from '../../hooks/useStepUp';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { useToast } from '../../hooks/useToast';
@@ -36,7 +36,8 @@ export const RISK_REVIEW_OPTIONS: Array<RiskReviewStatus | 'ALL'> = [
 ];
 
 // --- Helpers ---
-export const getFullName = (user: User) => [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ').trim();
+export const getFullName = (user: Pick<User, 'firstName' | 'middleName' | 'lastName' | 'email'>) =>
+  [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ').trim();
 
 export const getInitials = (user: User) => {
   const source = getFullName(user) || user.email || 'U';
@@ -112,10 +113,8 @@ export interface AdminDashboardState {
   statusDistribution: Record<'APPROVED' | 'PENDING' | 'REJECTED' | 'SUSPENDED', number>;
   recentUsers: User[];
   pendingQueue: User[];
-
-  // Credential requests
-  credentialRequests: CredentialRequest[];
-  isLoadingCredentialRequests: boolean;
+  userOverviewSummary: AdminUserOverviewSummary | null;
+  isLoadingUserOverviewSummary: boolean;
 
   // Audit logs
   auditLogs: AuditLogEntry[];
@@ -156,6 +155,8 @@ export interface AdminDashboardState {
   };
   riskWorkerStatus: RiskWorkerStatus | null;
   isLoadingRiskWorkerStatus: boolean;
+  riskOverviewSummary: RiskOverviewSummary | null;
+  isLoadingRiskOverviewSummary: boolean;
   reviewingRiskEventId: string | null;
   selectedRiskEventId: string | null;
   selectedRiskEvent: RiskEventRecord | null;
@@ -190,10 +191,8 @@ export function useAdminDashboardState(): AdminDashboardState {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-
-  // --- Credential requests state ---
-  const [credentialRequests, setCredentialRequests] = useState<CredentialRequest[]>([]);
-  const [isLoadingCredentialRequests, setIsLoadingCredentialRequests] = useState(true);
+  const [userOverviewSummary, setUserOverviewSummary] = useState<AdminUserOverviewSummary | null>(null);
+  const [isLoadingUserOverviewSummary, setIsLoadingUserOverviewSummary] = useState(false);
 
   // --- Audit logs state ---
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
@@ -221,6 +220,8 @@ export function useAdminDashboardState(): AdminDashboardState {
   });
   const [riskWorkerStatus, setRiskWorkerStatus] = useState<RiskWorkerStatus | null>(null);
   const [isLoadingRiskWorkerStatus, setIsLoadingRiskWorkerStatus] = useState(false);
+  const [riskOverviewSummary, setRiskOverviewSummary] = useState<RiskOverviewSummary | null>(null);
+  const [isLoadingRiskOverviewSummary, setIsLoadingRiskOverviewSummary] = useState(false);
   const [reviewingRiskEventId, setReviewingRiskEventId] = useState<string | null>(null);
   const [selectedRiskEventId, setSelectedRiskEventId] = useState<string | null>(null);
   const [selectedRiskEvent, setSelectedRiskEvent] = useState<RiskEventRecord | null>(null);
@@ -251,6 +252,18 @@ export function useAdminDashboardState(): AdminDashboardState {
       setIsLoadingUsers(false);
     }
   }, []);
+
+  const loadUserOverviewSummary = useCallback(async () => {
+    setIsLoadingUserOverviewSummary(true);
+    try {
+      setUserOverviewSummary(await UserService.getAdminOverviewSummary());
+    } catch (error) {
+      setUserOverviewSummary(null);
+      showToast({ variant: 'error', message: getApiErrorMessage(error) || 'Unable to load admin overview counts.' });
+    } finally {
+      setIsLoadingUserOverviewSummary(false);
+    }
+  }, [showToast]);
 
   const loadAuditLogs = useCallback(async () => {
     setIsLoadingAuditLogs(true);
@@ -299,21 +312,30 @@ export function useAdminDashboardState(): AdminDashboardState {
     }
   }, [showToast]);
 
-  const loadCredentialRequests = useCallback(async () => {
-    setIsLoadingCredentialRequests(true);
+  const loadRiskOverviewSummary = useCallback(async () => {
+    setIsLoadingRiskOverviewSummary(true);
     try {
-      setCredentialRequests(await CredentialService.listRequests());
-    } catch {
-      setCredentialRequests([]);
+      setRiskOverviewSummary(await RiskService.getOverviewSummary());
+    } catch (error) {
+      setRiskOverviewSummary(null);
+      showToast({ variant: 'error', message: getApiErrorMessage(error) || 'Unable to load risk overview summary.' });
     } finally {
-      setIsLoadingCredentialRequests(false);
+      setIsLoadingRiskOverviewSummary(false);
     }
-  }, []);
+  }, [showToast]);
 
   // --- Section-based loading ---
 
-  useEffect(() => { void loadUsers(); }, [loadUsers]);
-  useEffect(() => { void loadCredentialRequests(); }, [loadCredentialRequests]);
+  useEffect(() => {
+    if (section === 'users') void loadUsers();
+  }, [loadUsers, section]);
+
+  useEffect(() => {
+    if (section === 'overview') {
+      void loadUserOverviewSummary();
+      void loadRiskOverviewSummary();
+    }
+  }, [loadRiskOverviewSummary, loadUserOverviewSummary, section]);
 
   useEffect(() => {
     if (section === 'logs' && !hasLoadedAuditLogs) void loadAuditLogs();
@@ -329,13 +351,16 @@ export function useAdminDashboardState(): AdminDashboardState {
   // --- Realtime sync ---
 
   const realtimeRefreshMap = useMemo(() => ({
-    users: () => { if (section !== 'logs') void loadUsers(); },
-    credentialRequests: () => { void loadCredentialRequests(); },
+    users: () => {
+      if (section === 'users') void loadUsers();
+      if (section === 'overview') void loadUserOverviewSummary();
+    },
     audit: () => { if (section === 'logs') void loadAuditLogs(); },
     'security:SECURITY_RISK_EVENTS_UPDATED': () => {
       if (section === 'risk') { void loadRiskEvents(); void loadRiskWorkerStatus(); }
+      if (section === 'overview') void loadRiskOverviewSummary();
     },
-  }), [loadAuditLogs, loadCredentialRequests, loadRiskEvents, loadRiskWorkerStatus, loadUsers, section]);
+  }), [loadAuditLogs, loadRiskEvents, loadRiskOverviewSummary, loadRiskWorkerStatus, loadUserOverviewSummary, loadUsers, section]);
 
   useRealtimeSync(realtimeRefreshMap);
 
@@ -349,24 +374,28 @@ export function useAdminDashboardState(): AdminDashboardState {
 
   // --- Computed / memoized ---
 
-  const totalUsers = users.length;
-  const approvedUsers = users.filter(u => u.status === 'APPROVED').length;
-  const pendingUsers = users.filter(u => u.status === 'PENDING').length;
-  const suspendedUsers = users.filter(u => u.status === 'SUSPENDED').length;
-  const studentAccounts = users.filter(u => u.role === 'STUDENT').length;
+  const totalUsers = userOverviewSummary?.totalUsers ?? users.length;
+  const approvedUsers = userOverviewSummary?.approvedUsers ?? users.filter(u => u.status === 'APPROVED').length;
+  const pendingUsers = userOverviewSummary?.pendingUsers ?? users.filter(u => u.status === 'PENDING').length;
+  const suspendedUsers = userOverviewSummary?.suspendedUsers ?? users.filter(u => u.status === 'SUSPENDED').length;
+  const studentAccounts = userOverviewSummary?.studentAccounts ?? users.filter(u => u.role === 'STUDENT').length;
 
-  const roleDistribution = useMemo(() => ({
-    STUDENT: users.filter(u => u.role === 'STUDENT').length,
-    INSTITUTION: users.filter(u => u.role === 'INSTITUTION').length,
-    ADMIN: users.filter(u => u.role === 'ADMIN').length,
-  }), [users]);
+  const roleDistribution = useMemo(() => (
+    userOverviewSummary?.roleDistribution ?? {
+      STUDENT: users.filter(u => u.role === 'STUDENT').length,
+      INSTITUTION: users.filter(u => u.role === 'INSTITUTION').length,
+      ADMIN: users.filter(u => u.role === 'ADMIN').length,
+    }
+  ), [userOverviewSummary, users]);
 
-  const statusDistribution = useMemo(() => ({
-    APPROVED: approvedUsers,
-    PENDING: pendingUsers,
-    REJECTED: users.filter(u => u.status === 'REJECTED').length,
-    SUSPENDED: suspendedUsers,
-  }), [approvedUsers, pendingUsers, suspendedUsers, users]);
+  const statusDistribution = useMemo(() => (
+    userOverviewSummary?.statusDistribution ?? {
+      APPROVED: approvedUsers,
+      PENDING: pendingUsers,
+      REJECTED: users.filter(u => u.status === 'REJECTED').length,
+      SUSPENDED: suspendedUsers,
+    }
+  ), [approvedUsers, pendingUsers, suspendedUsers, userOverviewSummary, users]);
 
   const recentUsers = useMemo(() =>
     [...users].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 8),
@@ -429,6 +458,7 @@ export function useAdminDashboardState(): AdminDashboardState {
       });
       const updated = await UserService.updateStatus(userId, status, stepUpToken);
       setUsers(previous => previous.map(u => (u.id === userId ? { ...u, ...updated } : u)));
+      void loadUserOverviewSummary();
       showToast({ variant: 'success', message: 'User status updated successfully.' });
     } catch (error) {
       if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') return;
@@ -437,7 +467,7 @@ export function useAdminDashboardState(): AdminDashboardState {
     } finally {
       setIsUpdatingStatus(null);
     }
-  }, [requestStepUpToken, showToast]);
+  }, [loadUserOverviewSummary, requestStepUpToken, showToast]);
 
   const handleRoleUpdate = useCallback(async (userId: string, role: UserRole) => {
     setIsUpdatingRole(userId);
@@ -451,6 +481,7 @@ export function useAdminDashboardState(): AdminDashboardState {
       });
       const updated = await UserService.updateRole(userId, role, stepUpToken);
       setUsers(previous => previous.map(u => (u.id === userId ? { ...u, ...updated } : u)));
+      void loadUserOverviewSummary();
       showToast({ variant: 'success', message: 'User role updated successfully.' });
     } catch (error) {
       if (error instanceof Error && error.message === 'STEP_UP_CANCELLED') return;
@@ -459,7 +490,7 @@ export function useAdminDashboardState(): AdminDashboardState {
     } finally {
       setIsUpdatingRole(null);
     }
-  }, [requestStepUpToken, showToast]);
+  }, [loadUserOverviewSummary, requestStepUpToken, showToast]);
 
   const handleRiskReviewUpdate = useCallback(
     async (
@@ -503,6 +534,7 @@ export function useAdminDashboardState(): AdminDashboardState {
           }
           return next;
         });
+        void loadRiskOverviewSummary();
         showToast({
           variant: 'success',
           message:
@@ -516,7 +548,7 @@ export function useAdminDashboardState(): AdminDashboardState {
         setReviewingRiskEventId(null);
       }
     },
-    [riskEvents, showToast],
+    [loadRiskOverviewSummary, riskEvents, showToast],
   );
 
   const openRiskEventDetails = useCallback(async (id: string) => {
@@ -592,9 +624,8 @@ export function useAdminDashboardState(): AdminDashboardState {
     statusDistribution,
     recentUsers,
     pendingQueue,
-
-    credentialRequests,
-    isLoadingCredentialRequests,
+    userOverviewSummary,
+    isLoadingUserOverviewSummary,
 
     auditLogs,
     isLoadingAuditLogs,
@@ -628,6 +659,8 @@ export function useAdminDashboardState(): AdminDashboardState {
     riskSummary,
     riskWorkerStatus,
     isLoadingRiskWorkerStatus,
+    riskOverviewSummary,
+    isLoadingRiskOverviewSummary,
     reviewingRiskEventId,
     selectedRiskEventId,
     selectedRiskEvent,

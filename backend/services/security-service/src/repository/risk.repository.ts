@@ -16,6 +16,43 @@ import { GatewayTelemetryEvent, ReviewedLabel, SourceAuditEvent } from '../types
 const prismaAdapter = new PrismaPg({ connectionString: ENV.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: prismaAdapter });
 
+const riskEventSelect = {
+  id: true,
+  eventId: true,
+  correlationId: true,
+  actorId: true,
+  action: true,
+  riskScore: true,
+  riskBand: true,
+  topSignals: true,
+  modelVersion: true,
+  inferenceTs: true,
+  reviewStatus: true,
+  reviewedById: true,
+  reviewedAt: true,
+  reviewReasonCode: true,
+  reviewReasonDetail: true,
+  reviewNotes: true,
+  createdAt: true,
+  featuresSnapshot: {
+    select: {
+      id: true,
+      actorRole: true,
+      institutionId: true,
+      targetType: true,
+      targetId: true,
+      observedAt: true,
+      featuresWindowStart: true,
+      featuresWindowEnd: true,
+      ipHash: true,
+      userAgentHash: true,
+      features: true,
+    },
+  },
+} satisfies Prisma.RiskEventRecordSelect;
+
+type RiskEventRecordRow = Prisma.RiskEventRecordGetPayload<{ select: typeof riskEventSelect }>;
+
 export type RiskEventListQuery = {
   page: number;
   pageSize: number;
@@ -37,40 +74,7 @@ type StepUpStats = {
 };
 
 export class RiskRepository {
-  private readonly riskEventSelect = {
-    id: true,
-    eventId: true,
-    correlationId: true,
-    actorId: true,
-    action: true,
-    riskScore: true,
-    riskBand: true,
-    topSignals: true,
-    modelVersion: true,
-    inferenceTs: true,
-    reviewStatus: true,
-    reviewedById: true,
-    reviewedAt: true,
-    reviewReasonCode: true,
-    reviewReasonDetail: true,
-    reviewNotes: true,
-    createdAt: true,
-    featuresSnapshot: {
-      select: {
-        id: true,
-        actorRole: true,
-        institutionId: true,
-        targetType: true,
-        targetId: true,
-        observedAt: true,
-        featuresWindowStart: true,
-        featuresWindowEnd: true,
-        ipHash: true,
-        userAgentHash: true,
-        features: true,
-      },
-    },
-  } satisfies Prisma.RiskEventRecordSelect;
+  private readonly riskEventSelect = riskEventSelect;
 
   private buildRiskEventWhere(query: RiskEventFilterQuery): Prisma.RiskEventRecordWhereInput {
     return {
@@ -481,6 +485,92 @@ export class RiskRepository {
         criticalRiskCount,
         confirmedAbuseCount,
       },
+    };
+  }
+
+  async getRiskOverviewSummary(): Promise<{
+    pendingReviewCount: number;
+    highRiskCount: number;
+    criticalRiskCount: number;
+    confirmedAbuseCount: number;
+    highAndCriticalTrendLast7Days: number[];
+    recentHighAndCriticalScores: number[];
+    recentPendingHighRiskEvents: RiskEventRecordRow[];
+  }> {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const trendCounts = Array.from({ length: 7 }, (_, index) => {
+      const dayStart = new Date(todayStart);
+      dayStart.setDate(todayStart.getDate() - (6 - index));
+
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayStart.getDate() + 1);
+
+      return prisma.riskEventRecord.count({
+        where: {
+          riskBand: { in: [RiskBand.HIGH, RiskBand.CRITICAL] },
+          inferenceTs: {
+            gte: dayStart,
+            lt: dayEnd,
+          },
+        },
+      });
+    });
+
+    const [
+      pendingReviewCount,
+      highRiskCount,
+      criticalRiskCount,
+      confirmedAbuseCount,
+      recentPendingHighRiskEvents,
+      recentHighAndCriticalEvents,
+      ...highAndCriticalTrendLast7Days
+    ] = await Promise.all([
+      prisma.riskEventRecord.count({
+        where: { reviewStatus: RiskReviewStatus.PENDING_REVIEW },
+      }),
+      prisma.riskEventRecord.count({
+        where: { riskBand: RiskBand.HIGH },
+      }),
+      prisma.riskEventRecord.count({
+        where: { riskBand: RiskBand.CRITICAL },
+      }),
+      prisma.riskEventRecord.count({
+        where: { reviewStatus: RiskReviewStatus.CONFIRMED_ABUSE },
+      }),
+      prisma.riskEventRecord.findMany({
+        where: {
+          riskBand: { in: [RiskBand.HIGH, RiskBand.CRITICAL] },
+          reviewStatus: RiskReviewStatus.PENDING_REVIEW,
+        },
+        orderBy: [{ inferenceTs: 'desc' }, { createdAt: 'desc' }],
+        take: 5,
+        select: this.riskEventSelect,
+      }),
+      prisma.riskEventRecord.findMany({
+        where: {
+          riskBand: { in: [RiskBand.HIGH, RiskBand.CRITICAL] },
+        },
+        orderBy: [{ inferenceTs: 'desc' }, { createdAt: 'desc' }],
+        take: 7,
+        select: {
+          riskScore: true,
+        },
+      }),
+      ...trendCounts,
+    ]);
+
+    return {
+      pendingReviewCount,
+      highRiskCount,
+      criticalRiskCount,
+      confirmedAbuseCount,
+      highAndCriticalTrendLast7Days,
+      recentHighAndCriticalScores: recentHighAndCriticalEvents
+        .map(event => event.riskScore)
+        .reverse(),
+      recentPendingHighRiskEvents,
     };
   }
 
