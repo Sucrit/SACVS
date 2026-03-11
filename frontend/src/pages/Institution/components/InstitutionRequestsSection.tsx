@@ -174,11 +174,23 @@ export default function InstitutionRequestsSection({
                     {(() => {
                       const student = studentById.get(request.studentId);
                       if (!student) {
-                        return <span className="text-xs text-neutral-500">Student record unavailable</span>;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRequestId(request.id)}
+                            className="text-left text-xs font-medium text-neutral-500 transition hover:text-neutral-700"
+                          >
+                            Student record unavailable
+                          </button>
+                        );
                       }
 
                       return (
-                        <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRequestId(request.id)}
+                          className="flex w-full items-center gap-3 text-left transition hover:opacity-80"
+                        >
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
                             {getUserInitials(student)}
                           </div>
@@ -186,15 +198,19 @@ export default function InstitutionRequestsSection({
                             <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
                             <p className="mt-1 text-xs text-neutral-500">{student.profile?.studentNumber || student.email}</p>
                           </div>
-                        </div>
+                        </button>
                       );
                     })()}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-semibold text-neutral-700">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedRequestId(request.id)}
+                      className="inline-flex items-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100"
+                    >
                       <FileText size={14} />
                       {getRequestTypeLabel(request)}
-                    </span>
+                    </button>
                   </td>
                   <td className="hidden px-4 py-3 text-sm text-neutral-600 md:table-cell">{formatDate(request.createdAt)}</td>
                   <td className="hidden px-4 py-3 lg:table-cell">
@@ -228,11 +244,6 @@ export default function InstitutionRequestsSection({
                       <div className="flex items-center justify-end">
                         <ActionMenu
                           items={[
-                            {
-                              label: 'View details',
-                              icon: <FileText size={14} className="text-neutral-600" />,
-                              onClick: () => setSelectedRequestId(request.id),
-                            },
                             {
                               label: 'Approve',
                               icon: <Check size={14} className="text-emerald-600" />,
@@ -275,11 +286,6 @@ export default function InstitutionRequestsSection({
                         )}
                         <ActionMenu
                           items={[
-                            {
-                              label: 'View details',
-                              icon: <FileText size={14} className="text-neutral-600" />,
-                              onClick: () => setSelectedRequestId(request.id),
-                            },
                             ...((request.deliveryMethod !== 'PHYSICAL') ? [{
                               label: issueFileByRequestId[request.id] ? 'Change File' : 'Attach File',
                               icon: <Upload size={14} className="text-neutral-600" />,

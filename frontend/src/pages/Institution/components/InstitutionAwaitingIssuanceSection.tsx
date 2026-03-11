@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ClipboardCheck, FileText, Upload } from 'lucide-react';
+import { ClipboardCheck, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import ActionMenu from '../../../components/common/ActionMenu';
 import Badge from '../../../components/common/Badge';
@@ -120,10 +120,24 @@ export default function InstitutionAwaitingIssuanceSection({
                         <td className="px-4 py-3 text-sm text-neutral-700">
                           {(() => {
                             const student = studentById.get(request.studentId);
-                            if (!student) return request.studentId;
+                            if (!student) {
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedRequestId(request.id)}
+                                  className="text-left text-xs font-medium text-neutral-500 transition hover:text-neutral-700"
+                                >
+                                  {request.studentId}
+                                </button>
+                              );
+                            }
 
                             return (
-                              <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedRequestId(request.id)}
+                                className="flex w-full items-center gap-3 text-left transition hover:opacity-80"
+                              >
                                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
                                   {getUserInitials(student)}
                                 </div>
@@ -131,19 +145,25 @@ export default function InstitutionAwaitingIssuanceSection({
                                   <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
                                   <p className="mt-1 text-xs text-neutral-500">{student.email}</p>
                                 </div>
-                              </div>
+                              </button>
                             );
                           })()}
                         </td>
                         <td className="px-4 py-3">
-                          <p className="text-sm font-semibold text-neutral-900">{request.title}</p>
-                          <p className="mt-1 text-xs text-neutral-500">
-                            {request.deliveryMethod === 'BOTH'
-                              ? 'Digital + physical delivery'
-                              : request.deliveryMethod === 'DIGITAL'
-                                ? 'Digital delivery'
-                                : 'Physical delivery'}
-                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedRequestId(request.id)}
+                            className="w-full text-left transition hover:opacity-80"
+                          >
+                            <p className="text-sm font-semibold text-neutral-900">{request.title}</p>
+                            <p className="mt-1 text-xs text-neutral-500">
+                              {request.deliveryMethod === 'BOTH'
+                                ? 'Digital + physical delivery'
+                                : request.deliveryMethod === 'DIGITAL'
+                                  ? 'Digital delivery'
+                                  : 'Physical delivery'}
+                            </p>
+                          </button>
                         </td>
                         <td className="hidden px-4 py-3 text-sm text-neutral-600 md:table-cell">{getRequestTypeLabel(request)}</td>
                         <td className="hidden px-4 py-3 text-sm text-neutral-600 lg:table-cell">{formatDateTime(request.createdAt)}</td>
@@ -192,11 +212,6 @@ export default function InstitutionAwaitingIssuanceSection({
                           <div className="flex items-center justify-end">
                             <ActionMenu
                               items={[
-                                {
-                                  label: 'View details',
-                                  icon: <FileText size={14} className="text-neutral-600" />,
-                                  onClick: () => setSelectedRequestId(request.id),
-                                },
                                 {
                                   label: 'Issue Credential',
                                   icon: <ClipboardCheck size={14} className="text-cyan-700" />,
