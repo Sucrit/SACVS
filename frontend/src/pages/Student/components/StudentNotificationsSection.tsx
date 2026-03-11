@@ -251,7 +251,7 @@ export default function StudentNotificationsSection({
                         <span className="inline-flex h-2 w-2 rounded-full bg-sky-500" />
                       )}
                       {isReissued && (
-                        <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold r text-emerald-700">
+                        <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-[0.08em] text-emerald-600">
                           Credential re-issued
                         </span>
                       )}

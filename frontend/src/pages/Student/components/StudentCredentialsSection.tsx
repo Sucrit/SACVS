@@ -4,6 +4,7 @@ import { AlertTriangle, Download, FileText, Link2, MoreHorizontal, Search, Share
 import QRCode from 'qrcode';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import Card from '../../../components/common/Card';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import {
@@ -14,6 +15,7 @@ import {
 } from '../../../services/credential.service';
 import { useStepUp } from '../../../hooks/useStepUp';
 import { useToast } from '../../../hooks/useToast';
+import { formatStudentStatusLabel, getStudentStatusTextClass } from '../utils';
 import {
   MODAL_BACKDROP_VARIANTS,
   MODAL_PANEL_VARIANTS,
@@ -404,9 +406,8 @@ export default function StudentCredentialsSection({
   ], [dateFilter, typeFilter]);
 
   return (
-    <div>
+    <Card title={heading || 'Digital Credentials'}>
       <div className="space-y-4">
-        {heading && <h2 className="text-lg font-semibold text-neutral-900">{heading}</h2>}
         <div className="flex w-full items-center gap-2 lg:max-w-xl">
           <div className="relative flex-1">
             <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -458,9 +459,9 @@ export default function StudentCredentialsSection({
                           {credential.type}
                         </span>
                         {isRevoked && (
-                          <span className="inline-flex items-center gap-1 rounded-md border border-error-200 bg-error-50 px-1.5 py-0.5 text-[10px] font-medium text-error-700">
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${getStudentStatusTextClass(credential.status)}`}>
                             <AlertTriangle size={10} />
-                            Revoked
+                            {formatStudentStatusLabel(credential.status)}
                           </span>
                         )}
                       </div>
@@ -631,6 +632,6 @@ export default function StudentCredentialsSection({
       )}
       </AnimatePresence>
       {stepUpModal}
-    </div>
+    </Card>
   );
 }

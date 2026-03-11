@@ -1,7 +1,6 @@
-﻿import { AlertCircle, Boxes, Download, GraduationCap, TrendingUp } from 'lucide-react';
+﻿import { AlertCircle, Boxes, ClipboardCheck, Download, GraduationCap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../../../components/common/Card';
-import Badge from '../../../components/common/Badge';
 import { Credential, CredentialRequest } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
 import { getStudentFullName, getUserInitials } from '../utils';
@@ -16,6 +15,57 @@ interface InstitutionOverviewSectionProps {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const getControlPoint = (
+  current: { x: number; y: number },
+  previous: { x: number; y: number } | undefined,
+  next: { x: number; y: number } | undefined,
+  reverse?: boolean,
+) => {
+  const p = previous || current;
+  const n = next || current;
+  const smoothing = 0.15;
+  const lengthX = n.x - p.x;
+  const lengthY = n.y - p.y;
+  const length = Math.sqrt(lengthX ** 2 + lengthY ** 2) * smoothing;
+  const angle = Math.atan2(lengthY, lengthX) + (reverse ? Math.PI : 0);
+
+  return {
+    x: current.x + Math.cos(angle) * length,
+    y: current.y + Math.sin(angle) * length,
+  };
+};
+
+const generateSmoothPath = (points: Array<{ x: number; y: number }>) => {
+  if (points.length === 0) return '';
+
+  return points.reduce((acc, point, index, allPoints) => {
+    if (index === 0) return `M ${point.x},${point.y}`;
+    const cps = getControlPoint(allPoints[index - 1], allPoints[index - 2], point);
+    const cpe = getControlPoint(point, allPoints[index - 1], allPoints[index + 1], true);
+    return `${acc} C ${cps.x},${cps.y} ${cpe.x},${cpe.y} ${point.x},${point.y}`;
+  }, '');
+};
+
+const buildSparkline = (counts: number[]) => {
+  const max = Math.max(...counts, 1);
+  const min = Math.min(...counts, 0);
+  const range = Math.max(max - min, 1);
+  const points = counts.map((count, index) => {
+    const x = (index / Math.max(counts.length - 1, 1)) * 100;
+    const normalized = (count - min) / range;
+    const y = 92 - normalized * 64;
+    return { x, y: Number.isFinite(y) ? y : 100 };
+  });
+  const pathD = generateSmoothPath(points);
+  const areaD = `${pathD} L ${points[points.length - 1].x},100 L ${points[0].x},100 Z`;
+
+  return {
+    areaD,
+    pathD,
+    peak: Math.max(...counts, 0),
+  };
+};
 
 const formatPercent = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 
@@ -50,6 +100,47 @@ const mapUserStatusLabel = (status: User['status']) => {
   }
 };
 
+const getOverviewStatusTextClass = (status: User['status'] | CredentialRequest['status']) => {
+  switch (status) {
+    case 'APPROVED':
+    case 'COMPLETED':
+      return 'text-emerald-600';
+    case 'PENDING':
+      return 'text-amber-600';
+    case 'REJECTED':
+    case 'CANCELLED':
+      return 'text-rose-600';
+    case 'SUSPENDED':
+      return 'text-orange-600';
+    default:
+      return 'text-neutral-500';
+  }
+};
+
+const formatStatusText = (status: User['status'] | CredentialRequest['status']) =>
+  status.toLowerCase().replace(/_/g, ' ');
+
+const requestStatusSummaryCards = [
+  {
+    key: 'pending',
+    label: 'Pending',
+    valueClassName: 'text-amber-600',
+    labelClassName: 'text-amber-500',
+  },
+  {
+    key: 'approved',
+    label: 'Approved',
+    valueClassName: 'text-cyan-600',
+    labelClassName: 'text-cyan-500',
+  },
+  {
+    key: 'completed',
+    label: 'Completed',
+    valueClassName: 'text-emerald-600',
+    labelClassName: 'text-emerald-500',
+  },
+] as const;
+
 export default function InstitutionOverviewSection({
   students,
   requests,
@@ -62,24 +153,155 @@ export default function InstitutionOverviewSection({
   const isLoading = isLoadingStudents || isLoadingRequests || isLoadingCredentials;
   const now = Date.now();
 
-  const pendingRequests = requests.filter(request => request.status === 'PENDING').length;
+  const studentById = new Map(students.map(student => [student.id, student]));
+  const pendingRequestRecords = requests.filter(request => request.status === 'PENDING');
+  const pendingRequests = pendingRequestRecords.length;
   const activeStudents = students.filter(student => student.status === 'APPROVED').length;
-  const blockchainCredentials = credentials.filter(credential => credential.status === 'ISSUED').length;
-
-  const issuedWithin = (fromTs: number, toTs: number) =>
-    credentials.filter(credential => {
-      const ts = new Date(credential.issuedDate || credential.updatedAt).getTime();
-      return !Number.isNaN(ts) && ts >= fromTs && ts < toTs;
-    }).length;
+  const pendingStudents = students.filter(student => student.status === 'PENDING').length;
+  const suspendedStudents = students.filter(student => student.status === 'SUSPENDED').length;
+  const isBlockchainCredential = (credential: Credential) =>
+    credential.status === 'ISSUED' &&
+    Boolean(credential.chain || credential.txHash || credential.anchoredAt || credential.blockNumber !== null);
+  const blockchainCredentials = credentials.filter(isBlockchainCredential).length;
 
   const currentWindowStart = now - 30 * DAY_MS;
   const previousWindowStart = now - 60 * DAY_MS;
-  const currentIssued = issuedWithin(currentWindowStart, now);
-  const previousIssued = issuedWithin(previousWindowStart, currentWindowStart);
-  const issuanceTrendPercent =
-    previousIssued === 0
-      ? (currentIssued > 0 ? 100 : 0)
-      : ((currentIssued - previousIssued) / previousIssued) * 100;
+
+  const last7DaysPendingRequestCounts = Array(7).fill(0);
+  let previous7DaysPendingRequests = 0;
+  pendingRequestRecords.forEach(request => {
+    const timeMs = new Date(request.createdAt).getTime();
+    const daysAgo = Math.floor((now - timeMs) / DAY_MS);
+    if (daysAgo >= 0 && daysAgo < 7) {
+      last7DaysPendingRequestCounts[6 - daysAgo] += 1;
+    } else if (daysAgo >= 7 && daysAgo < 14) {
+      previous7DaysPendingRequests += 1;
+    }
+  });
+  const recentPendingRequests = last7DaysPendingRequestCounts.reduce((sum, value) => sum + value, 0);
+  const pendingRequestGrowth = previous7DaysPendingRequests === 0
+    ? (recentPendingRequests > 0 ? 100 : 0)
+    : ((recentPendingRequests - previous7DaysPendingRequests) / previous7DaysPendingRequests) * 100;
+  const pendingRequestGrowthClassName = pendingRequestGrowth >= 0 ? 'text-amber-500' : 'text-rose-500';
+
+  const last7DaysAuthorizedStudentCounts = Array(7).fill(0);
+  let previous30DayApprovedStudents = 0;
+  let approvedStudentsLast30Days = 0;
+  students
+    .filter(student => student.status === 'APPROVED')
+    .forEach(student => {
+      const timeMs = new Date(student.createdAt).getTime();
+      const daysAgo = Math.floor((now - timeMs) / DAY_MS);
+
+      if (daysAgo >= 0 && daysAgo < 7) {
+        last7DaysAuthorizedStudentCounts[6 - daysAgo] += 1;
+      }
+
+      if (timeMs >= currentWindowStart) {
+        approvedStudentsLast30Days += 1;
+      } else if (timeMs >= previousWindowStart && timeMs < currentWindowStart) {
+        previous30DayApprovedStudents += 1;
+      }
+    });
+  const authorizedStudentGrowth = previous30DayApprovedStudents === 0
+    ? (approvedStudentsLast30Days > 0 ? 100 : 0)
+    : ((approvedStudentsLast30Days - previous30DayApprovedStudents) / previous30DayApprovedStudents) * 100;
+  const authorizedStudentGrowthClassName = authorizedStudentGrowth >= 0 ? 'text-emerald-500' : 'text-rose-500';
+
+  const awaitingIssuanceRequests = requests.filter(request => request.status === 'APPROVED');
+  const completedRequestRecords = requests.filter(request => request.status === 'COMPLETED');
+  const awaitingIssuanceCount = awaitingIssuanceRequests.length;
+  const completedRequestsCount = completedRequestRecords.length;
+
+  const last30DaysAwaitingCounts = Array(30).fill(0);
+  const last30DaysCompletedCounts = Array(30).fill(0);
+  let previous30DaysBlockchainCount = 0;
+  let blockchainCredentialsLast30Days = 0;
+  const last30DaysBlockchainCounts = Array(30).fill(0);
+  let recentAwaitingCount = 0;
+  let recentCompletedCount = 0;
+  credentials.forEach(credential => {
+    const issuedAt = new Date(credential.issuedDate || credential.updatedAt).getTime();
+    if (Number.isNaN(issuedAt)) {
+      return;
+    }
+
+    const daysAgo = Math.floor((now - issuedAt) / DAY_MS);
+    if (daysAgo >= 0 && daysAgo < 30) {
+      if (isBlockchainCredential(credential)) {
+        last30DaysBlockchainCounts[29 - daysAgo] += 1;
+        blockchainCredentialsLast30Days += 1;
+      }
+    } else if (daysAgo >= 30 && daysAgo < 60 && isBlockchainCredential(credential)) {
+      previous30DaysBlockchainCount += 1;
+    }
+  });
+
+  requests.forEach(request => {
+    const statusAt = new Date(request.updatedAt || request.createdAt).getTime();
+    if (Number.isNaN(statusAt)) {
+      return;
+    }
+
+    const daysAgo = Math.floor((now - statusAt) / DAY_MS);
+    if (daysAgo < 0 || daysAgo >= 30) {
+      return;
+    }
+
+    if (request.status === 'APPROVED') {
+      last30DaysAwaitingCounts[29 - daysAgo] += 1;
+      recentAwaitingCount += 1;
+    }
+
+    if (request.status === 'COMPLETED') {
+      last30DaysCompletedCounts[29 - daysAgo] += 1;
+      recentCompletedCount += 1;
+    }
+  });
+
+  const blockchainGrowth = previous30DaysBlockchainCount === 0
+    ? (blockchainCredentialsLast30Days > 0 ? 100 : 0)
+    : ((blockchainCredentialsLast30Days - previous30DaysBlockchainCount) / previous30DaysBlockchainCount) * 100;
+  const blockchainGrowthClassName = blockchainGrowth >= 0 ? 'text-cyan-500' : 'text-rose-500';
+
+  const awaitingComparisonPercent = completedRequestsCount === 0
+    ? (awaitingIssuanceCount > 0 ? 100 : 0)
+    : ((awaitingIssuanceCount - completedRequestsCount) / completedRequestsCount) * 100;
+  const awaitingComparisonClassName = awaitingComparisonPercent > 0
+    ? 'text-amber-500'
+    : awaitingComparisonPercent < 0
+      ? 'text-emerald-500'
+      : 'text-neutral-400';
+
+  const pendingRequestSparkline = buildSparkline(last7DaysPendingRequestCounts);
+  const authorizedStudentsSparkline = buildSparkline(last7DaysAuthorizedStudentCounts);
+  const blockchainSparkline = buildSparkline(last30DaysBlockchainCounts);
+  const awaitingSparkline = buildSparkline(last30DaysAwaitingCounts);
+  const completedSparkline = buildSparkline(last30DaysCompletedCounts);
+
+  const recentPendingRequestStudents = Array.from(
+    new Set(
+      [...pendingRequestRecords]
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .map(request => request.studentId),
+    ),
+  )
+    .map(studentId => studentById.get(studentId))
+    .filter((student): student is User => Boolean(student));
+
+  const recentRequestRows = [...requests]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5)
+    .map(request => ({
+      request,
+      student: studentById.get(request.studentId) || null,
+    }));
+
+  const requestStatusCounts = {
+    pending: requests.filter(request => request.status === 'PENDING').length,
+    approved: requests.filter(request => request.status === 'APPROVED').length,
+    completed: requests.filter(request => request.status === 'COMPLETED').length,
+  };
 
   const lastIssuedByStudentId = new Map<string, string>();
   credentials
@@ -104,7 +326,7 @@ export default function InstitutionOverviewSection({
       if (Number.isNaN(bTs)) return -1;
       return bTs - aTs;
     })
-    .slice(0, 6);
+    .slice(0, 5);
 
   const handleDownloadStudentDirectory = () => {
     const rows = [...students]
@@ -153,133 +375,376 @@ export default function InstitutionOverviewSection({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
-              <AlertCircle size={18} />
-            </span>
+        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between">
+            <h3 className="text-[13px] font-semibold text-neutral-500">Pending Requests</h3>
+            <AlertCircle size={18} className="text-amber-500" />
           </div>
-          <p className="text-xs font-medium text-neutral-500">Pending Requests</p>
-          <p className="mt-2 text-lg font-semibold text-neutral-900">{pendingRequests}</p>
-        </Card>
-
-        <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
-              <GraduationCap size={18} />
-            </span>
+          <div className="mt-4 mb-3">
+            <p className="text-3xl font-bold tracking-tight text-neutral-900">{pendingRequests.toLocaleString()}</p>
+            <p className="mt-1 text-[11px] font-bold text-neutral-400">
+              <span className={pendingRequestGrowthClassName}>{formatPercent(pendingRequestGrowth)}</span> LAST 7 DAYS
+            </p>
           </div>
-          <p className="text-xs font-medium text-neutral-500">Total Authorized Students</p>
-          <p className="mt-2 text-lg font-semibold text-neutral-900">{activeStudents.toLocaleString()}</p>
-        </Card>
-
-        <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
-              <Boxes size={18} />
-            </span>
+          <div className="mb-3 h-8 w-full">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+              <defs>
+                <linearGradient id="institutionPendingSparkline" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="rgb(245 158 11)" stopOpacity="0.24" />
+                  <stop offset="100%" stopColor="rgb(245 158 11)" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              {!isLoadingRequests && (
+                <g className="animate-sparkline">
+                  <path fill="url(#institutionPendingSparkline)" d={pendingRequestSparkline.areaD} />
+                  <path
+                    vectorEffect="non-scaling-stroke"
+                    fill="none"
+                    stroke="rgb(245 158 11)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d={pendingRequestSparkline.pathD}
+                  />
+                </g>
+              )}
+            </svg>
           </div>
-          <p className="text-xs font-medium text-neutral-500">Blockchain Credentials</p>
-          <p className="mt-2 text-lg font-semibold text-neutral-900">{blockchainCredentials.toLocaleString()}</p>
-        </Card>
-
-        <Card>
-          <div className="mb-3 flex items-center justify-between">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
-              <TrendingUp size={18} />
-            </span>
-          </div>
-          <p className="text-xs font-medium text-neutral-500">Issuance Trend</p>
-          <p className="mt-2 text-lg font-semibold text-neutral-900">{formatPercent(issuanceTrendPercent)}</p>
-        </Card>
-      </div>
-
-      <Card className="p-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 px-3 py-3 sm:px-5 sm:py-4">
-          <p className="text-lg font-semibold text-neutral-900 sm:text-xl">Institution's Student Directory</p>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="mt-auto flex items-center justify-between gap-3">
+            <div className="flex h-7 items-center">
+              {recentPendingRequestStudents.length > 0 ? (
+                <>
+                  {recentPendingRequestStudents.slice(0, 2).map((student, index) => (
+                    <button
+                      key={student.id}
+                      type="button"
+                      onClick={() => navigate('/institution/requests')}
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-700 text-[10px] font-bold text-white shadow-sm transition-transform hover:-translate-y-0.5 ${index > 0 ? '-ml-2' : ''}`}
+                      title={`Open requests for ${getStudentFullName(student)}`}
+                    >
+                      {getUserInitials(student)}
+                    </button>
+                  ))}
+                  {recentPendingRequestStudents.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => navigate('/institution/requests')}
+                      className="-ml-2 flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border-2 border-white bg-neutral-100 px-1.5 text-[10px] font-bold text-neutral-600 shadow-sm transition-colors hover:bg-neutral-200"
+                      title={`View ${pendingRequests} pending requests`}
+                    >
+                      +{recentPendingRequestStudents.length - 2}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <span className="text-[11px] text-neutral-400">No pending queue</span>
+              )}
+            </div>
             <button
               type="button"
-              onClick={() => navigate('/institution/students')}
-              className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 hover:text-neutral-900"
+              onClick={() => navigate('/institution/requests')}
+              className="text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400 transition hover:text-neutral-600"
             >
-              See More
-            </button>
-            <button
-              type="button"
-              onClick={handleDownloadStudentDirectory}
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 hover:text-neutral-900"
-              aria-label="Download full student directory"
-              title="Download full student directory"
-            >
-              <Download size={16} />
-              Download List
+              Open queue
             </button>
           </div>
         </div>
 
-        {isLoading && (
-          <div className="space-y-2 px-5 py-4">
-            {[1, 2, 3, 4, 5].map(key => (
-              <div key={key} className="h-12 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
-            ))}
+        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between">
+            <h3 className="text-[13px] font-semibold text-neutral-500">Authorized Students</h3>
+            <GraduationCap size={18} className="text-cyan-600" />
           </div>
-        )}
+          <div className="mt-4 mb-3">
+            <p className="text-3xl font-bold tracking-tight text-neutral-900">{activeStudents.toLocaleString()}</p>
+            <p className="mt-1 text-[11px] font-bold text-neutral-400">
+              <span className={authorizedStudentGrowthClassName}>{formatPercent(authorizedStudentGrowth)}</span> LAST MONTH
+            </p>
+          </div>
+          <div className="mb-3 h-8 w-full">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+              <defs>
+                <linearGradient id="institutionStudentsSparkline" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="rgb(8 145 178)" stopOpacity="0.22" />
+                  <stop offset="100%" stopColor="rgb(8 145 178)" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              {!isLoadingStudents && (
+                <g className="animate-sparkline">
+                  <path fill="url(#institutionStudentsSparkline)" d={authorizedStudentsSparkline.areaD} />
+                  <path
+                    vectorEffect="non-scaling-stroke"
+                    fill="none"
+                    stroke="rgb(8 145 178)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d={authorizedStudentsSparkline.pathD}
+                  />
+                </g>
+              )}
+            </svg>
+          </div>
+          <div className="mt-auto text-[10px] font-medium text-neutral-500">
+            Pending: {pendingStudents.toLocaleString()} &nbsp; Suspended: {suspendedStudents.toLocaleString()}
+          </div>
+        </div>
 
-        {!isLoading && directoryRows.length === 0 && (
-          <div className="px-5 py-10 text-sm text-neutral-500">No students found.</div>
-        )}
+        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between">
+            <h3 className="text-[13px] font-semibold text-neutral-500">Blockchain Credentials</h3>
+            <Boxes size={18} className="text-cyan-600" />
+          </div>
+          <div className="mt-4 mb-3">
+            <p className="text-3xl font-bold tracking-tight text-neutral-900">{blockchainCredentials.toLocaleString()}</p>
+            <p className="mt-1 text-[11px] font-bold text-neutral-400">
+              <span className={blockchainGrowthClassName}>{formatPercent(blockchainGrowth)}</span> LAST MONTH
+            </p>
+          </div>
+          <div className="mb-3 h-8 w-full">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+              <defs>
+                <linearGradient id="institutionBlockchainSparkline" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="rgb(6 182 212)" stopOpacity="0.22" />
+                  <stop offset="100%" stopColor="rgb(6 182 212)" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              {!isLoadingCredentials && (
+                <g className="animate-sparkline">
+                  <path fill="url(#institutionBlockchainSparkline)" d={blockchainSparkline.areaD} />
+                  <path
+                    vectorEffect="non-scaling-stroke"
+                    fill="none"
+                    stroke="rgb(6 182 212)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d={blockchainSparkline.pathD}
+                  />
+                </g>
+              )}
+            </svg>
+          </div>
+          <div className="mt-auto flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
+            <span>Anchored</span>
+            <span>{blockchainSparkline.peak} peak</span>
+          </div>
+        </div>
 
-        {!isLoading && directoryRows.length > 0 && (
-          <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-separate border-spacing-0">
-                <thead>
-                  <tr className="text-left text-[11px]  text-neutral-500">
-                    <th className="px-3 py-2 font-semibold sm:px-5 sm:py-3">Student Name</th>
-                    <th className="hidden px-3 py-2 font-semibold sm:table-cell sm:px-5 sm:py-3">Student ID</th>
-                    <th className="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-3">Program</th>
-                    <th className="px-3 py-2 font-semibold sm:px-5 sm:py-3">Status</th>
-                    <th className="hidden px-3 py-2 font-semibold md:table-cell md:px-5 md:py-3">Last Issued</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {directoryRows.map(student => (
-                    <tr key={student.id} className="border-t border-neutral-100 text-sm text-neutral-700">
-                      <td className="px-3 py-2 align-top sm:px-5 sm:py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
-                            {getUserInitials(student)}
+        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between">
+            <h3 className="text-[13px] font-semibold text-neutral-500">Awaiting Issuance</h3>
+            <ClipboardCheck size={18} className="text-emerald-500" />
+          </div>
+          <div className="mt-4 mb-3">
+            <p className="text-3xl font-bold tracking-tight text-neutral-900">{awaitingIssuanceCount.toLocaleString()}</p>
+            <p className="mt-1 text-[11px] font-bold text-neutral-400">
+              <span className={awaitingComparisonClassName}>{formatPercent(awaitingComparisonPercent)}</span> VS COMPLETED
+            </p>
+          </div>
+          <div className="mb-3 h-8 w-full">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+              {!isLoadingRequests && (
+                <g className="animate-sparkline">
+                  <path
+                    vectorEffect="non-scaling-stroke"
+                    fill="none"
+                    stroke="rgb(245 158 11)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d={awaitingSparkline.pathD}
+                  />
+                  <path
+                    vectorEffect="non-scaling-stroke"
+                    fill="none"
+                    stroke="rgb(16 185 129)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d={completedSparkline.pathD}
+                  />
+                </g>
+              )}
+            </svg>
+          </div>
+          <div className="mt-auto flex items-center justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
+            <span>
+              <span className="text-amber-500">Awaiting {recentAwaitingCount.toLocaleString()}</span>
+            </span>
+            <span>
+              <span className="text-emerald-500">Completed {recentCompletedCount.toLocaleString()}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="xl:col-span-2 xl:h-full">
+          <Card
+            className="flex h-full flex-col"
+            title="Institution Student Directory"
+            action={
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/institution/students')}
+                  className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100"
+                >
+                  See More
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadStudentDirectory}
+                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100"
+                  aria-label="Download full student directory"
+                  title="Download full student directory"
+                >
+                  <Download size={16} />
+                  Download List
+                </button>
+              </div>
+            }
+          >
+            {isLoading && (
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map(key => (
+                  <div key={key} className="h-14 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
+                ))}
+              </div>
+            )}
+
+            {!isLoading && directoryRows.length === 0 && (
+              <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50/50 px-5 py-12 text-sm text-neutral-500">
+                No students found.
+              </div>
+            )}
+
+            {!isLoading && directoryRows.length > 0 && (
+              <div className="flex h-full flex-col">
+                <div className="overflow-x-auto rounded-lg border border-neutral-200">
+                  <table className="min-w-full text-left text-sm">
+                    <thead className="bg-neutral-50 text-xs font-semibold text-neutral-500">
+                      <tr>
+                        <th className="px-4 py-3">Student</th>
+                        <th className="hidden px-4 py-3 sm:table-cell">Student ID</th>
+                        <th className="hidden px-4 py-3 md:table-cell">Program</th>
+                        <th className="px-4 py-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-200 bg-white">
+                      {directoryRows.map(student => (
+                        <tr key={student.id} className="hover:bg-neutral-50/50">
+                          <td className="px-4 py-3 font-medium text-neutral-900">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
+                                {getUserInitials(student)}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
+                                <p className="text-xs text-neutral-500">{student.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="hidden px-4 py-3 text-neutral-600 sm:table-cell">
+                            {student.profile?.studentNumber || '--'}
+                          </td>
+                          <td className="hidden px-4 py-3 text-neutral-600 md:table-cell">
+                            {student.profile?.courseOfStudy || '--'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${getOverviewStatusTextClass(student.status)}`}>
+                              {formatStatusText(student.status)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-auto border-t border-neutral-200 pt-3 text-xs text-neutral-500">
+                  Showing {directoryRows.length} of {students.length.toLocaleString()} students
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+
+        <div className="xl:h-full">
+          <Card
+            className="flex h-full flex-col"
+            title="Recent Credential Requests"
+            action={
+              <button
+                type="button"
+                onClick={() => navigate('/institution/requests')}
+                className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100"
+              >
+                Open Requests
+              </button>
+            }
+          >
+            {isLoadingRequests && (
+              <div className="space-y-3">
+                {[1, 2, 3].map(key => (
+                  <div key={key} className="h-16 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
+                ))}
+              </div>
+            )}
+
+            {!isLoadingRequests && recentRequestRows.length === 0 && (
+              <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50/50 px-4 py-10 text-center">
+                <AlertCircle size={24} className="mb-2 text-neutral-400" />
+                <p className="text-sm font-medium text-neutral-600">No recent credential requests</p>
+                <p className="mt-1 text-xs text-neutral-400">New request activity will appear here.</p>
+              </div>
+            )}
+
+            {!isLoadingRequests && recentRequestRows.length > 0 && (
+              <div className="flex h-full flex-col">
+                <div className="space-y-2">
+                  {recentRequestRows.map(({ request, student }) => (
+                    <div key={request.id} className="rounded-lg border border-neutral-200 bg-white px-3 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
+                              {student ? getUserInitials(student) : 'NA'}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-neutral-900">
+                                {student ? getStudentFullName(student) : 'Student unavailable'}
+                              </p>
+                              <p className="truncate text-xs text-neutral-500">{request.title || request.type}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
-                            <p className="mt-0.5 text-xs text-neutral-500">{student.email}</p>
-                          </div>
+                          <p className="mt-2 text-xs text-neutral-500">
+                            {formatShortDate(request.createdAt)} · {request.deliveryMethod}
+                          </p>
                         </div>
-                      </td>
-                      <td className="hidden px-3 py-2 align-top text-neutral-600 sm:table-cell sm:px-5 sm:py-3">
-                        {student.profile?.studentNumber || '--'}
-                      </td>
-                      <td className="hidden px-3 py-2 align-top text-neutral-600 md:table-cell md:px-5 md:py-3">
-                        {student.profile?.courseOfStudy || '--'}
-                      </td>
-                      <td className="px-3 py-2 align-top sm:px-5 sm:py-3">
-                        <Badge status={student.status} />
-                      </td>
-                      <td className="hidden px-3 py-2 align-top text-neutral-600 md:table-cell md:px-5 md:py-3">
-                        {formatShortDate(lastIssuedByStudentId.get(student.id))}
-                      </td>
-                    </tr>
+                        <span className={`shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] ${getOverviewStatusTextClass(request.status)}`}>
+                          {formatStatusText(request.status)}
+                        </span>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="border-t border-neutral-200 px-5 py-3 text-xs text-neutral-500">
-              Showing {directoryRows.length} of {students.length.toLocaleString()} students
-            </div>
-          </>
-        )}
-      </Card>
+                </div>
+
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {requestStatusSummaryCards.map(card => (
+                    <div key={card.key} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-center">
+                      <p className={`text-base font-semibold ${card.valueClassName}`}>
+                        {requestStatusCounts[card.key].toLocaleString()}
+                      </p>
+                      <p className={`text-[10px] font-medium ${card.labelClassName}`}>{card.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

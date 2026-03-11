@@ -1,21 +1,21 @@
-﻿import { useMemo } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
 import ActionMenu from '../../components/common/ActionMenu';
 import {
+  AlertCircle,
   AlertTriangle,
   Clock3,
-  ShieldAlert,
   UserRoundCheck,
-  Eye,
   Check,
   XCircle,
   HelpCircle,
 } from 'lucide-react';
 import { AuditAction, AuditSeverity } from '../../services/audit.service';
-import { RiskBand, RiskReviewStatus } from '../../services/risk.service';
+import { RiskBand, RiskReviewStatus, RiskService } from '../../services/risk.service';
 import ButtonLoadingContent from '../../components/common/ButtonLoadingContent';
+import RecordDetailsDrawer from '../../components/common/RecordDetailsDrawer';
 import AdminRiskEventDetailsDrawer from './components/AdminRiskEventDetailsDrawer';
 import AdminNotificationsSection from './components/AdminNotificationsSection';
 import AdminOverviewSection from './components/AdminOverviewSection';
@@ -99,6 +99,102 @@ export default function AdminDashboard() {
     exportReviewedRiskReport,
     stepUpModal,
   } = useAdminDashboardState();
+
+  const [selectedAuditLogId, setSelectedAuditLogId] = useState<string | null>(null);
+  const [riskCardDeltas, setRiskCardDeltas] = useState({
+    pendingReview: 0,
+    highRisk: 0,
+    criticalRisk: 0,
+    confirmedAbuse: 0,
+  });
+  const selectedAuditLog = useMemo(
+    () => filteredAdminAuditLogs.find(log => log.id === selectedAuditLogId) || null,
+    [filteredAdminAuditLogs, selectedAuditLogId],
+  );
+
+  useEffect(() => {
+    if (section !== 'risk') {
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadRiskCardDeltas = async () => {
+      try {
+        const response = await RiskService.list({
+          page: 1,
+          pageSize: Math.max(riskTotal, 1000),
+          riskBand: riskBandFilter,
+          reviewStatus: riskReviewFilter,
+          reviewedOnly,
+        });
+
+        if (cancelled) {
+          return;
+        }
+
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+        const startOfTomorrow = startOfToday + 24 * 60 * 60 * 1000;
+
+        const countByDay = (
+          predicate: (item: (typeof response.items)[number]) => boolean,
+          getTimestamp: (item: (typeof response.items)[number]) => string | null,
+        ) => {
+          let todayCount = 0;
+          let yesterdayCount = 0;
+
+          response.items.forEach(item => {
+            if (!predicate(item)) {
+              return;
+            }
+
+            const timestamp = getTimestamp(item);
+            if (!timestamp) {
+              return;
+            }
+
+            const timeMs = new Date(timestamp).getTime();
+            if (timeMs >= startOfToday && timeMs < startOfTomorrow) {
+              todayCount += 1;
+              return;
+            }
+
+            if (timeMs >= startOfYesterday && timeMs < startOfToday) {
+              yesterdayCount += 1;
+            }
+          });
+
+          return todayCount - yesterdayCount;
+        };
+
+        setRiskCardDeltas({
+          pendingReview: countByDay(item => item.reviewStatus === 'PENDING_REVIEW', item => item.observedAt),
+          highRisk: countByDay(item => item.riskBand === 'HIGH', item => item.observedAt),
+          criticalRisk: countByDay(item => item.riskBand === 'CRITICAL', item => item.observedAt),
+          confirmedAbuse: countByDay(item => item.reviewStatus === 'CONFIRMED_ABUSE', item => item.reviewedAt),
+        });
+      } catch {
+        if (!cancelled) {
+          setRiskCardDeltas({
+            pendingReview: 0,
+            highRisk: 0,
+            criticalRisk: 0,
+            confirmedAbuse: 0,
+          });
+        }
+      }
+    };
+
+    void loadRiskCardDeltas();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reviewedOnly, riskBandFilter, riskReviewFilter, riskTotal, section]);
+
+  const formatRiskDeltaValue = (delta: number) => `${delta > 0 ? '+' : ''}${delta}`;
 
   const riskFilterGroups = useMemo<SearchFilterGroup[]>(() => [
     {
@@ -257,40 +353,52 @@ export default function AdminDashboard() {
   const renderRiskReview = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">
+        <div className="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center text-amber-600">
             <Clock3 size={18} />
           </div>
           <div>
-            <p className="text-2xl font-semibold text-neutral-900">{riskSummary.pendingReviewCount}</p>
-            <p className="text-xs text-neutral-500">Pending review</p>
+            <p className="text-3xl font-bold tracking-tight text-amber-600">{riskSummary.pendingReviewCount}</p>
+            <p className="text-[13px] font-medium text-neutral-500">Pending review</p>
+            <p className="mt-1 text-[11px] font-semibold text-neutral-400">
+              <span className="text-amber-500">{formatRiskDeltaValue(riskCardDeltas.pendingReview)}</span> vs yesterday
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+        <div className="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center text-rose-500">
             <AlertTriangle size={18} />
           </div>
           <div>
-            <p className="text-2xl font-semibold text-neutral-900">{riskSummary.highRiskCount}</p>
-            <p className="text-xs text-neutral-500">High risk</p>
+            <p className="text-3xl font-bold tracking-tight text-rose-500">{riskSummary.highRiskCount}</p>
+            <p className="text-[13px] font-medium text-neutral-500">High risk</p>
+            <p className="mt-1 text-[11px] font-semibold text-neutral-400">
+              <span className="text-rose-400">{formatRiskDeltaValue(riskCardDeltas.highRisk)}</span> vs yesterday
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
-            <ShieldAlert size={18} />
+        <div className="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center text-rose-600">
+            <AlertCircle size={18} />
           </div>
           <div>
-            <p className="text-2xl font-semibold text-neutral-900">{riskSummary.criticalRiskCount}</p>
-            <p className="text-xs text-neutral-500">Critical risk</p>
+            <p className="text-3xl font-bold tracking-tight text-rose-600">{riskSummary.criticalRiskCount}</p>
+            <p className="text-[13px] font-medium text-neutral-500">Critical risk</p>
+            <p className="mt-1 text-[11px] font-semibold text-neutral-400">
+              <span className="text-rose-500">{formatRiskDeltaValue(riskCardDeltas.criticalRisk)}</span> vs yesterday
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
+        <div className="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center text-neutral-600">
             <UserRoundCheck size={18} />
           </div>
           <div>
-            <p className="text-2xl font-semibold text-neutral-900">{riskSummary.confirmedAbuseCount}</p>
-            <p className="text-xs text-neutral-500">Confirmed abuse</p>
+            <p className="text-3xl font-bold tracking-tight text-neutral-700">{riskSummary.confirmedAbuseCount}</p>
+            <p className="text-[13px] font-medium text-neutral-500">Confirmed abuse</p>
+            <p className="mt-1 text-[11px] font-semibold text-neutral-400">
+              <span className="text-neutral-500">{formatRiskDeltaValue(riskCardDeltas.confirmedAbuse)}</span> vs yesterday
+            </p>
           </div>
         </div>
       </div>
@@ -370,7 +478,11 @@ export default function AdminDashboard() {
               )}
               {!isLoadingRiskEvents &&
                 riskEvents.map(event => (
-                  <tr key={event.id} className="align-top hover:bg-neutral-50/70">
+                  <tr
+                    key={event.id}
+                    className="align-top cursor-pointer hover:bg-neutral-50/70"
+                    onClick={() => void openRiskEventDetails(event.id)}
+                  >
                     <td className="px-4 py-3">
                       <div className="space-y-1">
                         <p className="text-sm font-semibold text-neutral-900">{event.action}</p>
@@ -412,15 +524,9 @@ export default function AdminDashboard() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end">
+                      <div className="flex items-center justify-end" onClick={event => event.stopPropagation()}>
                         <ActionMenu
                           items={[
-                            {
-                              label: 'View',
-                              icon: <Eye size={14} />,
-                              onClick: () => void openRiskEventDetails(event.id),
-                              disabled: selectedRiskEventId === event.id && isLoadingSelectedRiskEvent,
-                            },
                             {
                               label: reviewingRiskEventId === event.id && event.reviewStatus !== 'CONFIRMED_ABUSE' ? 'Saving...' : 'Confirm abuse',
                               icon: <XCircle size={14} className="text-rose-600" />,
@@ -533,7 +639,11 @@ export default function AdminDashboard() {
               )}
               {!isLoadingAuditLogs &&
                 pagedAdminAuditLogs.map(log => (
-                  <tr key={log.id} className="hover:bg-neutral-50/70">
+                  <tr
+                    key={log.id}
+                    className="cursor-pointer hover:bg-neutral-50/70"
+                    onClick={() => setSelectedAuditLogId(log.id)}
+                  >
                     <td className="px-4 py-3 text-xs text-neutral-600">{new Date(log.createdAt).toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs font-semibold text-neutral-800">{log.action}</td>
                     <td className="hidden px-4 py-3 text-xs text-neutral-700 sm:table-cell">{log.severity}</td>
@@ -568,6 +678,38 @@ export default function AdminDashboard() {
           </div>
         )}
       </Card>
+      <RecordDetailsDrawer
+        open={selectedAuditLog !== null}
+        onClose={() => setSelectedAuditLogId(null)}
+        title={selectedAuditLog?.action || 'Audit Log Details'}
+        description="Review audit event details."
+        sections={
+          selectedAuditLog
+            ? [
+                {
+                  title: 'Audit Event',
+                  fields: [
+                    { label: 'Timestamp', value: new Date(selectedAuditLog.createdAt).toLocaleString() },
+                    { label: 'Action', value: selectedAuditLog.action },
+                    { label: 'Severity', value: selectedAuditLog.severity },
+                    { label: 'Actor Role', value: selectedAuditLog.actorRole || '--' },
+                    { label: 'Actor', value: selectedAuditLog.actorEmail || 'System' },
+                    { label: 'Target Type', value: selectedAuditLog.targetType || '--' },
+                    { label: 'Description', value: selectedAuditLog.description || '--' },
+                    {
+                      label: 'Metadata',
+                      value: selectedAuditLog.metadata ? (
+                        <pre className="whitespace-pre-wrap text-xs text-neutral-700">
+                          {JSON.stringify(selectedAuditLog.metadata, null, 2)}
+                        </pre>
+                      ) : '--',
+                    },
+                  ],
+                },
+              ]
+            : []
+        }
+      />
     </div>
   );
 

@@ -1,7 +1,7 @@
 ﻿import { FormEvent, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ClipboardCheck, Eye, Upload, X } from 'lucide-react';
+import { ClipboardCheck, Upload, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
@@ -79,7 +79,6 @@ interface InstitutionIssueSectionProps {
   }) => Promise<Credential>;
   onCredentialStatusUpdate: (credentialId: string, status: CredentialStatus) => Promise<void>;
   onCredentialReissue: (credentialId: string, file?: File) => Promise<void>;
-  onViewCredentialDetails: (credentialId: string) => void;
 }
 
 export default function InstitutionIssueSection({
@@ -96,8 +95,7 @@ export default function InstitutionIssueSection({
   onRequestAction,
   onDirectIssue,
   onCredentialStatusUpdate,
-  onCredentialReissue,
-  onViewCredentialDetails,
+  onCredentialReissue
 }: InstitutionIssueSectionProps) {
   const { showToast } = useToast();
   const [directForm, setDirectForm] = useState({
@@ -473,7 +471,7 @@ export default function InstitutionIssueSection({
               )}
               {!isLoadingRequests &&
                 readyToIssue.map(request => (
-                  <tr key={request.id} className="hover:bg-neutral-50/70">
+                  <tr key={request.id} className="cursor-pointer hover:bg-neutral-50/70" onClick={() => setSelectedRequestId(request.id)}>
                     {(() => {
                       const requestCertificateCategory =
                         request.type === 'CERTIFICATE' ? getRequestCertificateCategory(request) : DEFAULT_CERTIFICATE_CATEGORY;
@@ -529,6 +527,7 @@ export default function InstitutionIssueSection({
                     </td>
                     <td className="px-4 py-3">
                       <label
+                        onClick={event => event.stopPropagation()}
                         className={`inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 ${
                           request.deliveryMethod === 'PHYSICAL'
                             ? 'cursor-not-allowed opacity-60'
@@ -553,20 +552,13 @@ export default function InstitutionIssueSection({
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        onClick={() => setSelectedRequestId(request.id)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
-                      >
-                        <Eye size={13} />
-                        View
-                      </button>
-                      <button
                         disabled={
                           updatingRequestId === request.id ||
                           request.deliveryMethod === 'PHYSICAL' ||
                           (!request.credentialId && !issueFileByRequestId[request.id]) ||
                           (requestRequiresExpiry && !issueExpiryByRequestId[request.id])
                         }
-                        onClick={() => void onRequestAction(request.id, 'ISSUE')}
+                        onClick={event => { event.stopPropagation(); void onRequestAction(request.id, 'ISSUE'); }}
                         className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
                         title={
                           request.deliveryMethod === 'PHYSICAL'
@@ -714,7 +706,10 @@ export default function InstitutionIssueSection({
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-600">{formatDateTime(credential.updatedAt)}</td>
                     <td className="px-4 py-3">
-                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-100">
+                      <label
+                        className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
+                        onClick={event => event.stopPropagation()}
+                      >
                         <input
                           type="file"
                           accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
@@ -733,6 +728,7 @@ export default function InstitutionIssueSection({
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <select
+                          onClick={event => event.stopPropagation()}
                           value={targetStatus}
                           onChange={event =>
                             setStatusByCredentialId(previous => ({
@@ -750,15 +746,8 @@ export default function InstitutionIssueSection({
                           ))}
                         </select>
                         <button
-                          onClick={() => onViewCredentialDetails(credential.id)}
-                          className="inline-flex h-9 items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
-                          title="View credential details"
-                        >
-                          <Eye size={12} />
-                          View
-                        </button>
-                        <button
-                          onClick={() => {
+                          onClick={event => {
+                            event.stopPropagation();
                             setUpdatingCredentialId(credential.id);
                             void onCredentialStatusUpdate(credential.id, targetStatus)
                               .catch(() => undefined)
@@ -772,7 +761,8 @@ export default function InstitutionIssueSection({
                           Save
                         </button>
                         <button
-                          onClick={() => {
+                          onClick={event => {
+                            event.stopPropagation();
                             setReissuingCredentialId(credential.id);
                             const file = reissueFileByCredentialId[credential.id] ?? undefined;
                             void onCredentialReissue(credential.id, file)

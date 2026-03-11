@@ -20,6 +20,27 @@ export const getStatusLabel = (status: Credential['status']) => {
   }
 };
 
+export const getStudentStatusTextClass = (status: string) => {
+  switch (status) {
+    case 'APPROVED':
+    case 'COMPLETED':
+    case 'ISSUED':
+      return 'text-emerald-600';
+    case 'PENDING':
+      return 'text-amber-600';
+    case 'REVOKED':
+    case 'REJECTED':
+    case 'CANCELLED':
+    case 'EXPIRED':
+      return 'text-rose-600';
+    default:
+      return 'text-neutral-500';
+  }
+};
+
+export const formatStudentStatusLabel = (status: string) =>
+  status.toLowerCase().replace(/_/g, ' ');
+
 export const getCredentialFileUrl = (storageKey: string | null): string | null => {
   if (!storageKey) return null;
   if (/^https?:\/\//i.test(storageKey)) return storageKey;

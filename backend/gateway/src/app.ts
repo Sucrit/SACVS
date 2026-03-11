@@ -15,6 +15,7 @@ app.use((req, res, next) => {
     path.startsWith('/users') ||
     path.startsWith('/credentials') ||
     path.startsWith('/notifications') ||
+    path.startsWith('/security') ||
     path.startsWith('/blockchain');
 
   // Do not consume body on gateway for proxied service routes.

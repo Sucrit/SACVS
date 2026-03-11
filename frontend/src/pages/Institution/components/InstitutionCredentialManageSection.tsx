@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { ClipboardCheck, Eye, Upload, MoreVertical } from 'lucide-react';
+import { ClipboardCheck, Upload, MoreVertical } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import {
@@ -90,7 +90,11 @@ export default function InstitutionCredentialManageSection({
             )}
             {!isLoadingCredentials &&
               institutionCredentials.map(credential => (
-                <tr key={credential.id} className="hover:bg-neutral-50/70">
+                <tr
+                  key={credential.id}
+                  className="cursor-pointer hover:bg-neutral-50/70"
+                  onClick={() => onViewCredentialDetails(credential.id)}
+                >
                   {(() => {
                     const isRevoked = credential.status === 'REVOKED';
                     const isExpired = credential.status === 'EXPIRED';
@@ -128,7 +132,10 @@ export default function InstitutionCredentialManageSection({
                         </td>
                         <td className="hidden px-4 py-3 text-sm text-neutral-600 md:table-cell">{formatDateTime(credential.updatedAt)}</td>
                         <td className="hidden px-4 py-3 lg:table-cell">
-                          <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-100">
+                          <label
+                            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
+                            onClick={event => event.stopPropagation()}
+                          >
                             <input
                               type="file"
                               accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
@@ -147,14 +154,20 @@ export default function InstitutionCredentialManageSection({
                         <td className="px-4 py-3">
                           <div className="relative flex items-center justify-end action-menu-container">
                             <button
-                              onClick={() => setOpenMenuId(openMenuId === credential.id ? null : credential.id)}
+                              onClick={event => {
+                                event.stopPropagation();
+                                setOpenMenuId(openMenuId === credential.id ? null : credential.id);
+                              }}
                               className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100"
                             >
                               <MoreVertical size={18} />
                             </button>
 
                             {openMenuId === credential.id && (
-                              <div className="absolute right-0 top-full z-50 mt-1 flex w-48 flex-col gap-1 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg">
+                              <div
+                                className="absolute right-0 top-full z-50 mt-1 flex w-48 flex-col gap-1 rounded-lg border border-neutral-200 bg-white p-2 shadow-lg"
+                                onClick={event => event.stopPropagation()}
+                              >
                                 <div className="mb-2 border-b border-neutral-100 pb-2">
                                   <label className="mb-1 block text-[10px] font-bold uppercase text-neutral-400">Update Status</label>
                                   <select
@@ -175,17 +188,6 @@ export default function InstitutionCredentialManageSection({
                                     ))}
                                   </select>
                                 </div>
-
-                                <button
-                                  onClick={() => {
-                                    onViewCredentialDetails(credential.id);
-                                    setOpenMenuId(null);
-                                  }}
-                                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs font-medium text-neutral-700 hover:bg-neutral-100"
-                                >
-                                  <Eye size={14} />
-                                  View Details
-                                </button>
 
                                 <button
                                   onClick={() => {

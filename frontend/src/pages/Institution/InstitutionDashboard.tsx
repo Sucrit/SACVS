@@ -297,10 +297,10 @@ export default function InstitutionDashboard() {
             open={selectedAuditLog !== null}
             onClose={() => setSelectedAuditLogId(null)}
             title={selectedAuditLog?.action || 'Audit Log Details'}
-            description="Institution audit log entry"
+            description="Review audit event details."
             sections={selectedAuditLog ? [
               {
-                title: 'Event',
+                title: 'Audit Event',
                 fields: [
                   { label: 'Timestamp', value: new Date(selectedAuditLog.createdAt).toLocaleString() },
                   { label: 'Action', value: selectedAuditLog.action },

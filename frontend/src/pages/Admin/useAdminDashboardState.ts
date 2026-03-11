@@ -365,20 +365,37 @@ export function useAdminDashboardState(): AdminDashboardState {
   }, [loadRiskEvents, loadRiskWorkerStatus, section]);
 
   useEffect(() => {
-    const userId = searchParams.get('userId');
-    if (section !== 'users' || !userId) {
+    if (section !== 'users') {
       handledUserQueryRef.current = null;
       return;
     }
 
-    if (handledUserQueryRef.current === userId) {
+    const requestedRole = searchParams.get('role');
+    const requestedStatus = searchParams.get('status');
+    const requestedUserId = searchParams.get('userId');
+    const querySignature = `${requestedRole || ''}|${requestedStatus || ''}|${requestedUserId || ''}`;
+
+    if (handledUserQueryRef.current === querySignature) {
       return;
     }
 
-    if (users.some(user => user.id === userId)) {
-      setSelectedUserId(userId);
-      handledUserQueryRef.current = userId;
+    const nextRoleFilter = ROLE_OPTIONS.includes(requestedRole as RoleFilter)
+      ? (requestedRole as RoleFilter)
+      : 'ALL';
+    const nextStatusFilter = STATUS_OPTIONS.includes(requestedStatus as StatusFilter)
+      ? (requestedStatus as StatusFilter)
+      : 'ALL';
+
+    setRoleFilter(nextRoleFilter);
+    setStatusFilter(nextStatusFilter);
+
+    if (requestedUserId && users.some(user => user.id === requestedUserId)) {
+      setSelectedUserId(requestedUserId);
+    } else if (!requestedUserId) {
+      setSelectedUserId(null);
     }
+
+    handledUserQueryRef.current = querySignature;
   }, [searchParams, section, users]);
 
   // --- Realtime sync ---
@@ -445,7 +462,9 @@ export function useAdminDashboardState(): AdminDashboardState {
   );
 
   const pendingQueue = useMemo(
-    () => users.filter(u => u.status === 'PENDING').sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    () => users
+      .filter(u => u.role === 'INSTITUTION' && u.status === 'PENDING')
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
     [users],
   );
 

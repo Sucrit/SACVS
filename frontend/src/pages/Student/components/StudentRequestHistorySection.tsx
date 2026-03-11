@@ -18,7 +18,6 @@ import {
 import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf';
 import Card from '../../../components/common/Card';
-import Badge from '../../../components/common/Badge';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import {
@@ -27,7 +26,7 @@ import {
   CredentialService,
   CredentialType,
 } from '../../../services/credential.service';
-import { formatDate } from '../utils';
+import { formatDate, formatStudentStatusLabel, getStudentStatusTextClass } from '../utils';
 import { useToast } from '../../../hooks/useToast';
 import {
   MODAL_BACKDROP_VARIANTS,
@@ -304,7 +303,7 @@ export default function StudentRequestHistorySection({
   ], [dateFilter, typeFilter]);
 
   return (
-    <Card>
+    <Card title="Request History" action={requestAction}>
       <div className="mb-4 flex w-full items-center gap-2 lg:max-w-xl">
         <div className="relative flex-1">
           <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -322,12 +321,6 @@ export default function StudentRequestHistorySection({
           description="Refine request history by document type and submission date."
         />
       </div>
-
-      {requestAction && (
-        <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
-          {requestAction}
-        </div>
-      )}
 
       {isLoadingRequests && (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -372,7 +365,9 @@ export default function StudentRequestHistorySection({
                       </div>
                     </div>
                     <div className="relative flex items-center gap-1">
-                      <Badge status={request.status} />
+                      <span className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${getStudentStatusTextClass(request.status)}`}>
+                        {formatStudentStatusLabel(request.status)}
+                      </span>
                       <button
                         type="button"
                         onClick={() =>
@@ -519,8 +514,10 @@ export default function StudentRequestHistorySection({
                   <Activity size={14} />
                   Status
                 </p>
-                <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2">
-                  <Badge status={detailsRequest.status} />
+                <div className="px-0 py-1">
+                  <span className={`text-xs font-semibold uppercase tracking-[0.08em] ${getStudentStatusTextClass(detailsRequest.status)}`}>
+                    {formatStudentStatusLabel(detailsRequest.status)}
+                  </span>
                 </div>
               </div>
               <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
