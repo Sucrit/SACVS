@@ -11,9 +11,14 @@ import {
   getRoleStyles,
   getLinkedOrganizationLabel,
   USER_ROLE_ACTIONS,
-  USER_STATUS_ACTIONS,
-  OTP_BADGE_CLASS,
 } from '../useAdminDashboardState';
+
+const VALID_STATUS_TRANSITIONS: Record<UserStatus, UserStatus[]> = {
+  PENDING: ['APPROVED', 'REJECTED'],
+  APPROVED: ['SUSPENDED'],
+  SUSPENDED: ['APPROVED'],
+  REJECTED: [],
+};
 
 interface AdminUserDetailsDrawerProps {
   isOpen: boolean;
@@ -123,9 +128,8 @@ export default function AdminUserDetailsDrawer({
 
               {/* Role actions */}
               <div>
-                <p className="mb-2 flex items-center gap-2 text-xs font-medium text-neutral-500">
+                <p className="mb-2 text-xs font-medium text-neutral-500">
                   Role Actions
-                  <span className={OTP_BADGE_CLASS}>OTP Required</span>
                 </p>
                 <div className="grid grid-cols-3 gap-2">
                   {USER_ROLE_ACTIONS.map(nextRole => (
@@ -138,13 +142,11 @@ export default function AdminUserDetailsDrawer({
                           ? 'cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400'
                           : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
                       }`}
-                      title="OTP required before this action is applied"
                     >
                       <span className="inline-flex items-center gap-1.5">
                         {isUpdatingRole === user.id && user.role !== nextRole
                           ? <ButtonLoadingContent label="" />
                           : nextRole}
-                        {user.role !== nextRole && <span className={OTP_BADGE_CLASS}>OTP</span>}
                       </span>
                     </button>
                   ))}
@@ -153,31 +155,28 @@ export default function AdminUserDetailsDrawer({
 
               {/* Status actions */}
               <div>
-                <p className="mb-2 flex items-center gap-2 text-xs font-medium text-neutral-500">
+                <p className="mb-2 text-xs font-medium text-neutral-500">
                   Status Actions
-                  <span className={OTP_BADGE_CLASS}>OTP Required</span>
                 </p>
                 <div className="grid grid-cols-2 gap-2">
-                  {USER_STATUS_ACTIONS.map(nextStatus => (
-                    <button
-                      key={nextStatus}
-                      disabled={isUpdatingStatus === user.id || user.status === nextStatus}
-                      onClick={() => void onStatusUpdate(user.id, nextStatus)}
-                      className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
-                        user.status === nextStatus
-                          ? 'cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400'
-                          : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
-                      }`}
-                      title="OTP required before this action is applied"
-                    >
-                      <span className="inline-flex items-center gap-1.5">
-                        {isUpdatingStatus === user.id && user.status !== nextStatus
-                          ? <ButtonLoadingContent label="" />
-                          : nextStatus}
-                        {user.status !== nextStatus && <span className={OTP_BADGE_CLASS}>OTP</span>}
-                      </span>
-                    </button>
-                  ))}
+                  {(VALID_STATUS_TRANSITIONS[user.status] ?? []).length === 0 ? (
+                    <p className="col-span-2 text-xs text-neutral-400">No status transitions available.</p>
+                  ) : (
+                    (VALID_STATUS_TRANSITIONS[user.status] ?? []).map(nextStatus => (
+                      <button
+                        key={nextStatus}
+                        disabled={isUpdatingStatus === user.id}
+                        onClick={() => void onStatusUpdate(user.id, nextStatus)}
+                        className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50"
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          {isUpdatingStatus === user.id
+                            ? <ButtonLoadingContent label="" />
+                            : nextStatus}
+                        </span>
+                      </button>
+                    ))
+                  )}
                 </div>
               </div>
 

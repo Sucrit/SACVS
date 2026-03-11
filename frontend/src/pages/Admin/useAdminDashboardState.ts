@@ -79,9 +79,6 @@ export const getRiskReviewStyles = (reviewStatus: RiskReviewStatus) => {
   return 'border-neutral-200 bg-neutral-50 text-neutral-700';
 };
 
-export const OTP_BADGE_CLASS =
-  'rounded-full border border-warning-200 bg-warning-50 px-1.5 py-0.5 text-[10px] font-medium text-warning-700';
-
 // =============================================================================
 // Hook
 // =============================================================================

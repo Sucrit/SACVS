@@ -1,8 +1,9 @@
 ﻿import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, PauseCircle, Pencil, Search, Trash2, Upload, UserPlus, X } from 'lucide-react';
+import { Check, PauseCircle, Pencil, Search, Trash2, Upload, UserPlus, X, XCircle } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
+import ActionMenu from '../../../components/common/ActionMenu';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import TopNavPortal from '../../../components/common/TopNavPortal';
@@ -68,9 +69,6 @@ const DEFAULT_YEAR_LEVEL_OPTIONS = [
   '5th Year',
   'Graduate',
 ];
-
-const OTP_BADGE_CLASS =
-  'rounded-full border border-warning-200 bg-warning-50 px-1.5 py-0.5 text-[10px] font-medium text-warning-700';
 
 export default function InstitutionStudentsSection({
   studentForm,
@@ -274,29 +272,54 @@ export default function InstitutionStudentsSection({
                     <p><span className="font-semibold text-neutral-700">By:</span> {student.approverName || '-'}</p>
                     <p className="mt-1"><span className="font-semibold text-neutral-700">At:</span> {formatDateTime(student.approvedAt)}</p>
                   </td>
-                  <td className="px-4 py-3 text-right"><div className="inline-flex gap-2">
-                    <button onClick={() => onStartEditStudent(student)} className="rounded-lg border border-neutral-200 bg-white p-2 text-neutral-700 hover:bg-neutral-100" title="Edit student profile"><Pencil size={14} /></button>
-                    {student.status !== 'APPROVED' && (
-                      <button
-                        disabled={updatingStudentId === student.id}
-                        onClick={() => void onStudentStatusUpdate(student.id, 'APPROVED')}
-                        className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-                        title="Approve"
-                      >
-                        <Check size={14} />
-                      </button>
+                  <td className="px-4 py-3 text-right"><div className="inline-flex items-center gap-2">
+                    {student.status === 'PENDING' && (
+                      <>
+                        <button
+                          disabled={updatingStudentId === student.id}
+                          onClick={() => void onStudentStatusUpdate(student.id, 'APPROVED')}
+                          className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                          title="Approve"
+                        >
+                          <Check size={14} />
+                        </button>
+                        <button
+                          disabled={updatingStudentId === student.id}
+                          onClick={() => void onStudentStatusUpdate(student.id, 'REJECTED')}
+                          className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                          title="Reject"
+                        >
+                          <XCircle size={14} />
+                        </button>
+                      </>
                     )}
-                    {student.status !== 'SUSPENDED' && (
-                      <button
-                        disabled={updatingStudentId === student.id}
-                        onClick={() => void onStudentStatusUpdate(student.id, 'SUSPENDED')}
-                        className="rounded-lg border border-orange-200 bg-orange-50 p-2 text-orange-700 hover:bg-orange-100 disabled:opacity-50"
-                        title="Deactivate"
-                      >
-                        <PauseCircle size={14} />
-                      </button>
-                    )}
-                    <button onClick={() => void onRemoveStudent(student)} className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-700 hover:bg-rose-100" title="Delete student account"><Trash2 size={14} /></button>
+                    <ActionMenu
+                      items={[
+                        {
+                          label: 'Edit profile',
+                          icon: <Pencil size={14} />,
+                          onClick: () => onStartEditStudent(student),
+                        },
+                        ...(student.status !== 'APPROVED' && student.status !== 'PENDING' ? [{
+                          label: 'Approve',
+                          icon: <Check size={14} className="text-emerald-600" />,
+                          onClick: () => void onStudentStatusUpdate(student.id, 'APPROVED'),
+                          disabled: updatingStudentId === student.id,
+                        }] : []),
+                        ...(student.status !== 'SUSPENDED' ? [{
+                          label: 'Deactivate',
+                          icon: <PauseCircle size={14} className="text-orange-600" />,
+                          onClick: () => void onStudentStatusUpdate(student.id, 'SUSPENDED'),
+                          disabled: updatingStudentId === student.id,
+                        }] : []),
+                        {
+                          label: 'Delete',
+                          icon: <Trash2 size={14} className="text-rose-600" />,
+                          onClick: () => void onRemoveStudent(student),
+                          className: 'text-rose-700',
+                        },
+                      ]}
+                    />
                   </div></td>
                 </tr>
               ))}
@@ -502,7 +525,6 @@ export default function InstitutionStudentsSection({
             <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100">
               <Upload size={14} />
               {isBulkImporting ? <ButtonLoadingContent label="Importing" /> : 'Upload CSV'}
-              {!isBulkImporting && <span className={OTP_BADGE_CLASS}>OTP Required</span>}
               <input type="file" accept=".csv,text/csv" onChange={event => { void onBulkCsvUpload(event); }} className="hidden" />
             </label>
             </div>

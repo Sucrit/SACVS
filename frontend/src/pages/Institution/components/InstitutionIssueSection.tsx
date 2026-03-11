@@ -31,8 +31,6 @@ const EXPIRY_ALLOWED_TYPES: CredentialType[] = ['CERTIFICATE', 'LICENSE'];
 type CertificateCategory = 'ACADEMIC' | 'PROFESSIONAL';
 const DEFAULT_CERTIFICATE_CATEGORY: CertificateCategory = 'ACADEMIC';
 const CERTIFICATE_CATEGORIES: CertificateCategory[] = ['ACADEMIC', 'PROFESSIONAL'];
-const OTP_BADGE_CLASS =
-  'rounded-full border border-warning-200 bg-warning-50 px-1.5 py-0.5 text-[10px] font-medium text-warning-700';
 const DIRECT_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 const DIRECT_UPLOAD_ACCEPTED_MIME = new Set(['application/pdf', 'image/png', 'image/jpeg']);
 
@@ -420,11 +418,9 @@ export default function InstitutionIssueSection({
                   type="submit"
                   disabled={isDirectIssuing}
                   className="inline-flex h-10 items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-4 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
-                  title="OTP required before this action is applied"
                 >
                   <ClipboardCheck size={13} />
                   {isDirectIssuing ? <ButtonLoadingContent label="Issuing" /> : 'Issue Credential'}
-                  {!isDirectIssuing && <span className={OTP_BADGE_CLASS}>OTP</span>}
                 </button>
                 <button
                   type="button"
@@ -545,12 +541,11 @@ export default function InstitutionIssueSection({
                             ? 'Attach a file to issue this credential.'
                             : requestRequiresExpiry && !issueExpiryByRequestId[request.id]
                               ? 'Set an expiry date before issuing this credential.'
-                              : 'Issue Credential (OTP required)'
+                              : 'Issue Credential'
                         }
                       >
                         <ClipboardCheck size={13} />
                         Issue
-                        <span className={OTP_BADGE_CLASS}>OTP</span>
                       </button>
                       {(request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') && (
                         <button
@@ -706,11 +701,9 @@ export default function InstitutionIssueSection({
                           }}
                           disabled={reissuingCredentialId === credential.id || isRevoked}
                           className="inline-flex h-9 items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
-                          title="OTP required before this action is applied"
                         >
                           <ClipboardCheck size={12} />
                           Re-issue
-                          <span className={OTP_BADGE_CLASS}>OTP</span>
                         </button>
                         {isLockedForStatusUpdate && (
                           <span className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold  text-rose-700">

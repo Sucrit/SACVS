@@ -812,6 +812,9 @@ export class UserController {
       if (error instanceof Error && error.message === 'STATUS_UNCHANGED') {
         return res.status(409).json({ error: `User is already ${status}.` });
       }
+      if (error instanceof Error && error.message === 'INVALID_TRANSITION') {
+        return res.status(422).json({ error: 'This status transition is not allowed.' });
+      }
       console.error('Error updating user status:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }

@@ -512,6 +512,13 @@ export class UserRepository {
     });
   }
 
+  private static readonly VALID_STATUS_TRANSITIONS: Record<UserStatus, UserStatus[]> = {
+    PENDING: ['APPROVED', 'REJECTED'],
+    APPROVED: ['SUSPENDED'],
+    SUSPENDED: ['APPROVED'],
+    REJECTED: [],
+  };
+
   async updateUserStatus(userId: string, status: UserStatus, actorId?: string | null): Promise<User> {
     const normalizedActorId = actorId ?? null;
     const approvedAt = status === 'APPROVED' ? new Date() : null;

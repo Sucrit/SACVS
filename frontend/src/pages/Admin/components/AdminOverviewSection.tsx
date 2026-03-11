@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import { formatDate, formatDateTime } from '../../../utils/formatting';
-import { getFullName, getRoleStyles, getRiskBandStyles, OTP_BADGE_CLASS } from '../useAdminDashboardState';
+import { getFullName, getRoleStyles, getRiskBandStyles } from '../useAdminDashboardState';
 import type { RiskEventRecord } from '../../../services/risk.service';
 import type { User } from '../../../services/user.service';
 
@@ -61,7 +61,7 @@ export default function AdminOverviewSection({
           </div>
           <div>
             <p className="text-2xl font-semibold text-neutral-900">{pendingUsers}</p>
-            <p className="text-xs text-neutral-500">Pending Institution Approvals</p>
+            <p className="text-xs text-neutral-500">Institution Partnership Requests</p>
           </div>
         </div>
 
@@ -100,7 +100,7 @@ export default function AdminOverviewSection({
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <Card
-            title="Pending Institution Approvals    "
+            title="Institution Approval Queue"
             action={
               <Link
                 to="/admin/users"
@@ -150,23 +150,15 @@ export default function AdminOverviewSection({
                         disabled={isUpdatingStatus === user.id}
                         onClick={() => void handleStatusUpdate(user.id, 'APPROVED')}
                         className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        title="OTP required before this action is applied"
                       >
-                        <span className="inline-flex items-center gap-1.5">
-                          Approve
-                          <span className={OTP_BADGE_CLASS}>OTP</span>
-                        </span>
+                        Approve
                       </button>
                       <button
                         disabled={isUpdatingStatus === user.id}
                         onClick={() => void handleStatusUpdate(user.id, 'REJECTED')}
                         className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-800 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
-                        title="OTP required before this action is applied"
                       >
-                        <span className="inline-flex items-center gap-1.5">
-                          Reject
-                          <span className={OTP_BADGE_CLASS}>OTP</span>
-                        </span>
+                        Reject
                       </button>
                     </div>
                   </div>

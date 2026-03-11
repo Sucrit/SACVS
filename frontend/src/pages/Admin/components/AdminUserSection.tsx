@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Check, ListFilter, PauseCircle, Search, XCircle } from 'lucide-react';
+import ActionMenu from '../../../components/common/ActionMenu';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
@@ -167,37 +168,43 @@ export default function AdminUserSection({
                     {formatDate(user.createdAt)}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="inline-flex gap-2" onClick={e => e.stopPropagation()}>
-                      {user.status !== 'APPROVED' && (
-                        <button
-                          disabled={isUpdatingStatus === user.id}
-                          onClick={() => void handleStatusUpdate(user.id, 'APPROVED')}
-                          className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-                          title="Approve"
-                        >
-                          <Check size={14} />
-                        </button>
+                    <div className="inline-flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                      {user.status === 'PENDING' && (
+                        <>
+                          <button
+                            disabled={isUpdatingStatus === user.id}
+                            onClick={() => void handleStatusUpdate(user.id, 'APPROVED')}
+                            className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                            title="Approve"
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button
+                            disabled={isUpdatingStatus === user.id}
+                            onClick={() => void handleStatusUpdate(user.id, 'REJECTED')}
+                            className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                            title="Reject"
+                          >
+                            <XCircle size={14} />
+                          </button>
+                        </>
                       )}
-                      {user.status !== 'REJECTED' && (
-                        <button
-                          disabled={isUpdatingStatus === user.id}
-                          onClick={() => void handleStatusUpdate(user.id, 'REJECTED')}
-                          className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-700 hover:bg-rose-100 disabled:opacity-50"
-                          title="Reject"
-                        >
-                          <XCircle size={14} />
-                        </button>
-                      )}
-                      {user.status !== 'SUSPENDED' && (
-                        <button
-                          disabled={isUpdatingStatus === user.id}
-                          onClick={() => void handleStatusUpdate(user.id, 'SUSPENDED')}
-                          className="rounded-lg border border-orange-200 bg-orange-50 p-2 text-orange-700 hover:bg-orange-100 disabled:opacity-50"
-                          title="Suspend"
-                        >
-                          <PauseCircle size={14} />
-                        </button>
-                      )}
+                      <ActionMenu
+                        items={[
+                          ...(user.status === 'SUSPENDED' ? [{
+                            label: 'Approve',
+                            icon: <Check size={14} className="text-emerald-600" />,
+                            onClick: () => void handleStatusUpdate(user.id, 'APPROVED'),
+                            disabled: isUpdatingStatus === user.id,
+                          }] : []),
+                          ...(user.status === 'APPROVED' ? [{
+                            label: 'Suspend',
+                            icon: <PauseCircle size={14} className="text-orange-600" />,
+                            onClick: () => void handleStatusUpdate(user.id, 'SUSPENDED'),
+                            disabled: isUpdatingStatus === user.id,
+                          }] : []),
+                        ]}
+                      />
                     </div>
                   </td>
                 </tr>

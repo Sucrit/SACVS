@@ -622,14 +622,9 @@ export default function StudentCredentialsSection({
                 onClick={() => void handleRegenerateQr()}
                 disabled={isGeneratingQr}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
-                title={allowDocumentDownload ? 'OTP required when regenerating with download enabled' : 'Regenerate one-time QR'}
+                title="Regenerate one-time QR"
               >
                 {isGeneratingQr ? <ButtonLoadingContent label="Regenerating" /> : 'Regenerate'}
-                {allowDocumentDownload && (
-                  <span className="rounded-md border border-warning-100 bg-warning-50 px-1.5 py-0.5 text-[10px] font-medium text-warning-700">
-                    OTP
-                  </span>
-                )}
               </button>
             </div>
             </div>
