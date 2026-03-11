@@ -366,13 +366,13 @@ export default function AdminDashboard() {
                     <td className="px-4 py-3">
                       <div className="space-y-1">
                         <p className="text-sm font-semibold text-neutral-900">{event.action}</p>
-                        <p className="text-xs text-neutral-500">{event.targetType || 'No target'}{event.targetId ? ` â€¢ ${event.targetId}` : ''}</p>
+                        <p className="text-xs text-neutral-500">{event.targetType || 'System scope'}</p>
                       </div>
                     </td>
                     <td className="hidden px-4 py-3 sm:table-cell">
                       <div className="space-y-1 text-xs text-neutral-600">
                         <p className="font-semibold text-neutral-800">{event.actorRole || 'UNKNOWN'}</p>
-                        <p>{event.actorId || '-'}</p>
+                        <p>{event.actorId ? 'Authenticated activity' : 'System generated'}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold text-neutral-900">{event.riskScore.toFixed(2)}</td>

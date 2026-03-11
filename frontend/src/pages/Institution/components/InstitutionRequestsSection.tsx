@@ -1,7 +1,8 @@
-﻿import { useMemo } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { Check, ClipboardCheck, FileText, Search, X, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
+import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import ActionMenu from '../../../components/common/ActionMenu';
 import TopNavPortal from '../../../components/common/TopNavPortal';
@@ -74,10 +75,16 @@ export default function InstitutionRequestsSection({
   onRequestAction,
   onBulkAction,
 }: InstitutionRequestsSectionProps) {
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const studentById = useMemo(
     () => new Map(students.map(student => [student.id, student] as const)),
     [students],
   );
+  const selectedRequest = useMemo(
+    () => requests.find(request => request.id === selectedRequestId) || null,
+    [requests, selectedRequestId],
+  );
+  const selectedRequestStudent = selectedRequest ? studentById.get(selectedRequest.studentId) || null : null;
 
   const filterGroups = useMemo<SearchFilterGroup[]>(() => [
     {
@@ -226,6 +233,11 @@ export default function InstitutionRequestsSection({
                         <ActionMenu
                           items={[
                             {
+                              label: 'View details',
+                              icon: <FileText size={14} className="text-neutral-600" />,
+                              onClick: () => setSelectedRequestId(request.id),
+                            },
+                            {
                               label: 'Approve',
                               icon: <Check size={14} className="text-emerald-600" />,
                               onClick: () => void onRequestAction(request.id, 'APPROVE'),
@@ -267,6 +279,11 @@ export default function InstitutionRequestsSection({
                         )}
                         <ActionMenu
                           items={[
+                            {
+                              label: 'View details',
+                              icon: <FileText size={14} className="text-neutral-600" />,
+                              onClick: () => setSelectedRequestId(request.id),
+                            },
                             ...((request.deliveryMethod !== 'PHYSICAL') ? [{
                               label: issueFileByRequestId[request.id] ? 'Change File' : 'Attach File',
                               icon: <Upload size={14} className="text-neutral-600" />,
@@ -308,6 +325,51 @@ export default function InstitutionRequestsSection({
           </table>
         </div>
       </Card>
+
+      <RecordDetailsDrawer
+        open={selectedRequest !== null}
+        onClose={() => setSelectedRequestId(null)}
+        title={selectedRequest?.title || 'Request Details'}
+        description="Detailed request information"
+        sections={selectedRequest ? [
+          {
+            title: 'Student',
+            fields: [
+              {
+                label: 'Name',
+                value: selectedRequestStudent ? getStudentFullName(selectedRequestStudent) : 'Student record unavailable',
+              },
+              {
+                label: 'Student Number',
+                value: selectedRequestStudent?.profile?.studentNumber || '--',
+              },
+              {
+                label: 'Email',
+                value: selectedRequestStudent?.email || '--',
+              },
+              {
+                label: 'Program',
+                value: selectedRequestStudent?.profile?.courseOfStudy || '--',
+              },
+            ],
+          },
+          {
+            title: 'Request',
+            fields: [
+              { label: 'Document', value: selectedRequest.title },
+              { label: 'Type', value: getRequestTypeLabel(selectedRequest) },
+              { label: 'Status', value: <Badge status={selectedRequest.status} /> },
+              { label: 'Delivery', value: selectedRequest.deliveryMethod },
+              { label: 'Requested At', value: formatDate(selectedRequest.createdAt) },
+              { label: 'Processed At', value: selectedRequest.processedAt ? formatDate(selectedRequest.processedAt) : '--' },
+              { label: 'Purpose', value: selectedRequest.purpose || '--' },
+              { label: 'Description', value: selectedRequest.description || '--' },
+              { label: 'Rejection Reason', value: selectedRequest.rejectionReason || '--' },
+              { label: 'Notes', value: selectedRequest.notes || '--' },
+            ],
+          },
+        ] : []}
+      />
     </div>
   );
 }

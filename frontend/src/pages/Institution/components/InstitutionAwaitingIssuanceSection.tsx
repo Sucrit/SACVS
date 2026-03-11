@@ -1,7 +1,9 @@
-import { useMemo } from 'react';
-import { ClipboardCheck, Upload } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ClipboardCheck, FileText, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import ActionMenu from '../../../components/common/ActionMenu';
+import Badge from '../../../components/common/Badge';
+import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import {
   CredentialRequest,
   CredentialType,
@@ -57,6 +59,7 @@ export default function InstitutionAwaitingIssuanceSection({
   onIssueExpiryChange,
   onRequestAction,
 }: InstitutionAwaitingIssuanceSectionProps) {
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const studentById = useMemo(
     () => new Map(students.map(student => [student.id, student] as const)),
     [students],
@@ -69,6 +72,11 @@ export default function InstitutionAwaitingIssuanceSection({
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [requests],
   );
+  const selectedRequest = useMemo(
+    () => readyToIssue.find(request => request.id === selectedRequestId) || null,
+    [readyToIssue, selectedRequestId],
+  );
+  const selectedRequestStudent = selectedRequest ? studentById.get(selectedRequest.studentId) || null : null;
 
   return (
     <Card title="Awaiting Issuance">
@@ -129,7 +137,13 @@ export default function InstitutionAwaitingIssuanceSection({
                         </td>
                         <td className="px-4 py-3">
                           <p className="text-sm font-semibold text-neutral-900">{request.title}</p>
-                          <p className="mt-1 text-xs text-neutral-500">{request.id}</p>
+                          <p className="mt-1 text-xs text-neutral-500">
+                            {request.deliveryMethod === 'BOTH'
+                              ? 'Digital + physical delivery'
+                              : request.deliveryMethod === 'DIGITAL'
+                                ? 'Digital delivery'
+                                : 'Physical delivery'}
+                          </p>
                         </td>
                         <td className="hidden px-4 py-3 text-sm text-neutral-600 md:table-cell">{getRequestTypeLabel(request)}</td>
                         <td className="hidden px-4 py-3 text-sm text-neutral-600 lg:table-cell">{formatDateTime(request.createdAt)}</td>
@@ -179,6 +193,11 @@ export default function InstitutionAwaitingIssuanceSection({
                             <ActionMenu
                               items={[
                                 {
+                                  label: 'View details',
+                                  icon: <FileText size={14} className="text-neutral-600" />,
+                                  onClick: () => setSelectedRequestId(request.id),
+                                },
+                                {
                                   label: 'Issue Credential',
                                   icon: <ClipboardCheck size={14} className="text-cyan-700" />,
                                   onClick: () => void onRequestAction(request.id, 'ISSUE'),
@@ -207,6 +226,50 @@ export default function InstitutionAwaitingIssuanceSection({
           </tbody>
         </table>
       </div>
+
+      <RecordDetailsDrawer
+        open={selectedRequest !== null}
+        onClose={() => setSelectedRequestId(null)}
+        title={selectedRequest?.title || 'Request Details'}
+        description="Detailed request information"
+        sections={selectedRequest ? [
+          {
+            title: 'Student',
+            fields: [
+              {
+                label: 'Name',
+                value: selectedRequestStudent ? getStudentFullName(selectedRequestStudent) : 'Student record unavailable',
+              },
+              {
+                label: 'Student Number',
+                value: selectedRequestStudent?.profile?.studentNumber || '--',
+              },
+              {
+                label: 'Email',
+                value: selectedRequestStudent?.email || '--',
+              },
+              {
+                label: 'Program',
+                value: selectedRequestStudent?.profile?.courseOfStudy || '--',
+              },
+            ],
+          },
+          {
+            title: 'Request',
+            fields: [
+              { label: 'Document', value: selectedRequest.title },
+              { label: 'Type', value: getRequestTypeLabel(selectedRequest) },
+              { label: 'Status', value: <Badge status={selectedRequest.status} /> },
+              { label: 'Delivery', value: selectedRequest.deliveryMethod },
+              { label: 'Requested At', value: formatDateTime(selectedRequest.createdAt) },
+              { label: 'Processed At', value: selectedRequest.processedAt ? formatDateTime(selectedRequest.processedAt) : '--' },
+              { label: 'Purpose', value: selectedRequest.purpose || '--' },
+              { label: 'Description', value: selectedRequest.description || '--' },
+              { label: 'Notes', value: selectedRequest.notes || '--' },
+            ],
+          },
+        ] : []}
+      />
     </Card>
   );
 }

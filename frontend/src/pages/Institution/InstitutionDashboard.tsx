@@ -1,5 +1,7 @@
-﻿import { AuditAction, AuditSeverity } from '../../services/audit.service';
+﻿import { useMemo, useState } from 'react';
+import { AuditAction, AuditSeverity } from '../../services/audit.service';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
+import RecordDetailsDrawer from '../../components/common/RecordDetailsDrawer';
 import InstitutionStudentsSection from './components/InstitutionStudentsSection';
 import InstitutionRequestsSection from './components/InstitutionRequestsSection';
 import InstitutionIssueSection from './components/InstitutionIssueFormSection';
@@ -14,6 +16,11 @@ import { useInstitutionDashboardState } from './useInstitutionDashboardState';
 
 export default function InstitutionDashboard() {
   const state = useInstitutionDashboardState();
+  const [selectedAuditLogId, setSelectedAuditLogId] = useState<string | null>(null);
+  const selectedAuditLog = useMemo(
+    () => state.filteredInstitutionAuditLogs.find(log => log.id === selectedAuditLogId) || null,
+    [selectedAuditLogId, state.filteredInstitutionAuditLogs],
+  );
 
   const institutionAuditFilterGroups: SearchFilterGroup[] = [
     {
@@ -239,7 +246,11 @@ export default function InstitutionDashboard() {
                 )}
                 {!state.isLoadingAuditLogs &&
                   state.pagedInstitutionAuditLogs.map(log => (
-                    <tr key={log.id} className="hover:bg-slate-50/70">
+                    <tr
+                      key={log.id}
+                      className="cursor-pointer hover:bg-slate-50/70"
+                      onClick={() => setSelectedAuditLogId(log.id)}
+                    >
                       <td className="px-4 py-3 text-xs text-slate-600">{new Date(log.createdAt).toLocaleString()}</td>
                       <td className="px-4 py-3 text-xs font-semibold text-slate-800">{log.action}</td>
                       <td className="px-4 py-3 text-xs text-slate-700">{log.severity}</td>
@@ -275,6 +286,35 @@ export default function InstitutionDashboard() {
               </div>
             </div>
           )}
+
+          <RecordDetailsDrawer
+            open={selectedAuditLog !== null}
+            onClose={() => setSelectedAuditLogId(null)}
+            title={selectedAuditLog?.action || 'Audit Log Details'}
+            description="Institution audit log entry"
+            sections={selectedAuditLog ? [
+              {
+                title: 'Event',
+                fields: [
+                  { label: 'Timestamp', value: new Date(selectedAuditLog.createdAt).toLocaleString() },
+                  { label: 'Action', value: selectedAuditLog.action },
+                  { label: 'Severity', value: selectedAuditLog.severity },
+                  { label: 'Actor Role', value: selectedAuditLog.actorRole || '--' },
+                  { label: 'Actor', value: selectedAuditLog.actorEmail || 'System' },
+                  { label: 'Target Type', value: selectedAuditLog.targetType || '--' },
+                  { label: 'Description', value: selectedAuditLog.description || '--' },
+                  {
+                    label: 'Metadata',
+                    value: selectedAuditLog.metadata ? (
+                      <pre className="whitespace-pre-wrap text-xs text-neutral-700">
+                        {JSON.stringify(selectedAuditLog.metadata, null, 2)}
+                      </pre>
+                    ) : '--',
+                  },
+                ],
+              },
+            ] : []}
+          />
         </div>
       )}
       {state.stepUpModal}

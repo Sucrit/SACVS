@@ -5,6 +5,7 @@ import { ClipboardCheck, Eye, Upload, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import { useToast } from '../../../hooks/useToast';
 import {
   Credential,
@@ -116,6 +117,7 @@ export default function InstitutionIssueSection({
   const [reissueFileByCredentialId, setReissueFileByCredentialId] = useState<Record<string, File | null>>({});
   const [updatingCredentialId, setUpdatingCredentialId] = useState<string | null>(null);
   const [reissuingCredentialId, setReissuingCredentialId] = useState<string | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
 
   const studentById = useMemo(
     () => new Map(students.map(student => [student.id, student] as const)),
@@ -139,6 +141,11 @@ export default function InstitutionIssueSection({
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [requests],
   );
+  const selectedRequest = useMemo(
+    () => readyToIssue.find(request => request.id === selectedRequestId) || null,
+    [readyToIssue, selectedRequestId],
+  );
+  const selectedRequestStudent = selectedRequest ? studentById.get(selectedRequest.studentId) || null : null;
   const modalRoot = typeof document !== 'undefined' ? document.body : null;
 
   const handleSubmitDirectIssue = async (event: FormEvent<HTMLFormElement>) => {
@@ -493,7 +500,13 @@ export default function InstitutionIssueSection({
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-sm font-semibold text-neutral-900">{request.title}</p>
-                      <p className="mt-1 text-xs text-neutral-500">{request.id}</p>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        {request.deliveryMethod === 'BOTH'
+                          ? 'Digital + physical delivery'
+                          : request.deliveryMethod === 'DIGITAL'
+                            ? 'Digital delivery'
+                            : 'Physical delivery'}
+                      </p>
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-600">{getRequestTypeLabel(request)}</td>
                     <td className="px-4 py-3 text-sm text-neutral-600">{formatDateTime(request.createdAt)}</td>
@@ -540,6 +553,13 @@ export default function InstitutionIssueSection({
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
+                        onClick={() => setSelectedRequestId(request.id)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                      >
+                        <Eye size={13} />
+                        View
+                      </button>
+                      <button
                         disabled={
                           updatingRequestId === request.id ||
                           request.deliveryMethod === 'PHYSICAL' ||
@@ -563,7 +583,7 @@ export default function InstitutionIssueSection({
                       </button>
                       {(request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') && (
                         <button
-                        disabled={updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId)}
+                          disabled={updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId)}
                           onClick={() => void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED')}
                           className="ml-2 inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
                           title={
@@ -585,6 +605,50 @@ export default function InstitutionIssueSection({
           </table>
         </div>
       </Card>
+
+      <RecordDetailsDrawer
+        open={selectedRequest !== null}
+        onClose={() => setSelectedRequestId(null)}
+        title={selectedRequest?.title || 'Request Details'}
+        description="Detailed request information"
+        sections={selectedRequest ? [
+          {
+            title: 'Student',
+            fields: [
+              {
+                label: 'Name',
+                value: selectedRequestStudent ? getStudentFullName(selectedRequestStudent) : 'Student record unavailable',
+              },
+              {
+                label: 'Student Number',
+                value: selectedRequestStudent?.profile?.studentNumber || '--',
+              },
+              {
+                label: 'Email',
+                value: selectedRequestStudent?.email || '--',
+              },
+              {
+                label: 'Program',
+                value: selectedRequestStudent?.profile?.courseOfStudy || '--',
+              },
+            ],
+          },
+          {
+            title: 'Request',
+            fields: [
+              { label: 'Document', value: selectedRequest.title },
+              { label: 'Type', value: getRequestTypeLabel(selectedRequest) },
+              { label: 'Status', value: <Badge status={selectedRequest.status} /> },
+              { label: 'Delivery', value: selectedRequest.deliveryMethod },
+              { label: 'Requested At', value: formatDateTime(selectedRequest.createdAt) },
+              { label: 'Processed At', value: selectedRequest.processedAt ? formatDateTime(selectedRequest.processedAt) : '--' },
+              { label: 'Purpose', value: selectedRequest.purpose || '--' },
+              { label: 'Description', value: selectedRequest.description || '--' },
+              { label: 'Notes', value: selectedRequest.notes || '--' },
+            ],
+          },
+        ] : []}
+      />
 
       <Card title="Manage Student Credentials">
         <div className="overflow-x-auto rounded-lg border border-neutral-200">

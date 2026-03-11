@@ -1,7 +1,8 @@
-﻿import { FormEvent } from 'react';
+﻿import { FormEvent, useMemo, useState } from 'react';
 import { Bell } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import { NotificationTarget, OutboundNotification } from '../types';
 import { formatDateTime } from '../utils';
 
@@ -34,6 +35,12 @@ export default function InstitutionNotificationsSection({
   onMessageChange,
   onSubmit,
 }: InstitutionNotificationsSectionProps) {
+  const [selectedNotificationId, setSelectedNotificationId] = useState<string | null>(null);
+  const selectedNotification = useMemo(
+    () => notifications.find(notification => notification.id === selectedNotificationId) || null,
+    [notifications, selectedNotificationId],
+  );
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -108,7 +115,11 @@ export default function InstitutionNotificationsSection({
                 </tr>
               )}
               {notifications.map(item => (
-                <tr key={item.id} className="hover:bg-neutral-50/70">
+                <tr
+                  key={item.id}
+                  className="cursor-pointer hover:bg-neutral-50/70"
+                  onClick={() => setSelectedNotificationId(item.id)}
+                >
                   <td className="px-4 py-3 text-sm text-neutral-700">{item.target}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-neutral-900">{item.title}</td>
                   <td className="px-4 py-3 text-sm text-neutral-600">{item.message}</td>
@@ -121,6 +132,26 @@ export default function InstitutionNotificationsSection({
           </table>
         </div>
       </Card>
+
+      <RecordDetailsDrawer
+        open={selectedNotification !== null}
+        onClose={() => setSelectedNotificationId(null)}
+        title={selectedNotification?.title || 'Notification Details'}
+        description="Notification activity details"
+        sections={selectedNotification ? [
+          {
+            title: 'Notification',
+            fields: [
+              { label: 'Target', value: selectedNotification.target },
+              { label: 'Recipients', value: String(selectedNotification.recipientCount) },
+              { label: 'Sent By', value: selectedNotification.createdByName || selectedNotification.createdByEmail },
+              { label: 'Queued At', value: formatDateTime(selectedNotification.createdAt) },
+              { label: 'Title', value: selectedNotification.title },
+              { label: 'Message', value: selectedNotification.message },
+            ],
+          },
+        ] : []}
+      />
     </div>
   );
 }
