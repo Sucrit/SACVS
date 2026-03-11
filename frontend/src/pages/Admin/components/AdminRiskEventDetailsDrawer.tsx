@@ -2,6 +2,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import Button from '../../../components/ui/Button';
 import {
   RiskEventRecord,
   RiskReviewReasonCode,
@@ -115,7 +116,7 @@ export default function AdminRiskEventDetailsDrawer({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 z-[90] flex justify-end bg-neutral-950/40 backdrop-blur-[2px]"
+          className="fixed inset-0 z-90 flex justify-end bg-neutral-950/40 backdrop-blur-[2px]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -149,7 +150,7 @@ export default function AdminRiskEventDetailsDrawer({
 
             <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-7 sm:py-6">
               {isLoading && (
-                <div className="flex min-h-[320px] flex-col items-center justify-center text-center">
+                <div className="flex min-h-80 flex-col items-center justify-center text-center">
                   <div className="h-10 w-10 animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-700" />
                   <p className="mt-4 text-base font-medium text-neutral-700">Loading risk event details</p>
                   <p className="mt-1 text-sm text-neutral-500">Fetching feature snapshot and review context.</p>
@@ -157,7 +158,7 @@ export default function AdminRiskEventDetailsDrawer({
               )}
 
               {!isLoading && !event && (
-                <div className="flex min-h-[320px] flex-col items-center justify-center text-center">
+                <div className="flex min-h-80 flex-col items-center justify-center text-center">
                   <p className="text-base font-medium text-neutral-700">No risk event selected</p>
                   <p className="mt-1 text-sm text-neutral-500">Choose a row from the queue to inspect it.</p>
                 </div>
@@ -296,9 +297,11 @@ export default function AdminRiskEventDetailsDrawer({
                       />
                       <div className="flex flex-wrap gap-2">
                         {REVIEW_ACTIONS.map(action => (
-                          <button
+                          <Button
                             key={action.status}
                             type="button"
+                            variant={action.status === 'CONFIRMED_ABUSE' ? 'danger' : action.status === 'BENIGN' ? 'success' : 'secondary'}
+                            size="sm"
                             disabled={isSavingReview}
                             onClick={() =>
                               void onSaveReview(
@@ -309,17 +312,14 @@ export default function AdminRiskEventDetailsDrawer({
                                 draftNotes.trim() || null,
                               )
                             }
-                            className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            {isSavingReview && event.reviewStatus !== action.status ? (
-                              <ButtonLoadingContent label="Saving" />
-                            ) : (
-                              action.label
-                            )}
-                          </button>
+                            {isSavingReview && event.reviewStatus !== action.status ? <ButtonLoadingContent label="Saving" /> : action.label}
+                          </Button>
                         ))}
-                        <button
+                        <Button
                           type="button"
+                          variant="secondary"
+                          size="sm"
                           disabled={isSavingReview || (!hasUnsavedNotes && !hasUnsavedReviewMeta)}
                           onClick={() =>
                             void onSaveReview(
@@ -330,10 +330,9 @@ export default function AdminRiskEventDetailsDrawer({
                               draftNotes.trim() || null,
                             )
                           }
-                          className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {isSavingReview ? <ButtonLoadingContent label="Saving" /> : 'Save notes'}
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </section>

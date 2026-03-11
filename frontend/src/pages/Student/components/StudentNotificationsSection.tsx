@@ -6,8 +6,8 @@ import {
   Settings,
 } from 'lucide-react';
 import Card from '../../../components/common/Card';
-import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import PaginationControls from '../../../components/common/PaginationControls';
+import Button from '../../../components/ui/Button';
 import {
   AppNotification,
   getNotificationDisplayMessage,
@@ -152,29 +152,34 @@ export default function StudentNotificationsSection({
             {isMenuOpen && (
               <div ref={menuRef} className="absolute right-0 top-10 z-10 w-56 max-w-[calc(100vw-2rem)]">
                 <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="md"
+                    icon={<CheckCheck size={15} />}
                     onClick={() => {
                       onMarkAllRead();
                       setIsMenuOpen(false);
                     }}
-                    disabled={unreadCount === 0 || isMarkingAllRead}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={unreadCount === 0}
+                    loading={isMarkingAllRead}
+                    className="w-full justify-start rounded-none px-3 font-semibold"
                   >
-                    <CheckCheck size={15} />
-                    {isMarkingAllRead ? <ButtonLoadingContent label="Marking" /> : 'Mark all as read'}
-                  </button>
-                  <button
+                    Mark all as read
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="md"
+                    icon={<Settings size={15} />}
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
+                    className="w-full justify-start rounded-none px-3 font-semibold"
                   >
-                    <Settings size={15} />
                     Notification settings
                     <span className="ml-auto text-[10px] font-semibold  text-neutral-400">
                       N/a
                     </span>
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}

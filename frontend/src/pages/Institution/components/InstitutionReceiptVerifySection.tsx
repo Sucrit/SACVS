@@ -2,7 +2,7 @@
 import { useSearchParams } from 'react-router-dom';
 import { AlertCircle, Camera, CameraOff, CheckCircle2, Clock3, FileSearch, QrCode, XCircle } from 'lucide-react';
 import Card from '../../../components/common/Card';
-import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import Button from '../../../components/ui/Button';
 import { useToast } from '../../../hooks/useToast';
 import { ApprovalReceiptVerificationResult, CredentialService } from '../../../services/credential.service';
 
@@ -234,27 +234,27 @@ export default function InstitutionReceiptVerifySection() {
             placeholder="Paste approval receipt URL or token here..."
             className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
           />
-          <button
+          <Button
             type="button"
             onClick={() => void verifyReceiptToken()}
-            disabled={!receiptTokenInput.trim() || isVerifying}
-            className="inline-flex h-10 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-50 px-4 text-xs font-semibold text-indigo-800 hover:bg-indigo-100 disabled:opacity-50"
+            disabled={!receiptTokenInput.trim()}
+            size="lg"
+            loading={isVerifying}
+            className="rounded-xl"
           >
-            {isVerifying ? 'Verifying...' : 'Verify receipt'}
-          </button>
-          <button
+            Verify receipt
+          </Button>
+          <Button
             type="button"
             onClick={() => void startScanner()}
             disabled={isStartingScanner}
-            className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-4 text-xs font-semibold transition ${
-              isScannerActive || isScannerOpen
-                ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
-                : 'border-neutral-200 bg-neutral-50 text-neutral-700 hover:bg-neutral-100'
-            }`}
+            variant={isScannerActive || isScannerOpen ? 'danger' : 'secondary'}
+            size="lg"
+            icon={isScannerActive || isScannerOpen ? <CameraOff size={14} /> : <Camera size={14} />}
+            className="rounded-xl"
           >
-            {isScannerActive || isScannerOpen ? <CameraOff size={14} /> : <Camera size={14} />}
             {isStartingScanner ? 'Starting camera...' : isScannerActive || isScannerOpen ? 'Stop scanner' : 'Scan QR with camera'}
-          </button>
+          </Button>
         </div>
 
         <div className="mt-4 min-h-90">
@@ -317,14 +317,16 @@ export default function InstitutionReceiptVerifySection() {
                       Claimed marked
                     </span>
                   )}
-                  <button
+                  <Button
                     type="button"
                     onClick={() => void handleMarkClaimed()}
-                    disabled={isMarkingClaimed || markedClaimedRequestIds.includes(result.receipt.requestId)}
-                    className="inline-flex h-9 items-center justify-center rounded-lg bg-neutral-900 px-3 text-xs font-semibold text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={markedClaimedRequestIds.includes(result.receipt.requestId)}
+                    size="sm"
+                    loading={isMarkingClaimed}
+                    className="rounded-lg"
                   >
-                    {isMarkingClaimed ? <ButtonLoadingContent label="Marking" sizeClassName="h-3 w-3" /> : 'Mark as claimed'}
-                  </button>
+                    Mark as claimed
+                  </Button>
                 </div>
               </div>
             </div>

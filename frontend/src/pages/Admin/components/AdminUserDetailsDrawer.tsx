@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import Badge from '../../../components/common/Badge';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import Button from '../../../components/ui/Button';
 import { User, UserRole, UserStatus } from '../../../services/user.service';
 import { formatDateTime } from '../../../utils/formatting';
 import {
@@ -52,7 +53,7 @@ export default function AdminUserDetailsDrawer({
     <AnimatePresence>
       {isOpen && user && (
         <motion.div
-          className="fixed inset-0 z-[90] flex justify-end bg-neutral-950/40 backdrop-blur-[2px]"
+          className="fixed inset-0 z-90 flex justify-end bg-neutral-950/40 backdrop-blur-[2px]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -133,14 +134,17 @@ export default function AdminUserDetailsDrawer({
                 </p>
                 <div className="grid grid-cols-3 gap-2">
                   {USER_ROLE_ACTIONS.map(nextRole => (
-                    <button
+                    <Button
                       key={nextRole}
+                      type="button"
+                      variant="secondary"
+                      size="sm"
                       disabled={isUpdatingRole === user.id || user.role === nextRole}
                       onClick={() => void onRoleUpdate(user.id, nextRole)}
-                      className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                      className={`w-full ${
                         user.role === nextRole
-                          ? 'cursor-not-allowed border-neutral-200 bg-neutral-100 text-neutral-400'
-                          : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'
+                          ? 'border-neutral-200 bg-neutral-100 text-neutral-400'
+                          : ''
                       }`}
                     >
                       <span className="inline-flex items-center gap-1.5">
@@ -148,7 +152,7 @@ export default function AdminUserDetailsDrawer({
                           ? <ButtonLoadingContent label="" />
                           : nextRole}
                       </span>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -163,18 +167,21 @@ export default function AdminUserDetailsDrawer({
                     <p className="col-span-2 text-xs text-neutral-400">No status transitions available.</p>
                   ) : (
                     (VALID_STATUS_TRANSITIONS[user.status] ?? []).map(nextStatus => (
-                      <button
+                      <Button
                         key={nextStatus}
+                        type="button"
+                        variant="secondary"
+                        size="sm"
                         disabled={isUpdatingStatus === user.id}
                         onClick={() => void onStatusUpdate(user.id, nextStatus)}
-                        className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-50"
+                        className="w-full"
                       >
                         <span className="inline-flex items-center gap-1.5">
                           {isUpdatingStatus === user.id
                             ? <ButtonLoadingContent label="" />
                             : nextStatus}
                         </span>
-                      </button>
+                      </Button>
                     ))
                   )}
                 </div>

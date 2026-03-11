@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import Card from '../../../components/common/Card';
-import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import Button from '../../../components/ui/Button';
 import {
   Credential,
   CredentialService,
@@ -240,14 +240,9 @@ export default function StudentCredentialDetailsSection({
   if (!selectedCredential) {
     return (
       <Card className="rounded-lg p-6">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50"
-        >
-          <ArrowLeft size={14} />
+        <Button type="button" variant="secondary" size="sm" icon={<ArrowLeft size={14} />} onClick={onBack}>
           Back
-        </button>
+        </Button>
         <div className="mt-4">
           <p className="text-xl font-semibold text-neutral-900">Credential Details</p>
           <p className="mt-1 text-sm text-neutral-500">Credential details are not available.</p>
@@ -272,14 +267,9 @@ export default function StudentCredentialDetailsSection({
               </div>
             )}
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onBack}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50"
-              >
-                <ArrowLeft size={14} />
+              <Button type="button" variant="secondary" size="sm" icon={<ArrowLeft size={14} />} onClick={onBack}>
                 Back
-              </button>
+              </Button>
               <div className="flex items-center gap-2">
                 <FileBadge2 size={14} className="text-neutral-500" />
                 <p className="text-xs font-semibold  text-neutral-500">Document Preview</p>
@@ -395,16 +385,18 @@ export default function StudentCredentialDetailsSection({
                     Actions
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
-                    <button
+                    <Button
                       type="button"
+                      variant="secondary"
+                      size="sm"
+                      icon={<Share2 size={13} />}
                       onClick={() => void handleShare()}
-                      disabled={isRevoked || !canGenerateQr || isGeneratingQr}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      disabled={isRevoked || !canGenerateQr}
+                      loading={isGeneratingQr}
                       title="Share one-time QR"
                     >
-                      <Share2 size={13} />
-                      {isGeneratingQr ? <ButtonLoadingContent label="Generating" /> : 'Share'}
-                    </button>
+                      Share
+                    </Button>
                     {isRevoked ? (
                       <button
                         type="button"
@@ -480,7 +472,7 @@ export default function StudentCredentialDetailsSection({
               </button>
             </div>
             <div className="p-5">
-            <div className="text-sm text-neutral-600 min-h-[20px]">
+            <div className="min-h-5 text-sm text-neutral-600">
               {isGeneratingQr ? (
                 <span className="text-neutral-500 animate-pulse">Waiting for verification...</span>
               ) : (
@@ -525,24 +517,25 @@ export default function StudentCredentialDetailsSection({
               </label>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
+                icon={<Link2 size={13} />}
                 onClick={() => void handleCopyQrLink()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50"
               >
-                <Link2 size={13} />
                 Copy Link
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                size="sm"
+                icon={<RefreshIcon />}
                 onClick={() => void handleGenerateQr()}
-                disabled={isGeneratingQr}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-900 bg-neutral-900 px-3 py-2 text-xs font-semibold text-white hover:bg-neutral-800 disabled:opacity-50"
+                loading={isGeneratingQr}
                 title="Regenerate one-time QR"
               >
-                <RefreshIcon />
-                {isGeneratingQr ? <ButtonLoadingContent label="Regenerating" /> : 'Regenerate'}
-              </button>
+                Regenerate
+              </Button>
             </div>
             </div>
             </div>

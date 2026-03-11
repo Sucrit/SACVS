@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { AuditAction, AuditSeverity } from '../../services/audit.service';
 import { RiskBand, RiskReviewStatus, RiskService } from '../../services/risk.service';
-import ButtonLoadingContent from '../../components/common/ButtonLoadingContent';
+import Button from '../../components/ui/Button';
 import RecordDetailsDrawer from '../../components/common/RecordDetailsDrawer';
 import AdminRiskEventDetailsDrawer from './components/AdminRiskEventDetailsDrawer';
 import AdminNotificationsSection from './components/AdminNotificationsSection';
@@ -421,14 +421,15 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => void exportReviewedRiskReport()}
-              disabled={isExportingRiskReport}
-              className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
+              loading={isExportingRiskReport}
             >
-              {isExportingRiskReport ? <ButtonLoadingContent label="Exporting" /> : 'Export reviewed CSV'}
-            </button>
+              Export reviewed CSV
+            </Button>
           </div>
         }
       >
@@ -562,20 +563,22 @@ export default function AdminDashboard() {
               Page {currentRiskPage} of {totalRiskPages}
             </p>
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setRiskPage(previous => Math.max(1, previous - 1))}
                 disabled={currentRiskPage <= 1}
-                className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 disabled:opacity-50"
               >
                 Previous
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setRiskPage(previous => Math.min(totalRiskPages, previous + 1))}
                 disabled={currentRiskPage >= totalRiskPages}
-                className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 disabled:opacity-50"
               >
                 Next
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -660,20 +663,22 @@ export default function AdminDashboard() {
               Page {currentAdminAuditPage} of {totalAdminAuditPages}
             </p>
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setAuditPage(previous => Math.max(1, previous - 1))}
                 disabled={currentAdminAuditPage <= 1}
-                className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 disabled:opacity-50"
               >
                 Previous
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => setAuditPage(previous => Math.min(totalAdminAuditPages, previous + 1))}
                 disabled={currentAdminAuditPage >= totalAdminAuditPages}
-                className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 disabled:opacity-50"
               >
                 Next
-              </button>
+              </Button>
             </div>
           </div>
         )}

@@ -120,27 +120,6 @@ const getOverviewStatusTextClass = (status: User['status'] | CredentialRequest['
 const formatStatusText = (status: User['status'] | CredentialRequest['status']) =>
   status.toLowerCase().replace(/_/g, ' ');
 
-const requestStatusSummaryCards = [
-  {
-    key: 'pending',
-    label: 'Pending',
-    valueClassName: 'text-amber-600',
-    labelClassName: 'text-amber-500',
-  },
-  {
-    key: 'approved',
-    label: 'Approved',
-    valueClassName: 'text-cyan-600',
-    labelClassName: 'text-cyan-500',
-  },
-  {
-    key: 'completed',
-    label: 'Completed',
-    valueClassName: 'text-emerald-600',
-    labelClassName: 'text-emerald-500',
-  },
-] as const;
-
 export default function InstitutionOverviewSection({
   students,
   requests,
@@ -301,12 +280,6 @@ export default function InstitutionOverviewSection({
       request,
       student: studentById.get(request.studentId) || null,
     }));
-
-  const requestStatusCounts = {
-    pending: requests.filter(request => request.status === 'PENDING').length,
-    approved: requests.filter(request => request.status === 'APPROVED').length,
-    completed: requests.filter(request => request.status === 'COMPLETED').length,
-  };
 
   const lastIssuedByStudentId = new Map<string, string>();
   credentials
@@ -674,14 +647,14 @@ export default function InstitutionOverviewSection({
         <div className="xl:h-full">
           <Card
             className="flex h-full flex-col"
-            title="Recent Credential Requests"
+            title="Recent Requests"
             action={
               <button
                 type="button"
                 onClick={() => navigate('/institution/requests')}
                 className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100"
               >
-                Open Requests
+                See More
               </button>
             }
           >
@@ -727,17 +700,6 @@ export default function InstitutionOverviewSection({
                           {formatStatusText(request.status)}
                         </span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  {requestStatusSummaryCards.map(card => (
-                    <div key={card.key} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-center">
-                      <p className={`text-base font-semibold ${card.valueClassName}`}>
-                        {requestStatusCounts[card.key].toLocaleString()}
-                      </p>
-                      <p className={`text-[10px] font-medium ${card.labelClassName}`}>{card.label}</p>
                     </div>
                   ))}
                 </div>

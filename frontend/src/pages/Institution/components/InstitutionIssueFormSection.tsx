@@ -1,7 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { ClipboardCheck, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
-import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import Button from '../../../components/ui/Button';
 import { useToast } from '../../../hooks/useToast';
 import {
   Credential,
@@ -267,14 +267,15 @@ export default function InstitutionIssueFormSection({
           )}
         </div>
 
-        <button
+        <Button
           type="submit"
-          disabled={isDirectIssuing}
-          className="inline-flex h-10 items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-4 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
+          size="lg"
+          loading={isDirectIssuing}
+          icon={<ClipboardCheck size={14} />}
+          className="self-start rounded-xl"
         >
-          <ClipboardCheck size={13} />
-          {isDirectIssuing ? <ButtonLoadingContent label="Issuing" /> : 'Issue Credential'}
-        </button>
+          Issue Credential
+        </Button>
       </form>
     </Card>
   );

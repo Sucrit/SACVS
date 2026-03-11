@@ -5,6 +5,7 @@ import Badge from '../../../components/common/Badge';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import ActionMenu from '../../../components/common/ActionMenu';
+import Button from '../../../components/ui/Button';
 import { CredentialRequest, CredentialType } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
 import { REQUEST_STATUS_OPTIONS, RequestStatusFilter } from '../types';
@@ -120,8 +121,12 @@ export default function InstitutionRequestsSection({
             />
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <button onClick={() => void onBulkAction('APPROVE')} className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">Bulk Approve</button>
-            <button onClick={() => void onBulkAction('REJECT')} className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-800 hover:bg-rose-100">Bulk Reject</button>
+            <Button size="sm" variant="success" className="rounded-lg" onClick={() => void onBulkAction('APPROVE')}>
+              Bulk Approve
+            </Button>
+            <Button size="sm" variant="danger" className="rounded-lg" onClick={() => void onBulkAction('REJECT')}>
+              Bulk Reject
+            </Button>
           </div>
         </div>
 

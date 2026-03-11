@@ -5,7 +5,7 @@ import QRCode from 'qrcode';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import Card from '../../../components/common/Card';
-import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import Button from '../../../components/ui/Button';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import {
   Credential,
@@ -556,7 +556,7 @@ export default function StudentCredentialsSection({
               </button>
             </div>
             <div className="p-5">
-            <div className="text-sm text-neutral-600 min-h-[20px]">
+            <div className="min-h-5 text-sm text-neutral-600">
               {isGeneratingQr ? (
                 <span className="text-neutral-500 animate-pulse">Waiting for verification...</span>
               ) : (
@@ -607,23 +607,24 @@ export default function StudentCredentialsSection({
               </label>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
+                icon={<Link2 size={13} />}
                 onClick={() => void handleCopyQrLink()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50"
               >
-                <Link2 size={13} />
                 Copy Link
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                size="sm"
                 onClick={() => void handleRegenerateQr()}
-                disabled={isGeneratingQr}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-neutral-900 px-3 py-2 text-xs font-medium text-white hover:bg-neutral-800 disabled:opacity-50"
+                loading={isGeneratingQr}
                 title="Regenerate one-time QR"
               >
-                {isGeneratingQr ? <ButtonLoadingContent label="Regenerating" /> : 'Regenerate'}
-              </button>
+                Regenerate
+              </Button>
             </div>
             </div>
             </div>

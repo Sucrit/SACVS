@@ -225,7 +225,7 @@ export default function InstitutionCredentialManageSection({
                                       });
                                   }}
                                   disabled={reissuingCredentialId === credential.id || isRevoked}
-                                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs font-semibold text-cyan-700 hover:bg-cyan-50 disabled:opacity-50"
+                                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100 disabled:opacity-50"
                                 >
                                   <ClipboardCheck size={14} />
                                   Re-issue

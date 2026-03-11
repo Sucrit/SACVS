@@ -11,7 +11,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import Card from '../../../components/common/Card';
-import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import Button from '../../../components/ui/Button';
 import { StudentSex, User } from '../../../services/user.service';
 import { useToast } from '../../../hooks/useToast';
 
@@ -135,7 +135,7 @@ export default function StudentProfileSection({
   }, [user]);
 
   if (isLoading) {
-    return <div className="h-[560px] animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />;
+    return <div className="h-140 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />;
   }
 
   if (!user) {
@@ -430,13 +430,14 @@ export default function StudentProfileSection({
               {saveError}
             </div>
           )}
-            <button
+            <Button
               type="submit"
-              disabled={isSavingPersonalInfo}
-              className="inline-flex h-10 items-center justify-center rounded-lg border border-neutral-900 bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+              size="lg"
+              loading={isSavingPersonalInfo}
+              className="rounded-xl"
             >
-              {isSavingPersonalInfo ? <ButtonLoadingContent label="Saving" /> : 'Save'}
-            </button>
+              Save
+            </Button>
         </form>
       </div>
     </Card>

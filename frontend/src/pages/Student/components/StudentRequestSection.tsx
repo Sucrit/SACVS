@@ -12,6 +12,7 @@ import {
   MODAL_PANEL_VARIANTS,
   MODAL_TRANSITION,
 } from '../../../components/common/modal-motion';
+import Button from '../../../components/ui/Button';
 
 interface StudentRequestSectionProps {
   requestForm: CreateCredentialRequestPayload;
@@ -47,14 +48,15 @@ export default function StudentRequestSection({
 
   return (
     <>
-      <button
+      <Button
         type="button"
         onClick={() => setIsModalOpen(true)}
-        className={buttonClassName || 'inline-flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-black'}
+        icon={<FileText size={16} />}
+        size="lg"
+        className={buttonClassName || 'w-full rounded-xl'}
       >
-        <FileText size={16} />
         New Credential Request
-      </button>
+      </Button>
 
       <AnimatePresence>
         {isModalOpen && (
@@ -176,27 +178,21 @@ export default function StudentRequestSection({
               </AnimatePresence>
 
               <div className="flex items-center justify-end gap-2">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
-                  disabled={isSubmittingRequest}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-neutral-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                  loading={isSubmittingRequest}
+                  icon={<FileText size={16} />}
+                  className="rounded-xl"
                 >
-                  {isSubmittingRequest ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                  ) : (
-                    <>
-                      <FileText size={16} />
-                      Submit Request
-                    </>
-                  )}
-                </button>
+                  Submit Request
+                </Button>
               </div>
             </form>
           </motion.div>

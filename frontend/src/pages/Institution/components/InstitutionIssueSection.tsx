@@ -4,8 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ClipboardCheck, Upload, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
-import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
+import Button from '../../../components/ui/Button';
 import { useToast } from '../../../hooks/useToast';
 import {
   Credential,
@@ -416,22 +416,25 @@ export default function InstitutionIssueSection({
               </div>
 
               <div className="flex items-center gap-2">
-                <button
+                <Button
                   type="submit"
-                  disabled={isDirectIssuing}
-                  className="inline-flex h-10 items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-4 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
+                  size="lg"
+                  loading={isDirectIssuing}
+                  icon={<ClipboardCheck size={14} />}
+                  className="rounded-xl"
                 >
-                  <ClipboardCheck size={13} />
-                  {isDirectIssuing ? <ButtonLoadingContent label="Issuing" /> : 'Issue Credential'}
-                </button>
-                <button
+                  Issue Credential
+                </Button>
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="lg"
+                  icon={<X size={14} />}
+                  className="rounded-xl"
                   onClick={() => setIsDirectIssueModalOpen(false)}
-                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
                 >
-                  <X size={14} />
                   Close
-                </button>
+                </Button>
               </div>
             </form>
           </motion.div>
@@ -551,7 +554,7 @@ export default function InstitutionIssueSection({
                       </label>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
+                      <Button
                         disabled={
                           updatingRequestId === request.id ||
                           request.deliveryMethod === 'PHYSICAL' ||
@@ -559,7 +562,9 @@ export default function InstitutionIssueSection({
                           (requestRequiresExpiry && !issueExpiryByRequestId[request.id])
                         }
                         onClick={event => { event.stopPropagation(); void onRequestAction(request.id, 'ISSUE'); }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
+                        size="sm"
+                        icon={<ClipboardCheck size={13} />}
+                        className="rounded-lg"
                         title={
                           request.deliveryMethod === 'PHYSICAL'
                             ? 'Digital issuance is blocked for PHYSICAL delivery requests.'
@@ -570,14 +575,15 @@ export default function InstitutionIssueSection({
                               : 'Issue Credential'
                         }
                       >
-                        <ClipboardCheck size={13} />
                         Issue
-                      </button>
+                      </Button>
                       {(request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') && (
-                        <button
+                        <Button
                           disabled={updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId)}
                           onClick={() => void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED')}
-                          className="ml-2 inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                          variant="secondary"
+                          size="sm"
+                          className="ml-2 rounded-lg"
                           title={
                             request.deliveryMethod === 'BOTH' && !request.credentialId
                               ? 'Issue/link the digital credential first for BOTH delivery.'
@@ -585,7 +591,7 @@ export default function InstitutionIssueSection({
                           }
                         >
                           Mark Claimed
-                        </button>
+                        </Button>
                       )}
                     </td>
                         </>
@@ -760,7 +766,7 @@ export default function InstitutionIssueSection({
                         >
                           Save
                         </button>
-                        <button
+                        <Button
                           onClick={event => {
                             event.stopPropagation();
                             setReissuingCredentialId(credential.id);
@@ -779,11 +785,12 @@ export default function InstitutionIssueSection({
                               );
                           }}
                           disabled={reissuingCredentialId === credential.id || isRevoked}
-                          className="inline-flex h-9 items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-3 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
+                          size="sm"
+                          icon={<ClipboardCheck size={12} />}
+                          className="rounded-lg"
                         >
-                          <ClipboardCheck size={12} />
                           Re-issue
-                        </button>
+                        </Button>
                         {isLockedForStatusUpdate && (
                           <span className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold  text-rose-700">
                             Locked
