@@ -213,6 +213,7 @@ export default function InstitutionDashboard() {
           <Card title="Institution Audit Logs">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <SearchFilterModal
+                hideLabel
                 groups={institutionAuditFilterGroups}
                 description="Refine institution logs by action, severity, and page size."
               />

@@ -77,13 +77,15 @@ export default function SearchFilterModal({
         className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 text-sm font-semibold text-neutral-800 transition-colors hover:bg-neutral-50"
         title={buttonLabel}
       >
-        <SlidersHorizontal size={15} />
+        <span className="relative inline-flex h-5 w-5 items-center justify-center">
+          <SlidersHorizontal size={15} />
+          {activeFilterCount > 0 && (
+            <span className="absolute -right-1 -top-1 inline-flex min-w-3.5 items-center justify-center rounded-full bg-neutral-900 px-[3px] py-px text-[9px] font-semibold leading-none text-white">
+              {activeFilterCount}
+            </span>
+          )}
+        </span>
         {!hideLabel && buttonLabel}
-        {activeFilterCount > 0 && (
-          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-neutral-900 px-1.5 py-0.5 text-[11px] font-semibold text-white">
-            {activeFilterCount}
-          </span>
-        )}
       </button>
 
       <Modal

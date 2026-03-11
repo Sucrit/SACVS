@@ -242,7 +242,7 @@ export default function InstitutionReceiptVerifySection() {
             loading={isVerifying}
             className="rounded-xl"
           >
-            Verify receipt
+            Verify Code
           </Button>
           <Button
             type="button"

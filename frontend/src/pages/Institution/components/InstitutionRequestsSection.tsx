@@ -1,5 +1,5 @@
 ﻿import { useMemo, useState } from 'react';
-import { Check, ClipboardCheck, FileText, Search, X, Upload } from 'lucide-react';
+import { Check, ClipboardCheck, Search, X, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
@@ -85,6 +85,14 @@ export default function InstitutionRequestsSection({
     [requests, selectedRequestId],
   );
   const selectedRequestStudent = selectedRequest ? studentById.get(selectedRequest.studentId) || null : null;
+  const selectedRequestCertificateCategory = selectedRequest
+    ? (selectedRequest.type === 'CERTIFICATE'
+      ? getRequestCertificateCategory(selectedRequest)
+      : DEFAULT_CERTIFICATE_CATEGORY)
+    : DEFAULT_CERTIFICATE_CATEGORY;
+  const selectedRequestRequiresExpiry = selectedRequest
+    ? requiresExpiryDate(selectedRequest.type, selectedRequestCertificateCategory)
+    : false;
 
   const filterGroups = useMemo<SearchFilterGroup[]>(() => [
     {
@@ -120,14 +128,28 @@ export default function InstitutionRequestsSection({
               description="Refine incoming requests by their current approval state."
             />
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button size="sm" variant="success" className="rounded-lg" onClick={() => void onBulkAction('APPROVE')}>
-              Bulk Approve
-            </Button>
-            <Button size="sm" variant="danger" className="rounded-lg" onClick={() => void onBulkAction('REJECT')}>
-              Bulk Reject
-            </Button>
-          </div>
+          {selectedRequestIds.length >= 2 && (
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={<Check size={14} className="text-emerald-600" />}
+                className="rounded-xl"
+                onClick={() => void onBulkAction('APPROVE')}
+              >
+                Bulk Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={<X size={14} className="text-rose-600" />}
+                className="rounded-xl"
+                onClick={() => void onBulkAction('REJECT')}
+              >
+                Bulk Reject
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto rounded-lg border border-neutral-200">
@@ -138,29 +160,31 @@ export default function InstitutionRequestsSection({
                 <th className="px-4 py-3">Student</th>
                 <th className="px-4 py-3">Document</th>
                 <th className="hidden px-4 py-3 md:table-cell">Date</th>
-                <th className="hidden px-4 py-3 lg:table-cell">Expiry Date</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="hidden px-4 py-3 lg:table-cell">Reason</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 bg-white">
               {isLoadingRequests && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-neutral-500">
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-neutral-500">
                     Loading verification requests...
                   </td>
                 </tr>
               )}
               {!isLoadingRequests && requests.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-neutral-500">
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-neutral-500">
                     No requests available.
                   </td>
                 </tr>
               )}
               {!isLoadingRequests && requests.map(request => (
-                <tr key={request.id} className="hover:bg-neutral-50/70">
+                <tr
+                  key={request.id}
+                  className="cursor-pointer hover:bg-neutral-50/70"
+                  onClick={() => setSelectedRequestId(request.id)}
+                >
                   {(() => {
                     const requestCertificateCategory =
                       request.type === 'CERTIFICATE' ? getRequestCertificateCategory(request) : DEFAULT_CERTIFICATE_CATEGORY;
@@ -172,6 +196,7 @@ export default function InstitutionRequestsSection({
                       type="checkbox"
                       checked={selectedRequestIds.includes(request.id)}
                       onChange={() => onToggleRequest(request.id)}
+                      onClick={event => event.stopPropagation()}
                       className="h-4 w-4 rounded border-neutral-300"
                     />
                   </td>
@@ -180,22 +205,14 @@ export default function InstitutionRequestsSection({
                       const student = studentById.get(request.studentId);
                       if (!student) {
                         return (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedRequestId(request.id)}
-                            className="text-left text-xs font-medium text-neutral-500 transition hover:text-neutral-700"
-                          >
+                          <div className="text-left text-xs font-medium text-neutral-500">
                             Student record unavailable
-                          </button>
+                          </div>
                         );
                       }
 
                       return (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedRequestId(request.id)}
-                          className="flex w-full items-center gap-3 text-left transition hover:opacity-80"
-                        >
+                        <div className="flex w-full items-center gap-3 text-left">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
                             {getUserInitials(student)}
                           </div>
@@ -203,48 +220,18 @@ export default function InstitutionRequestsSection({
                             <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
                             <p className="mt-1 text-xs text-neutral-500">{student.profile?.studentNumber || student.email}</p>
                           </div>
-                        </button>
+                        </div>
                       );
                     })()}
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedRequestId(request.id)}
-                      className="inline-flex items-center gap-2 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100"
-                    >
-                      <FileText size={14} />
+                    <span className="text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-600">
                       {getRequestTypeLabel(request)}
-                    </button>
+                    </span>
                   </td>
                   <td className="hidden px-4 py-3 text-sm text-neutral-600 md:table-cell">{formatDate(request.createdAt)}</td>
-                  <td className="hidden px-4 py-3 lg:table-cell">
-                    {supportsExpiryDate(request.type) ? (
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-medium  text-neutral-500">Expiry</p>
-                        <input
-                          type="date"
-                          value={issueExpiryByRequestId[request.id] || ''}
-                          onChange={event => onIssueExpiryChange(request.id, event.target.value)}
-                          aria-label="Expiry Date"
-                          className="h-9 rounded-lg border border-neutral-200 bg-neutral-50 px-2 text-xs outline-none"
-                          required={requestRequiresExpiry}
-                        />
-                      </div>
-                    ) : (
-                      <span className="text-xs text-neutral-400">Not applicable</span>
-                    )}
-                  </td>
                   <td className="px-4 py-3"><Badge status={request.status} /></td>
-                  <td className="hidden px-4 py-3 lg:table-cell">
-                    <input
-                      value={rejectionReasonByRequestId[request.id] || ''}
-                      onChange={event => onReasonChange(request.id, event.target.value)}
-                      placeholder="Reason if rejecting..."
-                      className="h-9 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs outline-none"
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right" onClick={event => event.stopPropagation()}>
                     {request.status === 'PENDING' ? (
                       <div className="flex items-center justify-end">
                         <ActionMenu
@@ -371,8 +358,42 @@ export default function InstitutionRequestsSection({
               { label: 'Processed At', value: selectedRequest.processedAt ? formatDate(selectedRequest.processedAt) : '--' },
               { label: 'Purpose', value: selectedRequest.purpose || '--' },
               { label: 'Description', value: selectedRequest.description || '--' },
-              { label: 'Rejection Reason', value: selectedRequest.rejectionReason || '--' },
               { label: 'Notes', value: selectedRequest.notes || '--' },
+            ],
+          },
+          {
+            title: 'Processing',
+            fields: [
+              {
+                label: 'Expiry Date',
+                value: supportsExpiryDate(selectedRequest.type) ? (
+                  <div className="space-y-2">
+                    <input
+                      type="date"
+                      value={issueExpiryByRequestId[selectedRequest.id] || ''}
+                      onChange={event => onIssueExpiryChange(selectedRequest.id, event.target.value)}
+                      aria-label="Expiry Date"
+                      className="h-9 w-full rounded-lg border border-neutral-200 bg-white px-3 text-xs outline-none"
+                      required={selectedRequestRequiresExpiry}
+                    />
+                    <p className="text-[11px] text-neutral-500">
+                      {selectedRequestRequiresExpiry ? 'Required before issuing this request.' : 'Optional for this request type.'}
+                    </p>
+                  </div>
+                ) : 'Not applicable',
+              },
+              {
+                label: 'Rejection Reason',
+                value: (
+                  <textarea
+                    value={rejectionReasonByRequestId[selectedRequest.id] || ''}
+                    onChange={event => onReasonChange(selectedRequest.id, event.target.value)}
+                    placeholder="Reason if rejecting..."
+                    rows={4}
+                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs outline-none"
+                  />
+                ),
+              },
             ],
           },
         ] : []}
