@@ -50,8 +50,6 @@ export default function AdminDashboard() {
     totalUsers,
     roleDistribution,
     pendingQueue,
-    userOverviewSummary,
-    isLoadingUserOverviewSummary,
     auditLogs: _auditLogs,
     isLoadingAuditLogs,
     auditActionFilter,
@@ -82,8 +80,6 @@ export default function AdminDashboard() {
     riskSummary,
     riskWorkerStatus,
     isLoadingRiskWorkerStatus,
-    riskOverviewSummary,
-    isLoadingRiskOverviewSummary,
     reviewingRiskEventId,
     selectedRiskEventId,
     selectedRiskEvent,
@@ -571,17 +567,16 @@ export default function AdminDashboard() {
     <div className="space-y-6">
       {section === 'overview' && (
         <AdminOverviewSection
-          isLoadingUsers={isLoadingUserOverviewSummary}
+          users={users}
+          isLoadingUsers={isLoadingUsers}
           totalUsers={totalUsers}
           roleDistribution={roleDistribution}
           pendingQueue={pendingQueue}
-          userOverviewSummary={userOverviewSummary}
           isUpdatingStatus={isUpdatingStatus}
           handleStatusUpdate={handleStatusUpdate}
           riskSummary={riskSummary}
           riskEvents={riskEvents}
-          isLoadingRiskEvents={isLoadingRiskOverviewSummary}
-          riskOverviewSummary={riskOverviewSummary}
+          isLoadingRiskEvents={isLoadingRiskEvents}
         />
       )}
       {section === 'users' && (

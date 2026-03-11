@@ -10,7 +10,6 @@ router.use(requireAuth, requireApprovedAccount, requireRoles(Role.ADMIN));
 
 router.get('/risk-worker/status', (req, res) => void controller.getWorkerStatus(req, res));
 router.get('/risk-events', (req, res) => void controller.listRiskEvents(req, res));
-router.get('/risk-events/summary', (req, res) => void controller.getRiskOverviewSummary(req, res));
 router.get('/risk-events/export', (req, res) => void controller.exportReviewedRiskEvents(req, res));
 router.get('/risk-events/:id', (req, res) => void controller.getRiskEventDetails(req, res));
 router.put('/risk-events/:id/review', (req, res) => void controller.updateRiskReviewStatus(req, res));

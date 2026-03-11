@@ -11,16 +11,16 @@ import {
 import Card from '../../../components/common/Card';
 import { formatDate, formatDateTime } from '../../../utils/formatting';
 import { getFullName, getRoleStyles, getRiskBandStyles } from '../useAdminDashboardState';
-import type { RiskEventRecord, RiskOverviewSummary } from '../../../services/risk.service';
-import type { AdminUserOverviewSummary, User } from '../../../services/user.service';
+import type { RiskEventRecord } from '../../../services/risk.service';
+import type { User } from '../../../services/user.service';
 
 interface AdminOverviewSectionProps {
   // Users
+  users: User[];
   isLoadingUsers: boolean;
   totalUsers: number;
   roleDistribution: Record<'STUDENT' | 'INSTITUTION' | 'ADMIN', number>;
   pendingQueue: User[];
-  userOverviewSummary: AdminUserOverviewSummary | null;
   isUpdatingStatus: string | null;
   handleStatusUpdate: (userId: string, status: 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'PENDING') => Promise<void>;
   // Risk
@@ -32,62 +32,52 @@ interface AdminOverviewSectionProps {
   };
   riskEvents: RiskEventRecord[];
   isLoadingRiskEvents: boolean;
-  riskOverviewSummary: RiskOverviewSummary | null;
 }
 
 export default function AdminOverviewSection({
+  users,
   isLoadingUsers,
   totalUsers,
   roleDistribution,
   pendingQueue,
-  userOverviewSummary,
   isUpdatingStatus,
   handleStatusUpdate,
   riskSummary,
   riskEvents,
   isLoadingRiskEvents,
-  riskOverviewSummary,
 }: AdminOverviewSectionProps) {
-  const overviewUsers = userOverviewSummary ?? {
-    totalUsers,
-    approvedUsers: 0,
-    pendingUsers: pendingQueue.length,
-    rejectedUsers: 0,
-    suspendedUsers: 0,
-    studentAccounts: roleDistribution.STUDENT,
-    roleDistribution,
-    statusDistribution: {
-      APPROVED: 0,
-      PENDING: pendingQueue.length,
-      REJECTED: 0,
-      SUSPENDED: 0,
-    },
-    registrationsLast7Days: Array(7).fill(0),
-    pendingQueuePreview: pendingQueue.slice(0, 5),
-  };
-  const overviewRisk = riskOverviewSummary ?? {
-    pendingReviewCount: riskSummary.pendingReviewCount,
-    highRiskCount: riskSummary.highRiskCount,
-    criticalRiskCount: riskSummary.criticalRiskCount,
-    confirmedAbuseCount: riskSummary.confirmedAbuseCount,
-    highAndCriticalTrendLast7Days: Array(7).fill(0),
-    recentHighAndCriticalScores: [],
-    recentPendingHighRiskEvents: riskEvents
-      .filter(e => (e.riskBand === 'HIGH' || e.riskBand === 'CRITICAL') && e.reviewStatus === 'PENDING_REVIEW')
-      .slice(0, 5),
-  };
-  const recentHighRiskEvents = overviewRisk.recentPendingHighRiskEvents;
-  const mergedRiskCount = overviewRisk.highRiskCount + overviewRisk.criticalRiskCount;
+  const recentHighRiskEvents = riskEvents
+    .filter(e => (e.riskBand === 'HIGH' || e.riskBand === 'CRITICAL') && e.reviewStatus === 'PENDING_REVIEW')
+    .slice(0, 5);
+  const mergedRiskCount = riskSummary.highRiskCount + riskSummary.criticalRiskCount;
 
-  const last7DaysCounts = overviewUsers.registrationsLast7Days.length === 7
-    ? overviewUsers.registrationsLast7Days
-    : Array(7).fill(0);
+  const last7DaysCounts = Array(7).fill(0);
+  const now = new Date().getTime();
+  users.forEach(u => {
+    const diff = now - new Date(u.createdAt).getTime();
+    const daysAgo = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (daysAgo >= 0 && daysAgo < 7) {
+      last7DaysCounts[6 - daysAgo]++;
+    }
+  });
+  last7DaysCounts.reverse(); // Newest day on the right
   const maxDay = Math.max(...last7DaysCounts, 1);
   const recentRegistrationsCount = last7DaysCounts.reduce((a, b) => a + b, 0);
-  const last7RiskCounts = overviewRisk.highAndCriticalTrendLast7Days.length === 7
-    ? overviewRisk.highAndCriticalTrendLast7Days
-    : Array(7).fill(0);
-  const recentRiskScoreSeries = overviewRisk.recentHighAndCriticalScores;
+  const last7RiskCounts = Array(7).fill(0);
+  const mergedRiskEvents = riskEvents.filter(event => event.riskBand === 'HIGH' || event.riskBand === 'CRITICAL');
+
+  mergedRiskEvents.forEach(event => {
+    const diff = now - new Date(event.observedAt).getTime();
+    const daysAgo = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (daysAgo >= 0 && daysAgo < 7) {
+      last7RiskCounts[6 - daysAgo] += 1;
+    }
+  });
+
+  const recentRiskScoreSeries = [...mergedRiskEvents]
+    .sort((a, b) => new Date(a.observedAt).getTime() - new Date(b.observedAt).getTime())
+    .slice(-7)
+    .map(event => event.riskScore);
   const shouldUseScoreFallback = last7RiskCounts.every(count => count === 0) && recentRiskScoreSeries.length > 0;
   const sparklineSeries = shouldUseScoreFallback ? recentRiskScoreSeries : last7RiskCounts;
   const sparklineMax = Math.max(...sparklineSeries, 1);
@@ -115,13 +105,13 @@ export default function AdminOverviewSection({
             <Users size={18} className="text-orange-500" />
           </div>
           <div className="mt-4 mb-5">
-            <p className="text-3xl font-bold tracking-tight text-neutral-900">{overviewUsers.totalUsers.toLocaleString()}</p>
+            <p className="text-3xl font-bold tracking-tight text-neutral-900">{totalUsers.toLocaleString()}</p>
             <p className="mt-1 text-[11px] font-bold text-neutral-400">
               <span className="text-emerald-500">+5.2%</span> VS LAST MONTH
             </p>
           </div>
           <div className="text-[11px] font-medium text-neutral-500">
-            Students: {(overviewUsers.roleDistribution.STUDENT / 1000).toFixed(1)}k &nbsp; Inst: {(overviewUsers.roleDistribution.INSTITUTION / 1000).toFixed(1)}k &nbsp; Admin: {overviewUsers.roleDistribution.ADMIN}
+            Students: {(roleDistribution.STUDENT / 1000).toFixed(1)}k &nbsp; Inst: {(roleDistribution.INSTITUTION / 1000).toFixed(1)}k &nbsp; Admin: {roleDistribution.ADMIN}
           </div>
         </div>
 
@@ -161,15 +151,15 @@ export default function AdminOverviewSection({
             <ClipboardList size={18} className="text-amber-500" />
           </div>
           <div className="mt-4 mb-5">
-            <p className="text-3xl font-bold tracking-tight text-neutral-900">{overviewUsers.pendingUsers}</p>
+            <p className="text-3xl font-bold tracking-tight text-neutral-900">{pendingQueue.length}</p>
             <p className="mt-1 text-[11px] font-bold text-neutral-400">
               <span className="text-amber-500">Requires Action</span> INSTITUTIONS
             </p>
           </div>
           <div className="flex h-5 items-center">
-            {overviewUsers.pendingQueuePreview.length > 0 ? (
+            {pendingQueue.length > 0 ? (
               <>
-                {overviewUsers.pendingQueuePreview.slice(0, 3).map((u, i) => (
+                {pendingQueue.slice(0, 3).map((u, i) => (
                   <div 
                     key={u.id} 
                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-700 text-[10px] font-bold text-white shadow-sm ${i > 0 ? '-ml-2' : ''}`}
@@ -179,9 +169,9 @@ export default function AdminOverviewSection({
                     {u.firstName?.[0] || u.email[0].toUpperCase()}
                   </div>
                 ))}
-                {overviewUsers.pendingQueuePreview.length > 3 && (
+                {pendingQueue.length > 3 && (
                   <div className="-ml-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-neutral-100 text-[9px] font-bold text-neutral-500 shadow-sm z-0">
-                    +{overviewUsers.pendingUsers - 3}
+                    +{pendingQueue.length - 3}
                   </div>
                 )}
               </>
@@ -221,7 +211,7 @@ export default function AdminOverviewSection({
             </div>
             <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
               <span>{sparklineFooterLabel}</span>
-              <span>{overviewRisk.criticalRiskCount} critical</span>
+              <span>{riskSummary.criticalRiskCount} critical</span>
             </div>
           </div>
         </div>
@@ -249,16 +239,16 @@ export default function AdminOverviewSection({
                 ))}
               </div>
             )}
-            {!isLoadingUsers && overviewUsers.pendingUsers === 0 && (
+            {!isLoadingUsers && pendingQueue.length === 0 && (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50/50 px-6 py-12 text-center">
                 <ClipboardList size={28} className="mb-2 text-neutral-400" />
                 <p className="text-sm font-medium text-neutral-600">No pending approvals</p>
                 <p className="mt-1 text-xs text-neutral-400">All user registrations have been processed.</p>
               </div>
             )}
-            {!isLoadingUsers && overviewUsers.pendingQueuePreview.length > 0 && (
+            {!isLoadingUsers && pendingQueue.length > 0 && (
               <div className="space-y-3">
-                {overviewUsers.pendingQueuePreview.map(user => (
+                {pendingQueue.slice(0, 5).map(user => (
                   <div key={user.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -294,12 +284,12 @@ export default function AdminOverviewSection({
                     </div>
                   </div>
                 ))}
-                {overviewUsers.pendingUsers > overviewUsers.pendingQueuePreview.length && (
+                {pendingQueue.length > 5 && (
                   <Link
                     to="/admin/users"
                     className="block text-center text-xs font-medium text-primary-600 hover:text-primary-700"
                   >
-                    View all {overviewUsers.pendingUsers} pending users →
+                    View all {pendingQueue.length} pending users →
                   </Link>
                 )}
               </div>
@@ -358,19 +348,19 @@ export default function AdminOverviewSection({
             {/* Summary counters */}
             <div className="mt-4 grid grid-cols-2 gap-2">
               <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-center">
-                <p className="text-lg font-semibold text-amber-600">{overviewRisk.highRiskCount}</p>
+                <p className="text-lg font-semibold text-amber-600">{riskSummary.highRiskCount}</p>
                 <p className="text-[10px] text-neutral-500">High risk</p>
               </div>
               <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-center">
-                <p className="text-lg font-semibold text-rose-600">{overviewRisk.criticalRiskCount}</p>
+                <p className="text-lg font-semibold text-rose-600">{riskSummary.criticalRiskCount}</p>
                 <p className="text-[10px] text-neutral-500">Critical</p>
               </div>
               <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-center">
-                <p className="text-lg font-semibold text-neutral-800">{overviewRisk.pendingReviewCount}</p>
+                <p className="text-lg font-semibold text-neutral-800">{riskSummary.pendingReviewCount}</p>
                 <p className="text-[10px] text-neutral-500">Pending review</p>
               </div>
               <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-center">
-                <p className="text-lg font-semibold text-red-600">{overviewRisk.confirmedAbuseCount}</p>
+                <p className="text-lg font-semibold text-red-600">{riskSummary.confirmedAbuseCount}</p>
                 <p className="text-[10px] text-neutral-500">Confirmed abuse</p>
               </div>
             </div>

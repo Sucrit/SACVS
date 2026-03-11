@@ -457,16 +457,6 @@ export class UserController {
     }
   }
 
-  async getAdminOverviewSummary(_req: Request, res: Response): Promise<Response> {
-    try {
-      const summary = await userService.getAdminOverviewSummary();
-      return res.status(200).json(summary);
-    } catch (error) {
-      console.error('Error loading admin user summary:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    }
-  }
-
   async createStepUpChallenge(req: Request, res: Response): Promise<Response> {
     const actorId = getAuthUserId(req);
     if (!actorId) {

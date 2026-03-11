@@ -218,10 +218,6 @@ export class UserService {
     return userRepository.listUsersForAdmin();
   }
 
-  async getAdminOverviewSummary() {
-    return userRepository.getAdminOverviewSummary();
-  }
-
   async createStepUpChallenge(
     userId: string,
     data: CreateStepUpChallengeDto,

@@ -124,20 +124,6 @@ export class RiskController {
     });
   }
 
-  async getRiskOverviewSummary(_req: Request, res: Response): Promise<Response> {
-    const summary = await repository.getRiskOverviewSummary();
-
-    return res.json({
-      pendingReviewCount: summary.pendingReviewCount,
-      highRiskCount: summary.highRiskCount,
-      criticalRiskCount: summary.criticalRiskCount,
-      confirmedAbuseCount: summary.confirmedAbuseCount,
-      highAndCriticalTrendLast7Days: summary.highAndCriticalTrendLast7Days,
-      recentHighAndCriticalScores: summary.recentHighAndCriticalScores,
-      recentPendingHighRiskEvents: summary.recentPendingHighRiskEvents.map(item => serializeRiskEvent(item)),
-    });
-  }
-
   async getRiskEventDetails(req: Request, res: Response): Promise<Response> {
     const id = typeof req.params.id === 'string' ? req.params.id : '';
 
