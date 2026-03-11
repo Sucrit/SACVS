@@ -9,6 +9,8 @@ export type InstitutionSection =
   | 'requests'
   | 'receipt-verify'
   | 'issue'
+  | 'issue-awaiting'
+  | 'issue-manage'
   | 'notifications'
   | 'logs';
 export type StudentStatusFilter = UserStatus | 'ALL';

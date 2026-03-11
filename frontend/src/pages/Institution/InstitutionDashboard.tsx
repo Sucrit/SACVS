@@ -2,7 +2,9 @@
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
 import InstitutionStudentsSection from './components/InstitutionStudentsSection';
 import InstitutionRequestsSection from './components/InstitutionRequestsSection';
-import InstitutionIssueSection from './components/InstitutionIssueSection';
+import InstitutionIssueSection from './components/InstitutionIssueFormSection';
+import InstitutionAwaitingIssuanceSection from './components/InstitutionAwaitingIssuanceSection';
+import InstitutionCredentialManageSection from './components/InstitutionCredentialManageSection';
 import InstitutionNotificationsSection from './components/InstitutionNotificationsSection';
 import InstitutionOverviewSection from './components/InstitutionOverviewSection';
 import InstitutionAnalyticsSection from './components/InstitutionAnalyticsSection';
@@ -140,14 +142,16 @@ export default function InstitutionDashboard() {
       {state.section === 'issue' && (
         <InstitutionIssueSection
           students={state.students}
-          credentials={state.credentials}
-          isLoadingCredentials={state.isLoadingCredentials}
+          onDirectIssue={state.handleDirectIssueCredential}
+        />
+      )}
+
+      {state.section === 'issue-awaiting' && (
+        <InstitutionAwaitingIssuanceSection
+          students={state.students}
           requests={state.requests}
           isLoadingRequests={state.isLoadingRequests}
           updatingRequestId={state.updatingRequestId}
-          onDirectIssue={state.handleDirectIssueCredential}
-          onCredentialStatusUpdate={state.handleCredentialStatusUpdate}
-          onCredentialReissue={state.handleCredentialReissue}
           issueFileByRequestId={state.issueFileByRequestId}
           issueExpiryByRequestId={state.issueExpiryByRequestId}
           onIssueFileChange={(requestId: string, file: File | null) => {
@@ -157,6 +161,16 @@ export default function InstitutionDashboard() {
             state.setIssueExpiryByRequestId(previous => ({ ...previous, [requestId]: expiryDate }));
           }}
           onRequestAction={state.handleRequestAction}
+        />
+      )}
+
+      {state.section === 'issue-manage' && (
+        <InstitutionCredentialManageSection
+          students={state.students}
+          credentials={state.credentials}
+          isLoadingCredentials={state.isLoadingCredentials}
+          onCredentialStatusUpdate={state.handleCredentialStatusUpdate}
+          onCredentialReissue={state.handleCredentialReissue}
           onViewCredentialDetails={(credentialId: string) => {
             state.setSelectedCredentialId(credentialId);
             state.setIsCredentialDrawerOpen(true);

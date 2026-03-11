@@ -5,7 +5,12 @@ import {
   Bell,
   ChartColumnBig,
   CheckCheck,
+  ChevronDown,
+  ChevronRight,
+  ClipboardCheck,
+  Clock3,
   FileSearch,
+  FolderOpen,
   Menu,
   X,
   FileText,
@@ -32,7 +37,14 @@ import { realtimeService } from '../services/realtime.service';
 import logoCompact from '../assets/c-version_logo.png';
 import ButtonLoadingContent from '../components/common/ButtonLoadingContent';
 
-const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string; icon: LucideIcon }>> = {
+interface NavItem {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  children?: Array<{ to: string; label: string; icon: LucideIcon }>;
+}
+
+const NAV_LINKS: Record<UserRole, NavItem[]> = {
   STUDENT: [
     { to: '/student/credentials', label: 'Credentials', icon: GraduationCap },
     { to: '/student/requests', label: 'Requests', icon: FileText },
@@ -40,7 +52,16 @@ const NAV_LINKS: Record<UserRole, Array<{ to: string; label: string; icon: Lucid
   ],
   INSTITUTION: [
     { to: '/institution', label: 'Overview', icon: LayoutDashboard },
-    { to: '/institution/issue', label: 'Credentials', icon: GraduationCap },
+    {
+      to: '/institution/issue',
+      label: 'Credentials',
+      icon: GraduationCap,
+      children: [
+        { to: '/institution/issue', label: 'Issue Credential', icon: ClipboardCheck },
+        { to: '/institution/issue/awaiting', label: 'Awaiting Issuance', icon: Clock3 },
+        { to: '/institution/issue/manage', label: 'Management', icon: FolderOpen },
+      ],
+    },
     { to: '/institution/students', label: 'Students', icon: Users },
     { to: '/institution/requests', label: 'Requests', icon: FileText },
     { to: '/institution/analytics', label: 'Analytics', icon: ChartColumnBig },
@@ -102,6 +123,9 @@ export default function DashboardLayout() {
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
   const [hasNewInstitutionRequests, setHasNewInstitutionRequests] = useState(false);
+  const [expandedNavGroup, setExpandedNavGroup] = useState<string | null>(() =>
+    location.pathname.startsWith('/institution/issue') ? '/institution/issue' : null,
+  );
   const bellButtonRef = useRef<HTMLButtonElement | null>(null);
   const bellPanelRef = useRef<HTMLDivElement | null>(null);
   const notificationMenuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -500,6 +524,62 @@ export default function DashboardLayout() {
                 link.to === '/institution/requests' &&
                 hasNewInstitutionRequests;
               const NavIcon = link.icon;
+
+              if (link.children) {
+                const isGroupActive = path.startsWith(link.to);
+                const isExpanded = expandedNavGroup === link.to;
+
+                return (
+                  <div key={link.to}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (sidebarCollapsed) return;
+                        setExpandedNavGroup(prev => (prev === link.to ? null : link.to));
+                      }}
+                      className={`group relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
+                        isGroupActive
+                          ? 'bg-neutral-100 text-neutral-900'
+                          : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                      } ${sidebarCollapsed ? 'justify-center' : ''}`}
+                      title={sidebarCollapsed ? link.label : undefined}
+                    >
+                      <span className="shrink-0"><NavIcon size={16} /></span>
+                      {!sidebarCollapsed && (
+                        <>
+                          <span className="flex-1 truncate text-left">{link.label}</span>
+                          {isExpanded ? <ChevronDown size={14} className="shrink-0 text-neutral-400" /> : <ChevronRight size={14} className="shrink-0 text-neutral-400" />}
+                        </>
+                      )}
+                    </button>
+                    {!sidebarCollapsed && isExpanded && (
+                      <div className="mt-0.5 space-y-0.5 pl-4">
+                        {link.children.map(child => {
+                          const ChildIcon = child.icon;
+                          return (
+                            <NavLink
+                              key={child.to}
+                              to={child.to}
+                              end
+                              onClick={() => setMobileNavOpen(false)}
+                              className={({ isActive }) =>
+                                `group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors ${
+                                  isActive
+                                    ? 'bg-neutral-100 text-neutral-900'
+                                    : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900'
+                                }`
+                              }
+                            >
+                              <ChildIcon size={14} />
+                              <span className="truncate">{child.label}</span>
+                            </NavLink>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
 
               return (
                 <NavLink
