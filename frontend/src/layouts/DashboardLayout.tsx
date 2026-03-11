@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { UserButton } from '@clerk/clerk-react';
 import {
@@ -346,31 +347,48 @@ export default function DashboardLayout() {
                         </>
                       )}
                     </button>
-                    {!sidebarCollapsed && isExpanded && (
-                      <div className="mt-0.5 space-y-0.5 pl-4">
-                        {link.children.map(child => {
-                          const ChildIcon = child.icon;
-                          return (
-                            <NavLink
-                              key={child.to}
-                              to={child.to}
-                              end
-                              onClick={() => setMobileNavOpen(false)}
-                              className={({ isActive }) =>
-                                `group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors ${
-                                  isActive
-                                    ? 'bg-neutral-100 text-neutral-900'
-                                    : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900'
-                                }`
-                              }
-                            >
-                              <ChildIcon size={14} />
-                              <span className="truncate">{child.label}</span>
-                            </NavLink>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <AnimatePresence initial={false}>
+                      {!sidebarCollapsed && isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0, y: -6 }}
+                          animate={{ height: 'auto', opacity: 1, y: 0 }}
+                          exit={{ height: 0, opacity: 0, y: -6 }}
+                          transition={{ duration: 0.18, ease: 'easeOut' }}
+                          className="overflow-hidden"
+                        >
+                          <div className="mt-0.5 space-y-0.5 pl-4">
+                            {link.children.map((child, index) => {
+                              const ChildIcon = child.icon;
+                              return (
+                                <motion.div
+                                  key={child.to}
+                                  initial={{ opacity: 0, x: -6 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  exit={{ opacity: 0, x: -6 }}
+                                  transition={{ duration: 0.16, ease: 'easeOut', delay: index * 0.03 }}
+                                >
+                                  <NavLink
+                                    to={child.to}
+                                    end
+                                    onClick={() => setMobileNavOpen(false)}
+                                    className={({ isActive }) =>
+                                      `group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors ${
+                                        isActive
+                                          ? 'bg-neutral-100 text-neutral-900'
+                                          : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900'
+                                      }`
+                                    }
+                                  >
+                                    <ChildIcon size={14} />
+                                    <span className="truncate">{child.label}</span>
+                                  </NavLink>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 );
               }

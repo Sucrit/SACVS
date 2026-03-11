@@ -17,27 +17,27 @@ interface BadgeProps {
 }
 
 const statusStyles: Record<BadgeStatus, string> = {
-  PENDING: 'bg-warning-50 text-warning-700 border-warning-100',
-  APPROVED: 'bg-success-50 text-success-700 border-success-100',
-  REJECTED: 'bg-error-50 text-error-700 border-error-100',
-  ISSUED: 'bg-primary-50 text-primary-700 border-primary-100',
-  REVOKED: 'bg-neutral-100 text-neutral-500 border-neutral-200 line-through',
-  SUSPENDED: 'bg-warning-50 text-warning-700 border-warning-100',
-  EXPIRED: 'bg-neutral-100 text-neutral-500 border-neutral-200',
-  COMPLETED: 'bg-success-50 text-success-700 border-success-100',
-  CANCELLED: 'bg-neutral-100 text-neutral-500 border-neutral-200',
+  PENDING: 'text-warning-700',
+  APPROVED: 'text-success-700',
+  REJECTED: 'text-error-700',
+  ISSUED: 'text-primary-700',
+  REVOKED: 'text-neutral-500 line-through',
+  SUSPENDED: 'text-warning-700',
+  EXPIRED: 'text-neutral-500',
+  COMPLETED: 'text-success-700',
+  CANCELLED: 'text-neutral-500',
 };
 
 export default function Badge({ status, className }: BadgeProps) {
   return (
     <span
       className={twMerge(
-        'inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium capitalize',
-        statusStyles[status] || 'bg-neutral-100 text-neutral-600 border-neutral-200',
+        'inline-flex items-center text-[11px] font-semibold uppercase tracking-[0.08em]',
+        statusStyles[status] || 'text-neutral-600',
         className
       )}
     >
-      {status.toLowerCase()}
+      {status.toLowerCase().replace(/_/g, ' ')}
     </span>
   );
 }

@@ -5,29 +5,29 @@ import { useToastContext, ToastItem } from './ToastProvider';
 const getToastStyle = (variant: ToastItem['variant']) => {
   if (variant === 'success') {
     return {
-      container: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+      container: 'border-zinc-800 bg-zinc-900 text-zinc-50 shadow-2xl shadow-black/20',
       icon: CheckCircle2,
-      iconClassName: 'text-emerald-600',
+      iconClassName: 'text-emerald-400',
     };
   }
   if (variant === 'error') {
     return {
-      container: 'border-rose-200 bg-rose-50 text-rose-900',
+      container: 'border-zinc-800 bg-zinc-900 text-zinc-50 shadow-2xl shadow-black/20',
       icon: AlertCircle,
-      iconClassName: 'text-rose-600',
+      iconClassName: 'text-rose-400',
     };
   }
   if (variant === 'warning') {
     return {
-      container: 'border-amber-200 bg-amber-50 text-amber-900',
+      container: 'border-zinc-800 bg-zinc-900 text-zinc-50 shadow-2xl shadow-black/20',
       icon: AlertTriangle,
-      iconClassName: 'text-amber-600',
+      iconClassName: 'text-amber-400',
     };
   }
   return {
-    container: 'border-sky-200 bg-sky-50 text-sky-900',
+    container: 'border-zinc-800 bg-zinc-900 text-zinc-50 shadow-2xl shadow-black/20',
     icon: Info,
-    iconClassName: 'text-sky-600',
+    iconClassName: 'text-sky-400',
   };
 };
 
@@ -35,7 +35,7 @@ export default function ToastViewport() {
   const { toasts, dismissToast, pauseToast, resumeToast } = useToastContext();
 
   return (
-    <div className="pointer-events-none fixed right-4 top-4 z-[100] flex w-full max-w-sm flex-col gap-2">
+    <div className="pointer-events-none fixed right-4 bottom-4 z-[100] flex w-full max-w-sm flex-col justify-end gap-3">
       <AnimatePresence initial={false}>
         {toasts.map(toast => {
           const style = getToastStyle(toast.variant);
@@ -46,11 +46,11 @@ export default function ToastViewport() {
             <motion.div
               key={toast.id}
               layout
-              initial={{ opacity: 0, y: -12, scale: 0.96 }}
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.96 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className={`pointer-events-auto rounded-xl border shadow-lg ${style.container}`}
+              exit={{ opacity: 0, y: 12, scale: 0.96 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className={`pointer-events-auto w-full rounded-xl border shadow-lg ${style.container}`}
               role={toast.variant === 'error' ? 'alert' : 'status'}
               aria-live={ariaLive}
               onMouseEnter={() => pauseToast(toast.id)}
@@ -58,16 +58,16 @@ export default function ToastViewport() {
               onFocusCapture={() => pauseToast(toast.id)}
               onBlurCapture={() => resumeToast(toast.id)}
             >
-              <div className="relative flex items-start gap-3 px-3 py-3 pr-10">
-                <Icon size={18} className={`mt-0.5 shrink-0 ${style.iconClassName}`} />
-                <div className="min-w-0 flex-1">
-                  {toast.title && <p className="text-sm font-semibold">{toast.title}</p>}
-                  <p className="text-sm leading-relaxed">{toast.message}</p>
+              <div className="flex items-start gap-3.5 px-4 py-3.5 relative overflow-hidden">
+                <Icon size={20} className={`mt-0.5 shrink-0 ${style.iconClassName}`} />
+                <div className="min-w-0 flex-1 pr-6">
+                  {toast.title && <p className="text-sm font-semibold tracking-tight text-white">{toast.title}</p>}
+                  <p className="text-sm leading-relaxed text-zinc-300">{toast.message}</p>
                   {toast.actionLabel && toast.onAction && (
                     <button
                       type="button"
                       onClick={toast.onAction}
-                      className="mt-2 inline-flex rounded-lg border border-current/20 bg-white/80 px-2.5 py-1 text-xs font-semibold hover:bg-white"
+                      className="mt-2.5 inline-flex items-center justify-center rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-zinc-900 shadow-sm hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-colors"
                     >
                       {toast.actionLabel}
                     </button>
@@ -76,10 +76,10 @@ export default function ToastViewport() {
                 <button
                   type="button"
                   onClick={() => dismissToast(toast.id)}
-                  className="absolute right-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-md border border-current/15 bg-white/70 hover:bg-white"
+                  className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-600"
                   aria-label="Dismiss notification"
                 >
-                  <X size={11} />
+                  <X size={14} />
                 </button>
               </div>
             </motion.div>

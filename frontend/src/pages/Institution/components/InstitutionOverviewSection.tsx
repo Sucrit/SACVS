@@ -276,8 +276,13 @@ export default function InstitutionOverviewSection({
   const pendingRequestSparkline = buildSparkline(last7DaysPendingRequestCounts);
   const authorizedStudentsSparkline = buildSparkline(last7DaysAuthorizedStudentCounts);
   const blockchainSparkline = buildSparkline(last30DaysBlockchainCounts);
-  const awaitingSparkline = buildSparkline(last30DaysAwaitingCounts);
-  const completedSparkline = buildSparkline(last30DaysCompletedCounts);
+  const awaitingCompletedTotal = awaitingIssuanceCount + completedRequestsCount;
+  const awaitingSharePercent = awaitingCompletedTotal === 0
+    ? 0
+    : (awaitingIssuanceCount / awaitingCompletedTotal) * 100;
+  const completedSharePercent = awaitingCompletedTotal === 0
+    ? 0
+    : (completedRequestsCount / awaitingCompletedTotal) * 100;
 
   const recentPendingRequestStudents = Array.from(
     new Set(
@@ -542,39 +547,35 @@ export default function InstitutionOverviewSection({
               <span className={awaitingComparisonClassName}>{formatPercent(awaitingComparisonPercent)}</span> VS COMPLETED
             </p>
           </div>
-          <div className="mb-3 h-8 w-full">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-              {!isLoadingRequests && (
-                <g className="animate-sparkline">
-                  <path
-                    vectorEffect="non-scaling-stroke"
-                    fill="none"
-                    stroke="rgb(245 158 11)"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d={awaitingSparkline.pathD}
-                  />
-                  <path
-                    vectorEffect="non-scaling-stroke"
-                    fill="none"
-                    stroke="rgb(16 185 129)"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d={completedSparkline.pathD}
-                  />
-                </g>
-              )}
-            </svg>
-          </div>
-          <div className="mt-auto flex items-center justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
-            <span>
-              <span className="text-amber-500">Awaiting {recentAwaitingCount.toLocaleString()}</span>
-            </span>
-            <span>
-              <span className="text-emerald-500">Completed {recentCompletedCount.toLocaleString()}</span>
-            </span>
+          <div className="mb-3 space-y-2.5">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-3 text-[11px] font-semibold">
+                <span className="uppercase tracking-[0.08em] text-amber-500">
+                  Awaiting {awaitingIssuanceCount.toLocaleString()}
+                </span>
+                <span className="text-amber-500">{awaitingSharePercent.toFixed(0)}%</span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-neutral-100">
+                <div
+                  className="h-full rounded-full bg-amber-500 transition-[width] duration-500 ease-out"
+                  style={{ width: `${awaitingSharePercent}%` }}
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between gap-3 text-[11px] font-semibold">
+                <span className="uppercase tracking-[0.08em] text-emerald-500">
+                  Completed {completedRequestsCount.toLocaleString()}
+                </span>
+                <span className="text-emerald-500">{completedSharePercent.toFixed(0)}%</span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-neutral-100">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-[width] duration-500 ease-out"
+                  style={{ width: `${completedSharePercent}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

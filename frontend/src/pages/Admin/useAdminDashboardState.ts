@@ -68,17 +68,17 @@ const getSection = (pathname: string): AdminSection => {
 };
 
 export const getRiskBandStyles = (riskBand: RiskBand) => {
-  if (riskBand === 'CRITICAL') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (riskBand === 'HIGH') return 'border-amber-200 bg-amber-50 text-amber-700';
-  if (riskBand === 'MEDIUM') return 'border-cyan-200 bg-cyan-50 text-cyan-700';
-  return 'border-neutral-200 bg-neutral-50 text-neutral-700';
+  if (riskBand === 'CRITICAL') return 'text-rose-700';
+  if (riskBand === 'HIGH') return 'text-amber-700';
+  if (riskBand === 'MEDIUM') return 'text-cyan-700';
+  return 'text-neutral-700';
 };
 
 export const getRiskReviewStyles = (reviewStatus: RiskReviewStatus) => {
-  if (reviewStatus === 'CONFIRMED_ABUSE') return 'border-rose-200 bg-rose-50 text-rose-700';
-  if (reviewStatus === 'BENIGN') return 'border-emerald-200 bg-emerald-50 text-emerald-700';
-  if (reviewStatus === 'UNCERTAIN') return 'border-amber-200 bg-amber-50 text-amber-700';
-  return 'border-neutral-200 bg-neutral-50 text-neutral-700';
+  if (reviewStatus === 'CONFIRMED_ABUSE') return 'text-rose-700';
+  if (reviewStatus === 'BENIGN') return 'text-emerald-700';
+  if (reviewStatus === 'UNCERTAIN') return 'text-amber-700';
+  return 'text-neutral-700';
 };
 
 // =============================================================================

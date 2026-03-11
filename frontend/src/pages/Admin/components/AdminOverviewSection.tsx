@@ -503,7 +503,7 @@ export default function AdminOverviewSection({
                           <th className="px-4 py-3 font-semibold text-neutral-600">Representative Name</th>
                           <th className="px-4 py-3 font-semibold text-neutral-600">Email</th>
                           <th className="px-4 py-3 font-semibold text-neutral-600">Institution</th>
-                          <th className="px-4 py-3 font-semibold text-neutral-600">Registered</th>
+                          <th className="px-4 py-3 font-semibold text-neutral-600">Registered At</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-200">

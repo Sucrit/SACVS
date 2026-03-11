@@ -313,7 +313,7 @@ export default function InstitutionReceiptVerifySection() {
                 </div>
                 <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-neutral-200 pt-3">
                   {markedClaimedRequestIds.includes(result.receipt.requestId) && (
-                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
                       Claimed marked
                     </span>
                   )}

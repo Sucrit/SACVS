@@ -497,13 +497,13 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold text-neutral-900">{event.riskScore.toFixed(2)}</td>
                     <td className="px-4 py-3 text-xs">
-                      <span className={`rounded-md border px-2.5 py-1 font-semibold ${getRiskBandStyles(event.riskBand)}`}>
+                      <span className={`font-semibold uppercase tracking-[0.08em] ${getRiskBandStyles(event.riskBand)}`}>
                         {event.riskBand}
                       </span>
                     </td>
                     <td className="hidden px-4 py-3 text-xs md:table-cell">
                       <div className="space-y-1">
-                        <span className={`inline-flex rounded-md border px-2.5 py-1 font-semibold ${getRiskReviewStyles(event.reviewStatus)}`}>
+                        <span className={`inline-flex font-semibold uppercase tracking-[0.08em] ${getRiskReviewStyles(event.reviewStatus)}`}>
                           {event.reviewStatus}
                         </span>
                         <p className="text-neutral-500">{event.reviewedAt ? formatDateTime(event.reviewedAt) : 'Not reviewed'}</p>
