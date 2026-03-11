@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  Building2,
-  Clock3,
+  AlertCircle,
+  ClipboardList,
   Mail,
   ShieldAlert,
+  UserPlus,
   Users,
 } from 'lucide-react';
 import Card from '../../../components/common/Card';
@@ -18,7 +19,6 @@ interface AdminOverviewSectionProps {
   users: User[];
   isLoadingUsers: boolean;
   totalUsers: number;
-  pendingUsers: number;
   roleDistribution: Record<'STUDENT' | 'INSTITUTION' | 'ADMIN', number>;
   pendingQueue: User[];
   isUpdatingStatus: string | null;
@@ -35,9 +35,9 @@ interface AdminOverviewSectionProps {
 }
 
 export default function AdminOverviewSection({
+  users,
   isLoadingUsers,
   totalUsers,
-  pendingUsers,
   roleDistribution,
   pendingQueue,
   isUpdatingStatus,
@@ -46,52 +46,127 @@ export default function AdminOverviewSection({
   riskEvents,
   isLoadingRiskEvents,
 }: AdminOverviewSectionProps) {
-  const alertCount = riskSummary.highRiskCount + riskSummary.criticalRiskCount;
   const recentHighRiskEvents = riskEvents
     .filter(e => (e.riskBand === 'HIGH' || e.riskBand === 'CRITICAL') && e.reviewStatus === 'PENDING_REVIEW')
     .slice(0, 5);
+
+  const last7DaysCounts = Array(7).fill(0);
+  const now = new Date().getTime();
+  users.forEach(u => {
+    const diff = now - new Date(u.createdAt).getTime();
+    const daysAgo = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (daysAgo >= 0 && daysAgo < 7) {
+      last7DaysCounts[6 - daysAgo]++;
+    }
+  });
+  last7DaysCounts.reverse(); // Newest day on the right
+  const maxDay = Math.max(...last7DaysCounts, 1);
+  const recentRegistrationsCount = last7DaysCounts.reduce((a, b) => a + b, 0);
 
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="flex items-center gap-4 rounded-lg border border-amber-200 bg-amber-50/50 p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
-            <Clock3 size={18} />
+        {/* Card 1: Total Users */}
+        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between">
+            <h3 className="text-[13px] font-semibold text-neutral-500">Total Users</h3>
+            <Users size={18} className="text-orange-500" />
           </div>
-          <div>
-            <p className="text-2xl font-semibold text-neutral-900">{pendingUsers}</p>
-            <p className="text-xs text-neutral-500">Institution Partnership Requests</p>
+          <div className="mt-4 mb-5">
+            <p className="text-3xl font-bold tracking-tight text-neutral-900">{totalUsers.toLocaleString()}</p>
+            <p className="mt-1 text-[11px] font-bold text-neutral-400">
+              <span className="text-emerald-500">+5.2%</span> VS LAST MONTH
+            </p>
           </div>
-        </div>
-
-        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
-            <Users size={18} />
-          </div>
-          <div>
-            <p className="text-2xl font-semibold text-neutral-900">{totalUsers}</p>
-            <p className="text-xs text-neutral-500">Total users</p>
+          <div className="text-[11px] font-medium text-neutral-500">
+            Students: {(roleDistribution.STUDENT / 1000).toFixed(1)}k &nbsp; Inst: {(roleDistribution.INSTITUTION / 1000).toFixed(1)}k &nbsp; Admin: {roleDistribution.ADMIN}
           </div>
         </div>
 
-        <div className={`flex items-center gap-4 rounded-lg border p-4 ${alertCount > 0 ? 'border-rose-200 bg-rose-50/50' : 'border-neutral-200 bg-white'}`}>
-          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${alertCount > 0 ? 'bg-rose-100 text-rose-600' : 'bg-neutral-100 text-neutral-600'}`}>
-            <ShieldAlert size={18} />
+        {/* Card 2: Recent Registrations */}
+        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between">
+            <h3 className="text-[13px] font-semibold text-neutral-500">Recent Registrations</h3>
+            <UserPlus size={18} className="text-orange-500" />
           </div>
-          <div>
-            <p className="text-2xl font-semibold text-neutral-900">{alertCount}</p>
-            <p className="text-xs text-neutral-500">Security alerts</p>
+          <div className="mt-4 mb-5">
+            <p className="text-3xl font-bold tracking-tight text-neutral-900">+{recentRegistrationsCount}</p>
+            <p className="mt-1 text-[11px] font-bold text-neutral-400">
+              <span className="text-emerald-500">+12%</span> LAST 7 DAYS
+            </p>
+          </div>
+          <div className="flex h-5 items-end gap-1.5 opacity-90">
+            {last7DaysCounts.map((count, idx) => {
+              const heightPercent = Math.max((count / maxDay) * 100, 20);
+              const isLast = idx === last7DaysCounts.length - 1;
+              return (
+                <div key={idx} className="flex h-full w-full items-end">
+                  <div 
+                    className={`w-full rounded-sm transition-all ${isLast ? 'bg-orange-500' : 'bg-orange-200/70'}`} 
+                    style={{ height: `${heightPercent}%` }}
+                    title={`${count} users on day ${idx + 1}`}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        <div className="flex items-center gap-4 rounded-lg border border-neutral-200 bg-white p-4">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600">
-            <Building2 size={18} />
+        {/* Card 3: Pending Approvals */}
+        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between">
+            <h3 className="text-[13px] font-semibold text-neutral-500">Pending Approvals</h3>
+            <ClipboardList size={18} className="text-amber-500" />
           </div>
-          <div>
-            <p className="text-2xl font-semibold text-neutral-900">{roleDistribution.INSTITUTION}</p>
-            <p className="text-xs text-neutral-500">Institutions</p>
+          <div className="mt-4 mb-5">
+            <p className="text-3xl font-bold tracking-tight text-neutral-900">{pendingQueue.length}</p>
+            <p className="mt-1 text-[11px] font-bold text-neutral-400">
+              <span className="text-amber-500">Requires Action</span> INSTITUTIONS
+            </p>
+          </div>
+          <div className="flex h-5 items-center">
+            {pendingQueue.length > 0 ? (
+              <>
+                {pendingQueue.slice(0, 3).map((u, i) => (
+                  <div 
+                    key={u.id} 
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-700 text-[10px] font-bold text-white shadow-sm ${i > 0 ? '-ml-2' : ''}`}
+                    style={{ zIndex: 10 - i }}
+                    title={getFullName(u)}
+                  >
+                    {u.firstName?.[0] || u.email[0].toUpperCase()}
+                  </div>
+                ))}
+                {pendingQueue.length > 3 && (
+                  <div className="-ml-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-neutral-100 text-[9px] font-bold text-neutral-500 shadow-sm z-0">
+                    +{pendingQueue.length - 3}
+                  </div>
+                )}
+              </>
+            ) : (
+              <span className="text-[11px] text-neutral-400">All caught up</span>
+            )}
+          </div>
+        </div>
+
+        {/* Card 4: Critical Risk Events */}
+        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between">
+            <h3 className="text-[13px] font-semibold text-neutral-500">Critical Risk Events</h3>
+            <AlertCircle size={18} className="text-rose-600" />
+          </div>
+          <div className="mt-4 mb-5">
+            <p className="text-3xl font-bold tracking-tight text-rose-600">{riskSummary.criticalRiskCount}</p>
+            <p className="mt-1 text-[11px] font-bold text-neutral-400">
+              <span className="text-rose-600">High Priority</span> SHADOW ML MODE
+            </p>
+          </div>
+          <div className="mt-auto h-1.5 w-full overflow-hidden rounded-full bg-neutral-100">
+            <div 
+              className="h-full rounded-full bg-rose-500 transition-all duration-500" 
+              style={{ width: `${riskSummary.criticalRiskCount > 0 ? Math.min(riskSummary.criticalRiskCount * 15 + 10, 100) : 0}%` }}
+            />
           </div>
         </div>
       </div>
@@ -120,7 +195,7 @@ export default function AdminOverviewSection({
             )}
             {!isLoadingUsers && pendingQueue.length === 0 && (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50/50 px-6 py-12 text-center">
-                <Clock3 size={28} className="mb-2 text-neutral-400" />
+                <ClipboardList size={28} className="mb-2 text-neutral-400" />
                 <p className="text-sm font-medium text-neutral-600">No pending approvals</p>
                 <p className="mt-1 text-xs text-neutral-400">All user registrations have been processed.</p>
               </div>

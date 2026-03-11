@@ -4,7 +4,7 @@ import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import { Credential, CredentialRequest } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
-import { getStudentFullName } from '../utils';
+import { getStudentFullName, getUserInitials } from '../utils';
 
 interface InstitutionOverviewSectionProps {
   students: User[];
@@ -247,8 +247,15 @@ export default function InstitutionOverviewSection({
                   {directoryRows.map(student => (
                     <tr key={student.id} className="border-t border-neutral-100 text-sm text-neutral-700">
                       <td className="px-3 py-2 align-top sm:px-5 sm:py-3">
-                        <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
-                        <p className="mt-0.5 text-xs text-neutral-500">{student.email}</p>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
+                            {getUserInitials(student)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
+                            <p className="mt-0.5 text-xs text-neutral-500">{student.email}</p>
+                          </div>
+                        </div>
                       </td>
                       <td className="hidden px-3 py-2 align-top text-neutral-600 sm:table-cell sm:px-5 sm:py-3">
                         {student.profile?.studentNumber || '--'}

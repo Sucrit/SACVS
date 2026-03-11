@@ -118,7 +118,7 @@ export default function AdminUserSection({
                 <th className="px-4 py-3">Status</th>
                 <th className="hidden px-4 py-3 md:table-cell">Organization</th>
                 <th className="hidden px-4 py-3 sm:table-cell">Created</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 bg-white">
@@ -169,28 +169,23 @@ export default function AdminUserSection({
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                      {user.status === 'PENDING' && (
-                        <>
-                          <button
-                            disabled={isUpdatingStatus === user.id}
-                            onClick={() => void handleStatusUpdate(user.id, 'APPROVED')}
-                            className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-                            title="Approve"
-                          >
-                            <Check size={14} />
-                          </button>
-                          <button
-                            disabled={isUpdatingStatus === user.id}
-                            onClick={() => void handleStatusUpdate(user.id, 'REJECTED')}
-                            className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-700 hover:bg-rose-100 disabled:opacity-50"
-                            title="Reject"
-                          >
-                            <XCircle size={14} />
-                          </button>
-                        </>
-                      )}
                       <ActionMenu
                         items={[
+                          ...(user.status === 'PENDING' ? [
+                            {
+                              label: 'Approve',
+                              icon: <Check size={14} className="text-emerald-600" />,
+                              onClick: () => void handleStatusUpdate(user.id, 'APPROVED'),
+                              disabled: isUpdatingStatus === user.id,
+                            },
+                            {
+                              label: 'Reject',
+                              icon: <XCircle size={14} className="text-rose-600" />,
+                              onClick: () => void handleStatusUpdate(user.id, 'REJECTED'),
+                              disabled: isUpdatingStatus === user.id,
+                              className: 'text-rose-700',
+                            }
+                          ] : []),
                           ...(user.status === 'SUSPENDED' ? [{
                             label: 'Approve',
                             icon: <Check size={14} className="text-emerald-600" />,

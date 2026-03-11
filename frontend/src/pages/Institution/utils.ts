@@ -20,6 +20,20 @@ export const getInstitutionSection = (pathname: string): InstitutionSection => {
 export const getStudentFullName = (student: User) =>
   [student.firstName, student.middleName, student.lastName].filter(Boolean).join(' ').trim();
 
+export const getUserInitials = (user: User) => {
+  const fullName = getStudentFullName(user);
+  if (fullName) {
+    return fullName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(part => part[0]?.toUpperCase() ?? '')
+      .join('');
+  }
+
+  return user.email.slice(0, 2).toUpperCase();
+};
+
 const splitCsvLine = (line: string): string[] => line.split(',').map(cell => cell.trim());
 
 export const parseCsvStudents = (rawCsv: string): { students: InstitutionStudentPayload[]; error: string | null } => {

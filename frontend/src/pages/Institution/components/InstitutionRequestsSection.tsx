@@ -1,13 +1,14 @@
 ﻿import { useMemo } from 'react';
-import { Check, ClipboardCheck, FileText, Search, X } from 'lucide-react';
+import { Check, ClipboardCheck, FileText, Search, X, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
+import ActionMenu from '../../../components/common/ActionMenu';
 import TopNavPortal from '../../../components/common/TopNavPortal';
 import { CredentialRequest, CredentialType } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
 import { REQUEST_STATUS_OPTIONS, RequestStatusFilter } from '../types';
-import { formatDate } from '../utils';
+import { formatDate, getStudentFullName, getUserInitials } from '../utils';
 
 interface InstitutionRequestsSectionProps {
   requests: CredentialRequest[];
@@ -73,8 +74,9 @@ export default function InstitutionRequestsSection({
   onRequestAction,
   onBulkAction,
 }: InstitutionRequestsSectionProps) {
-  const studentById = new Map(
-    students.map(student => [student.id, student] as const),
+  const studentById = useMemo(
+    () => new Map(students.map(student => [student.id, student] as const)),
+    [students],
   );
 
   const filterGroups = useMemo<SearchFilterGroup[]>(() => [
@@ -131,7 +133,7 @@ export default function InstitutionRequestsSection({
                 <th className="hidden px-4 py-3 lg:table-cell">Expiry Date</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="hidden px-4 py-3 lg:table-cell">Reason</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 bg-white">
@@ -169,14 +171,20 @@ export default function InstitutionRequestsSection({
                     {(() => {
                       const student = studentById.get(request.studentId);
                       if (!student) {
-                        return 'Student record unavailable';
+                        return <span className="text-xs text-neutral-500">Student record unavailable</span>;
                       }
 
-                      const fullName = [student.firstName, student.middleName, student.lastName]
-                        .filter(Boolean)
-                        .join(' ');
-                      const studentNumber = student.profile?.studentNumber || 'No student number';
-                      return `${fullName} (${studentNumber})`;
+                      return (
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
+                            {getUserInitials(student)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
+                            <p className="mt-1 text-xs text-neutral-500">{student.profile?.studentNumber || student.email}</p>
+                          </div>
+                        </div>
+                      );
                     })()}
                   </td>
                   <td className="px-4 py-3">
@@ -214,74 +222,81 @@ export default function InstitutionRequestsSection({
                   </td>
                   <td className="px-4 py-3 text-right">
                     {request.status === 'PENDING' ? (
-                      <div className="inline-flex gap-2">
-                        <button disabled={updatingRequestId === request.id} onClick={() => void onRequestAction(request.id, 'APPROVE')} className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50" title="Approve"><Check size={16} /></button>
-                        <button disabled={updatingRequestId === request.id} onClick={() => void onRequestAction(request.id, 'REJECT')} className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-700 hover:bg-rose-100 disabled:opacity-50" title="Reject"><X size={16} /></button>
+                      <div className="flex items-center justify-end">
+                        <ActionMenu
+                          items={[
+                            {
+                              label: 'Approve',
+                              icon: <Check size={14} className="text-emerald-600" />,
+                              onClick: () => void onRequestAction(request.id, 'APPROVE'),
+                              disabled: updatingRequestId === request.id,
+                            },
+                            {
+                              label: 'Reject',
+                              icon: <X size={14} className="text-rose-600" />,
+                              onClick: () => void onRequestAction(request.id, 'REJECT'),
+                              disabled: updatingRequestId === request.id,
+                              className: 'text-rose-700',
+                            }
+                          ]}
+                        />
                       </div>
                     ) : request.status === 'APPROVED' ? (
-                      <div className="inline-flex items-center justify-end gap-2">
-                        <label
-                          className={`inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 ${
-                            request.deliveryMethod === 'PHYSICAL'
-                              ? 'cursor-not-allowed opacity-60'
-                              : 'cursor-pointer hover:bg-neutral-100'
-                          }`}
-                          title={
-                            request.deliveryMethod === 'PHYSICAL'
-                              ? 'Digital attachment is blocked for PHYSICAL delivery requests.'
-                              : 'Attach file'
-                          }
-                        >
-                          <input
-                            type="file"
-                            accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
-                            className="hidden"
-                            disabled={request.deliveryMethod === 'PHYSICAL'}
-                            onChange={event => onIssueFileChange(request.id, event.target.files?.[0] ?? null)}
-                          />
-                          {issueFileByRequestId[request.id]?.name ? 'Change File' : 'Attach File'}
-                        </label>
-                        <button
-                          disabled={
-                            updatingRequestId === request.id ||
-                            request.deliveryMethod === 'PHYSICAL' ||
-                            (!request.credentialId && !issueFileByRequestId[request.id]) ||
-                            (requestRequiresExpiry && !issueExpiryByRequestId[request.id])
-                          }
-                          onClick={() => void onRequestAction(request.id, 'ISSUE')}
-                          className="rounded-lg border border-cyan-200 bg-cyan-50 p-2 text-cyan-700 hover:bg-cyan-100 disabled:opacity-50"
-                          title={
-                            request.deliveryMethod === 'PHYSICAL'
-                              ? 'Digital issuance is blocked for PHYSICAL delivery requests.'
-                              : !request.credentialId && !issueFileByRequestId[request.id]
-                              ? 'Attach a file to issue this credential.'
-                              : requestRequiresExpiry && !issueExpiryByRequestId[request.id]
-                                ? 'Set an expiry date before issuing this credential.'
-                                : 'Issue'
-                          }
-                        >
-                          <ClipboardCheck size={16} />
-                        </button>
-                        {(request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') && (
-                          <button
-                            disabled={
-                              updatingRequestId === request.id ||
-                              (request.deliveryMethod === 'BOTH' && !request.credentialId)
-                            }
-                            onClick={() => void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED')}
-                            className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
-                            title={
-                              request.deliveryMethod === 'BOTH' && !request.credentialId
-                                ? 'Issue/link the digital credential first for BOTH delivery.'
-                                : 'Mark physical credential as claimed and complete the request.'
-                            }
+                      <div className="flex items-center justify-end gap-2">
+                        <input
+                          id={`file-upload-${request.id}`}
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+                          className="hidden"
+                          disabled={request.deliveryMethod === 'PHYSICAL'}
+                          onChange={event => onIssueFileChange(request.id, event.target.files?.[0] ?? null)}
+                        />
+                        {!issueFileByRequestId[request.id] && request.deliveryMethod !== 'PHYSICAL' && !request.credentialId && (
+                          <label
+                            htmlFor={`file-upload-${request.id}`}
+                            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-[10px] font-medium text-neutral-600 hover:bg-neutral-100"
                           >
-                            Mark Claimed
-                          </button>
+                            <Upload size={12} />
+                            Attach File
+                          </label>
                         )}
+                        {issueFileByRequestId[request.id] && (
+                          <span className="text-[10px] text-neutral-500 max-w-[80px] truncate" title={issueFileByRequestId[request.id]?.name}>
+                            {issueFileByRequestId[request.id]?.name}
+                          </span>
+                        )}
+                        <ActionMenu
+                          items={[
+                            ...((request.deliveryMethod !== 'PHYSICAL') ? [{
+                              label: issueFileByRequestId[request.id] ? 'Change File' : 'Attach File',
+                              icon: <Upload size={14} className="text-neutral-600" />,
+                              onClick: () => {
+                                const fileInput = document.getElementById(`file-upload-${request.id}`);
+                                if (fileInput) fileInput.click();
+                              },
+                            }] : []),
+                            {
+                              label: 'Issue Credential',
+                              icon: <ClipboardCheck size={14} className="text-cyan-700" />,
+                              onClick: () => void onRequestAction(request.id, 'ISSUE'),
+                              disabled: updatingRequestId === request.id ||
+                                request.deliveryMethod === 'PHYSICAL' ||
+                                (!request.credentialId && !issueFileByRequestId[request.id]) ||
+                                (requestRequiresExpiry && !issueExpiryByRequestId[request.id]),
+                              className: 'text-cyan-800'
+                            },
+                            ...((request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') ? [{
+                              label: 'Mark Claimed',
+                              icon: <ClipboardCheck size={14} className="text-amber-700" />,
+                              onClick: () => void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED'),
+                              disabled: updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId),
+                              className: 'text-amber-800'
+                            }] : [])
+                          ]}
+                        />
                       </div>
                     ) : (
-                      <span className="text-xs text-neutral-500">Completed</span>
+                      <span className="text-xs text-neutral-500 px-2">Completed</span>
                     )}
                   </td>
                       </>

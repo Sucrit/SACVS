@@ -13,7 +13,7 @@ import {
   CredentialType,
 } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
-import { formatDateTime, getStudentFullName } from '../utils';
+import { formatDateTime, getStudentFullName, getUserInitials } from '../utils';
 import {
   MODAL_BACKDROP_VARIANTS,
   MODAL_PANEL_VARIANTS,
@@ -117,13 +117,10 @@ export default function InstitutionIssueSection({
   const [updatingCredentialId, setUpdatingCredentialId] = useState<string | null>(null);
   const [reissuingCredentialId, setReissuingCredentialId] = useState<string | null>(null);
 
-  const studentNameById = useMemo(() => {
-    const map = new Map<string, string>();
-    students.forEach(student => {
-      map.set(student.id, getStudentFullName(student) || student.email);
-    });
-    return map;
-  }, [students]);
+  const studentById = useMemo(
+    () => new Map(students.map(student => [student.id, student] as const)),
+    [students],
+  );
 
   const eligibleStudents = useMemo(
     () => students.filter(student => student.role === 'STUDENT'),
@@ -297,7 +294,7 @@ export default function InstitutionIssueSection({
                   <option value="">Select student</option>
                   {eligibleStudents.map(student => (
                     <option key={student.id} value={student.id}>
-                      {(studentNameById.get(student.id) || student.email)} ({student.profile?.studentNumber || student.id})
+                      {(getStudentFullName(student) || student.email)} ({student.profile?.studentNumber || student.id})
                     </option>
                   ))}
                 </select>
@@ -476,7 +473,24 @@ export default function InstitutionIssueSection({
                       const requestRequiresExpiry = requiresExpiryDate(request.type, requestCertificateCategory);
                       return (
                         <>
-                    <td className="px-4 py-3 text-sm text-neutral-700">{studentNameById.get(request.studentId) || request.studentId}</td>
+                    <td className="px-4 py-3 text-sm text-neutral-700">
+                      {(() => {
+                        const student = studentById.get(request.studentId);
+                        if (!student) return request.studentId;
+
+                        return (
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
+                              {getUserInitials(student)}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
+                              <p className="mt-1 text-xs text-neutral-500">{student.email}</p>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td className="px-4 py-3">
                       <p className="text-sm font-semibold text-neutral-900">{request.title}</p>
                       <p className="mt-1 text-xs text-neutral-500">{request.id}</p>
@@ -611,10 +625,21 @@ export default function InstitutionIssueSection({
                         CREDENTIAL_STATUS_OPTIONS[credential.status] ?? [credential.status];
                       const targetStatus = statusByCredentialId[credential.id] || credential.status;
                       const isStatusUnchanged = targetStatus === credential.status;
+                      const student = studentById.get(credential.studentId);
                       return (
                         <>
                     <td className="px-4 py-3 text-sm text-neutral-700">
-                      {studentNameById.get(credential.studentId) || credential.studentId}
+                      {student ? (
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
+                            {getUserInitials(student)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
+                            <p className="mt-1 text-xs text-neutral-500">{student.email}</p>
+                          </div>
+                        </div>
+                      ) : credential.studentId}
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-sm font-semibold text-neutral-900">{credential.title}</p>

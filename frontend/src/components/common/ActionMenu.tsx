@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { EllipsisVertical } from 'lucide-react';
+import { MoreVertical } from 'lucide-react';
 
 export interface ActionMenuItem {
   label: string;
@@ -33,10 +33,10 @@ export default function ActionMenu({ items }: ActionMenuProps) {
       <button
         type="button"
         onClick={() => setOpen(prev => !prev)}
-        className="rounded-lg border border-neutral-200 bg-white p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
+        className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100"
         aria-label="More actions"
       >
-        <EllipsisVertical size={14} />
+        <MoreVertical size={18} />
       </button>
 
       {open && (

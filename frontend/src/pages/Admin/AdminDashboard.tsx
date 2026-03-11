@@ -2,11 +2,16 @@
 import Card from '../../components/common/Card';
 import TopNavPortal from '../../components/common/TopNavPortal';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
+import ActionMenu from '../../components/common/ActionMenu';
 import {
   AlertTriangle,
   Clock3,
   ShieldAlert,
   UserRoundCheck,
+  Eye,
+  Check,
+  XCircle,
+  HelpCircle,
 } from 'lucide-react';
 import { AuditAction, AuditSeverity } from '../../services/audit.service';
 import { RiskBand, RiskReviewStatus } from '../../services/risk.service';
@@ -43,7 +48,6 @@ export default function AdminDashboard() {
     handleStatusUpdate,
     handleRoleUpdate,
     totalUsers,
-    pendingUsers,
     roleDistribution,
     pendingQueue,
     auditLogs: _auditLogs,
@@ -338,7 +342,7 @@ export default function AdminDashboard() {
                 <th className="hidden px-4 py-3 md:table-cell">Review</th>
                 <th className="hidden px-4 py-3 lg:table-cell">Signals</th>
                 <th className="hidden px-4 py-3 lg:table-cell">Observed</th>
-                <th className="px-4 py-3">Actions</th>
+                <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 bg-white">
@@ -400,39 +404,37 @@ export default function AdminDashboard() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => void openRiskEventDetails(event.id)}
-                          disabled={selectedRiskEventId === event.id && isLoadingSelectedRiskEvent}
-                          className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => void handleRiskReviewUpdate(event.id, 'CONFIRMED_ABUSE')}
-                          disabled={reviewingRiskEventId === event.id || event.reviewStatus === 'CONFIRMED_ABUSE'}
-                          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {reviewingRiskEventId === event.id && event.reviewStatus !== 'CONFIRMED_ABUSE' ? (
-                            <ButtonLoadingContent label="Saving" />
-                          ) : (
-                            'Confirm abuse'
-                          )}
-                        </button>
-                        <button
-                          onClick={() => void handleRiskReviewUpdate(event.id, 'BENIGN')}
-                          disabled={reviewingRiskEventId === event.id || event.reviewStatus === 'BENIGN'}
-                          className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Benign
-                        </button>
-                        <button
-                          onClick={() => void handleRiskReviewUpdate(event.id, 'UNCERTAIN')}
-                          disabled={reviewingRiskEventId === event.id || event.reviewStatus === 'UNCERTAIN'}
-                          className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Uncertain
-                        </button>
+                      <div className="flex items-center justify-end">
+                        <ActionMenu
+                          items={[
+                            {
+                              label: 'View',
+                              icon: <Eye size={14} />,
+                              onClick: () => void openRiskEventDetails(event.id),
+                              disabled: selectedRiskEventId === event.id && isLoadingSelectedRiskEvent,
+                            },
+                            {
+                              label: reviewingRiskEventId === event.id && event.reviewStatus !== 'CONFIRMED_ABUSE' ? 'Saving...' : 'Confirm abuse',
+                              icon: <XCircle size={14} className="text-rose-600" />,
+                              onClick: () => void handleRiskReviewUpdate(event.id, 'CONFIRMED_ABUSE'),
+                              disabled: reviewingRiskEventId === event.id || event.reviewStatus === 'CONFIRMED_ABUSE',
+                              className: 'text-rose-700',
+                            },
+                            {
+                              label: 'Benign',
+                              icon: <Check size={14} className="text-emerald-600" />,
+                              onClick: () => void handleRiskReviewUpdate(event.id, 'BENIGN'),
+                              disabled: reviewingRiskEventId === event.id || event.reviewStatus === 'BENIGN',
+                              className: 'text-emerald-700',
+                            },
+                            {
+                              label: 'Uncertain',
+                              icon: <HelpCircle size={14} className="text-neutral-500" />,
+                              onClick: () => void handleRiskReviewUpdate(event.id, 'UNCERTAIN'),
+                              disabled: reviewingRiskEventId === event.id || event.reviewStatus === 'UNCERTAIN',
+                            },
+                          ]}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -568,7 +570,6 @@ export default function AdminDashboard() {
           users={users}
           isLoadingUsers={isLoadingUsers}
           totalUsers={totalUsers}
-          pendingUsers={pendingUsers}
           roleDistribution={roleDistribution}
           pendingQueue={pendingQueue}
           isUpdatingStatus={isUpdatingStatus}

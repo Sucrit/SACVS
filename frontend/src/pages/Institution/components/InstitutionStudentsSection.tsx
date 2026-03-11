@@ -9,7 +9,7 @@ import SearchFilterModal, { SearchFilterGroup } from '../../../components/common
 import TopNavPortal from '../../../components/common/TopNavPortal';
 import { User, UserStatus } from '../../../services/user.service';
 import { StudentFormState, StudentStatusFilter, STUDENT_STATUS_OPTIONS } from '../types';
-import { getStudentFullName } from '../utils';
+import { getStudentFullName, getUserInitials } from '../utils';
 import {
   DEFAULT_DEPARTMENT_OPTIONS,
   OTHER_PHINMA_PROGRAMS,
@@ -255,7 +255,7 @@ export default function InstitutionStudentsSection({
                 <th className="hidden px-4 py-3 lg:table-cell">Program</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="hidden px-4 py-3 md:table-cell">Approval</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+                <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 bg-white">
@@ -263,7 +263,17 @@ export default function InstitutionStudentsSection({
               {!isLoadingStudents && students.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-neutral-500">No students found.</td></tr>}
               {!isLoadingStudents && students.map(student => (
                 <tr key={student.id} className="hover:bg-neutral-50/70">
-                  <td className="px-4 py-3"><p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p><p className="mt-1 text-xs text-neutral-500">{student.email}</p></td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
+                        {getUserInitials(student)}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
+                        <p className="mt-1 text-xs text-neutral-500">{student.email}</p>
+                      </div>
+                    </div>
+                  </td>
                   <td className="hidden px-4 py-3 text-sm text-neutral-700 sm:table-cell">{student.profile?.studentNumber || '-'}</td>
                   <td className="hidden px-4 py-3 text-sm text-neutral-700 md:table-cell">{student.profile?.department || '-'}</td>
                   <td className="hidden px-4 py-3 text-sm text-neutral-700 lg:table-cell">{student.profile?.courseOfStudy || '-'}</td>
@@ -272,55 +282,52 @@ export default function InstitutionStudentsSection({
                     <p><span className="font-semibold text-neutral-700">By:</span> {student.approverName || '-'}</p>
                     <p className="mt-1"><span className="font-semibold text-neutral-700">At:</span> {formatDateTime(student.approvedAt)}</p>
                   </td>
-                  <td className="px-4 py-3 text-right"><div className="inline-flex items-center gap-2">
-                    {student.status === 'PENDING' && (
-                      <>
-                        <button
-                          disabled={updatingStudentId === student.id}
-                          onClick={() => void onStudentStatusUpdate(student.id, 'APPROVED')}
-                          className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-                          title="Approve"
-                        >
-                          <Check size={14} />
-                        </button>
-                        <button
-                          disabled={updatingStudentId === student.id}
-                          onClick={() => void onStudentStatusUpdate(student.id, 'REJECTED')}
-                          className="rounded-lg border border-rose-200 bg-rose-50 p-2 text-rose-700 hover:bg-rose-100 disabled:opacity-50"
-                          title="Reject"
-                        >
-                          <XCircle size={14} />
-                        </button>
-                      </>
-                    )}
-                    <ActionMenu
-                      items={[
-                        {
-                          label: 'Edit profile',
-                          icon: <Pencil size={14} />,
-                          onClick: () => onStartEditStudent(student),
-                        },
-                        ...(student.status !== 'APPROVED' && student.status !== 'PENDING' ? [{
-                          label: 'Approve',
-                          icon: <Check size={14} className="text-emerald-600" />,
-                          onClick: () => void onStudentStatusUpdate(student.id, 'APPROVED'),
-                          disabled: updatingStudentId === student.id,
-                        }] : []),
-                        ...(student.status !== 'SUSPENDED' ? [{
-                          label: 'Deactivate',
-                          icon: <PauseCircle size={14} className="text-orange-600" />,
-                          onClick: () => void onStudentStatusUpdate(student.id, 'SUSPENDED'),
-                          disabled: updatingStudentId === student.id,
-                        }] : []),
-                        {
-                          label: 'Delete',
-                          icon: <Trash2 size={14} className="text-rose-600" />,
-                          onClick: () => void onRemoveStudent(student),
-                          className: 'text-rose-700',
-                        },
-                      ]}
-                    />
-                  </div></td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="inline-flex items-center justify-end">
+                      <ActionMenu
+                        items={[
+                          ...(student.status === 'PENDING' ? [
+                            {
+                              label: 'Approve',
+                              icon: <Check size={14} className="text-emerald-600" />,
+                              onClick: () => void onStudentStatusUpdate(student.id, 'APPROVED'),
+                              disabled: updatingStudentId === student.id,
+                            },
+                            {
+                              label: 'Reject',
+                              icon: <XCircle size={14} className="text-rose-600" />,
+                              onClick: () => void onStudentStatusUpdate(student.id, 'REJECTED'),
+                              disabled: updatingStudentId === student.id,
+                              className: 'text-rose-700',
+                            }
+                          ] : []),
+                          {
+                            label: 'Edit profile',
+                            icon: <Pencil size={14} />,
+                            onClick: () => onStartEditStudent(student),
+                          },
+                          ...(student.status !== 'APPROVED' && student.status !== 'PENDING' ? [{
+                            label: 'Approve',
+                            icon: <Check size={14} className="text-emerald-600" />,
+                            onClick: () => void onStudentStatusUpdate(student.id, 'APPROVED'),
+                            disabled: updatingStudentId === student.id,
+                          }] : []),
+                          ...(student.status !== 'SUSPENDED' ? [{
+                            label: 'Deactivate',
+                            icon: <PauseCircle size={14} className="text-orange-600" />,
+                            onClick: () => void onStudentStatusUpdate(student.id, 'SUSPENDED'),
+                            disabled: updatingStudentId === student.id,
+                          }] : []),
+                          {
+                            label: 'Delete',
+                            icon: <Trash2 size={14} className="text-rose-600" />,
+                            onClick: () => void onRemoveStudent(student),
+                            className: 'text-rose-700',
+                          },
+                        ]}
+                      />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

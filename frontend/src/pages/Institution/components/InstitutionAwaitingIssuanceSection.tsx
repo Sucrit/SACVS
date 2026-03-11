@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { ClipboardCheck, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
+import ActionMenu from '../../../components/common/ActionMenu';
 import {
   CredentialRequest,
   CredentialType,
 } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
-import { formatDateTime, getStudentFullName } from '../utils';
+import { formatDateTime, getStudentFullName, getUserInitials } from '../utils';
 
 const EXPIRY_ALLOWED_TYPES: CredentialType[] = ['CERTIFICATE', 'LICENSE'];
 type CertificateCategory = 'ACADEMIC' | 'PROFESSIONAL';
@@ -56,13 +57,10 @@ export default function InstitutionAwaitingIssuanceSection({
   onIssueExpiryChange,
   onRequestAction,
 }: InstitutionAwaitingIssuanceSectionProps) {
-  const studentNameById = useMemo(() => {
-    const map = new Map<string, string>();
-    students.forEach(student => {
-      map.set(student.id, getStudentFullName(student) || student.email);
-    });
-    return map;
-  }, [students]);
+  const studentById = useMemo(
+    () => new Map(students.map(student => [student.id, student] as const)),
+    [students],
+  );
 
   const readyToIssue = useMemo(
     () =>
@@ -111,7 +109,24 @@ export default function InstitutionAwaitingIssuanceSection({
                     const requestRequiresExpiry = requiresExpiryDate(request.type, requestCertificateCategory);
                     return (
                       <>
-                        <td className="px-4 py-3 text-sm text-neutral-700">{studentNameById.get(request.studentId) || request.studentId}</td>
+                        <td className="px-4 py-3 text-sm text-neutral-700">
+                          {(() => {
+                            const student = studentById.get(request.studentId);
+                            if (!student) return request.studentId;
+
+                            return (
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
+                                  {getUserInitials(student)}
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
+                                  <p className="mt-1 text-xs text-neutral-500">{student.email}</p>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </td>
                         <td className="px-4 py-3">
                           <p className="text-sm font-semibold text-neutral-900">{request.title}</p>
                           <p className="mt-1 text-xs text-neutral-500">{request.id}</p>
@@ -160,42 +175,29 @@ export default function InstitutionAwaitingIssuanceSection({
                           </label>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <button
-                            disabled={
-                              updatingRequestId === request.id ||
-                              request.deliveryMethod === 'PHYSICAL' ||
-                              (!request.credentialId && !issueFileByRequestId[request.id]) ||
-                              (requestRequiresExpiry && !issueExpiryByRequestId[request.id])
-                            }
-                            onClick={() => void onRequestAction(request.id, 'ISSUE')}
-                            className="inline-flex items-center gap-1 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-50"
-                            title={
-                              request.deliveryMethod === 'PHYSICAL'
-                                ? 'Digital issuance is blocked for PHYSICAL delivery requests.'
-                                : !request.credentialId && !issueFileByRequestId[request.id]
-                                ? 'Attach a file to issue this credential.'
-                                : requestRequiresExpiry && !issueExpiryByRequestId[request.id]
-                                  ? 'Set an expiry date before issuing this credential.'
-                                  : 'Issue Credential'
-                            }
-                          >
-                            <ClipboardCheck size={13} />
-                            Issue
-                          </button>
-                          {(request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') && (
-                            <button
-                              disabled={updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId)}
-                              onClick={() => void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED')}
-                              className="ml-2 inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
-                              title={
-                                request.deliveryMethod === 'BOTH' && !request.credentialId
-                                  ? 'Issue/link the digital credential first for BOTH delivery.'
-                                  : 'Mark physical credential as claimed and complete the request.'
-                              }
-                            >
-                              Mark Claimed
-                            </button>
-                          )}
+                          <div className="flex items-center justify-end">
+                            <ActionMenu
+                              items={[
+                                {
+                                  label: 'Issue Credential',
+                                  icon: <ClipboardCheck size={14} className="text-cyan-700" />,
+                                  onClick: () => void onRequestAction(request.id, 'ISSUE'),
+                                  disabled: updatingRequestId === request.id ||
+                                    request.deliveryMethod === 'PHYSICAL' ||
+                                    (!request.credentialId && !issueFileByRequestId[request.id]) ||
+                                    (requestRequiresExpiry && !issueExpiryByRequestId[request.id]),
+                                  className: 'text-cyan-800'
+                                },
+                                ...((request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') ? [{
+                                  label: 'Mark Claimed',
+                                  icon: <ClipboardCheck size={14} className="text-amber-700" />,
+                                  onClick: () => void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED'),
+                                  disabled: updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId),
+                                  className: 'text-amber-800'
+                                }] : [])
+                              ]}
+                            />
+                          </div>
                         </td>
                       </>
                     );
