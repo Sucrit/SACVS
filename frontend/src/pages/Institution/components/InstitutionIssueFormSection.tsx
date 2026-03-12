@@ -1,5 +1,6 @@
-import { FormEvent, useMemo, useState } from 'react';
-import { ClipboardCheck, Upload } from 'lucide-react';
+import { FormEvent, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronDown, ClipboardCheck, Search, Upload, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/ui/Button';
 import { useToast } from '../../../hooks/useToast';
@@ -8,7 +9,7 @@ import {
   CredentialType,
 } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
-import { getStudentFullName } from '../utils';
+import { getStudentFullName, getUserInitials } from '../utils';
 
 const CREDENTIAL_TYPES: CredentialType[] = ['TRANSCRIPT', 'DIPLOMA', 'CERTIFICATE', 'DEGREE', 'LICENSE'];
 const EXPIRY_ALLOWED_TYPES: CredentialType[] = ['CERTIFICATE', 'LICENSE'];
@@ -17,6 +18,10 @@ const DEFAULT_CERTIFICATE_CATEGORY: CertificateCategory = 'ACADEMIC';
 const CERTIFICATE_CATEGORIES: CertificateCategory[] = ['ACADEMIC', 'PROFESSIONAL'];
 const DIRECT_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 const DIRECT_UPLOAD_ACCEPTED_MIME = new Set(['application/pdf', 'image/png', 'image/jpeg']);
+const FIELD_REORDER_TRANSITION = {
+  duration: 0.22,
+  ease: [0.22, 1, 0.36, 1] as const,
+};
 
 const supportsExpiryDate = (type: CredentialType) => EXPIRY_ALLOWED_TYPES.includes(type);
 const requiresExpiryDate = (
@@ -53,6 +58,10 @@ export default function InstitutionIssueFormSection({
   const [directFile, setDirectFile] = useState<File | null>(null);
   const [isDirectFileDragActive, setIsDirectFileDragActive] = useState(false);
   const [isDirectIssuing, setIsDirectIssuing] = useState(false);
+  const [isStudentPickerOpen, setIsStudentPickerOpen] = useState(false);
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  const deferredStudentSearchQuery = useDeferredValue(studentSearchQuery);
+  const studentPickerRef = useRef<HTMLDivElement | null>(null);
 
   const studentNameById = useMemo(() => {
     const map = new Map<string, string>();
@@ -63,9 +72,87 @@ export default function InstitutionIssueFormSection({
   }, [students]);
 
   const eligibleStudents = useMemo(
-    () => students.filter(student => student.role === 'STUDENT'),
-    [students],
+    () => [...students]
+      .filter(student => student.role === 'STUDENT')
+      .sort((left, right) => {
+        const leftLabel = studentNameById.get(left.id) || left.email;
+        const rightLabel = studentNameById.get(right.id) || right.email;
+        return leftLabel.localeCompare(rightLabel);
+      }),
+    [studentNameById, students],
   );
+
+  const selectedStudent = useMemo(
+    () => eligibleStudents.find(student => student.id === directForm.studentId) || null,
+    [directForm.studentId, eligibleStudents],
+  );
+
+  const studentSearchState = useMemo(() => {
+    const normalizedQuery = deferredStudentSearchQuery.trim().toLowerCase();
+    if (!normalizedQuery) {
+      return {
+        totalMatches: 0,
+        results: [] as User[],
+      };
+    }
+
+    const matches = eligibleStudents.filter(student => {
+      const searchableFields = [
+        studentNameById.get(student.id) || student.email,
+        student.email,
+        student.profile?.studentNumber || '',
+      ];
+
+      return searchableFields.some(value => value.toLowerCase().includes(normalizedQuery));
+    });
+
+    return {
+      totalMatches: matches.length,
+      results: matches.slice(0, 8),
+    };
+  }, [deferredStudentSearchQuery, eligibleStudents, studentNameById]);
+
+  useEffect(() => {
+    if (!isStudentPickerOpen) return undefined;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!studentPickerRef.current?.contains(target)) {
+        setIsStudentPickerOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsStudentPickerOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isStudentPickerOpen]);
+
+  const handleOpenStudentPicker = () => {
+    setStudentSearchQuery('');
+    setIsStudentPickerOpen(true);
+  };
+
+  const handleSelectStudent = (studentId: string) => {
+    setDirectForm(previous => ({ ...previous, studentId }));
+    setStudentSearchQuery('');
+    setIsStudentPickerOpen(false);
+  };
+
+  const handleClearStudent = () => {
+    setDirectForm(previous => ({ ...previous, studentId: '' }));
+    setStudentSearchQuery('');
+    setIsStudentPickerOpen(false);
+  };
 
   const handleDirectFileSelection = (file: File | null) => {
     if (!file) {
@@ -130,6 +217,8 @@ export default function InstitutionIssueFormSection({
         certificateCategory: DEFAULT_CERTIFICATE_CATEGORY,
       });
       setDirectFile(null);
+      setStudentSearchQuery('');
+      setIsStudentPickerOpen(false);
       showToast({ variant: 'success', message: 'Credential issued successfully.' });
     } catch (error) {
       if (
@@ -150,20 +239,103 @@ export default function InstitutionIssueFormSection({
   return (
     <Card title="Issue Credential">
       <form className="space-y-4" onSubmit={handleSubmitDirectIssue}>
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-          <select
-            value={directForm.studentId}
-            onChange={event => setDirectForm(previous => ({ ...previous, studentId: event.target.value }))}
-            className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-            required
-          >
-            <option value="">Select student</option>
-            {eligibleStudents.map(student => (
-              <option key={student.id} value={student.id}>
-                {(studentNameById.get(student.id) || student.email)} ({student.profile?.studentNumber || student.id})
-              </option>
-            ))}
-          </select>
+        <motion.div
+          layout
+          transition={FIELD_REORDER_TRANSITION}
+          className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(0,1.15fr)]"
+        >
+          <div ref={studentPickerRef} className="relative lg:col-start-1">
+            <button
+              type="button"
+              onClick={() => (isStudentPickerOpen ? setIsStudentPickerOpen(false) : handleOpenStudentPicker())}
+              className={`flex h-11 w-full items-center gap-3 rounded-lg border px-3 text-left text-sm outline-none transition ${
+                selectedStudent
+                  ? 'border-neutral-200 bg-white text-neutral-900 hover:border-neutral-300 hover:bg-neutral-50'
+                  : 'border-neutral-200 bg-neutral-50 text-neutral-500 hover:border-neutral-300 hover:bg-neutral-100'
+              }`}
+              aria-haspopup="dialog"
+              aria-expanded={isStudentPickerOpen}
+            >
+              {selectedStudent ? (
+                <>
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xs font-semibold text-white">
+                    {getUserInitials(selectedStudent)}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold text-neutral-900">
+                      {studentNameById.get(selectedStudent.id) || selectedStudent.email}
+                    </span>
+                    <span className="block truncate text-xs text-neutral-500">
+                      {selectedStudent.profile?.studentNumber || selectedStudent.email}
+                    </span>
+                  </span>
+                </>
+              ) : (
+                <span className="truncate">Search student by name, email, or student number</span>
+              )}
+              <ChevronDown size={16} className="ml-auto shrink-0 text-neutral-400" />
+            </button>
+
+            {isStudentPickerOpen && (
+              <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-20 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
+                <div className="border-b border-neutral-200 px-3 py-3">
+                  <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3">
+                    <Search size={15} className="shrink-0 text-neutral-400" />
+                    <input
+                      autoFocus
+                      value={studentSearchQuery}
+                      onChange={event => setStudentSearchQuery(event.target.value)}
+                      placeholder="Type a student name, email, or number"
+                      className="h-10 w-full bg-transparent text-sm text-neutral-900 outline-none placeholder:text-neutral-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="max-h-80 overflow-y-auto p-2">
+                  {deferredStudentSearchQuery.trim().length === 0 && (
+                    <div className="px-3 py-10 text-center text-sm text-neutral-500">
+                      Start typing to search across the institution student list.
+                    </div>
+                  )}
+
+                  {deferredStudentSearchQuery.trim().length > 0 && studentSearchState.totalMatches === 0 && (
+                    <div className="px-3 py-10 text-center text-sm text-neutral-500">
+                      No students matched your search.
+                    </div>
+                  )}
+
+                  {studentSearchState.results.map(student => (
+                    <button
+                      key={student.id}
+                      type="button"
+                      onClick={() => handleSelectStudent(student.id)}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-neutral-50"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold text-neutral-700">
+                        {getUserInitials(student)}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-neutral-900">
+                          {studentNameById.get(student.id) || student.email}
+                        </span>
+                        <span className="block truncate text-xs text-neutral-500">
+                          {student.profile?.studentNumber || 'No student number'} • {student.email}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {studentSearchState.totalMatches > 0 && (
+                  <div className="border-t border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-500">
+                    {studentSearchState.totalMatches > studentSearchState.results.length
+                      ? `Showing ${studentSearchState.results.length} of ${studentSearchState.totalMatches} matching students.`
+                      : `${studentSearchState.totalMatches} matching student${studentSearchState.totalMatches === 1 ? '' : 's'} found.`}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           <select
             value={directForm.type}
             onChange={event =>
@@ -177,7 +349,7 @@ export default function InstitutionIssueFormSection({
                 };
               })
             }
-            className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+            className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none lg:col-start-2"
           >
             {CREDENTIAL_TYPES.map(type => (
               <option key={type} value={type}>
@@ -185,19 +357,46 @@ export default function InstitutionIssueFormSection({
               </option>
             ))}
           </select>
-          <input
-            value={directForm.title}
-            onChange={event => setDirectForm(previous => ({ ...previous, title: event.target.value }))}
-            placeholder="Credential title (e.g. Bachelor of Science in IT)"
-            className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-            required
-          />
-          <input
-            value={directForm.description}
-            onChange={event => setDirectForm(previous => ({ ...previous, description: event.target.value }))}
-            placeholder="Description (optional)"
-            className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-          />
+          <AnimatePresence initial={false}>
+            {selectedStudent && !isStudentPickerOpen && (
+              <motion.div
+                key="selected-student-summary"
+                layout
+                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                transition={FIELD_REORDER_TRANSITION}
+                className="flex h-11 items-center justify-between gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 lg:col-start-1"
+              >
+                <p className="min-w-0 truncate text-xs text-neutral-600">
+                  Ready to issue for <span className="font-semibold text-neutral-900">{studentNameById.get(selectedStudent.id) || selectedStudent.email}</span>
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  icon={<X size={14} />}
+                  onClick={handleClearStudent}
+                  className="shrink-0"
+                >
+                  Clear
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <motion.div
+            layout
+            transition={FIELD_REORDER_TRANSITION}
+            className={selectedStudent && !isStudentPickerOpen ? 'lg:col-start-2' : 'lg:col-start-3'}
+          >
+            <input
+              value={directForm.title}
+              onChange={event => setDirectForm(previous => ({ ...previous, title: event.target.value }))}
+              placeholder="Credential title (e.g. Bachelor of Science in IT)"
+              className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+              required
+            />
+          </motion.div>
           {directForm.type === 'CERTIFICATE' && (
             <select
               value={directForm.certificateCategory}
@@ -229,42 +428,59 @@ export default function InstitutionIssueFormSection({
               />
             </div>
           )}
-        </div>
+        </motion.div>
 
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-neutral-800">Student Credential Document</p>
-          <label
-            className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors ${
-              isDirectFileDragActive
-                ? 'border-sky-300 bg-sky-50'
-                : 'border-neutral-300 bg-neutral-50 hover:bg-neutral-100'
-            }`}
-            onDragOver={event => { event.preventDefault(); setIsDirectFileDragActive(true); }}
-            onDragEnter={event => { event.preventDefault(); setIsDirectFileDragActive(true); }}
-            onDragLeave={event => { event.preventDefault(); setIsDirectFileDragActive(false); }}
-            onDrop={event => {
-              event.preventDefault();
-              setIsDirectFileDragActive(false);
-              handleDirectFileSelection(event.dataTransfer.files?.[0] ?? null);
-            }}
-          >
-            <input
-              type="file"
-              accept="application/pdf,image/png,image/jpeg"
-              className="hidden"
-              onChange={event => handleDirectFileSelection(event.target.files?.[0] ?? null)}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-stretch">
+          <div className="flex h-full flex-col gap-2">
+            <p className="text-sm font-semibold text-neutral-800">Student Credential Document</p>
+            <label
+              className={`flex h-full min-h-55 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors ${
+                isDirectFileDragActive
+                  ? 'border-sky-300 bg-sky-50'
+                  : 'border-neutral-300 bg-neutral-50 hover:bg-neutral-100'
+              }`}
+              onDragOver={event => { event.preventDefault(); setIsDirectFileDragActive(true); }}
+              onDragEnter={event => { event.preventDefault(); setIsDirectFileDragActive(true); }}
+              onDragLeave={event => { event.preventDefault(); setIsDirectFileDragActive(false); }}
+              onDrop={event => {
+                event.preventDefault();
+                setIsDirectFileDragActive(false);
+                handleDirectFileSelection(event.dataTransfer.files?.[0] ?? null);
+              }}
+            >
+              <input
+                type="file"
+                accept="application/pdf,image/png,image/jpeg"
+                className="hidden"
+                onChange={event => handleDirectFileSelection(event.target.files?.[0] ?? null)}
+              />
+              <Upload size={20} className="mb-3 text-neutral-400" />
+              <p className="text-sm text-neutral-700">
+                <span className="font-semibold text-sky-600">Upload a file</span> or drag and drop
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">PDF, PNG, JPG up to 10MB</p>
+              <p className="mt-3 min-h-5 text-xs text-neutral-600">
+                {directFile ? (
+                  <>
+                    Selected: <span className="font-semibold text-neutral-800">{directFile.name}</span>
+                  </>
+                ) : (
+                  <span className="text-transparent">No file selected</span>
+                )}
+              </p>
+            </label>
+          </div>
+
+          <div className="flex h-full flex-col gap-2">
+            <p className="text-sm font-semibold text-neutral-800">Description</p>
+            <textarea
+              value={directForm.description}
+              onChange={event => setDirectForm(previous => ({ ...previous, description: event.target.value }))}
+              placeholder="Add an optional note or context for this credential"
+              rows={12}
+              className="h-full min-h-55 w-full resize-none rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-3 text-sm outline-none"
             />
-            <Upload size={20} className="mb-3 mt-15 text-neutral-400" />
-            <p className="text-sm text-neutral-700">
-              <span className="font-semibold text-sky-600">Upload a file</span> or drag and drop
-            </p>
-            <p className="mt-1 mb-15 text-xs text-neutral-500">PDF, PNG, JPG up to 10MB</p>
-          </label>
-          {directFile && (
-            <p className="text-xs text-neutral-600">
-              Selected: <span className="font-semibold text-neutral-800">{directFile.name}</span>
-            </p>
-          )}
+          </div>
         </div>
 
         <Button

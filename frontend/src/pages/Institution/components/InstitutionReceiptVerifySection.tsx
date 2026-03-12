@@ -231,7 +231,7 @@ export default function InstitutionReceiptVerifySection() {
           <input
             value={receiptTokenInput}
             onChange={event => setReceiptTokenInput(event.target.value)}
-            placeholder="Paste approval receipt URL or token here..."
+            placeholder="Paste approval receipt code here..."
             className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
           />
           <Button

@@ -3,7 +3,6 @@ import { Bell, CheckCheck, MoreHorizontal, Settings } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import PaginationControls from '../../../components/common/PaginationControls';
-import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import Button from '../../../components/ui/Button';
 import { NotificationTarget, OutboundNotification } from '../types';
 import { AppNotification, getNotificationDisplayMessage } from '../../../services/notification.service';
@@ -29,7 +28,19 @@ interface InstitutionNotificationsSectionProps {
   onTitleChange: (title: string) => void;
   onMessageChange: (message: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onOpenCredential: (credentialId: string) => void;
+  onOpenRequest: (requestId: string) => void;
+  onOpenNotificationsPage: () => void;
 }
+
+const parseMetadataString = (
+  metadata: Record<string, unknown> | null,
+  key: string,
+): string | null => {
+  if (!metadata) return null;
+  const value = metadata[key];
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+};
 
 export default function InstitutionNotificationsSection({
   notificationTarget,
@@ -49,8 +60,10 @@ export default function InstitutionNotificationsSection({
   onTitleChange,
   onMessageChange,
   onSubmit,
+  onOpenCredential,
+  onOpenRequest,
+  onOpenNotificationsPage,
 }: InstitutionNotificationsSectionProps) {
-  const [selectedNotificationId, setSelectedNotificationId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
@@ -61,11 +74,6 @@ export default function InstitutionNotificationsSection({
   const inboxMenuButtonRef = useRef<HTMLButtonElement | null>(null);
   const inboxMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const selectedNotification = useMemo(
-    () => notifications.find(notification => notification.id === selectedNotificationId) || null,
-    [notifications, selectedNotificationId],
-  );
-  
   const totalPages = Math.max(1, Math.ceil(notifications.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const pagedNotifications = useMemo(() => {
@@ -122,6 +130,26 @@ export default function InstitutionNotificationsSection({
       document.removeEventListener('keydown', handleEscape);
     };
   }, [isInboxMenuOpen]);
+
+  const handleInboxNotificationOpen = (notification: AppNotification) => {
+    if (!notification.read) {
+      onMarkNotificationRead(notification.id);
+    }
+
+    const credentialId = parseMetadataString(notification.metadata, 'credentialId');
+    if (credentialId) {
+      onOpenCredential(credentialId);
+      return;
+    }
+
+    const requestId = parseMetadataString(notification.metadata, 'requestId');
+    if (requestId) {
+      onOpenRequest(requestId);
+      return;
+    }
+
+    onOpenNotificationsPage();
+  };
 
   return (
     <div className="space-y-6">
@@ -272,7 +300,16 @@ export default function InstitutionNotificationsSection({
             {pagedInboundNotifications.map(notification => (
               <article
                 key={notification.id}
-                className={`rounded-lg border px-4 py-3 transition hover:bg-neutral-50 ${
+                role="button"
+                tabIndex={0}
+                onClick={() => handleInboxNotificationOpen(notification)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    handleInboxNotificationOpen(notification);
+                  }
+                }}
+                className={`cursor-pointer rounded-lg border px-4 py-3 transition hover:bg-neutral-50 ${
                   notification.read ? 'border-neutral-200 bg-white' : 'border-sky-200 bg-sky-50/50'
                 }`}
               >
@@ -292,7 +329,10 @@ export default function InstitutionNotificationsSection({
                       type="button"
                       variant="secondary"
                       size="sm"
-                      onClick={() => onMarkNotificationRead(notification.id)}
+                      onClick={event => {
+                        event.stopPropagation();
+                        onMarkNotificationRead(notification.id);
+                      }}
                     >
                       Mark read
                     </Button>
@@ -343,8 +383,7 @@ export default function InstitutionNotificationsSection({
               {pagedNotifications.map(item => (
                 <tr
                   key={item.id}
-                  className="cursor-pointer hover:bg-neutral-50/70"
-                  onClick={() => setSelectedNotificationId(item.id)}
+                  className="hover:bg-neutral-50/70"
                 >
                   <td className="px-4 py-3 text-sm text-neutral-700">{item.target}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-neutral-900">{item.title}</td>
@@ -368,26 +407,6 @@ export default function InstitutionNotificationsSection({
           />
         )}
       </Card>
-
-      <RecordDetailsDrawer
-        open={selectedNotification !== null}
-        onClose={() => setSelectedNotificationId(null)}
-        title={selectedNotification?.title || 'Notification Details'}
-        description="Notification activity details"
-        sections={selectedNotification ? [
-          {
-            title: 'Notification',
-            fields: [
-              { label: 'Target', value: selectedNotification.target },
-              { label: 'Recipients', value: String(selectedNotification.recipientCount) },
-              { label: 'Sent By', value: selectedNotification.createdByName || selectedNotification.createdByEmail },
-              { label: 'Queued At', value: formatDateTime(selectedNotification.createdAt) },
-              { label: 'Title', value: selectedNotification.title },
-              { label: 'Message', value: selectedNotification.message },
-            ],
-          },
-        ] : []}
-      />
     </div>
   );
 }

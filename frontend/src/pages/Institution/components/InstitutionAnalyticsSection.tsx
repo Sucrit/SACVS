@@ -181,6 +181,9 @@ const buildDoughnutData = (labels: string[], values: number[], colors: string[])
 const doughnutOptions: ChartOptions<'doughnut'> = {
   responsive: true,
   maintainAspectRatio: false,
+  circumference: 180,
+  rotation: 270,
+  cutout: '75%',
   animation: {
     duration: 1200,
     easing: 'easeInOutCubic',
@@ -201,13 +204,7 @@ const doughnutOptions: ChartOptions<'doughnut'> = {
   },
   plugins: {
     legend: {
-      position: 'bottom',
-      labels: {
-        boxWidth: 12,
-        boxHeight: 12,
-        color: '#334155',
-        font: { size: 11, weight: 600 },
-      },
+      display: false,
     },
   },
 };
@@ -502,45 +499,100 @@ export default function InstitutionAnalyticsSection({
     </select>
   );
 
+  const renderLegendList = (items: { key: string; value: number }[], total: number, colors: string[]) => {
+    if (total === 0) return <p className="mt-2 text-sm text-neutral-500">No data available.</p>;
+    
+    // Split into two columns for the lists
+    const mid = Math.ceil(items.length / 2);
+    const col1 = items.slice(0, mid);
+    const col2 = items.slice(mid);
+
+    const renderColumn = (colItems: typeof items, offset: number) => (
+      <div className="flex flex-col space-y-2 w-1/2">
+        {colItems.map((item, index) => {
+          const percentage = ((item.value / total) * 100).toFixed(1);
+          return (
+            <div key={item.key} className="flex items-center justify-between text-xs font-medium text-neutral-600">
+              <div className="flex items-center space-x-2">
+                <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors[offset + index] }} />
+                <span>{labelize(item.key)}</span>
+              </div>
+              <span className="font-semibold">{percentage}%</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+
+    return (
+      <div className="mt-4 flex w-full space-x-4">
+        {renderColumn(col1, 0)}
+        {renderColumn(col2, mid)}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card title="Request Status Distribution" action={renderFilterAction('requestStatus')}>
-          <div className="h-64">
-            <Doughnut data={requestStatusChart} options={doughnutOptions} />
-          </div>
-          {!isLoading && requestStatusTotal === 0 && (
-            <p className="mt-2 text-sm text-neutral-500">No request records yet.</p>
-          )}
-        </Card>
+      <Card
+        title={`${trendGranularity === 'day' ? 'Daily' : 'Monthly'} Credential Issuance Trend`}
+        action={renderFilterAction('monthlyTrend')}
+      >
+        <div className="h-72 w-full">
+          <Line data={monthTrendChart} options={lineOptions} />
+        </div>
+      </Card>
 
-        <Card title="Credential Status Distribution" action={renderFilterAction('credentialStatus')}>
-          <div className="h-64">
-            <Doughnut data={credentialStatusChart} options={doughnutOptions} />
-          </div>
-          {!isLoading && credentialStatusTotal === 0 && (
-            <p className="mt-2 text-sm text-neutral-500">No credentials yet.</p>
-          )}
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card
-          title={`${trendGranularity === 'day' ? 'Daily' : 'Monthly'} Credential Issuance Trend`}
-          action={renderFilterAction('monthlyTrend')}
-        >
-          <div className="h-72">
-            <Line data={monthTrendChart} options={lineOptions} />
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <Card title="Request Status" action={renderFilterAction('requestStatus')}>
+          <div className="flex flex-col items-center pt-4">
+            <div className="h-32 w-full max-w-[200px] relative mt-2">
+              <Doughnut data={requestStatusChart} options={doughnutOptions} />
+              <div className="absolute inset-x-0 bottom-2 flex flex-col items-center justify-end">
+                <span className="text-2xl font-bold text-slate-800">{requestStatusTotal}</span>
+                <span className="text-xs text-slate-500 font-medium">Requests</span>
+              </div>
+            </div>
+            {renderLegendList(
+              requestsByStatus,
+              requestStatusTotal,
+              ['#0f172a', '#1d4ed8', '#059669', '#dc2626', '#a855f7']
+            )}
           </div>
         </Card>
 
-        <Card title="Requested Credential Delivery Distribution" action={renderFilterAction('delivery')}>
-          <div className="h-72">
-            <Doughnut data={deliveryChart} options={doughnutOptions} />
+        <Card title="Credential Status" action={renderFilterAction('credentialStatus')}>
+          <div className="flex flex-col items-center pt-4">
+            <div className="h-32 w-full max-w-[200px] relative mt-2">
+              <Doughnut data={credentialStatusChart} options={doughnutOptions} />
+              <div className="absolute inset-x-0 bottom-2 flex flex-col items-center justify-end">
+                <span className="text-2xl font-bold text-slate-800">{credentialStatusTotal}</span>
+                <span className="text-xs text-slate-500 font-medium">Credentials</span>
+              </div>
+            </div>
+            {renderLegendList(
+              credentialsByStatus,
+              credentialStatusTotal,
+              ['#64748b', '#0891b2', '#dc2626', '#a855f7']
+            )}
           </div>
-          {!isLoading && deliveryTotal === 0 && (
-            <p className="mt-2 text-sm text-neutral-500">No delivery data yet.</p>
-          )}
+        </Card>
+
+        <Card title="Delivery Method" action={renderFilterAction('delivery')}>
+          <div className="flex flex-col items-center pt-4">
+            <div className="h-32 w-full max-w-[200px] relative mt-2">
+              <Doughnut data={deliveryChart} options={doughnutOptions} />
+              <div className="absolute inset-x-0 bottom-2 flex flex-col items-center justify-end">
+                <span className="text-2xl font-bold text-slate-800">{deliveryTotal}</span>
+                <span className="text-xs text-slate-500 font-medium">Deliveries</span>
+              </div>
+            </div>
+            {renderLegendList(
+              requestsByDelivery,
+              deliveryTotal,
+              ['#1d4ed8', '#0ea5e9', '#6366f1']
+            )}
+          </div>
         </Card>
       </div>
 

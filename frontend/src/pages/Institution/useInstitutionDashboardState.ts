@@ -1,5 +1,5 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Credential,
   CredentialRequest,
@@ -162,6 +162,8 @@ export interface InstitutionDashboardState {
   setNotificationTitle: (v: string) => void;
   setNotificationMessage: (v: string) => void;
   handleNotificationSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  requestDetailsFromQueryId: string | null;
+  setRequestDetailsFromQueryId: (id: string | null) => void;
 
   // Audit logs
   auditLogs: AuditLogEntry[];
@@ -182,10 +184,14 @@ export interface InstitutionDashboardState {
 
   // Step-up modal
   stepUpModal: React.ReactNode;
+
+  // Navigation
+  navigate: ReturnType<typeof useNavigate>;
 }
 
 export function useInstitutionDashboardState(): InstitutionDashboardState {
   const location = useLocation();
+  const navigate = useNavigate();
   const section = getInstitutionSection(location.pathname);
 
   // --- Requests state ---
@@ -201,6 +207,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   const [rejectionReasonByRequestId, setRejectionReasonByRequestId] = useState<Record<string, string>>({});
   const [issueFileByRequestId, setIssueFileByRequestId] = useState<Record<string, File | null>>({});
   const [issueExpiryByRequestId, setIssueExpiryByRequestId] = useState<Record<string, string>>({});
+  const [requestDetailsFromQueryId, setRequestDetailsFromQueryId] = useState<string | null>(null);
 
   // --- Credentials state ---
   const [credentials, setCredentials] = useState<Credential[]>([]);
@@ -406,6 +413,77 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     if (section !== 'logs' || hasLoadedAuditLogs) return;
     void loadAuditLogs();
   }, [hasLoadedAuditLogs, loadAuditLogs, section]);
+
+  useEffect(() => {
+    if (section !== 'requests') return;
+
+    const params = new URLSearchParams(location.search);
+    const requestId = params.get('requestId');
+    if (!requestId || isLoadingRequests) return;
+
+    let isCancelled = false;
+
+    const openRequestDetailsFromQuery = async () => {
+      let targetRequestId: string | null = requests.find(request => request.id === requestId)?.id ?? null;
+
+      if (!targetRequestId) {
+        try {
+          const fetched = await CredentialService.getRequestById(requestId);
+          if (!isCancelled && fetched) {
+            targetRequestId = fetched.id;
+            setRequests(previous => {
+              if (previous.some(request => request.id === fetched.id)) return previous;
+              return [fetched, ...previous];
+            });
+          }
+        } catch (error) {
+          console.error('Failed to fetch institution request from notification deep-link:', error);
+        }
+      }
+
+      if (!isCancelled && targetRequestId) {
+        setRequestDetailsFromQueryId(targetRequestId);
+      }
+
+      if (!isCancelled) {
+        params.delete('requestId');
+        const nextSearch = params.toString();
+        navigate(
+          {
+            pathname: '/institution/requests',
+            search: nextSearch ? `?${nextSearch}` : '',
+          },
+          { replace: true },
+        );
+      }
+    };
+
+    void openRequestDetailsFromQuery();
+    return () => {
+      isCancelled = true;
+    };
+  }, [isLoadingRequests, location.search, navigate, requests, section]);
+
+  useEffect(() => {
+    if (section !== 'issue-manage') return;
+
+    const params = new URLSearchParams(location.search);
+    const credentialId = params.get('credentialId');
+    if (!credentialId) return;
+
+    setSelectedCredentialId(credentialId);
+    setIsCredentialDrawerOpen(true);
+
+    params.delete('credentialId');
+    const nextSearch = params.toString();
+    navigate(
+      {
+        pathname: '/institution/issue/manage',
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true },
+    );
+  }, [location.search, navigate, section]);
 
   // --- Realtime sync ---
 
@@ -1063,6 +1141,8 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     setNotificationTitle,
     setNotificationMessage,
     handleNotificationSubmit,
+    requestDetailsFromQueryId,
+    setRequestDetailsFromQueryId,
 
     auditLogs,
     isLoadingAuditLogs,
@@ -1081,5 +1161,6 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     pagedInstitutionAuditLogs,
 
     stepUpModal,
+    navigate,
   };
 }

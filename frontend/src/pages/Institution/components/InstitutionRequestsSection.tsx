@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Check, ClipboardCheck, Search, X, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
@@ -15,6 +15,8 @@ interface InstitutionRequestsSectionProps {
   requests: CredentialRequest[];
   students: User[];
   isLoadingRequests: boolean;
+  initialDetailsRequestId?: string | null;
+  onDetailsRequestConsumed?: () => void;
   requestSearch: string;
   requestStatusFilter: RequestStatusFilter;
   selectedRequestIds: string[];
@@ -59,6 +61,8 @@ export default function InstitutionRequestsSection({
   requests,
   students,
   isLoadingRequests,
+  initialDetailsRequestId,
+  onDetailsRequestConsumed,
   requestSearch,
   requestStatusFilter,
   selectedRequestIds,
@@ -93,6 +97,12 @@ export default function InstitutionRequestsSection({
   const selectedRequestRequiresExpiry = selectedRequest
     ? requiresExpiryDate(selectedRequest.type, selectedRequestCertificateCategory)
     : false;
+
+  useEffect(() => {
+    if (!initialDetailsRequestId) return;
+    setSelectedRequestId(initialDetailsRequestId);
+    onDetailsRequestConsumed?.();
+  }, [initialDetailsRequestId, onDetailsRequestConsumed]);
 
   const filterGroups = useMemo<SearchFilterGroup[]>(() => [
     {

@@ -117,6 +117,8 @@ export default function InstitutionDashboard() {
           requests={state.filteredRequests}
           students={state.students}
           isLoadingRequests={state.isLoadingRequests}
+          initialDetailsRequestId={state.requestDetailsFromQueryId}
+          onDetailsRequestConsumed={() => state.setRequestDetailsFromQueryId(null)}
           requestSearch={state.requestSearch}
           requestStatusFilter={state.requestStatusFilter}
           selectedRequestIds={state.selectedRequestIds}
@@ -205,6 +207,13 @@ export default function InstitutionDashboard() {
           onTitleChange={state.setNotificationTitle}
           onMessageChange={state.setNotificationMessage}
           onSubmit={state.handleNotificationSubmit}
+          onOpenCredential={(credentialId: string) =>
+            state.navigate(`/institution/issue/manage?credentialId=${encodeURIComponent(credentialId)}`)
+          }
+          onOpenRequest={(requestId: string) =>
+            state.navigate(`/institution/requests?requestId=${encodeURIComponent(requestId)}`)
+          }
+          onOpenNotificationsPage={() => state.navigate('/institution/notifications')}
         />
       )}
 
