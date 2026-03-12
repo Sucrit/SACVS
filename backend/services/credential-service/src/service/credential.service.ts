@@ -288,11 +288,17 @@ export class CredentialService {
     credentialScope: {
       studentId: string;
       issuedById: string;
+      status: CredentialStatus;
       student: { institutionId: string | null };
     },
   ): boolean {
     if (actor.role === Role.ADMIN) return true;
-    if (actor.role === Role.STUDENT) return credentialScope.studentId === actor.userId;
+    if (actor.role === Role.STUDENT) {
+      return (
+        credentialScope.studentId === actor.userId &&
+        credentialScope.status !== CredentialStatus.PENDING
+      );
+    }
 
     if (this.isInstitutionScopedRole(actor.role)) {
       if (!actor.institutionId) {
@@ -449,7 +455,13 @@ export class CredentialService {
 
     if (query.scope === 'mine') {
       if (actor.role === Role.STUDENT) {
-        return { ...where, studentId: actor.userId };
+        return {
+          AND: [
+            where,
+            { studentId: actor.userId },
+            { status: { not: CredentialStatus.PENDING } },
+          ],
+        };
       }
       if (this.isInstitutionScopedRole(actor.role) || actor.role === Role.ADMIN) {
         return { ...where, issuedById: actor.userId };
@@ -462,7 +474,13 @@ export class CredentialService {
     }
 
     if (actor.role === Role.STUDENT) {
-      return { ...where, studentId: actor.userId };
+      return {
+        AND: [
+          where,
+          { studentId: actor.userId },
+          { status: { not: CredentialStatus.PENDING } },
+        ],
+      };
     }
 
     if (this.isInstitutionScopedRole(actor.role)) {

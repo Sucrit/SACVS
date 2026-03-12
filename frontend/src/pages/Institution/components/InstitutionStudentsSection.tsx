@@ -26,7 +26,7 @@ interface InstitutionStudentsSectionProps {
   isBulkImporting: boolean;
   onSetStudentFormValue: (field: keyof StudentFormState, value: string) => void;
   onCreateStudent: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  onBulkCsvUpload: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onBulkCsvUpload: (fileOrEvent: File | ChangeEvent<HTMLInputElement>) => Promise<void>;
   students: User[];
   isLoadingStudents: boolean;
   studentSearch: string;
@@ -96,6 +96,7 @@ export default function InstitutionStudentsSection({
   onCancelEditStudent,
 }: InstitutionStudentsSectionProps) {
   const [activeModal, setActiveModal] = useState<'add' | 'bulk' | null>(null);
+  const [isBulkDragOver, setIsBulkDragOver] = useState(false);
 
   const addFormCourseOptions = useMemo(() => {
     const values = new Set<string>();
@@ -313,7 +314,7 @@ export default function InstitutionStudentsSection({
                             disabled: updatingStudentId === student.id,
                           }] : []),
                           ...(student.status !== 'SUSPENDED' ? [{
-                            label: 'Deactivate',
+                            label: 'Suspend',
                             icon: <PauseCircle size={14} className="text-orange-600" />,
                             onClick: () => void onStudentStatusUpdate(student.id, 'SUSPENDED'),
                             disabled: updatingStudentId === student.id,
@@ -529,9 +530,40 @@ export default function InstitutionStudentsSection({
                 email,firstName,middleName,lastName,studentNumber,courseOfStudy,yearLevel,department
               </span>
             </p>
-            <label className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-100">
-              <Upload size={14} />
-              {isBulkImporting ? <ButtonLoadingContent label="Importing" /> : 'Upload CSV'}
+            <label
+              className={`mt-4 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition ${
+                isBulkImporting
+                  ? 'cursor-progress border-neutral-200 bg-neutral-50 text-neutral-400'
+                  : isBulkDragOver
+                    ? 'border-cyan-400 bg-cyan-50/60 text-cyan-700'
+                    : 'border-neutral-300 bg-neutral-50 hover:border-cyan-300 hover:bg-cyan-50/40'
+              }`}
+              onDragOver={event => {
+                event.preventDefault();
+                if (!isBulkImporting) setIsBulkDragOver(true);
+              }}
+              onDragLeave={event => {
+                event.preventDefault();
+                setIsBulkDragOver(false);
+              }}
+              onDrop={event => {
+                event.preventDefault();
+                setIsBulkDragOver(false);
+                if (isBulkImporting) return;
+                const file = event.dataTransfer.files?.[0];
+                if (file) {
+                  void onBulkCsvUpload(file);
+                }
+              }}
+            >
+              <Upload size={28} className="mb-3 text-neutral-400" />
+              <p className="text-base text-neutral-700">
+                <span className="font-semibold text-cyan-700">Upload a file</span> or drag and drop
+              </p>
+              <p className="mt-2 text-sm text-neutral-500">CSV up to 10MB</p>
+              <p className="mt-3 text-xs text-neutral-500">
+                {isBulkImporting ? <ButtonLoadingContent label="Importing" /> : 'Select your institution bulk import file'}
+              </p>
               <input type="file" accept=".csv,text/csv" onChange={event => { void onBulkCsvUpload(event); }} className="hidden" />
             </label>
             </div>

@@ -4,7 +4,6 @@ import Card from '../../../components/common/Card';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import PaginationControls from '../../../components/common/PaginationControls';
 import NotificationsInboxCard from '../../../components/notifications/NotificationsInboxCard';
-import Button from '../../../components/ui/Button';
 import { NotificationTarget, OutboundNotification } from '../types';
 import { AppNotification, getNotificationDisplayMessage } from '../../../services/notification.service';
 import { formatDateTime } from '../utils';
@@ -13,9 +12,6 @@ interface InstitutionNotificationsSectionProps {
   notificationTarget: NotificationTarget;
   notificationTitle: string;
   notificationMessage: string;
-  pendingCount: number;
-  pendingStudentCount: number;
-  suspendedStudentCount: number;
   notifications: OutboundNotification[];
   inboundNotifications: AppNotification[];
   isLoadingInboundNotifications: boolean;
@@ -36,9 +32,6 @@ export default function InstitutionNotificationsSection({
   notificationTarget,
   notificationTitle,
   notificationMessage,
-  pendingCount,
-  pendingStudentCount,
-  suspendedStudentCount,
   notifications,
   inboundNotifications,
   isLoadingInboundNotifications,
@@ -87,55 +80,36 @@ export default function InstitutionNotificationsSection({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card title="Send Notification to Students">
-          <form className="space-y-3" onSubmit={onSubmit}>
-            <select
-              value={notificationTarget}
-              onChange={event => onTargetChange(event.target.value as NotificationTarget)}
-              className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-            >
-              <option value="ALL">All students</option>
-              <option value="APPROVED_ONLY">Approved students only</option>
-              <option value="SUSPENDED_ONLY">Suspended students only</option>
-            </select>
-            <input
-              value={notificationTitle}
-              onChange={event => onTitleChange(event.target.value)}
-              placeholder="Notification title"
-              className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-            />
-            <textarea
-              value={notificationMessage}
-              onChange={event => onMessageChange(event.target.value)}
-              rows={4}
-              placeholder="Notification message"
-              className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm outline-none"
-            />
-            <button type="submit" disabled={isSubmitting} className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-60">
-              <Bell size={14} />
-              {isSubmitting ? <ButtonLoadingContent label="Sending" /> : 'Send Notification'}
-            </button>
-          </form>
-        </Card>
-
-        <Card title="System Alerts">
-          <div className="space-y-3 text-sm">
-            <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-              <p className="font-semibold text-neutral-900">Pending request queue</p>
-              <p className="mt-1 text-neutral-600">{pendingCount} requests need action.</p>
-            </div>
-            <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-              <p className="font-semibold text-neutral-900">Pending student reviews</p>
-              <p className="mt-1 text-neutral-600">{pendingStudentCount} students await institution review.</p>
-            </div>
-            <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-              <p className="font-semibold text-neutral-900">Suspended accounts</p>
-              <p className="mt-1 text-neutral-600">{suspendedStudentCount} students suspended.</p>
-            </div>
-          </div>
-        </Card>
-      </div>
+      <Card title="Send Notification to Students">
+        <form className="space-y-3" onSubmit={onSubmit}>
+          <select
+            value={notificationTarget}
+            onChange={event => onTargetChange(event.target.value as NotificationTarget)}
+            className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+          >
+            <option value="ALL">All students</option>
+            <option value="APPROVED_ONLY">Approved students only</option>
+            <option value="SUSPENDED_ONLY">Suspended students only</option>
+          </select>
+          <input
+            value={notificationTitle}
+            onChange={event => onTitleChange(event.target.value)}
+            placeholder="Notification title"
+            className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+          />
+          <textarea
+            value={notificationMessage}
+            onChange={event => onMessageChange(event.target.value)}
+            rows={4}
+            placeholder="Notification message"
+            className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm outline-none"
+          />
+          <button type="submit" disabled={isSubmitting} className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-60">
+            <Bell size={14} />
+            {isSubmitting ? <ButtonLoadingContent label="Sending" /> : 'Send Notification'}
+          </button>
+        </form>
+      </Card>
 
       <NotificationsInboxCard
         className="w-full"
@@ -153,21 +127,6 @@ export default function InstitutionNotificationsSection({
             {notification.type.replace(/_/g, ' ')}
           </>
         )}
-        renderItemActions={notification =>
-          !notification.read ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={event => {
-                event.stopPropagation();
-                onMarkNotificationRead(notification.id);
-              }}
-            >
-              Mark read
-            </Button>
-          ) : null
-        }
       />
 
       <Card title="Notification Activity Log">

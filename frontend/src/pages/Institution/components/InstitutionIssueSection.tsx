@@ -116,6 +116,10 @@ export default function InstitutionIssueSection({
   const [updatingCredentialId, setUpdatingCredentialId] = useState<string | null>(null);
   const [reissuingCredentialId, setReissuingCredentialId] = useState<string | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [issuingRequestId, setIssuingRequestId] = useState<string | null>(null);
+  const [isIssueFileDragActive, setIsIssueFileDragActive] = useState(false);
+  const [reissueModalCredentialId, setReissueModalCredentialId] = useState<string | null>(null);
+  const [isReissueFileDragActive, setIsReissueFileDragActive] = useState(false);
 
   const studentById = useMemo(
     () => new Map(students.map(student => [student.id, student] as const)),
@@ -144,6 +148,16 @@ export default function InstitutionIssueSection({
     [readyToIssue, selectedRequestId],
   );
   const selectedRequestStudent = selectedRequest ? studentById.get(selectedRequest.studentId) || null : null;
+  const issuingRequest = useMemo(
+    () => readyToIssue.find(request => request.id === issuingRequestId) || null,
+    [readyToIssue, issuingRequestId],
+  );
+  const issuingRequestCertificateCategory = issuingRequest?.type === 'CERTIFICATE' ? getRequestCertificateCategory(issuingRequest) : DEFAULT_CERTIFICATE_CATEGORY;
+  const issuingRequestRequiresExpiry = issuingRequest ? requiresExpiryDate(issuingRequest.type, issuingRequestCertificateCategory) : false;
+  const reissueCredential = useMemo(
+    () => institutionCredentials.find(credential => credential.id === reissueModalCredentialId) || null,
+    [institutionCredentials, reissueModalCredentialId],
+  );
   const modalRoot = typeof document !== 'undefined' ? document.body : null;
 
   const handleSubmitDirectIssue = async (event: FormEvent<HTMLFormElement>) => {
@@ -234,6 +248,26 @@ export default function InstitutionIssueSection({
     }
 
     setDirectFile(file);
+  };
+
+  const handleConfirmRequestIssue = async () => {
+    if (!issuingRequest) return;
+    await onRequestAction(issuingRequest.id, 'ISSUE');
+    setIssuingRequestId(null);
+    setIsIssueFileDragActive(false);
+  };
+
+  const handleConfirmCredentialReissue = async () => {
+    if (!reissueCredential) return;
+    const file = reissueFileByCredentialId[reissueCredential.id] ?? undefined;
+    await onCredentialReissue(reissueCredential.id, file);
+    setReissueFileByCredentialId(previous => {
+      const next = { ...previous };
+      delete next[reissueCredential.id];
+      return next;
+    });
+    setReissueModalCredentialId(null);
+    setIsReissueFileDragActive(false);
   };
 
   return (
@@ -452,22 +486,20 @@ export default function InstitutionIssueSection({
                 <th className="px-4 py-3">Request</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Requested</th>
-                <th className="px-4 py-3">Expiry Date</th>
-                <th className="px-4 py-3">File</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 bg-white">
               {isLoadingRequests && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-sm text-neutral-500">
+                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
                     Loading approved requests...
                   </td>
                 </tr>
               )}
               {!isLoadingRequests && readyToIssue.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-sm text-neutral-500">
+                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
                     No approved requests ready for issuance.
                   </td>
                 </tr>
@@ -475,12 +507,6 @@ export default function InstitutionIssueSection({
               {!isLoadingRequests &&
                 readyToIssue.map(request => (
                   <tr key={request.id} className="cursor-pointer hover:bg-neutral-50/70" onClick={() => setSelectedRequestId(request.id)}>
-                    {(() => {
-                      const requestCertificateCategory =
-                        request.type === 'CERTIFICATE' ? getRequestCertificateCategory(request) : DEFAULT_CERTIFICATE_CATEGORY;
-                      const requestRequiresExpiry = requiresExpiryDate(request.type, requestCertificateCategory);
-                      return (
-                        <>
                     <td className="px-4 py-3 text-sm text-neutral-700">
                       {(() => {
                         const student = studentById.get(request.studentId);
@@ -511,92 +537,46 @@ export default function InstitutionIssueSection({
                     </td>
                     <td className="px-4 py-3 text-sm text-neutral-600">{getRequestTypeLabel(request)}</td>
                     <td className="px-4 py-3 text-sm text-neutral-600">{formatDateTime(request.createdAt)}</td>
-                    <td className="px-4 py-3">
-                      {supportsExpiryDate(request.type) ? (
-                        <div className="space-y-1">
-                          <p className="text-[10px] font-medium  text-neutral-500">Expiry</p>
-                          <input
-                            type="date"
-                            value={issueExpiryByRequestId[request.id] || ''}
-                            onChange={event => onIssueExpiryChange(request.id, event.target.value)}
-                            aria-label="Expiry Date"
-                            className="h-9 rounded-lg border border-neutral-200 bg-neutral-50 px-2 text-xs outline-none"
-                            required={requestRequiresExpiry}
-                          />
-                        </div>
-                      ) : (
-                        <span className="text-xs text-neutral-400">Not applicable</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <label
-                        onClick={event => event.stopPropagation()}
-                        className={`inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 ${
-                          request.deliveryMethod === 'PHYSICAL'
-                            ? 'cursor-not-allowed opacity-60'
-                            : 'cursor-pointer hover:bg-neutral-100'
-                        }`}
-                        title={
-                          request.deliveryMethod === 'PHYSICAL'
-                            ? 'Digital attachment is blocked for PHYSICAL delivery requests.'
-                            : 'Attach file'
-                        }
-                      >
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
-                          className="hidden"
-                          disabled={request.deliveryMethod === 'PHYSICAL'}
-                          onChange={event => onIssueFileChange(request.id, event.target.files?.[0] ?? null)}
-                        />
-                        <Upload size={12} />
-                        {issueFileByRequestId[request.id]?.name || (request.credentialId ? 'Replace file' : 'Attach file')}
-                      </label>
-                    </td>
                     <td className="px-4 py-3 text-right">
-                      <Button
-                        disabled={
-                          updatingRequestId === request.id ||
-                          request.deliveryMethod === 'PHYSICAL' ||
-                          (!request.credentialId && !issueFileByRequestId[request.id]) ||
-                          (requestRequiresExpiry && !issueExpiryByRequestId[request.id])
-                        }
-                        onClick={event => { event.stopPropagation(); void onRequestAction(request.id, 'ISSUE'); }}
-                        size="sm"
-                        icon={<ClipboardCheck size={13} />}
-                        className="rounded-lg"
-                        title={
-                          request.deliveryMethod === 'PHYSICAL'
-                            ? 'Digital issuance is blocked for PHYSICAL delivery requests.'
-                            : !request.credentialId && !issueFileByRequestId[request.id]
-                            ? 'Attach a file to issue this credential.'
-                            : requestRequiresExpiry && !issueExpiryByRequestId[request.id]
-                              ? 'Set an expiry date before issuing this credential.'
-                              : 'Issue Credential'
-                        }
-                      >
-                        Issue
-                      </Button>
-                      {(request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') && (
+                      <div className="flex items-center justify-end gap-2">
                         <Button
-                          disabled={updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId)}
-                          onClick={() => void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED')}
-                          variant="secondary"
+                          disabled={request.deliveryMethod === 'PHYSICAL'}
+                          onClick={event => {
+                            event.stopPropagation();
+                            setIssuingRequestId(request.id);
+                          }}
                           size="sm"
-                          className="ml-2 rounded-lg"
+                          icon={<ClipboardCheck size={13} />}
+                          className="rounded-lg"
                           title={
-                            request.deliveryMethod === 'BOTH' && !request.credentialId
-                              ? 'Issue/link the digital credential first for BOTH delivery.'
-                              : 'Mark physical credential as claimed and complete the request.'
+                            request.deliveryMethod === 'PHYSICAL'
+                              ? 'Digital issuance is blocked for PHYSICAL delivery requests.'
+                              : 'Issue credential with upload form'
                           }
                         >
-                          Mark Claimed
+                          Issue
                         </Button>
-                      )}
+                        {(request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') && (
+                          <Button
+                            disabled={updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId)}
+                            onClick={event => {
+                              event.stopPropagation();
+                              void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED');
+                            }}
+                            variant="secondary"
+                            size="sm"
+                            className="rounded-lg"
+                            title={
+                              request.deliveryMethod === 'BOTH' && !request.credentialId
+                                ? 'Issue/link the digital credential first for BOTH delivery.'
+                                : 'Mark physical credential as claimed and complete the request.'
+                            }
+                          >
+                            Mark Claimed
+                          </Button>
+                        )}
+                      </div>
                     </td>
-                        </>
-                      );
-                    })()}
                   </tr>
                 ))}
             </tbody>
@@ -604,6 +584,147 @@ export default function InstitutionIssueSection({
         </div>
       </Card>
 
+      <AnimatePresence>
+        {modalRoot && issuingRequest ? createPortal(
+          <motion.div
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={MODAL_BACKDROP_VARIANTS}
+            transition={MODAL_TRANSITION}
+            className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
+            onClick={() => {
+              setIssuingRequestId(null);
+              setIsIssueFileDragActive(false);
+            }}
+          >
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={MODAL_PANEL_VARIANTS}
+              transition={MODAL_TRANSITION}
+              className="w-full max-w-2xl rounded-lg border border-neutral-200 bg-white shadow-lg"
+              onClick={event => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">Issue Credential</p>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Attach the required document and specify expiry details for the credential.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIssuingRequestId(null);
+                    setIsIssueFileDragActive(false);
+                  }}
+                  className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
+                  aria-label="Close modal"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="space-y-5 p-5">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="request-issue-file-upload" className="text-sm font-semibold text-neutral-800">
+                    Document File
+                    {!issuingRequest.credentialId && <span className="ml-1 text-rose-500">*</span>}
+                  </label>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => document.getElementById('request-issue-file-upload')?.click()}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        document.getElementById('request-issue-file-upload')?.click();
+                      }
+                    }}
+                    onDragOver={event => {
+                      event.preventDefault();
+                      setIsIssueFileDragActive(true);
+                    }}
+                    onDragLeave={event => {
+                      event.preventDefault();
+                      setIsIssueFileDragActive(false);
+                    }}
+                    onDrop={event => {
+                      event.preventDefault();
+                      setIsIssueFileDragActive(false);
+                      onIssueFileChange(issuingRequest.id, event.dataTransfer.files?.[0] ?? null);
+                    }}
+                    className={`flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors ${
+                      isIssueFileDragActive
+                        ? 'border-sky-300 bg-sky-50'
+                        : 'border-neutral-300 bg-neutral-50 hover:bg-neutral-100'
+                    }`}
+                  >
+                    <Upload size={28} className="mb-3 text-neutral-400" />
+                    <p className="text-base text-neutral-700">
+                      <span className="font-semibold text-sky-600">Upload a file</span> or drag and drop
+                    </p>
+                    <p className="mt-2 text-sm text-neutral-500">PDF, PNG, JPG up to 10MB</p>
+                    {issueFileByRequestId[issuingRequest.id] && (
+                      <p className="mt-4 max-w-full truncate rounded-full border border-neutral-200 bg-white px-3 py-1 text-sm font-medium text-neutral-700" title={issueFileByRequestId[issuingRequest.id]?.name || undefined}>
+                        {issueFileByRequestId[issuingRequest.id]?.name}
+                      </p>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    id="request-issue-file-upload"
+                    accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+                    className="hidden"
+                    onChange={event => onIssueFileChange(issuingRequest.id, event.target.files?.[0] ?? null)}
+                  />
+                </div>
+                {supportsExpiryDate(issuingRequest.type) && (
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="request-issue-expiry-date" className="text-sm font-semibold text-neutral-800">
+                      Expiry Date
+                      {issuingRequestRequiresExpiry && <span className="ml-1 text-rose-500">*</span>}
+                    </label>
+                    <input
+                      type="date"
+                      id="request-issue-expiry-date"
+                      value={issueExpiryByRequestId[issuingRequest.id] || ''}
+                      onChange={event => onIssueExpiryChange(issuingRequest.id, event.target.value)}
+                      className="h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                      required={issuingRequestRequiresExpiry}
+                    />
+                  </div>
+                )}
+                <div className="flex items-center justify-end gap-3 border-t border-neutral-100 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIssuingRequestId(null);
+                      setIsIssueFileDragActive(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleConfirmRequestIssue}
+                    disabled={
+                      updatingRequestId === issuingRequest.id ||
+                      (!issuingRequest.credentialId && !issueFileByRequestId[issuingRequest.id]) ||
+                      (issuingRequestRequiresExpiry && !issueExpiryByRequestId[issuingRequest.id])
+                    }
+                    loading={updatingRequestId === issuingRequest.id}
+                  >
+                    Confirm & Issue
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>,
+          modalRoot,
+        ) : null}
+      </AnimatePresence>
       <RecordDetailsDrawer
         open={selectedRequest !== null}
         onClose={() => setSelectedRequestId(null)}
@@ -657,156 +778,257 @@ export default function InstitutionIssueSection({
                 <th className="px-4 py-3">Credential</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Last Update</th>
-                <th className="px-4 py-3">Replace File</th>
                 <th className="px-4 py-3 text-right">Update</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 bg-white">
               {isLoadingCredentials && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-neutral-500">
+                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
                     Loading institution credentials...
                   </td>
                 </tr>
               )}
               {!isLoadingCredentials && institutionCredentials.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-neutral-500">
+                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
                     No credentials found for your institution.
                   </td>
                 </tr>
               )}
               {!isLoadingCredentials &&
-                institutionCredentials.map(credential => (
-                  <tr key={credential.id} className="hover:bg-neutral-50/70">
-                    {(() => {
-                      const isRevoked = credential.status === 'REVOKED';
-                      const isExpired = credential.status === 'EXPIRED';
-                      const isLockedForStatusUpdate = isRevoked || isExpired;
-                      const allowedStatusOptions =
-                        CREDENTIAL_STATUS_OPTIONS[credential.status] ?? [credential.status];
-                      const targetStatus = statusByCredentialId[credential.id] || credential.status;
-                      const isStatusUnchanged = targetStatus === credential.status;
-                      const student = studentById.get(credential.studentId);
-                      return (
-                        <>
-                    <td className="px-4 py-3 text-sm text-neutral-700">
-                      {student ? (
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
-                            {getUserInitials(student)}
+                institutionCredentials.map(credential => {
+                  const isRevoked = credential.status === 'REVOKED';
+                  const isExpired = credential.status === 'EXPIRED';
+                  const isLockedForStatusUpdate = isRevoked || isExpired;
+                  const allowedStatusOptions = CREDENTIAL_STATUS_OPTIONS[credential.status] ?? [credential.status];
+                  const targetStatus = statusByCredentialId[credential.id] || credential.status;
+                  const isStatusUnchanged = targetStatus === credential.status;
+                  const student = studentById.get(credential.studentId);
+                  return (
+                    <tr key={credential.id} className="hover:bg-neutral-50/70">
+                      <td className="px-4 py-3 text-sm text-neutral-700">
+                        {student ? (
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
+                              {getUserInitials(student)}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
+                              <p className="mt-1 text-xs text-neutral-500">{student.email}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
-                            <p className="mt-1 text-xs text-neutral-500">{student.email}</p>
-                          </div>
+                        ) : credential.studentId}
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-semibold text-neutral-900">{credential.title}</p>
+                        <p className="mt-1 text-xs text-neutral-500">{credential.type}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge status={credential.status} />
+                      </td>
+                      <td className="px-4 py-3 text-sm text-neutral-600">{formatDateTime(credential.updatedAt)}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <select
+                            onClick={event => event.stopPropagation()}
+                            value={targetStatus}
+                            onChange={event =>
+                              setStatusByCredentialId(previous => ({
+                                ...previous,
+                                [credential.id]: event.target.value as CredentialStatus,
+                              }))
+                            }
+                            disabled={isLockedForStatusUpdate}
+                            className="h-9 rounded-lg border border-neutral-200 bg-neutral-50 px-2 text-xs outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {allowedStatusOptions.map(status => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={event => {
+                              event.stopPropagation();
+                              setUpdatingCredentialId(credential.id);
+                              void onCredentialStatusUpdate(credential.id, targetStatus)
+                                .catch(() => undefined)
+                                .finally(() =>
+                                  setUpdatingCredentialId(current => (current === credential.id ? null : current)),
+                                );
+                            }}
+                            disabled={updatingCredentialId === credential.id || isLockedForStatusUpdate || isStatusUnchanged}
+                            className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
+                          >
+                            Save
+                          </button>
+                          <Button
+                            onClick={event => {
+                              event.stopPropagation();
+                              setReissueModalCredentialId(credential.id);
+                            }}
+                            disabled={reissuingCredentialId === credential.id || isRevoked}
+                            size="sm"
+                            icon={<ClipboardCheck size={12} />}
+                            className="rounded-lg"
+                          >
+                            Re-issue
+                          </Button>
+                          {isLockedForStatusUpdate && (
+                            <span className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold  text-rose-700">
+                              Locked
+                            </span>
+                          )}
                         </div>
-                      ) : credential.studentId}
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="text-sm font-semibold text-neutral-900">{credential.title}</p>
-                      <p className="mt-1 text-xs text-neutral-500">{credential.type}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge status={credential.status} />
-                    </td>
-                    <td className="px-4 py-3 text-sm text-neutral-600">{formatDateTime(credential.updatedAt)}</td>
-                    <td className="px-4 py-3">
-                      <label
-                        className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
-                        onClick={event => event.stopPropagation()}
-                      >
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
-                          className="hidden"
-                          onChange={event =>
-                            setReissueFileByCredentialId(previous => ({
-                              ...previous,
-                              [credential.id]: event.target.files?.[0] ?? null,
-                            }))
-                          }
-                        />
-                        <Upload size={12} />
-                        {reissueFileByCredentialId[credential.id]?.name || 'Upload'}
-                      </label>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <select
-                          onClick={event => event.stopPropagation()}
-                          value={targetStatus}
-                          onChange={event =>
-                            setStatusByCredentialId(previous => ({
-                              ...previous,
-                              [credential.id]: event.target.value as CredentialStatus,
-                            }))
-                          }
-                          disabled={isLockedForStatusUpdate}
-                          className="h-9 rounded-lg border border-neutral-200 bg-neutral-50 px-2 text-xs outline-none disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {allowedStatusOptions.map(status => (
-                            <option key={status} value={status}>
-                              {status}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={event => {
-                            event.stopPropagation();
-                            setUpdatingCredentialId(credential.id);
-                            void onCredentialStatusUpdate(credential.id, targetStatus)
-                              .catch(() => undefined)
-                              .finally(() =>
-                                setUpdatingCredentialId(current => (current === credential.id ? null : current)),
-                              );
-                          }}
-                          disabled={updatingCredentialId === credential.id || isLockedForStatusUpdate || isStatusUnchanged}
-                          className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
-                        >
-                          Save
-                        </button>
-                        <Button
-                          onClick={event => {
-                            event.stopPropagation();
-                            setReissuingCredentialId(credential.id);
-                            const file = reissueFileByCredentialId[credential.id] ?? undefined;
-                            void onCredentialReissue(credential.id, file)
-                              .then(() => {
-                                setReissueFileByCredentialId(previous => {
-                                  const next = { ...previous };
-                                  delete next[credential.id];
-                                  return next;
-                                });
-                              })
-                              .catch(() => undefined)
-                              .finally(() =>
-                                setReissuingCredentialId(current => (current === credential.id ? null : current)),
-                              );
-                          }}
-                          disabled={reissuingCredentialId === credential.id || isRevoked}
-                          size="sm"
-                          icon={<ClipboardCheck size={12} />}
-                          className="rounded-lg"
-                        >
-                          Re-issue
-                        </Button>
-                        {isLockedForStatusUpdate && (
-                          <span className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold  text-rose-700">
-                            Locked
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                        </>
-                      );
-                    })()}
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
       </Card>
+
+      <AnimatePresence>
+        {modalRoot && reissueCredential ? createPortal(
+          <motion.div
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            variants={MODAL_BACKDROP_VARIANTS}
+            transition={MODAL_TRANSITION}
+            className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
+            onClick={() => {
+              setReissueModalCredentialId(null);
+              setIsReissueFileDragActive(false);
+            }}
+          >
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={MODAL_PANEL_VARIANTS}
+              transition={MODAL_TRANSITION}
+              className="w-full max-w-2xl rounded-lg border border-neutral-200 bg-white shadow-lg"
+              onClick={event => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">Re-issue Credential</p>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Upload a replacement credential file before re-issuing this record.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReissueModalCredentialId(null);
+                    setIsReissueFileDragActive(false);
+                  }}
+                  className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
+                  aria-label="Close modal"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="space-y-5 p-5">
+                <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
+                  <p className="text-sm font-semibold text-neutral-900">{reissueCredential.title}</p>
+                  <p className="mt-1 text-xs text-neutral-500">{reissueCredential.type}</p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="credential-reissue-file-upload" className="text-sm font-semibold text-neutral-800">
+                    Replacement File <span className="ml-1 text-rose-500">*</span>
+                  </label>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => document.getElementById('credential-reissue-file-upload')?.click()}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        document.getElementById('credential-reissue-file-upload')?.click();
+                      }
+                    }}
+                    onDragOver={event => {
+                      event.preventDefault();
+                      setIsReissueFileDragActive(true);
+                    }}
+                    onDragLeave={event => {
+                      event.preventDefault();
+                      setIsReissueFileDragActive(false);
+                    }}
+                    onDrop={event => {
+                      event.preventDefault();
+                      setIsReissueFileDragActive(false);
+                      setReissueFileByCredentialId(previous => ({
+                        ...previous,
+                        [reissueCredential.id]: event.dataTransfer.files?.[0] ?? null,
+                      }));
+                    }}
+                    className={`flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors ${
+                      isReissueFileDragActive
+                        ? 'border-sky-300 bg-sky-50'
+                        : 'border-neutral-300 bg-neutral-50 hover:bg-neutral-100'
+                    }`}
+                  >
+                    <Upload size={28} className="mb-3 text-neutral-400" />
+                    <p className="text-base text-neutral-700">
+                      <span className="font-semibold text-sky-600">Upload a file</span> or drag and drop
+                    </p>
+                    <p className="mt-2 text-sm text-neutral-500">PDF, PNG, JPG up to 10MB</p>
+                    {reissueFileByCredentialId[reissueCredential.id] && (
+                      <p className="mt-4 max-w-full truncate rounded-full border border-neutral-200 bg-white px-3 py-1 text-sm font-medium text-neutral-700" title={reissueFileByCredentialId[reissueCredential.id]?.name || undefined}>
+                        {reissueFileByCredentialId[reissueCredential.id]?.name}
+                      </p>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    id="credential-reissue-file-upload"
+                    accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+                    className="hidden"
+                    onChange={event =>
+                      setReissueFileByCredentialId(previous => ({
+                        ...previous,
+                        [reissueCredential.id]: event.target.files?.[0] ?? null,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-3 border-t border-neutral-100 pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setReissueModalCredentialId(null);
+                      setIsReissueFileDragActive(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      setReissuingCredentialId(reissueCredential.id);
+                      void handleConfirmCredentialReissue()
+                        .catch(() => undefined)
+                        .finally(() =>
+                          setReissuingCredentialId(current => (current === reissueCredential.id ? null : current)),
+                        );
+                    }}
+                    disabled={!reissueFileByCredentialId[reissueCredential.id] || reissuingCredentialId === reissueCredential.id}
+                    loading={reissuingCredentialId === reissueCredential.id}
+                  >
+                    Confirm & Re-issue
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>,
+          modalRoot,
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

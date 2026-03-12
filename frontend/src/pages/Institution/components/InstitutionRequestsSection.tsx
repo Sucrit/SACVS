@@ -1,11 +1,12 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
-import { Check, ClipboardCheck, Search, X, Upload } from 'lucide-react';
+import { Check, ClipboardCheck, Search, Upload, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import ActionMenu from '../../../components/common/ActionMenu';
 import Button from '../../../components/ui/Button';
+import Modal from '../../../components/ui/Modal';
 import { CredentialRequest, CredentialType } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
 import { REQUEST_STATUS_OPTIONS, RequestStatusFilter } from '../types';
@@ -80,6 +81,8 @@ export default function InstitutionRequestsSection({
   onBulkAction,
 }: InstitutionRequestsSectionProps) {
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [issuingRequestId, setIssuingRequestId] = useState<string | null>(null);
+  const [isIssueFileDragOver, setIsIssueFileDragOver] = useState(false);
   const studentById = useMemo(
     () => new Map(students.map(student => [student.id, student] as const)),
     [students],
@@ -96,6 +99,16 @@ export default function InstitutionRequestsSection({
     : DEFAULT_CERTIFICATE_CATEGORY;
   const selectedRequestRequiresExpiry = selectedRequest
     ? requiresExpiryDate(selectedRequest.type, selectedRequestCertificateCategory)
+    : false;
+  const issuingRequest = useMemo(
+    () => requests.find(request => request.id === issuingRequestId) || null,
+    [requests, issuingRequestId],
+  );
+  const issuingRequestCertificateCategory = issuingRequest
+    ? (issuingRequest.type === 'CERTIFICATE' ? getRequestCertificateCategory(issuingRequest) : DEFAULT_CERTIFICATE_CATEGORY)
+    : DEFAULT_CERTIFICATE_CATEGORY;
+  const issuingRequestRequiresExpiry = issuingRequest
+    ? requiresExpiryDate(issuingRequest.type, issuingRequestCertificateCategory)
     : false;
 
   useEffect(() => {
@@ -196,9 +209,6 @@ export default function InstitutionRequestsSection({
                   onClick={() => setSelectedRequestId(request.id)}
                 >
                   {(() => {
-                    const requestCertificateCategory =
-                      request.type === 'CERTIFICATE' ? getRequestCertificateCategory(request) : DEFAULT_CERTIFICATE_CATEGORY;
-                    const requestRequiresExpiry = requiresExpiryDate(request.type, requestCertificateCategory);
                     return (
                       <>
                   <td className="px-4 py-3">
@@ -264,46 +274,13 @@ export default function InstitutionRequestsSection({
                       </div>
                     ) : request.status === 'APPROVED' ? (
                       <div className="flex items-center justify-end gap-2">
-                        <input
-                          id={`file-upload-${request.id}`}
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
-                          className="hidden"
-                          disabled={request.deliveryMethod === 'PHYSICAL'}
-                          onChange={event => onIssueFileChange(request.id, event.target.files?.[0] ?? null)}
-                        />
-                        {!issueFileByRequestId[request.id] && request.deliveryMethod !== 'PHYSICAL' && !request.credentialId && (
-                          <label
-                            htmlFor={`file-upload-${request.id}`}
-                            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-[10px] font-medium text-neutral-600 hover:bg-neutral-100"
-                          >
-                            <Upload size={12} />
-                            Attach File
-                          </label>
-                        )}
-                        {issueFileByRequestId[request.id] && (
-                          <span className="max-w-20 truncate text-[10px] text-neutral-500" title={issueFileByRequestId[request.id]?.name}>
-                            {issueFileByRequestId[request.id]?.name}
-                          </span>
-                        )}
                         <ActionMenu
                           items={[
-                            ...((request.deliveryMethod !== 'PHYSICAL') ? [{
-                              label: issueFileByRequestId[request.id] ? 'Change File' : 'Attach File',
-                              icon: <Upload size={14} className="text-neutral-600" />,
-                              onClick: () => {
-                                const fileInput = document.getElementById(`file-upload-${request.id}`);
-                                if (fileInput) fileInput.click();
-                              },
-                            }] : []),
                             {
                               label: 'Issue Credential',
                               icon: <ClipboardCheck size={14} className="text-cyan-700" />,
-                              onClick: () => void onRequestAction(request.id, 'ISSUE'),
-                              disabled: updatingRequestId === request.id ||
-                                request.deliveryMethod === 'PHYSICAL' ||
-                                (!request.credentialId && !issueFileByRequestId[request.id]) ||
-                                (requestRequiresExpiry && !issueExpiryByRequestId[request.id]),
+                              onClick: () => setIssuingRequestId(request.id),
+                              disabled: updatingRequestId === request.id || request.deliveryMethod === 'PHYSICAL',
                               className: 'text-cyan-800'
                             },
                             ...((request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') ? [{
@@ -329,6 +306,113 @@ export default function InstitutionRequestsSection({
           </table>
         </div>
       </Card>
+
+      <Modal
+        open={issuingRequest !== null}
+        onClose={() => {
+          setIssuingRequestId(null);
+          setIsIssueFileDragOver(false);
+        }}
+        title="Issue Credential"
+        description="Attach the required document and specify expiry details for the credential."
+        size="md"
+      >
+        {issuingRequest && (
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="request-table-file-upload" className="text-sm font-semibold text-neutral-800">
+                Document File
+                {!issuingRequest.credentialId && <span className="ml-1 text-rose-500">*</span>}
+              </label>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => document.getElementById('request-table-file-upload')?.click()}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    document.getElementById('request-table-file-upload')?.click();
+                  }
+                }}
+                onDragOver={event => {
+                  event.preventDefault();
+                  setIsIssueFileDragOver(true);
+                }}
+                onDragLeave={event => {
+                  event.preventDefault();
+                  setIsIssueFileDragOver(false);
+                }}
+                onDrop={event => {
+                  event.preventDefault();
+                  setIsIssueFileDragOver(false);
+                  onIssueFileChange(issuingRequest.id, event.dataTransfer.files?.[0] ?? null);
+                }}
+                className={`flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition ${
+                  isIssueFileDragOver
+                    ? 'border-cyan-400 bg-cyan-50/60 text-cyan-700'
+                    : 'border-neutral-300 bg-neutral-50 hover:border-cyan-300 hover:bg-cyan-50/40'
+                }`}
+              >
+                <Upload size={28} className="mb-3 text-neutral-400" />
+                <p className="text-base text-neutral-700">
+                  <span className="font-semibold text-cyan-700">Upload a file</span> or drag and drop
+                </p>
+                <p className="mt-2 text-sm text-neutral-500">PDF, PNG, JPG up to 10MB</p>
+                {issueFileByRequestId[issuingRequest.id] && (
+                  <p className="mt-4 max-w-full truncate rounded-full border border-neutral-200 bg-white px-3 py-1 text-sm font-medium text-neutral-700" title={issueFileByRequestId[issuingRequest.id]?.name || undefined}>
+                    {issueFileByRequestId[issuingRequest.id]?.name}
+                  </p>
+                )}
+              </div>
+              <input
+                id="request-table-file-upload"
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+                className="hidden"
+                onChange={event => onIssueFileChange(issuingRequest.id, event.target.files?.[0] ?? null)}
+              />
+            </div>
+            {supportsExpiryDate(issuingRequest.type) && (
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="request-table-expiry-date" className="text-sm font-semibold text-neutral-800">
+                  Expiry Date
+                  {issuingRequestRequiresExpiry && <span className="ml-1 text-rose-500">*</span>}
+                </label>
+                <input
+                  id="request-table-expiry-date"
+                  type="date"
+                  value={issueExpiryByRequestId[issuingRequest.id] || ''}
+                  onChange={event => onIssueExpiryChange(issuingRequest.id, event.target.value)}
+                  className="h-10 w-full rounded-lg border border-neutral-300 bg-white px-3 text-sm outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                  required={issuingRequestRequiresExpiry}
+                />
+              </div>
+            )}
+            <div className="flex items-center justify-end gap-3 border-t border-neutral-100 pt-4">
+              <Button variant="outline" onClick={() => { setIssuingRequestId(null); setIsIssueFileDragOver(false); }}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() =>
+                  void onRequestAction(issuingRequest.id, 'ISSUE').then(() => {
+                    setIssuingRequestId(null);
+                    setIsIssueFileDragOver(false);
+                  })
+                }
+                disabled={
+                  updatingRequestId === issuingRequest.id ||
+                  (!issuingRequest.credentialId && !issueFileByRequestId[issuingRequest.id]) ||
+                  (issuingRequestRequiresExpiry && !issueExpiryByRequestId[issuingRequest.id])
+                }
+                loading={updatingRequestId === issuingRequest.id}
+              >
+                Confirm & Issue
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <RecordDetailsDrawer
         open={selectedRequest !== null}

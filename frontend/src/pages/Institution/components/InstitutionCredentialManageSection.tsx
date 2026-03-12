@@ -1,6 +1,8 @@
-import { useMemo, useState, useEffect } from 'react';
-import { ClipboardCheck, Upload, MoreVertical } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ClipboardCheck, MoreVertical, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
+import Modal from '../../../components/ui/Modal';
+import Button from '../../../components/ui/Button';
 import Badge from '../../../components/common/Badge';
 import {
   Credential,
@@ -38,6 +40,8 @@ export default function InstitutionCredentialManageSection({
   const [updatingCredentialId, setUpdatingCredentialId] = useState<string | null>(null);
   const [reissuingCredentialId, setReissuingCredentialId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [reissueModalCredentialId, setReissueModalCredentialId] = useState<string | null>(null);
+  const [isReissueFileDragOver, setIsReissueFileDragOver] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -58,6 +62,10 @@ export default function InstitutionCredentialManageSection({
     () => [...credentials].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
     [credentials],
   );
+  const reissueCredential = useMemo(
+    () => institutionCredentials.find(credential => credential.id === reissueModalCredentialId) || null,
+    [institutionCredentials, reissueModalCredentialId],
+  );
 
   return (
     <Card title="Manage Student Credentials">
@@ -69,21 +77,21 @@ export default function InstitutionCredentialManageSection({
               <th className="px-4 py-3">Credential</th>
               <th className="px-4 py-3">Status</th>
               <th className="hidden px-4 py-3 md:table-cell">Last Update</th>
-              <th className="hidden px-4 py-3 lg:table-cell">Replace File</th>
+              <th className="hidden px-4 py-3 md:table-cell">Last Update</th>
               <th className="px-4 py-3 text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-100 bg-white">
             {isLoadingCredentials && (
               <tr>
-                <td colSpan={6} className="px-5 py-8 text-center text-sm text-neutral-500">
+                <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
                   Loading institution credentials...
                 </td>
               </tr>
             )}
             {!isLoadingCredentials && institutionCredentials.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-8 text-center text-sm text-neutral-500">
+                <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
                   No credentials found for your institution.
                 </td>
               </tr>
@@ -131,26 +139,6 @@ export default function InstitutionCredentialManageSection({
                           <Badge status={credential.status} />
                         </td>
                         <td className="hidden px-4 py-3 text-sm text-neutral-600 md:table-cell">{formatDateTime(credential.updatedAt)}</td>
-                        <td className="hidden px-4 py-3 lg:table-cell">
-                          <label
-                            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 hover:bg-neutral-100"
-                            onClick={event => event.stopPropagation()}
-                          >
-                            <input
-                              type="file"
-                              accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
-                              className="hidden"
-                              onChange={event =>
-                                setReissueFileByCredentialId(previous => ({
-                                  ...previous,
-                                  [credential.id]: event.target.files?.[0] ?? null,
-                                }))
-                              }
-                            />
-                            <Upload size={12} />
-                            {reissueFileByCredentialId[credential.id]?.name || 'Upload'}
-                          </label>
-                        </td>
                         <td className="px-4 py-3">
                           <div className="relative flex items-center justify-end action-menu-container">
                             <button
@@ -208,21 +196,8 @@ export default function InstitutionCredentialManageSection({
 
                                 <button
                                   onClick={() => {
-                                    setReissuingCredentialId(credential.id);
-                                    const file = reissueFileByCredentialId[credential.id] ?? undefined;
-                                    void onCredentialReissue(credential.id, file)
-                                      .then(() => {
-                                        setReissueFileByCredentialId(previous => {
-                                          const next = { ...previous };
-                                          delete next[credential.id];
-                                          return next;
-                                        });
-                                      })
-                                      .catch(() => undefined)
-                                      .finally(() => {
-                                        setReissuingCredentialId(current => (current === credential.id ? null : current));
-                                        setOpenMenuId(null);
-                                      });
+                                    setReissueModalCredentialId(credential.id);
+                                    setOpenMenuId(null);
                                   }}
                                   disabled={reissuingCredentialId === credential.id || isRevoked}
                                   className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100 disabled:opacity-50"
@@ -248,6 +223,123 @@ export default function InstitutionCredentialManageSection({
           </tbody>
         </table>
       </div>
+
+
+      <Modal
+        open={reissueCredential !== null}
+        onClose={() => {
+          setReissueModalCredentialId(null);
+          setIsReissueFileDragOver(false);
+        }}
+        title="Re-issue Credential"
+        description="Upload a replacement credential file before re-issuing this record."
+        size="md"
+      >
+        {reissueCredential && (
+          <div className="flex flex-col gap-5">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
+              <p className="text-sm font-semibold text-neutral-900">{reissueCredential.title}</p>
+              <p className="mt-1 text-xs text-neutral-500">{reissueCredential.type}</p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="manage-reissue-file-upload" className="text-sm font-semibold text-neutral-800">
+                Replacement File <span className="ml-1 text-rose-500">*</span>
+              </label>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => document.getElementById('manage-reissue-file-upload')?.click()}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    document.getElementById('manage-reissue-file-upload')?.click();
+                  }
+                }}
+                onDragOver={event => {
+                  event.preventDefault();
+                  setIsReissueFileDragOver(true);
+                }}
+                onDragLeave={event => {
+                  event.preventDefault();
+                  setIsReissueFileDragOver(false);
+                }}
+                onDrop={event => {
+                  event.preventDefault();
+                  setIsReissueFileDragOver(false);
+                  setReissueFileByCredentialId(previous => ({
+                    ...previous,
+                    [reissueCredential.id]: event.dataTransfer.files?.[0] ?? null,
+                  }));
+                }}
+                className={`flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition ${
+                  isReissueFileDragOver
+                    ? 'border-cyan-400 bg-cyan-50/60 text-cyan-700'
+                    : 'border-neutral-300 bg-neutral-50 hover:border-cyan-300 hover:bg-cyan-50/40'
+                }`}
+              >
+                <Upload size={28} className="mb-3 text-neutral-400" />
+                <p className="text-base text-neutral-700">
+                  <span className="font-semibold text-cyan-700">Upload a file</span> or drag and drop
+                </p>
+                <p className="mt-2 text-sm text-neutral-500">PDF, PNG, JPG up to 10MB</p>
+                {reissueFileByCredentialId[reissueCredential.id] && (
+                  <p className="mt-4 max-w-full truncate rounded-full border border-neutral-200 bg-white px-3 py-1 text-sm font-medium text-neutral-700" title={reissueFileByCredentialId[reissueCredential.id]?.name || undefined}>
+                    {reissueFileByCredentialId[reissueCredential.id]?.name}
+                  </p>
+                )}
+              </div>
+              <input
+                id="manage-reissue-file-upload"
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+                className="hidden"
+                onChange={event =>
+                  setReissueFileByCredentialId(previous => ({
+                    ...previous,
+                    [reissueCredential.id]: event.target.files?.[0] ?? null,
+                  }))
+                }
+              />
+            </div>
+            <div className="flex items-center justify-end gap-3 border-t border-neutral-100 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setReissueModalCredentialId(null);
+                  setIsReissueFileDragOver(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setReissuingCredentialId(reissueCredential.id);
+                  const file = reissueFileByCredentialId[reissueCredential.id] ?? undefined;
+                  void onCredentialReissue(reissueCredential.id, file)
+                    .then(() => {
+                      setReissueFileByCredentialId(previous => {
+                        const next = { ...previous };
+                        delete next[reissueCredential.id];
+                        return next;
+                      });
+                      setReissueModalCredentialId(null);
+                      setIsReissueFileDragOver(false);
+                    })
+                    .catch(() => undefined)
+                    .finally(() => {
+                      setReissuingCredentialId(current => (current === reissueCredential.id ? null : current));
+                    });
+                }}
+                disabled={!reissueFileByCredentialId[reissueCredential.id] || reissuingCredentialId === reissueCredential.id}
+                loading={reissuingCredentialId === reissueCredential.id}
+              >
+                Confirm & Re-issue
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </Card>
   );
 }

@@ -99,7 +99,7 @@ export interface InstitutionDashboardState {
   editStudentForm: StudentFormState;
   setEditStudentFormValue: (field: keyof StudentFormState, value: string) => void;
   handleCreateStudent: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  handleBulkCsvUpload: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleBulkCsvUpload: (fileOrEvent: File | ChangeEvent<HTMLInputElement>) => Promise<void>;
   handleStudentStatusUpdate: (studentId: string, status: UserStatus) => Promise<void>;
   handleStartEditStudent: (student: User) => void;
   handleSaveEditedStudent: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -739,8 +739,8 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     }
   };
 
-  const handleBulkCsvUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleBulkCsvUpload = async (fileOrEvent: File | ChangeEvent<HTMLInputElement>) => {
+    const file = fileOrEvent instanceof File ? fileOrEvent : fileOrEvent.target.files?.[0];
     if (!file) return;
     setStudentsError(null);
     setStudentsHint(null);
@@ -763,7 +763,9 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
       console.error('Failed bulk importing students:', error);
     } finally {
       setIsBulkImporting(false);
-      event.target.value = '';
+      if (!(fileOrEvent instanceof File)) {
+        fileOrEvent.target.value = '';
+      }
     }
   };
 
