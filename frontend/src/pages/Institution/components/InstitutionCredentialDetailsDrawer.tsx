@@ -335,7 +335,7 @@ export default function InstitutionCredentialDetailsDrawer({
             )}
           </div>
 
-          <div className="border-t border-neutral-200 px-5 py-3">
+          <div className="border-t border-neutral-200 bg-neutral-50 px-5 py-4 shrink-0">
             <div className="flex flex-wrap items-center justify-end gap-2">
               {previewUrl && (
                 <a

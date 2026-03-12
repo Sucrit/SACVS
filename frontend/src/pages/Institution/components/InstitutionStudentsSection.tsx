@@ -250,12 +250,12 @@ export default function InstitutionStudentsSection({
           <table className="w-full text-left">
             <thead className="bg-neutral-50 text-xs font-semibold  text-neutral-500">
               <tr>
-                <th className="px-4 py-3">Student</th>
+                <th className="px-4 py-3">Student Information</th>
                 <th className="hidden px-4 py-3 sm:table-cell">Student #</th>
                 <th className="hidden px-4 py-3 md:table-cell">Department</th>
                 <th className="hidden px-4 py-3 lg:table-cell">Program</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="hidden px-4 py-3 md:table-cell">Approval</th>
+                <th className="hidden px-4 py-3 md:table-cell">Approved At</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
@@ -280,7 +280,6 @@ export default function InstitutionStudentsSection({
                   <td className="hidden px-4 py-3 text-sm text-neutral-700 lg:table-cell">{student.profile?.courseOfStudy || '-'}</td>
                   <td className="px-4 py-3"><Badge status={student.status} /></td>
                   <td className="hidden px-4 py-3 text-xs text-neutral-600 md:table-cell">
-                    <p><span className="font-semibold text-neutral-700">By:</span> {student.approverName || '-'}</p>
                     <p className="mt-1"><span className="font-semibold text-neutral-700">At:</span> {formatDateTime(student.approvedAt)}</p>
                   </td>
                   <td className="px-4 py-3 text-right">

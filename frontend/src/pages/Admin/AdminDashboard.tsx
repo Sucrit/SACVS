@@ -737,7 +737,6 @@ export default function AdminDashboard() {
       )}
       {section === 'users' && (
         <AdminUserSection
-          users={users}
           filteredUsers={filteredUsers}
           isLoadingUsers={isLoadingUsers}
           search={search}

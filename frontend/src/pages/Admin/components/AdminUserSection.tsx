@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, ListFilter, PauseCircle, Search, XCircle } from 'lucide-react';
+import { Check, PauseCircle, Search, XCircle } from 'lucide-react';
 import ActionMenu from '../../../components/common/ActionMenu';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
@@ -19,7 +19,6 @@ import {
 import type { RoleFilter, StatusFilter } from '../useAdminDashboardState';
 
 interface AdminUserSectionProps {
-  users: User[];
   filteredUsers: User[];
   isLoadingUsers: boolean;
   search: string;
@@ -38,7 +37,6 @@ interface AdminUserSectionProps {
 }
 
 export default function AdminUserSection({
-  users,
   filteredUsers,
   isLoadingUsers,
   search,
@@ -113,10 +111,6 @@ export default function AdminUserSection({
               groups={filterGroups}
               description="Refine the user directory by account role and approval status."
             />
-          </div>
-          <div className="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-600">
-            <ListFilter size={14} />
-            Showing {filteredUsers.length} of {users.length} users
           </div>
         </div>
 

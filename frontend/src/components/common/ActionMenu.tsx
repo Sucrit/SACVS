@@ -28,6 +28,35 @@ export default function ActionMenu({ items }: ActionMenuProps) {
 
   if (items.length === 0) return null;
 
+  if (items.length <= 2) {
+    return (
+      <div className="flex items-center justify-end gap-2">
+        {items.map((item, index) => {
+          const isDestructive = item.className?.includes('rose') ?? false;
+
+          return (
+            <button
+              key={`${item.label}-${index}`}
+              type="button"
+              disabled={item.disabled}
+              onClick={item.onClick}
+              aria-label={item.label}
+              title={item.label}
+              className={`inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                isDestructive
+                  ? 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100'
+                  : 'border-neutral-200 bg-neutral-50 text-neutral-700 hover:bg-neutral-100'
+              } ${item.className || ''}`}
+            >
+              {item.icon}
+              <span className="max-[420px]:sr-only">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div ref={ref} className="relative">
       <button

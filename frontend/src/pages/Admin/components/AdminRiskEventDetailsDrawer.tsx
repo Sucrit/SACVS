@@ -295,45 +295,6 @@ export default function AdminRiskEventDetailsDrawer({
                         placeholder="Add analyst rationale, evidence, or follow-up notes."
                         className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 outline-none transition focus:border-neutral-300 focus:bg-white"
                       />
-                      <div className="flex flex-wrap gap-2">
-                        {REVIEW_ACTIONS.map(action => (
-                          <Button
-                            key={action.status}
-                            type="button"
-                            variant={action.status === 'CONFIRMED_ABUSE' ? 'danger' : action.status === 'BENIGN' ? 'success' : 'secondary'}
-                            size="sm"
-                            disabled={isSavingReview}
-                            onClick={() =>
-                              void onSaveReview(
-                                event.id,
-                                action.status,
-                                draftReasonCode || REVIEW_REASON_OPTIONS[action.status][0]?.value || null,
-                                draftReasonDetail.trim() || null,
-                                draftNotes.trim() || null,
-                              )
-                            }
-                          >
-                            {isSavingReview && event.reviewStatus !== action.status ? <ButtonLoadingContent label="Saving" /> : action.label}
-                          </Button>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="sm"
-                          disabled={isSavingReview || (!hasUnsavedNotes && !hasUnsavedReviewMeta)}
-                          onClick={() =>
-                            void onSaveReview(
-                              event.id,
-                              event.reviewStatus,
-                              draftReasonCode || null,
-                              draftReasonDetail.trim() || null,
-                              draftNotes.trim() || null,
-                            )
-                          }
-                        >
-                          {isSavingReview ? <ButtonLoadingContent label="Saving" /> : 'Save notes'}
-                        </Button>
-                      </div>
                     </div>
                   </section>
 
@@ -353,6 +314,50 @@ export default function AdminRiskEventDetailsDrawer({
                 </div>
               )}
             </div>
+            
+            {event && (
+              <div className="border-t border-neutral-200 bg-neutral-50 px-4 py-4 sm:px-7 shrink-0">
+                <div className="flex flex-wrap gap-2">
+                  {REVIEW_ACTIONS.map(action => (
+                    <Button
+                      key={action.status}
+                      type="button"
+                      variant={action.status === 'CONFIRMED_ABUSE' ? 'danger' : action.status === 'BENIGN' ? 'success' : 'secondary'}
+                      size="sm"
+                      disabled={isSavingReview}
+                      onClick={() =>
+                        void onSaveReview(
+                          event.id,
+                          action.status,
+                          draftReasonCode || REVIEW_REASON_OPTIONS[action.status][0]?.value || null,
+                          draftReasonDetail.trim() || null,
+                          draftNotes.trim() || null,
+                        )
+                      }
+                    >
+                      {isSavingReview && event.reviewStatus !== action.status ? <ButtonLoadingContent label="Saving" /> : action.label}
+                    </Button>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={isSavingReview || (!hasUnsavedNotes && !hasUnsavedReviewMeta)}
+                    onClick={() =>
+                      void onSaveReview(
+                        event.id,
+                        event.reviewStatus,
+                        draftReasonCode || null,
+                        draftReasonDetail.trim() || null,
+                        draftNotes.trim() || null,
+                      )
+                    }
+                  >
+                    {isSavingReview ? <ButtonLoadingContent label="Saving" /> : 'Save notes'}
+                  </Button>
+                </div>
+              </div>
+            )}
           </motion.aside>
         </motion.div>
       )}

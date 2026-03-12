@@ -9,11 +9,12 @@ interface DrawerProps {
   title?: string;
   description?: string;
   children: ReactNode;
+  footer?: ReactNode;
   className?: string;
   width?: string;
 }
 
-export default function Drawer({ open, onClose, title, description, children, className, width = 'max-w-md' }: DrawerProps) {
+export default function Drawer({ open, onClose, title, description, children, footer, className, width = 'max-w-md' }: DrawerProps) {
   return (
     <AnimatePresence>
       {open && (
@@ -53,6 +54,11 @@ export default function Drawer({ open, onClose, title, description, children, cl
               </div>
             )}
             <div className="flex-1 overflow-y-auto p-5">{children}</div>
+            {footer && (
+              <div className="border-t border-neutral-200 bg-neutral-50 px-5 py-4 shrink-0">
+                {footer}
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}

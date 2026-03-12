@@ -127,6 +127,12 @@ export default function AdminUserDetailsDrawer({
                 </div>
               </div>
 
+              <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-xs text-neutral-500">
+                Privacy guardrail: student profile data is hidden from admin-level tools by default.
+              </div>
+            </div>
+
+            <div className="border-t border-neutral-200 bg-neutral-50 px-4 py-4 sm:px-7 shrink-0 space-y-6">
               {/* Role actions */}
               <div>
                 <p className="mb-2 text-xs font-medium text-neutral-500">
@@ -185,10 +191,6 @@ export default function AdminUserDetailsDrawer({
                     ))
                   )}
                 </div>
-              </div>
-
-              <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-xs text-neutral-500">
-                Privacy guardrail: student profile data is hidden from admin-level tools by default.
               </div>
             </div>
           </motion.aside>

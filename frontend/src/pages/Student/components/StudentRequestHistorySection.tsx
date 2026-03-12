@@ -303,23 +303,31 @@ export default function StudentRequestHistorySection({
   ], [dateFilter, typeFilter]);
 
   return (
-    <Card title="Request History" action={requestAction}>
-      <div className="mb-4 flex w-full items-center gap-2 lg:max-w-xl">
-        <div className="relative flex-1">
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={event => setSearchTerm(event.target.value)}
-            placeholder="Search requests..."
-            className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm text-neutral-700 outline-none focus:border-neutral-300"
+    <Card title="Request History">
+      <div className="mb-4 flex w-full flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex w-full sm:max-w-lg lg:max-w-xl items-center gap-2">
+          <div className="relative flex-1">
+            <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={event => setSearchTerm(event.target.value)}
+              placeholder="Search requests..."
+              className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm text-neutral-700 outline-none focus:border-neutral-300"
+            />
+          </div>
+          <SearchFilterModal
+            hideLabel
+            groups={filterGroups}
+            description="Refine request history by document type and submission date."
           />
         </div>
-        <SearchFilterModal
-          hideLabel
-          groups={filterGroups}
-          description="Refine request history by document type and submission date."
-        />
+        
+        {requestAction && (
+          <div className="shrink-0">
+            {requestAction}
+          </div>
+        )}
       </div>
 
       {isLoadingRequests && (

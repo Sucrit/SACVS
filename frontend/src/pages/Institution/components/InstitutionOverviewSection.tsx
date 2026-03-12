@@ -559,11 +559,11 @@ export default function InstitutionOverviewSection({
             className="flex h-full flex-col"
             title="Institution Student Directory"
             action={
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-4">
                 <button
                   type="button"
                   onClick={() => navigate('/institution/students')}
-                  className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100"
+                  className="text-xs font-semibold text-neutral-600 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-neutral-900 hover:decoration-neutral-900"
                 >
                   See More
                 </button>
@@ -652,7 +652,7 @@ export default function InstitutionOverviewSection({
               <button
                 type="button"
                 onClick={() => navigate('/institution/requests')}
-                className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100"
+                className="text-xs font-semibold text-neutral-600 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-neutral-900 hover:decoration-neutral-900"
               >
                 See More
               </button>
