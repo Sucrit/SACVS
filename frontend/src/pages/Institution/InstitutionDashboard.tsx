@@ -232,7 +232,7 @@ export default function InstitutionDashboard() {
             </div>
 
             <div className="overflow-hidden rounded-lg border border-neutral-200">
-              <table className="w-full min-w-[640px] text-left">
+              <table className="w-full min-w-160 text-left">
                 <thead className="bg-neutral-50 text-xs font-medium uppercase tracking-widest text-neutral-500">
                   <tr>
                     <th className="px-5 py-3">Timestamp</th>

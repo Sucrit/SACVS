@@ -282,7 +282,7 @@ export default function InstitutionRequestsSection({
                           </label>
                         )}
                         {issueFileByRequestId[request.id] && (
-                          <span className="text-[10px] text-neutral-500 max-w-[80px] truncate" title={issueFileByRequestId[request.id]?.name}>
+                          <span className="max-w-20 truncate text-[10px] text-neutral-500" title={issueFileByRequestId[request.id]?.name}>
                             {issueFileByRequestId[request.id]?.name}
                           </span>
                         )}
