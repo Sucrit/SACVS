@@ -223,9 +223,6 @@ export default function InstitutionDashboard() {
                 groups={institutionAuditFilterGroups}
                 description="Refine institution logs by action, severity, and page size."
               />
-              <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
-                {state.filteredInstitutionAuditLogs.length} entries
-              </div>
             </div>
 
             <div className="overflow-hidden rounded-lg border border-neutral-200">

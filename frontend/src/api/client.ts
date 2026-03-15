@@ -5,7 +5,7 @@ const API_BASE_URL = [import.meta.env.VITE_GATEWAY_URL, import.meta.env.VITE_API
 );
 
 if (!API_BASE_URL) {
-  throw new Error('Missing API base URL: set VITE_GATEWAY_URL in frontend/.env');
+  throw new Error('Missing APi base url');
 }
 
 type TokenGetter = (() => Promise<string | null>) | null;

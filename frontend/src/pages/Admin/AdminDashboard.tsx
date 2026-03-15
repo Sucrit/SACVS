@@ -441,11 +441,6 @@ export default function AdminDashboard() {
               description="Refine the risk queue by band, review state, scope, and result size."
             />
           </div>
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
-              {riskTotal} events
-            </div>
-          </div>
         </div>
 
         <div className="overflow-x-auto rounded-lg border border-neutral-200">
@@ -606,11 +601,6 @@ export default function AdminDashboard() {
               groups={auditFilterGroups}
               description="Refine governance logs by action, severity, and page size."
             />
-          </div>
-          <div className="flex items-end">
-            <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-700">
-              {filteredAdminAuditLogs.length} entries
-            </div>
           </div>
         </div>
 
