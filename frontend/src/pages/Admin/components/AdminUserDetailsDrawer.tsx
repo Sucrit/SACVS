@@ -109,7 +109,7 @@ export default function AdminUserDetailsDrawer({
                     <p className="mt-0.5 font-semibold text-neutral-700">{getLinkedOrganizationLabel(user)}</p>
                   </div>
                   <div>
-                    <p className="text-neutral-500">Created</p>
+                    <p className="text-neutral-500">Created At</p>
                     <p className="mt-0.5 font-semibold text-neutral-700">{formatDateTime(user.createdAt)}</p>
                   </div>
                   <div>

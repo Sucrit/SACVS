@@ -1,9 +1,13 @@
-﻿import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Bell } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import PaginationControls from '../../../components/common/PaginationControls';
 import NotificationsInboxCard from '../../../components/notifications/NotificationsInboxCard';
+import Modal from '../../../components/ui/Modal';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
+import Textarea from '../../../components/ui/Textarea';
 import { NotificationTarget, OutboundNotification } from '../types';
 import { AppNotification, getNotificationDisplayMessage } from '../../../services/notification.service';
 import { formatDateTime } from '../utils';
@@ -22,7 +26,7 @@ interface InstitutionNotificationsSectionProps {
   onTargetChange: (target: NotificationTarget) => void;
   onTitleChange: (title: string) => void;
   onMessageChange: (message: string) => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<boolean>;
   onOpenCredential: (credentialId: string) => void;
   onOpenRequest: (requestId: string) => void;
   onOpenNotificationsPage: () => void;
@@ -48,6 +52,7 @@ export default function InstitutionNotificationsSection({
   onOpenNotificationsPage,
 }: InstitutionNotificationsSectionProps) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [isComposeModalOpen, setIsComposeModalOpen] = useState(false);
   const pageSize = 10;
 
   const totalPages = Math.max(1, Math.ceil(notifications.length / pageSize));
@@ -78,39 +83,15 @@ export default function InstitutionNotificationsSection({
     onOpenNotificationsPage();
   };
 
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    const submitted = await onSubmit(event);
+    if (submitted) {
+      setIsComposeModalOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <Card title="Send Notification to Students">
-        <form className="space-y-3" onSubmit={onSubmit}>
-          <select
-            value={notificationTarget}
-            onChange={event => onTargetChange(event.target.value as NotificationTarget)}
-            className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-          >
-            <option value="ALL">All students</option>
-            <option value="APPROVED_ONLY">Approved students only</option>
-            <option value="SUSPENDED_ONLY">Suspended students only</option>
-          </select>
-          <input
-            value={notificationTitle}
-            onChange={event => onTitleChange(event.target.value)}
-            placeholder="Notification title"
-            className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-          />
-          <textarea
-            value={notificationMessage}
-            onChange={event => onMessageChange(event.target.value)}
-            rows={4}
-            placeholder="Notification message"
-            className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm outline-none"
-          />
-          <button type="submit" disabled={isSubmitting} className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-black disabled:cursor-not-allowed disabled:opacity-60">
-            <Bell size={14} />
-            {isSubmitting ? <ButtonLoadingContent label="Sending" /> : 'Send Notification'}
-          </button>
-        </form>
-      </Card>
-
       <NotificationsInboxCard
         className="w-full"
         notifications={inboundNotifications}
@@ -121,15 +102,20 @@ export default function InstitutionNotificationsSection({
         pageSize={5}
         itemLabel="received notifications"
         getMessage={getNotificationDisplayMessage}
-        renderFooter={notification => (
-          <>
-            <Bell size={12} />
-            {notification.type.replace(/_/g, ' ')}
-          </>
-        )}
+        renderFooter={notification => notification.type.replace(/_/g, ' ')}
+        headerActions={
+          <button
+            type="button"
+            onClick={() => setIsComposeModalOpen(true)}
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50"
+          >
+            <Bell size={14} />
+            Notify Students
+          </button>
+        }
       />
 
-      <Card title="Notification Activity Log">
+      <Card title="Announcement Activity Log">
         <div className="overflow-x-auto rounded-lg border border-neutral-200">
           <table className="w-full text-left">
             <thead className="bg-neutral-50 text-xs font-semibold  text-neutral-500">
@@ -177,6 +163,61 @@ export default function InstitutionNotificationsSection({
           />
         )}
       </Card>
+
+      <Modal
+        open={isComposeModalOpen}
+        onClose={() => setIsComposeModalOpen(false)}
+        title="Send Announcement to Students"
+        description="Compose a message and choose which students should receive it."
+        size="lg"
+      >
+        <form className="space-y-4" onSubmit={event => void handleSubmit(event)}>
+          <Select
+            label="Recipients"
+            value={notificationTarget}
+            onChange={event => onTargetChange(event.target.value as NotificationTarget)}
+            className="h-11 bg-neutral-50"
+          >
+            <option value="ALL">All active students</option>
+            <option value="APPROVED_ONLY">Approved students only</option>
+          </Select>
+          <Input
+            label="Announcement title"
+            value={notificationTitle}
+            onChange={event => onTitleChange(event.target.value)}
+            placeholder="Announcement title"
+            required
+            className="h-11 bg-neutral-50"
+          />
+          <Textarea
+            label="Announcement message"
+            value={notificationMessage}
+            onChange={event => onMessageChange(event.target.value)}
+            rows={6}
+            placeholder="Place announcement message here..."
+            required
+            className="bg-neutral-50"
+          />
+          <div className="flex items-center justify-end gap-3 border-t border-neutral-200 pt-4">
+            <button
+              type="button"
+              onClick={() => setIsComposeModalOpen(false)}
+              className="inline-flex h-10 items-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Bell size={14} />
+              {isSubmitting ? <ButtonLoadingContent label="Sending" /> : 'Send Notification'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
+

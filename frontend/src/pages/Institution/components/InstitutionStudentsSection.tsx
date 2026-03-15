@@ -6,6 +6,8 @@ import Badge from '../../../components/common/Badge';
 import ActionMenu from '../../../components/common/ActionMenu';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
 import { User, UserStatus } from '../../../services/user.service';
 import { StudentFormState, StudentStatusFilter, STUDENT_STATUS_OPTIONS } from '../types';
 import { getStudentFullName, getUserInitials } from '../utils';
@@ -377,95 +379,58 @@ export default function InstitutionStudentsSection({
                 <p className="text-xs font-semibold  text-neutral-500 md:col-span-2 xl:col-span-3">
                   Personal Info
                 </p>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    First name <span className="text-rose-500">*</span>
-                  </span>
-                  <input required value={studentForm.firstName} onChange={event => onSetStudentFormValue('firstName', event.target.value)} placeholder="First name" className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none" />
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Middle name
-                  </span>
-                  <input value={studentForm.middleName} onChange={event => onSetStudentFormValue('middleName', event.target.value)} placeholder="Middle name (optional)" className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none" />
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Last name <span className="text-rose-500">*</span>
-                  </span>
-                  <input required value={studentForm.lastName} onChange={event => onSetStudentFormValue('lastName', event.target.value)} placeholder="Last name" className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none" />
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    University Issued Email<span className="text-rose-500">*</span>
-                  </span>
-                  <input required type="email" value={studentForm.email} onChange={event => onSetStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none" />
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Student number <span className="text-rose-500">*</span>
-                  </span>
-                  <input required value={studentForm.studentNumber} onChange={event => onSetStudentFormValue('studentNumber', event.target.value)} placeholder="Student number" className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none" />
-                </label>
+                <Input required label="First name" value={studentForm.firstName} onChange={event => onSetStudentFormValue('firstName', event.target.value)} placeholder="First name" className="h-10 bg-neutral-50" />
+                <Input label="Middle name" value={studentForm.middleName} onChange={event => onSetStudentFormValue('middleName', event.target.value)} placeholder="Middle name (optional)" className="h-10 bg-neutral-50" />
+                <Input required label="Last name" value={studentForm.lastName} onChange={event => onSetStudentFormValue('lastName', event.target.value)} placeholder="Last name" className="h-10 bg-neutral-50" />
+                <Input required type="email" label="University Issued Email" value={studentForm.email} onChange={event => onSetStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 bg-neutral-50" />
+                <Input required label="Student number" value={studentForm.studentNumber} onChange={event => onSetStudentFormValue('studentNumber', event.target.value)} placeholder="Student number" className="h-10 bg-neutral-50" />
 
                 <p className="pt-2 text-xs font-semibold  text-neutral-500 md:col-span-2 xl:col-span-3">
                   Academic Info
                 </p>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Department <span className="text-rose-500">*</span>
-                  </span>
-                  <select
-                    required
-                    value={studentForm.department}
-                    onChange={event => {
-                      const nextDepartment = event.target.value;
-                      onSetStudentFormValue('department', nextDepartment);
-                      const allowedCourses = new Set(PHINMA_DEPARTMENT_COURSE_MAP[nextDepartment] ?? []);
-                      if (studentForm.courseOfStudy && !allowedCourses.has(studentForm.courseOfStudy)) {
-                        onSetStudentFormValue('courseOfStudy', '');
-                      }
-                    }}
-                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  >
+                <Select
+                  required
+                  label="Department"
+                  value={studentForm.department}
+                  onChange={event => {
+                    const nextDepartment = event.target.value;
+                    onSetStudentFormValue('department', nextDepartment);
+                    const allowedCourses = new Set(PHINMA_DEPARTMENT_COURSE_MAP[nextDepartment] ?? []);
+                    if (studentForm.courseOfStudy && !allowedCourses.has(studentForm.courseOfStudy)) {
+                      onSetStudentFormValue('courseOfStudy', '');
+                    }
+                  }}
+                  className="h-10 bg-neutral-50"
+                >
                     <option value="" disabled>Select department</option>
                     {addFormDepartmentOptions.map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
-                  </select>
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Course of study <span className="text-rose-500">*</span>
-                  </span>
-                  <select
-                    required
-                    value={studentForm.courseOfStudy}
-                    onChange={event => onSetStudentFormValue('courseOfStudy', event.target.value)}
-                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  >
+                </Select>
+                <Select
+                  required
+                  label="Course of study"
+                  value={studentForm.courseOfStudy}
+                  onChange={event => onSetStudentFormValue('courseOfStudy', event.target.value)}
+                  className="h-10 bg-neutral-50"
+                >
                     <option value="" disabled>Select course of study</option>
                     {addFormCourseOptions.map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
-                  </select>
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Year level <span className="text-rose-500">*</span>
-                  </span>
-                  <select
-                    required
-                    value={studentForm.yearLevel}
-                    onChange={event => onSetStudentFormValue('yearLevel', event.target.value)}
-                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  >
+                </Select>
+                <Select
+                  required
+                  label="Year level"
+                  value={studentForm.yearLevel}
+                  onChange={event => onSetStudentFormValue('yearLevel', event.target.value)}
+                  className="h-10 bg-neutral-50"
+                >
                     <option value="" disabled>Select year level</option>
                     {addFormYearLevelOptions.map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
-                  </select>
-                </label>
+                </Select>
               </div>
               <div className="flex items-center gap-2">
                 <button type="submit" disabled={isSubmittingStudent} className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-black disabled:opacity-60">
@@ -557,6 +522,9 @@ export default function InstitutionStudentsSection({
               }}
             >
               <Upload size={28} className="mb-3 text-neutral-400" />
+              <p className="mb-2 text-xs font-semibold text-neutral-500">
+                Bulk Import File <span className="text-rose-500">*</span>
+              </p>
               <p className="text-base text-neutral-700">
                 <span className="font-semibold text-cyan-700">Upload a file</span> or drag and drop
               </p>
@@ -613,125 +581,58 @@ export default function InstitutionStudentsSection({
                 <p className="text-xs font-semibold  text-neutral-500 md:col-span-2 xl:col-span-3">
                   Personal Info
                 </p>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    First name <span className="text-rose-500">*</span>
-                  </span>
-                  <input
-                    required
-                    value={editStudentForm.firstName}
-                    onChange={event => onSetEditStudentFormValue('firstName', event.target.value)}
-                    placeholder="First name"
-                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  />
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Middle name
-                  </span>
-                  <input
-                    value={editStudentForm.middleName}
-                    onChange={event => onSetEditStudentFormValue('middleName', event.target.value)}
-                    placeholder="Middle name (optional)"
-                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  />
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Last name <span className="text-rose-500">*</span>
-                  </span>
-                  <input
-                    required
-                    value={editStudentForm.lastName}
-                    onChange={event => onSetEditStudentFormValue('lastName', event.target.value)}
-                    placeholder="Last name"
-                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  />
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Email <span className="text-rose-500">*</span>
-                  </span>
-                  <input
-                    required
-                    type="email"
-                    value={editStudentForm.email}
-                    onChange={event => onSetEditStudentFormValue('email', event.target.value)}
-                    placeholder="Email"
-                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  />
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Student number <span className="text-rose-500">*</span>
-                  </span>
-                  <input
-                    required
-                    value={editStudentForm.studentNumber}
-                    onChange={event => onSetEditStudentFormValue('studentNumber', event.target.value)}
-                    placeholder="Student number"
-                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  />
-                </label>
+                <Input required label="First name" value={editStudentForm.firstName} onChange={event => onSetEditStudentFormValue('firstName', event.target.value)} placeholder="First name" className="h-10 bg-neutral-50" />
+                <Input label="Middle name" value={editStudentForm.middleName} onChange={event => onSetEditStudentFormValue('middleName', event.target.value)} placeholder="Middle name (optional)" className="h-10 bg-neutral-50" />
+                <Input required label="Last name" value={editStudentForm.lastName} onChange={event => onSetEditStudentFormValue('lastName', event.target.value)} placeholder="Last name" className="h-10 bg-neutral-50" />
+                <Input required type="email" label="Email" value={editStudentForm.email} onChange={event => onSetEditStudentFormValue('email', event.target.value)} placeholder="Email" className="h-10 bg-neutral-50" />
+                <Input required label="Student number" value={editStudentForm.studentNumber} onChange={event => onSetEditStudentFormValue('studentNumber', event.target.value)} placeholder="Student number" className="h-10 bg-neutral-50" />
 
                 <p className="pt-2 text-xs font-semibold  text-neutral-500 md:col-span-2 xl:col-span-3">
                   Academic Info
                 </p>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Course of study <span className="text-rose-500">*</span>
-                  </span>
-                  <select
-                    required
-                    value={editStudentForm.courseOfStudy}
-                    onChange={event => onSetEditStudentFormValue('courseOfStudy', event.target.value)}
-                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  >
+                <Select
+                  required
+                  label="Course of study"
+                  value={editStudentForm.courseOfStudy}
+                  onChange={event => onSetEditStudentFormValue('courseOfStudy', event.target.value)}
+                  className="h-10 bg-neutral-50"
+                >
                     <option value="" disabled>Select course of study</option>
                     {editFormCourseOptions.map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
-                  </select>
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Year level <span className="text-rose-500">*</span>
-                  </span>
-                  <select
-                    required
-                    value={editStudentForm.yearLevel}
-                    onChange={event => onSetEditStudentFormValue('yearLevel', event.target.value)}
-                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  >
+                </Select>
+                <Select
+                  required
+                  label="Year level"
+                  value={editStudentForm.yearLevel}
+                  onChange={event => onSetEditStudentFormValue('yearLevel', event.target.value)}
+                  className="h-10 bg-neutral-50"
+                >
                     <option value="" disabled>Select year level</option>
                     {addFormYearLevelOptions.map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
-                  </select>
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold  text-neutral-500">
-                    Department <span className="text-rose-500">*</span>
-                  </span>
-                  <select
-                    required
-                    value={editStudentForm.department}
-                    onChange={event => {
-                      const nextDepartment = event.target.value;
-                      onSetEditStudentFormValue('department', nextDepartment);
-                      const allowedCourses = new Set(PHINMA_DEPARTMENT_COURSE_MAP[nextDepartment] ?? []);
-                      if (editStudentForm.courseOfStudy && !allowedCourses.has(editStudentForm.courseOfStudy)) {
-                        onSetEditStudentFormValue('courseOfStudy', '');
-                      }
-                    }}
-                    className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  >
+                </Select>
+                <Select
+                  required
+                  label="Department"
+                  value={editStudentForm.department}
+                  onChange={event => {
+                    const nextDepartment = event.target.value;
+                    onSetEditStudentFormValue('department', nextDepartment);
+                    const allowedCourses = new Set(PHINMA_DEPARTMENT_COURSE_MAP[nextDepartment] ?? []);
+                    if (editStudentForm.courseOfStudy && !allowedCourses.has(editStudentForm.courseOfStudy)) {
+                      onSetEditStudentFormValue('courseOfStudy', '');
+                    }
+                  }}
+                  className="h-10 bg-neutral-50"
+                >
                     <option value="" disabled>Select department</option>
                     {addFormDepartmentOptions.map(option => (
                       <option key={option} value={option}>{option}</option>
                     ))}
-                  </select>
-                </label>
+                </Select>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-black"><Check size={14} />Save Changes</button>

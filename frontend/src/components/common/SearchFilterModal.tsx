@@ -96,22 +96,24 @@ export default function SearchFilterModal({
         size="xl"
         className={className || 'max-w-5xl md:max-w-4xl'}
       >
-        <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 pb-4">
-            <p className="text-sm text-neutral-500">
-              {activeFilterCount > 0
-                ? `${activeFilterCount} filter${activeFilterCount === 1 ? '' : 's'} applied`
-                : 'Choose filters to narrow the results.'}
-            </p>
-            <button
-              type="button"
-              onClick={handleReset}
-              disabled={activeFilterCount === 0}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <RotateCcw size={13} />
-              Reset all
-            </button>
+        <div className="flex min-h-0 flex-col">
+          <div className="shrink-0 space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 pb-4">
+              <p className="text-sm text-neutral-500">
+                {activeFilterCount > 0
+                  ? `${activeFilterCount} filter${activeFilterCount === 1 ? '' : 's'} applied`
+                  : 'Choose filters to narrow the results.'}
+              </p>
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={activeFilterCount === 0}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RotateCcw size={13} />
+                Reset all
+              </button>
+            </div>
           </div>
 
           {!hasGroups && (
@@ -121,64 +123,66 @@ export default function SearchFilterModal({
           )}
 
           {hasGroups && (
-            <div className="grid grid-cols-2 gap-x-8 gap-y-8 sm:grid-cols-3 md:grid-cols-4">
-              {groups.map(group => (
-                <section key={group.id} className="min-w-0">
-                  <div className="mb-4 space-y-2">
-                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
-                      {group.label}
-                    </h3>
-                    <div className="h-px w-full bg-neutral-200" />
-                  </div>
+            <div className="-mr-1 mt-6 min-h-0 flex-1 overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 gap-x-8 gap-y-8 sm:grid-cols-3 md:grid-cols-4">
+                {groups.map(group => (
+                  <section key={group.id} className="min-w-0">
+                    <div className="mb-4 space-y-2">
+                      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-900">
+                        {group.label}
+                      </h3>
+                      <div className="h-px w-full bg-neutral-200" />
+                    </div>
 
-                  {group.type === 'boolean' ? (
-                    <div className="flex flex-col gap-3">
-                      <button
-                        type="button"
-                        onClick={() => group.onChange(true)}
-                        className={`text-left text-[13px] transition-colors ${
-                          group.value
-                            ? 'font-medium text-neutral-900'
-                            : 'text-neutral-500 hover:text-neutral-900'
-                        }`}
-                      >
-                        {group.trueLabel || 'Enabled'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => group.onChange(false)}
-                        className={`text-left text-[13px] transition-colors ${
-                          !group.value
-                            ? 'font-medium text-neutral-900'
-                            : 'text-neutral-500 hover:text-neutral-900'
-                        }`}
-                      >
-                        {group.falseLabel || 'Disabled'}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-3">
-                      {group.options.map(option => {
-                        const isActive = group.value === option.value;
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => group.onChange(option.value)}
-                            className={`block text-left text-[13px] transition-colors ${
-                              isActive
-                                ? 'font-medium text-neutral-900'
-                                : 'text-neutral-500 hover:text-neutral-900'
-                            }`}
-                          >
-                            {option.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
-              ))}
+                    {group.type === 'boolean' ? (
+                      <div className="flex flex-col gap-3">
+                        <button
+                          type="button"
+                          onClick={() => group.onChange(true)}
+                          className={`text-left text-[13px] transition-colors ${
+                            group.value
+                              ? 'font-medium text-neutral-900'
+                              : 'text-neutral-500 hover:text-neutral-900'
+                          }`}
+                        >
+                          {group.trueLabel || 'Enabled'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => group.onChange(false)}
+                          className={`text-left text-[13px] transition-colors ${
+                            !group.value
+                              ? 'font-medium text-neutral-900'
+                              : 'text-neutral-500 hover:text-neutral-900'
+                          }`}
+                        >
+                          {group.falseLabel || 'Disabled'}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {group.options.map(option => {
+                          const isActive = group.value === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => group.onChange(option.value)}
+                              className={`block text-left text-[13px] transition-colors ${
+                                isActive
+                                  ? 'font-medium text-neutral-900'
+                                  : 'text-neutral-500 hover:text-neutral-900'
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+                ))}
+              </div>
             </div>
           )}
         </div>

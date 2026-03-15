@@ -225,6 +225,29 @@ export class UserRepository {
     });
   }
 
+  async listApprovedAdminNotificationRecipients(): Promise<Array<{
+    id: string;
+    email: string;
+    firstName: string;
+    middleName: string | null;
+    lastName: string;
+  }>> {
+    return prisma.user.findMany({
+      where: {
+        role: Role.ADMIN,
+        status: Status.APPROVED,
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   async listInstitutionStudents(institutionId: string): Promise<UserWithRelations[]> {
     return prisma.user.findMany({
       where: {

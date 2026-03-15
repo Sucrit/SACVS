@@ -3,6 +3,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import Button from '../../../components/ui/Button';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
+import Textarea from '../../../components/ui/Textarea';
 import {
   RiskEventRecord,
   RiskReviewReasonCode,
@@ -266,10 +269,11 @@ export default function AdminRiskEventDetailsDrawer({
                       Save analyst reasoning with the selected label so reviewed events can be used for later model training.
                     </p>
                     <div className="mt-4 space-y-4">
-                      <select
+                      <Select
+                        label="Review reason"
                         value={draftReasonCode}
                         onChange={event => setDraftReasonCode(event.target.value as RiskReviewReasonCode | '')}
-                        className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 outline-none transition focus:border-neutral-300 focus:bg-white"
+                        className="h-auto bg-neutral-50 py-3"
                       >
                         <option value="">Select a review reason</option>
                         {Object.entries(REVIEW_REASON_OPTIONS).map(([status, options]) => (
@@ -281,19 +285,21 @@ export default function AdminRiskEventDetailsDrawer({
                             ))}
                           </optgroup>
                         ))}
-                      </select>
-                      <input
+                      </Select>
+                      <Input
+                        label="Reason detail"
                         value={draftReasonDetail}
                         onChange={event => setDraftReasonDetail(event.target.value)}
                         placeholder="Optional detail for the selected reason."
-                        className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 outline-none transition focus:border-neutral-300 focus:bg-white"
+                        className="h-auto bg-neutral-50 py-3"
                       />
-                      <textarea
+                      <Textarea
+                        label="Review notes"
                         value={draftNotes}
                         onChange={event => setDraftNotes(event.target.value)}
                         rows={5}
                         placeholder="Add analyst rationale, evidence, or follow-up notes."
-                        className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-800 outline-none transition focus:border-neutral-300 focus:bg-white"
+                        className="bg-neutral-50"
                       />
                     </div>
                   </section>

@@ -324,74 +324,92 @@ export default function InstitutionIssueSection({
 
             <form className="space-y-3 p-5" onSubmit={handleSubmitDirectIssue}>
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                <select
-                  value={directForm.studentId}
-                  onChange={event => setDirectForm(previous => ({ ...previous, studentId: event.target.value }))}
-                  className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  required
-                >
-                  <option value="">Select student</option>
-                  {eligibleStudents.map(student => (
-                    <option key={student.id} value={student.id}>
-                      {(getStudentFullName(student) || student.email)} ({student.profile?.studentNumber || student.id})
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={directForm.type}
-                  onChange={event =>
-                    setDirectForm(previous => {
-                      const nextType = event.target.value as CredentialType;
-                      return {
-                        ...previous,
-                        type: nextType,
-                        expiryDate: supportsExpiryDate(nextType) ? previous.expiryDate : '',
-                        certificateCategory: nextType === 'CERTIFICATE' ? previous.certificateCategory : DEFAULT_CERTIFICATE_CATEGORY,
-                      };
-                    })
-                  }
-                  className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                >
-                  {CREDENTIAL_TYPES.map(type => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  value={directForm.title}
-                  onChange={event => setDirectForm(previous => ({ ...previous, title: event.target.value }))}
-                  placeholder="Credential title (e.g. Bachelor of Science in IT)"
-                  className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  required
-                />
-                <input
-                  value={directForm.description}
-                  onChange={event => setDirectForm(previous => ({ ...previous, description: event.target.value }))}
-                  placeholder="Description (optional)"
-                  className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                />
-                {directForm.type === 'CERTIFICATE' && (
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold text-neutral-500">Student <span className="text-rose-500">*</span></span>
                   <select
-                    value={directForm.certificateCategory}
-                    onChange={event =>
-                      setDirectForm(previous => ({
-                        ...previous,
-                        certificateCategory: event.target.value as CertificateCategory,
-                      }))
-                    }
-                    className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+                    value={directForm.studentId}
+                    onChange={event => setDirectForm(previous => ({ ...previous, studentId: event.target.value }))}
+                    className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+                    required
                   >
-                    {CERTIFICATE_CATEGORIES.map(category => (
-                      <option key={category} value={category}>
-                        {category}
+                    <option value="">Select student</option>
+                    {eligibleStudents.map(student => (
+                      <option key={student.id} value={student.id}>
+                        {(getStudentFullName(student) || student.email)} ({student.profile?.studentNumber || student.id})
                       </option>
                     ))}
                   </select>
+                </label>
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold text-neutral-500">Credential Type</span>
+                  <select
+                    value={directForm.type}
+                    onChange={event =>
+                      setDirectForm(previous => {
+                        const nextType = event.target.value as CredentialType;
+                        return {
+                          ...previous,
+                          type: nextType,
+                          expiryDate: supportsExpiryDate(nextType) ? previous.expiryDate : '',
+                          certificateCategory: nextType === 'CERTIFICATE' ? previous.certificateCategory : DEFAULT_CERTIFICATE_CATEGORY,
+                        };
+                      })
+                    }
+                    className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+                  >
+                    {CREDENTIAL_TYPES.map(type => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold text-neutral-500">Credential Title <span className="text-rose-500">*</span></span>
+                  <input
+                    value={directForm.title}
+                    onChange={event => setDirectForm(previous => ({ ...previous, title: event.target.value }))}
+                    placeholder="Credential title (e.g. Bachelor of Science in IT)"
+                    className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+                    required
+                  />
+                </label>
+                <label className="space-y-1.5">
+                  <span className="block text-xs font-semibold text-neutral-500">Description</span>
+                  <input
+                    value={directForm.description}
+                    onChange={event => setDirectForm(previous => ({ ...previous, description: event.target.value }))}
+                    placeholder="Description (optional)"
+                    className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+                  />
+                </label>
+                {directForm.type === 'CERTIFICATE' && (
+                  <label className="space-y-1.5">
+                    <span className="block text-xs font-semibold text-neutral-500">Certificate Category</span>
+                    <select
+                      value={directForm.certificateCategory}
+                      onChange={event =>
+                        setDirectForm(previous => ({
+                          ...previous,
+                          certificateCategory: event.target.value as CertificateCategory,
+                        }))
+                      }
+                      className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+                    >
+                      {CERTIFICATE_CATEGORIES.map(category => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 )}
                 {supportsExpiryDate(directForm.type) && (
                   <div className="space-y-1">
-                    <p className="text-[11px] font-medium  text-neutral-500">Expiry Date</p>
+                    <p className="text-[11px] font-medium text-neutral-500">
+                      Expiry Date
+                      {requiresExpiryDate(directForm.type, directForm.certificateCategory) && <span className="ml-1 text-rose-500">*</span>}
+                    </p>
                     <input
                       type="date"
                       value={directForm.expiryDate}
@@ -405,7 +423,7 @@ export default function InstitutionIssueSection({
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-semibold text-neutral-800">Student Credential Document</p>
+                <p className="text-sm font-semibold text-neutral-800">Student Credential Document <span className="text-rose-500">*</span></p>
                 <label
                   className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors ${
                     isDirectFileDragActive

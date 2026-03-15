@@ -10,7 +10,12 @@ export type AdminNotificationDestination =
       targetId: string | null;
       actorId: string | null;
     }
-  | { kind: 'users'; userId: string | null }
+  | {
+      kind: 'users';
+      userId: string | null;
+      roleFilter?: 'INSTITUTION' | 'ADMIN' | 'STUDENT' | null;
+      statusFilter?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | null;
+    }
   | { kind: 'notifications' };
 
 export const resolveAdminNotificationDestination = (
@@ -26,6 +31,7 @@ export const resolveAdminNotificationDestination = (
     parseNotificationMetadataString(notification.metadata, 'studentId') ||
     parseNotificationMetadataString(notification.metadata, 'processedById') ||
     parseNotificationMetadataString(notification.metadata, 'userId');
+  const event = parseNotificationMetadataString(notification.metadata, 'event');
   const targetId =
     parseNotificationMetadataString(notification.metadata, 'targetId') ||
     credentialId ||
@@ -37,6 +43,15 @@ export const resolveAdminNotificationDestination = (
 
   if (notification.type === 'ACCOUNT_APPROVED' || notification.type === 'ACCOUNT_REJECTED') {
     return { kind: 'users', userId };
+  }
+
+  if (event === 'INSTITUTION_ACCOUNT_REQUEST_CREATED') {
+    return {
+      kind: 'users',
+      userId,
+      roleFilter: 'INSTITUTION',
+      statusFilter: 'PENDING',
+    };
   }
 
   if (riskEventId || targetId || actorId) {

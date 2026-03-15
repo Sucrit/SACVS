@@ -29,7 +29,7 @@ export default function Modal({ open, onClose, title, description, children, cla
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-neutral-900/50 px-4 py-8 sm:items-center backdrop-blur-[2px]"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-neutral-900/50 px-4 py-4 backdrop-blur-[2px] sm:px-6 sm:py-8"
           onClick={onClose}
         >
           <motion.div
@@ -38,7 +38,7 @@ export default function Modal({ open, onClose, title, description, children, cla
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className={twMerge(
-              'w-full rounded-xl border border-neutral-200 bg-white shadow-overlay',
+              'my-auto flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-overlay sm:max-h-[calc(100vh-4rem)]',
               sizeClasses[size],
               className,
             )}
@@ -59,7 +59,7 @@ export default function Modal({ open, onClose, title, description, children, cla
                 </button>
               </div>
             )}
-            <div className="p-5">{children}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
           </motion.div>
         </motion.div>
       )}

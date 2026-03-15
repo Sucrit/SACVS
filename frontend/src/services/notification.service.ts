@@ -30,7 +30,7 @@ export interface NotificationListResponse {
   };
 }
 
-export type InstitutionNotificationTarget = 'ALL' | 'APPROVED_ONLY' | 'SUSPENDED_ONLY';
+export type InstitutionNotificationTarget = 'ALL' | 'APPROVED_ONLY';
 
 export interface InstitutionNotificationBroadcast {
   id: string;

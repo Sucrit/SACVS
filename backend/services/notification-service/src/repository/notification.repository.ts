@@ -89,20 +89,15 @@ export class NotificationRepository {
 
   async listInstitutionStudentRecipientIds(
     institutionId: string,
-    target: 'ALL' | 'APPROVED_ONLY' | 'SUSPENDED_ONLY',
+    target: 'ALL' | 'APPROVED_ONLY',
   ): Promise<string[]> {
-    const statusFilter =
-      target === 'APPROVED_ONLY'
-        ? Status.APPROVED
-        : target === 'SUSPENDED_ONLY'
-          ? Status.SUSPENDED
-          : undefined;
-
     const users = await prisma.user.findMany({
       where: {
         role: 'STUDENT',
         institutionId,
-        ...(statusFilter ? { status: statusFilter } : {}),
+        ...(target === 'APPROVED_ONLY'
+          ? { status: Status.APPROVED }
+          : { status: { not: Status.SUSPENDED } }),
       },
       select: { id: true },
     });

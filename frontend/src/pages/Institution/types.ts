@@ -16,7 +16,7 @@ export type InstitutionSection =
 export type StudentStatusFilter = UserStatus | 'ALL';
 export type RequestStatusFilter = CredentialRequestStatus | 'ALL';
 export type ActivityType = 'STUDENT' | 'REQUEST' | 'SECURITY' | 'SYSTEM' | 'NOTIFICATION';
-export type NotificationTarget = 'ALL' | 'APPROVED_ONLY' | 'SUSPENDED_ONLY';
+export type NotificationTarget = 'ALL' | 'APPROVED_ONLY';
 
 export interface ActivityEvent {
   id: string;
@@ -53,5 +53,4 @@ export const DEFAULT_STUDENT_FORM: StudentFormState = {
   department: '',
   status: 'APPROVED',
 };
-
 

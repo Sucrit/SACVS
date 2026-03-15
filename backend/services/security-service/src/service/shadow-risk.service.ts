@@ -1,4 +1,5 @@
-import { RiskBand, RiskModelType } from '../../../../db/node_modules/@prisma/client';
+import { NotificationType, RiskBand, RiskModelType } from '../../../../db/node_modules/@prisma/client';
+import { notificationClient } from '../client/notification.client';
 import { buildFeatureVector, scoreFeatureVector } from '../feature/feature-builder';
 import { RiskRepository } from '../repository/risk.repository';
 import { GatewayTelemetryEvent, SourceAuditEvent } from '../types/risk';
@@ -57,6 +58,79 @@ export type ShadowRiskRunResult = {
 
 export class ShadowRiskService {
   constructor(private readonly repository = new RiskRepository()) {}
+
+  private shouldNotifyAdmins(riskBand: RiskBand): boolean {
+    return riskBand === RiskBand.HIGH || riskBand === RiskBand.CRITICAL;
+  }
+
+  private buildRiskNotificationContent(input: {
+    riskBand: RiskBand;
+    action: string;
+    riskScore: number;
+  }): { title: string; message: string } {
+    const actionLabel = input.action.replaceAll('_', ' ').toLowerCase();
+    const scoreLabel = Math.round(input.riskScore);
+
+    if (input.riskBand === RiskBand.CRITICAL) {
+      return {
+        title: 'Critical risk activity detected',
+        message: `A critical-risk event was detected for ${actionLabel} (score: ${scoreLabel}).`,
+      };
+    }
+
+    return {
+      title: 'High risk activity detected',
+      message: `A high-risk event was detected for ${actionLabel} (score: ${scoreLabel}).`,
+    };
+  }
+
+  private async notifyApprovedAdminsAboutRiskEvent(input: {
+    riskEventId: string;
+    sourceEvent: SourceAuditEvent;
+    riskBand: RiskBand;
+    riskScore: number;
+    action: string;
+  }): Promise<void> {
+    if (!this.shouldNotifyAdmins(input.riskBand)) {
+      return;
+    }
+
+    try {
+      const recipients = await this.repository.listApprovedAdminNotificationRecipients();
+      if (recipients.length === 0) {
+        return;
+      }
+
+      const content = this.buildRiskNotificationContent({
+        riskBand: input.riskBand,
+        action: input.action,
+        riskScore: input.riskScore,
+      });
+
+      await Promise.allSettled(
+        recipients.map((recipient) =>
+          notificationClient.createSystemNotification({
+            userId: recipient.id,
+            type: NotificationType.SECURITY_ALERT,
+            title: content.title,
+            message: content.message,
+            metadata: {
+              event: 'RISK_EVENT_DETECTED',
+              riskEventId: input.riskEventId,
+              eventId: input.sourceEvent.id,
+              actorId: input.sourceEvent.actorId,
+              targetId: input.sourceEvent.targetId,
+              action: input.action,
+              riskBand: input.riskBand,
+              riskScore: input.riskScore,
+            },
+          }),
+        ),
+      );
+    } catch (error) {
+      console.error('[security-service] Failed to notify admins about risk event:', error);
+    }
+  }
 
   async run(options: ShadowRiskRunOptions): Promise<ShadowRiskRunResult> {
     const inferenceTs = new Date();
@@ -217,7 +291,7 @@ export class ShadowRiskService {
         observedAt: event.createdAt,
       });
 
-      await this.repository.createRiskEventRecord({
+      const createdRiskEvent = await this.repository.createRiskEventRecord({
         eventId: event.id,
         correlationId,
         actorId: event.actorId,
@@ -229,6 +303,14 @@ export class ShadowRiskService {
         modelVersion: options.modelVersion,
         modelVersionId: modelRef.id,
         inferenceTs,
+      });
+
+      await this.notifyApprovedAdminsAboutRiskEvent({
+        riskEventId: createdRiskEvent.id,
+        sourceEvent: event,
+        riskBand: toRiskBand(scored.riskBand),
+        riskScore: scored.riskScore,
+        action: String(event.action),
       });
 
       inserted += 1;

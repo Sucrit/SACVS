@@ -16,6 +16,7 @@ import {
   UserService,
 } from '../services/user.service';
 import ButtonLoadingContent from '../components/common/ButtonLoadingContent';
+import Input from '../components/ui/Input';
 import logo2 from '../assets/logo2.png';
 import heroBg from '../assets/hero_bg.jpg';
 import { useToast } from '../hooks/useToast';
@@ -654,95 +655,30 @@ export default function AuthPage() {
             ) : (
               <>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-neutral-600">First Name</label>
-                    <input
-                      required
-                      value={firstName}
-                      onChange={event => setFirstName(event.target.value)}
-                      placeholder="First Name"
-                      className="h-12 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm outline-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-neutral-600">Middle Name</label>
-                    <input
-                      value={middleName}
-                      onChange={event => setMiddleName(event.target.value)}
-                      placeholder="Middle Name (Optional)"
-                      className="h-12 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm outline-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-neutral-600">Last Name</label>
-                    <input
-                      required
-                      value={lastName}
-                      onChange={event => setLastName(event.target.value)}
-                      placeholder="Last Name"
-                      className="h-12 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm outline-none"
-                    />
-                  </div>
+                  <Input required label="First Name" value={firstName} onChange={event => setFirstName(event.target.value)} placeholder="First Name" className="h-12 bg-neutral-50 px-4" />
+                  <Input label="Middle Name" value={middleName} onChange={event => setMiddleName(event.target.value)} placeholder="Middle Name (Optional)" className="h-12 bg-neutral-50 px-4" />
+                  <Input required label="Last Name" value={lastName} onChange={event => setLastName(event.target.value)} placeholder="Last Name" className="h-12 bg-neutral-50 px-4" />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-neutral-600">Institution Name</label>
-                    <input
-                      required
-                      value={organizationName}
-                      onChange={event => setOrganizationName(event.target.value)}
-                      placeholder="Institution Name"
-                      className="h-12 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm outline-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-neutral-600">Registration Number</label>
-                    <input
-                      required
-                      value={registrationNumber}
-                      onChange={event => setRegistrationNumber(event.target.value)}
-                      placeholder="Registration Number"
-                      className="h-12 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm outline-none"
-                    />
-                  </div>
+                  <Input required label="Institution Name" value={organizationName} onChange={event => setOrganizationName(event.target.value)} placeholder="Institution Name" className="h-12 bg-neutral-50 px-4" />
+                  <Input required label="Registration Number" value={registrationNumber} onChange={event => setRegistrationNumber(event.target.value)} placeholder="Registration Number" className="h-12 bg-neutral-50 px-4" />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-neutral-600">Accreditation Number</label>
-                    <input
-                      required
-                      value={accreditationNumber}
-                      onChange={event => setAccreditationNumber(event.target.value)}
-                      placeholder="Accreditation Number"
-                      className="h-12 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-neutral-600">Phone Number</label>
-                    <input
-                      required
-                      value={phoneNumber}
-                      onChange={event => setPhoneNumber(event.target.value)}
-                      placeholder="Phone Number"
-                      className="h-12 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm outline-none"
-                    />
-                  </div>
+                  <Input required label="Accreditation Number" value={accreditationNumber} onChange={event => setAccreditationNumber(event.target.value)} placeholder="Accreditation Number" className="h-12 bg-neutral-50 px-4" />
+                  <Input required label="Phone Number" value={phoneNumber} onChange={event => setPhoneNumber(event.target.value)} placeholder="Phone Number" className="h-12 bg-neutral-50 px-4" />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-neutral-600">Institution Email</label>
-                  <input
-                    required
-                    type="email"
-                    value={organizationEmail}
-                    onChange={event => setOrganizationEmail(event.target.value)}
-                    placeholder="Institution Email"
-                    className="h-12 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm outline-none"
-                  />
-                </div>
+                <Input
+                  required
+                  type="email"
+                  label="Institution Email"
+                  value={organizationEmail}
+                  onChange={event => setOrganizationEmail(event.target.value)}
+                  placeholder="Institution Email"
+                  className="h-12 bg-neutral-50 px-4"
+                />
 
                 <label className="flex items-start gap-3 rounded-lg border border-neutral-200 bg-white p-4 text-sm text-neutral-700">
                   <input
@@ -751,7 +687,7 @@ export default function AuthPage() {
                     onChange={event => setConfirmVerification(event.target.checked)}
                     className="mt-1 h-4 w-4 rounded border-neutral-300"
                   />
-                  <span>I confirm these details are accurate and understand my account remains pending until admin approval.</span>
+                  <span>I confirm these details are accurate and understand my account remains pending until admin approval.<span className="ml-1 text-rose-500">*</span></span>
                 </label>
 
                 {authError && <p className="text-sm text-rose-700">{authError}</p>}

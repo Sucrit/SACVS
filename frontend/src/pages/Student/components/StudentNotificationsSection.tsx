@@ -1,4 +1,3 @@
-﻿import { Bell } from 'lucide-react';
 import NotificationsInboxCard from '../../../components/notifications/NotificationsInboxCard';
 import {
   AppNotification,
@@ -73,12 +72,8 @@ export default function StudentNotificationsSection({
           </span>
         ) : null
       }
-      renderFooter={notification => (
-        <>
-          <Bell size={12} />
-          {notification.type.replace(/_/g, ' ')}
-        </>
-      )}
+      renderFooter={notification => notification.type.replace(/_/g, ' ')}
     />
   );
 }
+

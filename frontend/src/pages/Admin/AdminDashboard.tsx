@@ -404,7 +404,7 @@ export default function AdminDashboard() {
       </div>
 
       <Card
-        title="ML Risk Review Queue"
+        title="Risk Review Queue"
         action={
           <div className="flex flex-wrap items-center justify-end gap-3">
             <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs text-neutral-600">
@@ -762,14 +762,16 @@ export default function AdminDashboard() {
           onMarkAllRead={() => void handleMarkAllNotificationsRead()}
           onMarkRead={(id: string) => void handleMarkNotificationRead(id)}
           onOpenUsers={(options) => {
+            const params = new URLSearchParams();
             const userId = options?.userId?.trim();
             if (userId) {
               setSelectedUserId(userId);
-              navigate(`/admin/users?userId=${encodeURIComponent(userId)}`);
-              return;
+              params.set('userId', userId);
             }
-
-            navigate('/admin/users');
+            if (options?.roleFilter) params.set('role', options.roleFilter);
+            if (options?.statusFilter) params.set('status', options.statusFilter);
+            const query = params.toString();
+            navigate(`/admin/users${query ? `?${query}` : ''}`);
           }}
           onOpenRiskReview={(options) => {
             const params = new URLSearchParams();

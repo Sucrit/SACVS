@@ -217,7 +217,7 @@ export default function InstitutionDashboard() {
       {state.section === 'logs' && (
         <>
           <Card title="Institution Audit Logs">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <SearchFilterModal
                 hideLabel
                 groups={institutionAuditFilterGroups}

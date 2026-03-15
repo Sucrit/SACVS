@@ -245,6 +245,9 @@ export default function InstitutionIssueFormSection({
           className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,0.85fr)_minmax(0,1.15fr)]"
         >
           <div ref={studentPickerRef} className="relative lg:col-start-1">
+            <p className="mb-1.5 text-[11px] font-medium text-neutral-500">
+              Student <span className="text-rose-500">*</span>
+            </p>
             <button
               type="button"
               onClick={() => (isStudentPickerOpen ? setIsStudentPickerOpen(false) : handleOpenStudentPicker())}
@@ -336,6 +339,8 @@ export default function InstitutionIssueFormSection({
               </div>
             )}
           </div>
+          <div className="lg:col-start-2">
+            <p className="mb-1.5 text-[11px] font-medium text-neutral-500">Credential Type</p>
           <select
             value={directForm.type}
             onChange={event =>
@@ -357,6 +362,7 @@ export default function InstitutionIssueFormSection({
               </option>
             ))}
           </select>
+          </div>
           <AnimatePresence initial={false}>
             {selectedStudent && !isStudentPickerOpen && (
               <motion.div
@@ -389,6 +395,9 @@ export default function InstitutionIssueFormSection({
             transition={FIELD_REORDER_TRANSITION}
             className={selectedStudent && !isStudentPickerOpen ? 'lg:col-start-2' : 'lg:col-start-3'}
           >
+            <p className="mb-1.5 text-[11px] font-medium text-neutral-500">
+              Credential Title <span className="text-rose-500">*</span>
+            </p>
             <input
               value={directForm.title}
               onChange={event => setDirectForm(previous => ({ ...previous, title: event.target.value }))}
@@ -398,26 +407,32 @@ export default function InstitutionIssueFormSection({
             />
           </motion.div>
           {directForm.type === 'CERTIFICATE' && (
-            <select
-              value={directForm.certificateCategory}
-              onChange={event =>
-                setDirectForm(previous => ({
-                  ...previous,
-                  certificateCategory: event.target.value as CertificateCategory,
-                }))
-              }
-              className="h-11 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-            >
-              {CERTIFICATE_CATEGORIES.map(category => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+            <div>
+              <p className="mb-1.5 text-[11px] font-medium text-neutral-500">Certificate Category</p>
+              <select
+                value={directForm.certificateCategory}
+                onChange={event =>
+                  setDirectForm(previous => ({
+                    ...previous,
+                    certificateCategory: event.target.value as CertificateCategory,
+                  }))
+                }
+                className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+              >
+                {CERTIFICATE_CATEGORIES.map(category => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
           {supportsExpiryDate(directForm.type) && (
             <div className="space-y-1">
-              <p className="text-[11px] font-medium text-neutral-500">Expiry Date</p>
+              <p className="text-[11px] font-medium text-neutral-500">
+                Expiry Date
+                {requiresExpiryDate(directForm.type, directForm.certificateCategory) && <span className="ml-1 text-rose-500">*</span>}
+              </p>
               <input
                 type="date"
                 value={directForm.expiryDate}
@@ -432,7 +447,7 @@ export default function InstitutionIssueFormSection({
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-stretch">
           <div className="flex h-full flex-col gap-2">
-            <p className="text-sm font-semibold text-neutral-800">Student Credential Document</p>
+            <p className="text-sm font-semibold text-neutral-800">Student Credential Document <span className="text-rose-500">*</span></p>
             <label
               className={`flex h-full min-h-55 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors ${
                 isDirectFileDragActive

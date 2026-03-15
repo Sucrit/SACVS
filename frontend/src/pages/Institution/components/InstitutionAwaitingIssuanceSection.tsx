@@ -104,7 +104,7 @@ export default function InstitutionAwaitingIssuanceSection({
               <th className="px-4 py-3">Student</th>
               <th className="px-4 py-3">Request</th>
               <th className="hidden px-4 py-3 md:table-cell">Type</th>
-              <th className="hidden px-4 py-3 lg:table-cell">Requested</th>
+              <th className="hidden px-4 py-3 lg:table-cell">Requested At</th>
               <th className="px-4 py-3 text-right">Action</th>
             </tr>
           </thead>

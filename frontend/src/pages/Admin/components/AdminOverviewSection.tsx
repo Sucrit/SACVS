@@ -3,7 +3,6 @@ import {
   ArrowRight,
   AlertCircle,
   ClipboardList,
-  Mail,
   ShieldAlert,
   Users,
 } from 'lucide-react';
@@ -457,7 +456,6 @@ export default function AdminOverviewSection({
             </div>
             <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
               <span>Risk summary</span>
-              <span>Last 30 days</span>
             </div>
           </div>
         </div>
@@ -502,7 +500,7 @@ export default function AdminOverviewSection({
                         <tr>
                           <th className="px-4 py-3 font-semibold text-neutral-600">Representative Name</th>
                           <th className="px-4 py-3 font-semibold text-neutral-600">Email</th>
-                          <th className="px-4 py-3 font-semibold text-neutral-600">Institution</th>
+                          <th className="px-4 py-3 font-semibold text-neutral-600">Institution Name</th>
                           <th className="px-4 py-3 font-semibold text-neutral-600">Registered At</th>
                         </tr>
                       </thead>
@@ -518,10 +516,7 @@ export default function AdminOverviewSection({
                               </div>
                             </td>
                             <td className="px-4 py-3 text-neutral-500">
-                              <span className="inline-flex items-center gap-1">
-                                <Mail size={12} />
-                                {user.email}
-                              </span>
+                              <span>{user.email}</span>
                             </td>
                             <td className="px-4 py-3 text-neutral-600">
                               {user.institution?.institutionName || 'Institution profile pending'}
@@ -570,9 +565,9 @@ export default function AdminOverviewSection({
               )}
               {!isLoadingRiskEvents && recentHighRiskEvents.length === 0 && (
                 <div className="flex flex-1 flex-col justify-between">
-                  <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50/50 px-4 py-10 text-center">
+                  <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50/50 px-4 py-5 text-center">
                     <AlertCircle size={24} className="mb-2 text-neutral-400" />
-                    <p className="text-sm font-medium text-neutral-600">No recently active alerts</p>
+                    <p className="text-sm font-medium text-neutral-600">No recent active alerts</p>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2">

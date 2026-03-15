@@ -106,6 +106,22 @@ export class RiskRepository {
     };
   }
 
+  async listApprovedAdminNotificationRecipients(): Promise<Array<{ id: string; email: string }>> {
+    return prisma.user.findMany({
+      where: {
+        role: Role.ADMIN,
+        status: 'APPROVED',
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+  }
+
   async listAuditLogsSince(since: Date, limit?: number): Promise<SourceAuditEvent[]> {
     const rows = await prisma.auditLog.findMany({
       where: {
@@ -375,8 +391,8 @@ export class RiskRepository {
     reviewReasonCode?: RiskReviewReasonCode | null;
     reviewReasonDetail?: string | null;
     reviewNotes?: string | null;
-  }): Promise<void> {
-    await prisma.riskEventRecord.create({
+  }): Promise<{ id: string }> {
+    return prisma.riskEventRecord.create({
       data: {
         eventId: data.eventId,
         correlationId: data.correlationId ?? null,
@@ -393,6 +409,9 @@ export class RiskRepository {
         reviewReasonCode: data.reviewReasonCode ?? null,
         reviewReasonDetail: data.reviewReasonDetail ?? null,
         reviewNotes: data.reviewNotes ?? null,
+      },
+      select: {
+        id: true,
       },
     });
   }

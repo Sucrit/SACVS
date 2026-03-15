@@ -53,6 +53,7 @@ export const ENV = {
   ),
   CLERK_SECRET_KEY: parseRequiredString(process.env.CLERK_SECRET_KEY, 'CLERK_SECRET_KEY'),
   REALTIME_GATEWAY_URL: process.env.REALTIME_GATEWAY_URL?.trim() || 'http://localhost:4900',
+  NOTIFICATION_SERVICE_URL: process.env.NOTIFICATION_SERVICE_URL?.trim() || 'http://localhost:5300',
   INTERNAL_SERVICE_TOKEN: process.env.INTERNAL_SERVICE_TOKEN?.trim() || '',
   RISK_ARTIFACTS_DIR: path.resolve(
     process.cwd(),

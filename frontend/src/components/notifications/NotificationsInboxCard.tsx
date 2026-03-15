@@ -26,6 +26,7 @@ interface NotificationsInboxCardProps {
   renderTitleExtras?: (notification: AppNotification) => ReactNode;
   renderFooter?: (notification: AppNotification) => ReactNode;
   renderItemActions?: (notification: AppNotification) => ReactNode;
+  headerActions?: ReactNode;
 }
 
 export default function NotificationsInboxCard({
@@ -43,6 +44,7 @@ export default function NotificationsInboxCard({
   renderTitleExtras,
   renderFooter,
   renderItemActions,
+  headerActions,
 }: NotificationsInboxCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [readFilter, setReadFilter] = useState<ReadFilter>('ALL');
@@ -97,49 +99,52 @@ export default function NotificationsInboxCard({
   }, [isMenuOpen]);
 
   const action = (
-    <div className="relative">
-      <button
-        ref={menuButtonRef}
-        type="button"
-        onClick={() => setIsMenuOpen(previous => !previous)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700"
-        aria-label="Notification options"
-        aria-expanded={isMenuOpen}
-      >
-        <MoreHorizontal size={18} />
-      </button>
-      {isMenuOpen && (
-        <div ref={menuRef} className="absolute right-0 top-10 z-10 w-56 max-w-[calc(100vw-2rem)]">
-          <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
-            <Button
-              type="button"
-              variant="ghost"
-              size="md"
-              icon={<CheckCheck size={15} />}
-              onClick={() => {
-                void onMarkAllRead();
-                setIsMenuOpen(false);
-              }}
-              disabled={unreadCount === 0}
-              loading={isMarkingAllRead}
-              className="w-full justify-start rounded-none px-3 font-semibold"
-            >
-              Mark all as read
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="md"
-              icon={<Settings size={15} />}
-              onClick={() => setIsMenuOpen(false)}
-              className="w-full justify-start rounded-none px-3 font-semibold"
-            >
-              Notification settings
-              <span className="ml-auto text-[10px] font-semibold text-neutral-400">N/a</span>
-            </Button>
+    <div className="flex items-center gap-2">
+      {headerActions}
+      <div className="relative">
+        <button
+          ref={menuButtonRef}
+          type="button"
+          onClick={() => setIsMenuOpen(previous => !previous)}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700"
+          aria-label="Notification options"
+          aria-expanded={isMenuOpen}
+        >
+          <MoreHorizontal size={18} />
+        </button>
+        {isMenuOpen && (
+          <div ref={menuRef} className="absolute right-0 top-10 z-10 w-56 max-w-[calc(100vw-2rem)]">
+            <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
+              <Button
+                type="button"
+                variant="ghost"
+                size="md"
+                icon={<CheckCheck size={15} />}
+                onClick={() => {
+                  void onMarkAllRead();
+                  setIsMenuOpen(false);
+                }}
+                disabled={unreadCount === 0}
+                loading={isMarkingAllRead}
+                className="w-full justify-start rounded-none px-3 font-semibold"
+              >
+                Mark all as read
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="md"
+                icon={<Settings size={15} />}
+                onClick={() => setIsMenuOpen(false)}
+                className="w-full justify-start rounded-none px-3 font-semibold"
+              >
+                Notification settings
+                <span className="ml-auto text-[10px] font-semibold text-neutral-400">N/a</span>
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 

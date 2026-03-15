@@ -1,9 +1,4 @@
 import { type ReactNode } from 'react';
-import {
-  AlertTriangle,
-  Bell,
-  Users,
-} from 'lucide-react';
 import NotificationsInboxCard from '../../../components/notifications/NotificationsInboxCard';
 import {
   AppNotification,
@@ -17,7 +12,11 @@ interface AdminNotificationsSectionProps {
   isMarkingAllRead: boolean;
   onMarkAllRead: () => void;
   onMarkRead: (id: string) => void | Promise<void>;
-  onOpenUsers: (options?: { userId?: string | null }) => void;
+  onOpenUsers: (options?: {
+    userId?: string | null;
+    roleFilter?: 'INSTITUTION' | 'ADMIN' | 'STUDENT' | null;
+    statusFilter?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | null;
+  }) => void;
   onOpenRiskReview: (options?: {
     riskEventId?: string | null;
     targetId?: string | null;
@@ -26,20 +25,8 @@ interface AdminNotificationsSectionProps {
   onOpenNotificationsPage: () => void;
 }
 
-const getNotificationIcon = (notification: AppNotification) => {
-  if (notification.type === 'SECURITY_ALERT') return AlertTriangle;
-  if (notification.type === 'ACCOUNT_APPROVED' || notification.type === 'ACCOUNT_REJECTED') return Users;
-  return Bell;
-};
-
 const renderNotificationFooter = (notification: AppNotification): ReactNode => {
-  const NotificationIcon = getNotificationIcon(notification);
-  return (
-    <>
-      <NotificationIcon size={12} />
-      {notification.type.replace(/_/g, ' ')}
-    </>
-  );
+  return notification.type.replace(/_/g, ' ');
 };
 
 export default function AdminNotificationsSection({
@@ -67,7 +54,11 @@ export default function AdminNotificationsSection({
       return;
     }
     if (destination.kind === 'users') {
-      onOpenUsers({ userId: destination.userId });
+      onOpenUsers({
+        userId: destination.userId,
+        roleFilter: destination.roleFilter,
+        statusFilter: destination.statusFilter,
+      });
       return;
     }
     onOpenNotificationsPage();

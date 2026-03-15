@@ -13,6 +13,9 @@ import {
   MODAL_TRANSITION,
 } from '../../../components/common/modal-motion';
 import Button from '../../../components/ui/Button';
+import Input from '../../../components/ui/Input';
+import Select from '../../../components/ui/Select';
+import Textarea from '../../../components/ui/Textarea';
 
 interface StudentRequestSectionProps {
   requestForm: CreateCredentialRequestPayload;
@@ -97,31 +100,27 @@ export default function StudentRequestSection({
 
             <form className="space-y-4 p-5" onSubmit={event => void handleSubmit(event)}>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <label className="space-y-1">
-                  <span className="text-xs font-medium text-neutral-600">Credential Type</span>
-                  <select
-                    value={requestForm.type}
-                    onChange={event => onTypeChange(event.target.value as CredentialType)}
-                    className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-800"
-                  >
+                <Select
+                  label="Credential Type"
+                  value={requestForm.type}
+                  onChange={event => onTypeChange(event.target.value as CredentialType)}
+                  className="h-auto bg-neutral-50 py-2.5"
+                >
                     {CREDENTIAL_TYPES.map(type => (
                       <option key={type} value={type}>
                         {type}
                       </option>
                     ))}
-                  </select>
-                </label>
+                </Select>
 
-                <label className="space-y-1">
-                  <span className="text-xs font-medium text-neutral-600">Title</span>
-                  <input
-                    value={requestForm.title}
-                    onChange={event => onTitleChange(event.target.value)}
-                    placeholder="e.g. BS Computer Science"
-                    required
-                    className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400"
-                  />
-                </label>
+                <Input
+                  label="Title"
+                  value={requestForm.title}
+                  onChange={event => onTitleChange(event.target.value)}
+                  placeholder="e.g. BS Computer Science"
+                  required
+                  className="h-auto bg-neutral-50 py-2.5"
+                />
               </div>
 
               <div className="space-y-1">
@@ -143,16 +142,14 @@ export default function StudentRequestSection({
                 </div>
               </div>
 
-              <label className="space-y-1">
-                <span className="text-xs font-medium text-neutral-600">Purpose</span>
-                <textarea
-                  value={requestForm.purpose || ''}
-                  onChange={event => onPurposeChange(event.target.value)}
-                  placeholder="Describe the reason for this request..."
-                  rows={4}
-                  className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400"
-                />
-              </label>
+              <Textarea
+                label="Purpose"
+                value={requestForm.purpose || ''}
+                onChange={event => onPurposeChange(event.target.value)}
+                placeholder="Describe the reason for this request..."
+                rows={4}
+                className="bg-neutral-50"
+              />
 
               <AnimatePresence initial={false}>
                 {requiresOnsiteClaim && (

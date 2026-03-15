@@ -24,7 +24,6 @@ const parseRequiredString = (value: unknown): string | null => {
 const VALID_INSTITUTION_NOTIFICATION_TARGETS = new Set<InstitutionNotificationTarget>([
   'ALL',
   'APPROVED_ONLY',
-  'SUSPENDED_ONLY',
 ]);
 
 export class NotificationService {

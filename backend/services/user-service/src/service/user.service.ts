@@ -16,6 +16,7 @@ import {
 import { UserRepository } from '../repository/user.repository';
 import { ENV } from '../config/env';
 import { emailClient } from '../client/email.client';
+import { notificationClient } from '../client/notification.client';
 import { realtimeClient } from '../client/realtime.client';
 
 const userRepository = new UserRepository();
@@ -63,6 +64,60 @@ const normalizeErrorMessage = (error: unknown): string => {
 type WithApprover = { approvedById: string | null };
 
 export class UserService {
+  private formatFullName(user: {
+    firstName: string;
+    middleName?: string | null;
+    lastName: string;
+  }): string {
+    return [user.firstName, user.middleName, user.lastName].filter(Boolean).join(' ');
+  }
+
+  private async notifyApprovedAdminsAboutInstitutionAccountRequest(payload: {
+    institutionUserId: string;
+    institutionId: string | null;
+    institutionName: string | null;
+    applicantEmail: string;
+    applicantName: string;
+    organizationEmail: string;
+    registrationNumber: string;
+  }): Promise<void> {
+    try {
+      const recipients = await userRepository.listApprovedAdminNotificationRecipients();
+      if (recipients.length === 0) {
+        return;
+      }
+
+      const institutionLabel = payload.institutionName || 'Institution account';
+      const title = 'New institution account request';
+      const message = `${payload.applicantName} submitted a new institution account request for ${institutionLabel}.`;
+
+      await Promise.allSettled(
+        recipients.map(recipient =>
+          notificationClient.createSystemNotification({
+            userId: recipient.id,
+            type: 'SYSTEM_ANNOUNCEMENT',
+            title,
+            message,
+            metadata: {
+              event: 'INSTITUTION_ACCOUNT_REQUEST_CREATED',
+              userId: payload.institutionUserId,
+              institutionId: payload.institutionId,
+              institutionName: payload.institutionName,
+              applicantName: payload.applicantName,
+              applicantEmail: payload.applicantEmail,
+              organizationEmail: payload.organizationEmail,
+              registrationNumber: payload.registrationNumber,
+              targetId: payload.institutionUserId,
+              targetType: 'User',
+            },
+          }),
+        ),
+      );
+    } catch (error) {
+      console.error('Failed to notify admins about institution account request:', error);
+    }
+  }
+
   private getStepUpPepperOrThrow(): string {
     const pepper = ENV.STEP_UP_TOKEN_PEPPER?.trim();
     if (!pepper) {
@@ -476,6 +531,8 @@ export class UserService {
     data: CompleteOrganizationOnboardingDto,
     _authenticatedEmail?: string | null,
   ) {
+    const previousUser = await userRepository.getUserById(clerkUserId);
+
     let clerkUser;
     try {
       clerkUser = await withTimeout(clerkClient.users.getUser(clerkUserId), 8000, 'CLERK_TIMEOUT');
@@ -496,7 +553,7 @@ export class UserService {
       throw new Error('CLERK_EMAIL_NOT_AVAILABLE');
     }
 
-    return userRepository.upsertOrganizationOnboardingByClerkUserId(clerkUserId, {
+    const updatedUser = await userRepository.upsertOrganizationOnboardingByClerkUserId(clerkUserId, {
       userEmail: resolvedEmail,
       firstName: data.firstName.trim(),
       middleName: data.middleName?.trim() || null,
@@ -510,6 +567,25 @@ export class UserService {
         accreditationNumber: data.accreditationNumber.trim(),
       },
     });
+
+    const shouldNotifyAdmins =
+      !previousUser ||
+      previousUser.role !== 'INSTITUTION' ||
+      previousUser.status !== 'PENDING';
+
+    if (shouldNotifyAdmins) {
+      void this.notifyApprovedAdminsAboutInstitutionAccountRequest({
+        institutionUserId: updatedUser.id,
+        institutionId: updatedUser.institutionId,
+        institutionName: updatedUser.institution?.institutionName ?? data.institutionName.trim(),
+        applicantEmail: updatedUser.email,
+        applicantName: this.formatFullName(updatedUser),
+        organizationEmail: normalizeEmail(data.organizationEmail),
+        registrationNumber: data.registrationNumber.trim(),
+      });
+    }
+
+    return updatedUser;
   }
 
   async updateInstitutionStudentStatus(

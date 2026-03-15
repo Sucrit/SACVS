@@ -161,7 +161,7 @@ export interface InstitutionDashboardState {
   setNotificationTarget: (v: NotificationTarget) => void;
   setNotificationTitle: (v: string) => void;
   setNotificationMessage: (v: string) => void;
-  handleNotificationSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  handleNotificationSubmit: (event: FormEvent<HTMLFormElement>) => Promise<boolean>;
   requestDetailsFromQueryId: string | null;
   setRequestDetailsFromQueryId: (id: string | null) => void;
 
@@ -1018,8 +1018,8 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     event.preventDefault();
     setNotificationError(null);
     setNotificationHint(null);
-    if (!notificationTitle.trim()) { setNotificationError('Notification title is required.'); return; }
-    if (!notificationMessage.trim()) { setNotificationError('Notification message is required.'); return; }
+    if (!notificationTitle.trim()) { setNotificationError('Notification title is required.'); return false; }
+    if (!notificationMessage.trim()) { setNotificationError('Notification message is required.'); return false; }
 
     setIsSubmittingNotification(true);
     try {
@@ -1037,9 +1037,11 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
           : 'Notification saved, but no matching student recipients were found.',
       );
       createEvent('NOTIFICATION', 'Notification sent', `${entry.target}: ${entry.title}`);
+      return true;
     } catch (error) {
       setNotificationError(getApiErrorMessage(error) || 'Unable to send notification.');
       console.error('Failed to send institution notification:', error);
+      return false;
     } finally {
       setIsSubmittingNotification(false);
     }

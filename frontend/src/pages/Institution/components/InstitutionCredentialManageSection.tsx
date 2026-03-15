@@ -77,7 +77,6 @@ export default function InstitutionCredentialManageSection({
               <th className="px-4 py-3">Credential</th>
               <th className="px-4 py-3">Status</th>
               <th className="hidden px-4 py-3 md:table-cell">Last Update</th>
-              <th className="hidden px-4 py-3 md:table-cell">Last Update</th>
               <th className="px-4 py-3 text-right">Action</th>
             </tr>
           </thead>
