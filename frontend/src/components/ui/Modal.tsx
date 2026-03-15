@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
@@ -21,6 +21,9 @@ const sizeClasses: Record<string, string> = {
 };
 
 export default function Modal({ open, onClose, title, description, children, className, size = 'md' }: ModalProps) {
+  const titleId = useId();
+  const descriptionId = useId();
+
   return (
     <AnimatePresence>
       {open && (
@@ -42,18 +45,23 @@ export default function Modal({ open, onClose, title, description, children, cla
               sizeClasses[size],
               className,
             )}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={title ? titleId : undefined}
+            aria-describedby={description ? descriptionId : undefined}
             onClick={e => e.stopPropagation()}
           >
             {title && (
               <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
                 <div>
-                  <h2 className="text-base font-semibold text-neutral-900">{title}</h2>
-                  {description && <p className="mt-0.5 text-sm text-neutral-500">{description}</p>}
+                  <h2 id={titleId} className="text-base font-semibold text-neutral-900">{title}</h2>
+                  {description && <p id={descriptionId} className="mt-0.5 text-sm text-neutral-500">{description}</p>}
                 </div>
                 <button
                   type="button"
                   onClick={onClose}
                   className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+                  aria-label="Close modal"
                 >
                   <X size={16} />
                 </button>
