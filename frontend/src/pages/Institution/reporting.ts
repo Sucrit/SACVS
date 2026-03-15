@@ -98,15 +98,18 @@ export interface InstitutionGeneratedReport {
   executiveSummary: InstitutionReportMetric[];
   studentOperations: {
     metrics: InstitutionReportMetric[];
-    rows: InstitutionReportStudentRow[];
+    previewRows: InstitutionReportStudentRow[];
+    allRows: InstitutionReportStudentRow[];
   };
   requestOperations: {
     metrics: InstitutionReportMetric[];
-    rows: InstitutionReportRequestRow[];
+    previewRows: InstitutionReportRequestRow[];
+    allRows: InstitutionReportRequestRow[];
   };
   credentialIssuance: {
     metrics: InstitutionReportMetric[];
-    rows: InstitutionReportCredentialRow[];
+    previewRows: InstitutionReportCredentialRow[];
+    allRows: InstitutionReportCredentialRow[];
   };
   deliveryCompletion: InstitutionReportMetric[];
   departmentBreakdown: Array<{ department: string; students: number; requests: number; issued: number }>;
@@ -404,6 +407,52 @@ export const buildInstitutionReport = (
     issued: credentialActivityInRange.filter(credential => credential.type === type && credential.status === 'ISSUED').length,
   }));
 
+  const studentOperationRows: InstitutionReportStudentRow[] = studentActivityRows.map(student => ({
+    id: student.id,
+    name: getStudentFullName(student),
+    studentNumber: student.profile?.studentNumber || '--',
+    department: getDepartment(student),
+    status: labelize(student.status),
+    activityDate: formatDate(getStudentActivityDate(student)),
+  }));
+
+  const fallbackStudent = (studentId: string): User => ({
+    id: studentId,
+    firstName: 'Unknown',
+    middleName: null,
+    lastName: 'Student',
+    email: '',
+    role: 'STUDENT',
+    status: 'PENDING',
+    institutionId: null,
+    approvedById: null,
+    createdAt: '',
+    updatedAt: '',
+    approvedAt: null,
+  });
+
+  const requestOperationRows: InstitutionReportRequestRow[] = requestCreatedInRange.map(request => ({
+    id: request.id,
+    title: request.title,
+    student: getStudentFullName(studentById.get(request.studentId) || fallbackStudent(request.studentId)),
+    type: labelize(request.type),
+    delivery: labelize(request.deliveryMethod),
+    status: labelize(request.status),
+    createdAt: formatDate(request.createdAt),
+    updatedAt: formatDate(request.updatedAt),
+  }));
+
+  const credentialIssuanceRows: InstitutionReportCredentialRow[] = credentialActivityInRange.map(credential => ({
+    id: credential.id,
+    title: credential.title,
+    student: getStudentFullName(studentById.get(credential.studentId) || fallbackStudent(credential.studentId)),
+    type: labelize(credential.type),
+    status: labelize(credential.status),
+    issuedAt: formatDate(getCredentialActivityDate(credential)),
+    expiryDate: formatDate(credential.expiryDate),
+    anchored: isBlockchainCredential(credential) ? 'Yes' : 'No',
+  }));
+
   const filterSummary = [
     `Reporting period: ${periodLabel}`,
     `Department: ${config.filters.department === 'ALL' ? 'All departments' : config.filters.department}`,
@@ -472,14 +521,8 @@ export const buildInstitutionReport = (
         { label: 'Suspended students', value: compactNumber(suspendedStudents) },
         { label: 'Approvals in period', value: compactNumber(approvalsInRange), tone: 'success' },
       ],
-      rows: studentActivityRows.slice(0, MAX_TABLE_ROWS).map(student => ({
-        id: student.id,
-        name: getStudentFullName(student),
-        studentNumber: student.profile?.studentNumber || '--',
-        department: getDepartment(student),
-        status: labelize(student.status),
-        activityDate: formatDate(getStudentActivityDate(student)),
-      })),
+      previewRows: studentOperationRows.slice(0, MAX_TABLE_ROWS),
+      allRows: studentOperationRows,
     },
     requestOperations: {
       metrics: [
@@ -488,29 +531,8 @@ export const buildInstitutionReport = (
         { label: 'Approved outcomes', value: compactNumber(approvedByOutcome), tone: 'success' },
         { label: 'Rejected outcomes', value: compactNumber(rejectedByOutcome) },
       ],
-      rows: requestCreatedInRange.slice(0, MAX_TABLE_ROWS).map(request => ({
-        id: request.id,
-        title: request.title,
-        student: getStudentFullName(studentById.get(request.studentId) || {
-          id: request.studentId,
-          firstName: 'Unknown',
-          middleName: null,
-          lastName: 'Student',
-          email: '',
-          role: 'STUDENT',
-          status: 'PENDING',
-          institutionId: null,
-          approvedById: null,
-          createdAt: '',
-          updatedAt: '',
-          approvedAt: null,
-        }),
-        type: labelize(request.type),
-        delivery: labelize(request.deliveryMethod),
-        status: labelize(request.status),
-        createdAt: formatDate(request.createdAt),
-        updatedAt: formatDate(request.updatedAt),
-      })),
+      previewRows: requestOperationRows.slice(0, MAX_TABLE_ROWS),
+      allRows: requestOperationRows,
     },
     credentialIssuance: {
       metrics: [
@@ -519,29 +541,8 @@ export const buildInstitutionReport = (
         { label: 'Expiring in 30 days', value: compactNumber(expiringSoonCount), tone: expiringSoonCount > 0 ? 'warning' : 'neutral' },
         { label: 'Revoked or expired', value: compactNumber(credentialActivityInRange.filter(credential => credential.status === 'REVOKED' || credential.status === 'EXPIRED').length) },
       ],
-      rows: credentialActivityInRange.slice(0, MAX_TABLE_ROWS).map(credential => ({
-        id: credential.id,
-        title: credential.title,
-        student: getStudentFullName(studentById.get(credential.studentId) || {
-          id: credential.studentId,
-          firstName: 'Unknown',
-          middleName: null,
-          lastName: 'Student',
-          email: '',
-          role: 'STUDENT',
-          status: 'PENDING',
-          institutionId: null,
-          approvedById: null,
-          createdAt: '',
-          updatedAt: '',
-          approvedAt: null,
-        }),
-        type: labelize(credential.type),
-        status: labelize(credential.status),
-        issuedAt: formatDate(getCredentialActivityDate(credential)),
-        expiryDate: formatDate(credential.expiryDate),
-        anchored: isBlockchainCredential(credential) ? 'Yes' : 'No',
-      })),
+      previewRows: credentialIssuanceRows.slice(0, MAX_TABLE_ROWS),
+      allRows: credentialIssuanceRows,
     },
     deliveryCompletion: [
       { label: 'Digital requests', value: compactNumber(requestByDelivery('DIGITAL')) },
@@ -618,30 +619,49 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
     const columns = 2;
     const gap = 12;
     const cardWidth = (contentWidth - gap) / columns;
-    const cardHeight = 58;
-    items.forEach((item, index) => {
-      if (index % columns === 0) ensureSpace(cardHeight + 12);
-      const x = margin + (index % columns) * (cardWidth + gap);
-      const y = cursorY + Math.floor(index / columns) * (cardHeight + gap);
-      doc.setDrawColor(225, 229, 236);
-      doc.setFillColor(250, 251, 252);
-      doc.roundedRect(x, y, cardWidth, cardHeight, 10, 10, 'FD');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(91, 102, 121);
-      doc.text('title' in item ? item.title : item.label, x + 12, y + 18);
-      doc.setFontSize(16);
-      doc.setTextColor(22, 28, 45);
-      doc.text(item.value, x + 12, y + 38);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(110, 118, 136);
-      if ('subtitle' in item) {
-        const lines = doc.splitTextToSize(item.subtitle, cardWidth - 24);
-        doc.text(lines, x + 12, y + 50);
-      }
-    });
-    cursorY += Math.ceil(items.length / columns) * (cardHeight + gap) + 4;
+    for (let index = 0; index < items.length; index += columns) {
+      const rowItems = items.slice(index, index + columns);
+      const prepared = rowItems.map(item => {
+        const title = 'title' in item ? item.title : item.label;
+        const titleLines = doc.splitTextToSize(title, cardWidth - 24);
+        const subtitleLines = 'subtitle' in item ? doc.splitTextToSize(item.subtitle, cardWidth - 24) : [];
+        const cardHeight = Math.max(70, 24 + titleLines.length * 11 + 18 + subtitleLines.length * 10 + 18);
+        return { item, titleLines, subtitleLines, cardHeight };
+      });
+
+      const rowHeight = Math.max(...prepared.map(entry => entry.cardHeight));
+      ensureSpace(rowHeight + gap);
+
+      prepared.forEach((entry, offset) => {
+        const x = margin + offset * (cardWidth + gap);
+        const y = cursorY;
+        doc.setDrawColor(225, 229, 236);
+        doc.setFillColor(250, 251, 252);
+        doc.roundedRect(x, y, cardWidth, rowHeight, 10, 10, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(91, 102, 121);
+        doc.text(entry.titleLines, x + 12, y + 18);
+
+        const titleHeight = entry.titleLines.length * 11;
+        const valueY = y + 18 + titleHeight + 10;
+        doc.setFontSize(16);
+        doc.setTextColor(22, 28, 45);
+        doc.text(entry.item.value, x + 12, valueY);
+
+        if (entry.subtitleLines.length > 0) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(110, 118, 136);
+          doc.text(entry.subtitleLines, x + 12, valueY + 12);
+        }
+      });
+
+      cursorY += rowHeight + gap;
+    }
+
+    cursorY += 4;
   };
 
   const drawTable = (title: string, headers: string[], rows: string[][]) => {
@@ -652,31 +672,44 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
     }
 
     const columnWidth = contentWidth / headers.length;
-    const rowHeight = 18;
-    ensureSpace(24 + rowHeight * (rows.length + 1));
-    doc.setFillColor(245, 247, 250);
-    doc.setDrawColor(225, 229, 236);
-    doc.rect(margin, cursorY, contentWidth, rowHeight, 'FD');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(82, 91, 109);
-    headers.forEach((header, index) => {
-      doc.text(header, margin + index * columnWidth + 8, cursorY + 12, { maxWidth: columnWidth - 12 });
-    });
-    cursorY += rowHeight;
+    const drawHeader = () => {
+      const headerLines = headers.map(header => doc.splitTextToSize(header, columnWidth - 12));
+      const headerHeight = Math.max(20, ...headerLines.map(lines => 10 + lines.length * 9));
+      ensureSpace(headerHeight + 12);
+      doc.setFillColor(245, 247, 250);
+      doc.setDrawColor(225, 229, 236);
+      doc.rect(margin, cursorY, contentWidth, headerHeight, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(82, 91, 109);
+      headerLines.forEach((lines, index) => {
+        doc.text(lines, margin + index * columnWidth + 8, cursorY + 12);
+      });
+      cursorY += headerHeight;
+    };
+
+    drawHeader();
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(54, 63, 82);
     rows.forEach(row => {
-      ensureSpace(rowHeight + 8);
+      const cellLines = row.map(cell => doc.splitTextToSize(cell || '--', columnWidth - 12).slice(0, 3));
+      const rowHeight = Math.max(18, ...cellLines.map(lines => 8 + lines.length * 10));
+      if (cursorY + rowHeight > pageHeight - margin - 24) {
+        doc.addPage();
+        cursorY = margin;
+        drawHeader();
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(54, 63, 82);
+      }
       doc.setDrawColor(235, 238, 242);
       doc.line(margin, cursorY, margin + contentWidth, cursorY);
-      row.forEach((cell, index) => {
-        const text = doc.splitTextToSize(cell || '--', columnWidth - 12).slice(0, 2);
+      cellLines.forEach((text, index) => {
         doc.text(text, margin + index * columnWidth + 8, cursorY + 12);
       });
       cursorY += rowHeight;
     });
+    doc.line(margin, cursorY, margin + contentWidth, cursorY);
     cursorY += 10;
   };
 
@@ -720,7 +753,7 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
       drawTable(
         'Student activity sample',
         ['Name', 'Student No.', 'Department', 'Status', 'Activity'],
-        report.studentOperations.rows.map(row => [row.name, row.studentNumber, row.department, row.status, row.activityDate]),
+        report.studentOperations.allRows.map(row => [row.name, row.studentNumber, row.department, row.status, row.activityDate]),
       );
     }
   }
@@ -732,7 +765,7 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
       drawTable(
         'Request activity sample',
         ['Title', 'Student', 'Type', 'Delivery', 'Status', 'Created'],
-        report.requestOperations.rows.map(row => [row.title, row.student, row.type, row.delivery, row.status, row.createdAt]),
+        report.requestOperations.allRows.map(row => [row.title, row.student, row.type, row.delivery, row.status, row.createdAt]),
       );
     }
   }
@@ -744,7 +777,7 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
       drawTable(
         'Credential activity sample',
         ['Title', 'Student', 'Type', 'Status', 'Issued', 'Anchored'],
-        report.credentialIssuance.rows.map(row => [row.title, row.student, row.type, row.status, row.issuedAt, row.anchored]),
+        report.credentialIssuance.allRows.map(row => [row.title, row.student, row.type, row.status, row.issuedAt, row.anchored]),
       );
     }
   }

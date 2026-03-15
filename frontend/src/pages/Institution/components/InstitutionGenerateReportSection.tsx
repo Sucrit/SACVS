@@ -406,7 +406,7 @@ export default function InstitutionGenerateReportSection({
                   </div>
                   {generatedReport.includeTables.students && (
                     <div className="mt-4 overflow-hidden rounded-xl border border-neutral-200">
-                      {generatedReport.studentOperations.rows.length === 0 ? renderNoData('student records') : (
+                      {generatedReport.studentOperations.previewRows.length === 0 ? renderNoData('student records') : (
                         <table className="w-full text-left text-sm">
                           <thead className="bg-neutral-50 text-xs font-semibold uppercase tracking-[0.08em] text-neutral-500">
                             <tr>
@@ -418,7 +418,7 @@ export default function InstitutionGenerateReportSection({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-neutral-200 bg-white">
-                            {generatedReport.studentOperations.rows.map(row => (
+                            {generatedReport.studentOperations.previewRows.map(row => (
                               <tr key={row.id}>
                                 <td className="px-4 py-3 font-medium text-neutral-900">{row.name}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.studentNumber}</td>
@@ -447,7 +447,7 @@ export default function InstitutionGenerateReportSection({
                   </div>
                   {generatedReport.includeTables.requests && (
                     <div className="mt-4 overflow-hidden rounded-xl border border-neutral-200">
-                      {generatedReport.requestOperations.rows.length === 0 ? renderNoData('request records') : (
+                      {generatedReport.requestOperations.previewRows.length === 0 ? renderNoData('request records') : (
                         <table className="w-full text-left text-sm">
                           <thead className="bg-neutral-50 text-xs font-semibold uppercase tracking-[0.08em] text-neutral-500">
                             <tr>
@@ -460,7 +460,7 @@ export default function InstitutionGenerateReportSection({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-neutral-200 bg-white">
-                            {generatedReport.requestOperations.rows.map(row => (
+                            {generatedReport.requestOperations.previewRows.map(row => (
                               <tr key={row.id}>
                                 <td className="px-4 py-3 font-medium text-neutral-900">{row.title}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.student}</td>
@@ -490,7 +490,7 @@ export default function InstitutionGenerateReportSection({
                   </div>
                   {generatedReport.includeTables.credentials && (
                     <div className="mt-4 overflow-hidden rounded-xl border border-neutral-200">
-                      {generatedReport.credentialIssuance.rows.length === 0 ? renderNoData('credential records') : (
+                      {generatedReport.credentialIssuance.previewRows.length === 0 ? renderNoData('credential records') : (
                         <table className="w-full text-left text-sm">
                           <thead className="bg-neutral-50 text-xs font-semibold uppercase tracking-[0.08em] text-neutral-500">
                             <tr>
@@ -503,7 +503,7 @@ export default function InstitutionGenerateReportSection({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-neutral-200 bg-white">
-                            {generatedReport.credentialIssuance.rows.map(row => (
+                            {generatedReport.credentialIssuance.previewRows.map(row => (
                               <tr key={row.id}>
                                 <td className="px-4 py-3 font-medium text-neutral-900">{row.title}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.student}</td>
@@ -595,4 +595,5 @@ export default function InstitutionGenerateReportSection({
     </div>
   );
 }
+
 

@@ -1,4 +1,4 @@
-﻿import { AlertCircle, Boxes, ClipboardCheck, Download, GraduationCap } from 'lucide-react';
+import { AlertCircle, Boxes, ClipboardCheck, GraduationCap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../../../components/common/Card';
 import { buildSparkline } from '../../../components/common/sparkline';
@@ -30,25 +30,7 @@ const formatShortDate = (value: string | null | undefined) => {
   }).format(date);
 };
 
-const toCsvCell = (value: string | null | undefined) => {
-  const text = (value ?? '').replace(/"/g, '""');
-  return `"${text}"`;
-};
 
-const mapUserStatusLabel = (status: User['status']) => {
-  switch (status) {
-    case 'APPROVED':
-      return 'Approved';
-    case 'PENDING':
-      return 'Pending';
-    case 'REJECTED':
-      return 'Rejected';
-    case 'SUSPENDED':
-      return 'Suspended';
-    default:
-      return status;
-  }
-};
 
 const getOverviewStatusTextClass = (status: User['status'] | CredentialRequest['status']) => {
   switch (status) {
@@ -256,50 +238,6 @@ export default function InstitutionOverviewSection({
       return bTs - aTs;
     })
     .slice(0, 5);
-
-  const handleDownloadStudentDirectory = () => {
-    const rows = [...students]
-      .sort((a, b) => getStudentFullName(a).localeCompare(getStudentFullName(b)))
-      .map(student => {
-        const lastIssued = lastIssuedByStudentId.get(student.id) || '';
-        return [
-          getStudentFullName(student),
-          student.email,
-          student.profile?.studentNumber || '',
-          student.profile?.courseOfStudy || '',
-          student.profile?.department || '',
-          student.profile?.yearLevel || '',
-          mapUserStatusLabel(student.status),
-          formatShortDate(lastIssued),
-        ];
-      });
-
-    const header = [
-      'Student Name',
-      'Email',
-      'Student ID',
-      'Program',
-      'Department',
-      'Year Level',
-      'Status',
-      'Last Issued',
-    ];
-
-    const csv = [header, ...rows]
-      .map(columns => columns.map(value => toCsvCell(value)).join(','))
-      .join('\n');
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    const stamp = new Date().toISOString().slice(0, 10);
-    anchor.href = url;
-    anchor.download = `institution-student-directory-${stamp}.csv`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-    URL.revokeObjectURL(url);
-  };
 
   return (
     <div className="space-y-6">
@@ -634,7 +572,7 @@ export default function InstitutionOverviewSection({
                             </div>
                           </div>
                           <p className="mt-2 text-xs text-neutral-500">
-                            {formatShortDate(request.createdAt)} · {request.deliveryMethod}
+                            {formatShortDate(request.createdAt)} � {request.deliveryMethod}
                           </p>
                         </div>
                         <span className={`shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] ${getOverviewStatusTextClass(request.status)}`}>
@@ -652,3 +590,5 @@ export default function InstitutionOverviewSection({
     </div>
   );
 }
+
+
