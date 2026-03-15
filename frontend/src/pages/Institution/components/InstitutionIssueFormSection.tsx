@@ -239,8 +239,7 @@ export default function InstitutionIssueFormSection({
 
   return (
     <Card title="Issue Credential"> 
-
-      <form className="space-y-8" onSubmit={handleSubmitDirectIssue}>
+        <form className="space-y-8" onSubmit={handleSubmitDirectIssue}>
         <div className="space-y-8">
             
           {/* 1. Student Selection */}
@@ -360,7 +359,7 @@ export default function InstitutionIssueFormSection({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.98 }}
                     transition={FIELD_REORDER_TRANSITION}
-                    className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3"
+                    className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-1"
                   >
                       <p className="min-w-0 text-sm font-medium text-emerald-900 flex items-center gap-2">
                         <ClipboardCheck size={16} className="text-emerald-600" />
@@ -545,7 +544,7 @@ export default function InstitutionIssueFormSection({
             Issue Credential
           </Button>
         </div>
-      </form>
+        </form>
     </Card>
   );
 }

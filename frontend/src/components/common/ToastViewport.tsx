@@ -2,6 +2,7 @@ import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion';
 import { useToastContext, ToastItem } from './ToastProvider';
 
+// Define styles and icons for each toast variant
 const getToastStyle = (variant: ToastItem['variant']) => {
   if (variant === 'success') {
     return {

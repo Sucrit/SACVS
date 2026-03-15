@@ -1,3 +1,5 @@
+// Button OnLoading State Interface
+
 interface ButtonLoadingContentProps {
   label?: string;
   sizeClassName?: string;

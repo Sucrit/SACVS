@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { RotateCcw, SlidersHorizontal } from 'lucide-react';
 import Modal from '../ui/Modal';
 
+// Search Filter Modal Component
 export interface SearchFilterOption {
   value: string;
   label: string;

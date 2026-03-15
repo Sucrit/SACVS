@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react';
 import logo from '../../assets/logo2.png';
 
+// Global Loading component for Application/Main Page
 export default function GlobalLoading() {
   return (
     <div className="flex h-screen items-center justify-center bg-neutral-50">

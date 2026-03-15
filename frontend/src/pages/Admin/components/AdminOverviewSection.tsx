@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight,
   AlertCircle,
   ClipboardList,
   ShieldAlert,
@@ -421,10 +420,10 @@ export default function AdminOverviewSection({
             action={
               <Link
                 to="/admin/users"
-                className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                className="text-xs font-semibold text-neutral-600 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-neutral-900 hover:decoration-neutral-900"
+                aria-label="See more institution approval queue entries"
               >
-                All Users
-                <ArrowRight size={14} />
+                See More
               </Link>
             }
           >
@@ -499,10 +498,10 @@ export default function AdminOverviewSection({
             action={
               <Link
                 to="/admin/risk"
-                className="inline-flex items-center gap-1 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-semibold text-neutral-700 hover:bg-neutral-100"
+                className="text-xs font-semibold text-neutral-600 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-neutral-900 hover:decoration-neutral-900"
+                aria-label="See more security alerts in risk review"
               >
-                Risk Review
-                <ArrowRight size={14} />
+                See More
               </Link>
             }
           >
@@ -518,7 +517,7 @@ export default function AdminOverviewSection({
                 <div className="flex flex-1 flex-col justify-between">
                   <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50/50 px-4 py-5 text-center">
                     <AlertCircle size={24} className="mb-2 text-neutral-400" />
-                    <p className="text-sm font-medium text-neutral-600">No recent active alerts</p>
+                    <p className="text-sm font-medium text-neutral-600">No recent high/critical alerts</p>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2">

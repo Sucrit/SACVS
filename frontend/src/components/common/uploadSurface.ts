@@ -1,5 +1,6 @@
 import { twMerge } from 'tailwind-merge';
 
+// Define styles for the upload dropzone and its call-to-action text
 export const UPLOAD_DROPZONE_CTA_CLASS = 'font-semibold text-cyan-700';
 
 const UPLOAD_DROPZONE_IDLE_CLASS = 'border-neutral-300 bg-neutral-50 hover:border-cyan-300 hover:bg-cyan-50/40';

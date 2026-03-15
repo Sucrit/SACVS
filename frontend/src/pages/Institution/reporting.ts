@@ -579,6 +579,9 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 48;
   const contentWidth = pageWidth - margin * 2;
+  const sectionTopGap = 18;
+  const sectionBottomGap = 4;
+  const blockBottomGap = 4;
   let cursorY = margin;
 
   const ensureSpace = (height: number) => {
@@ -588,7 +591,8 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
   };
 
   const drawSectionTitle = (title: string, subtitle?: string) => {
-    ensureSpace(54);
+    cursorY += sectionTopGap;
+    ensureSpace(48);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(22, 28, 45);
@@ -602,7 +606,7 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
       doc.text(lines, margin, cursorY);
       cursorY += lines.length * 12;
     }
-    cursorY += 10;
+    cursorY += sectionBottomGap;
   };
 
   const drawParagraph = (text: string) => {
@@ -612,7 +616,7 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
     doc.setFontSize(10);
     doc.setTextColor(70, 77, 92);
     doc.text(lines, margin, cursorY);
-    cursorY += lines.length * 12 + 8;
+    cursorY += lines.length * 12 + blockBottomGap;
   };
 
   const drawMetricGrid = (items: InstitutionReportMetric[] | InstitutionReportSummaryCard[]) => {
@@ -661,7 +665,7 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
       cursorY += rowHeight + gap;
     }
 
-    cursorY += 4;
+    cursorY += blockBottomGap;
   };
 
   const drawTable = (title: string, headers: string[], rows: string[][]) => {
@@ -710,7 +714,7 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
       cursorY += rowHeight;
     });
     doc.line(margin, cursorY, margin + contentWidth, cursorY);
-    cursorY += 10;
+    cursorY += blockBottomGap;
   };
 
   doc.setFillColor(15, 23, 42);
@@ -747,11 +751,11 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
   }
 
   if (report.includedSections.studentOperations) {
-    drawSectionTitle('Student operations');
+    drawSectionTitle('Students Account List');
     drawMetricGrid(report.studentOperations.metrics);
     if (report.includeTables.students) {
       drawTable(
-        'Student activity sample',
+        'Students Account List',
         ['Name', 'Student No.', 'Department', 'Status', 'Activity'],
         report.studentOperations.allRows.map(row => [row.name, row.studentNumber, row.department, row.status, row.activityDate]),
       );
@@ -763,7 +767,7 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
     drawMetricGrid(report.requestOperations.metrics);
     if (report.includeTables.requests) {
       drawTable(
-        'Request activity sample',
+        'Requests List',
         ['Title', 'Student', 'Type', 'Delivery', 'Status', 'Created'],
         report.requestOperations.allRows.map(row => [row.title, row.student, row.type, row.delivery, row.status, row.createdAt]),
       );
@@ -775,7 +779,7 @@ export const downloadInstitutionReportPdf = (report: InstitutionGeneratedReport)
     drawMetricGrid(report.credentialIssuance.metrics);
     if (report.includeTables.credentials) {
       drawTable(
-        'Credential activity sample',
+        'Credentials List',
         ['Title', 'Student', 'Type', 'Status', 'Issued', 'Anchored'],
         report.credentialIssuance.allRows.map(row => [row.title, row.student, row.type, row.status, row.issuedAt, row.anchored]),
       );

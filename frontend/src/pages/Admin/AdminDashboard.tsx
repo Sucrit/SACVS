@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
+import { Search } from 'lucide-react';
 import ActionMenu from '../../components/common/ActionMenu';
 import {
   AlertCircle,

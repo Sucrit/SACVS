@@ -3,6 +3,7 @@ import ToastViewport from './ToastViewport';
 
 export type ToastVariant = 'success' | 'error' | 'info' | 'warning';
 
+// Toast Context and Provider
 export interface ToastPayload {
   id?: string;
   variant: ToastVariant;

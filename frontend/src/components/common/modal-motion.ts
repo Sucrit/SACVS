@@ -1,5 +1,7 @@
 import type { Transition, Variants } from 'framer-motion';
 
+
+// Modal animation variants and transition settings
 export const MODAL_BACKDROP_VARIANTS: Variants = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },

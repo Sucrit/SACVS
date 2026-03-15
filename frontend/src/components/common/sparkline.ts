@@ -1,3 +1,4 @@
+// Sparkline Generation Utility
 interface SparklinePoint {
   x: number;
   y: number;

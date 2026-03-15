@@ -1,3 +1,4 @@
+// Pagination Controls Interface
 interface PaginationControlsProps {
   currentPage: number;
   totalItems: number;

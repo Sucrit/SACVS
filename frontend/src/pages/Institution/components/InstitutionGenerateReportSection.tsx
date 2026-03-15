@@ -121,15 +121,15 @@ export default function InstitutionGenerateReportSection({
             </p>
           </div>
 
-              <Input
-            label="Report Title"
-            required
-            value={config.reportTitle}
-            onChange={event => updateConfig('reportTitle', event.target.value)}
-            placeholder="Institution Operations Report"
-          />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Input
+              label="Report Title"
+              required
+              value={config.reportTitle}
+              onChange={event => updateConfig('reportTitle', event.target.value)}
+              placeholder="Institution Operations Report"
+            />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
             <Select
               label="Date Range"
               value={config.dateRangePreset}
@@ -141,37 +141,38 @@ export default function InstitutionGenerateReportSection({
                 </option>
               ))}
             </Select>
-            {config.dateRangePreset === 'CUSTOM' && (
-              <>
-                <Input
-                  label="Start Date"
-                  type="date"
-                  value={config.customStartDate}
-                  onChange={event => updateConfig('customStartDate', event.target.value)}
-                />
-                <Input
-                  label="End Date"
-                  type="date"
-                  value={config.customEndDate}
-                  onChange={event => updateConfig('customEndDate', event.target.value)}
-                />
-              </>
-            )}
           </div>
+
+          {config.dateRangePreset === 'CUSTOM' && (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Input
+                label="Start Date"
+                type="date"
+                value={config.customStartDate}
+                onChange={event => updateConfig('customStartDate', event.target.value)}
+              />
+              <Input
+                label="End Date"
+                type="date"
+                value={config.customEndDate}
+                onChange={event => updateConfig('customEndDate', event.target.value)}
+              />
+            </div>
+          )}
 
           <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-neutral-900">
               <Sparkles size={15} className="text-cyan-600" />
               Included Sections
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
               {[
                 ['executiveSummary', 'Executive summary'],
-                ['studentOperations', 'Student operations'],
+                ['studentOperations', 'Student Account List'],
                 ['requestOperations', 'Request operations'],
                 ['credentialIssuance', 'Credential issuance'],
                 ['deliveryCompletion', 'Delivery and completion'],
-                ['departmentBreakdown', 'Department breakdown'],
+                ['departmentBreakdown', 'Department breakdow'],
                 ['credentialTypeBreakdown', 'Credential type breakdown'],
                 ['operationalHighlights', 'Operational highlights'],
               ].map(([key, label]) => (
@@ -193,7 +194,7 @@ export default function InstitutionGenerateReportSection({
               <FileText size={15} className="text-cyan-600" />
               Detail Tables
             </div>
-            <div className="space-y-2">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
               {[
                 ['students', 'Include student summary table'],
                 ['requests', 'Include request summary table'],
@@ -237,7 +238,7 @@ export default function InstitutionGenerateReportSection({
 
               <div>
                 <p className="mb-2 text-sm font-medium text-neutral-700">Student Statuses</p>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                   {STUDENT_REPORT_STATUS_OPTIONS.map(status => (
                     <label key={status} className="flex items-center gap-3 rounded-lg border border-transparent px-2 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100">
                       <input
@@ -254,7 +255,7 @@ export default function InstitutionGenerateReportSection({
 
               <div>
                 <p className="mb-2 text-sm font-medium text-neutral-700">Request Statuses</p>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                   {REQUEST_REPORT_STATUS_OPTIONS.map(status => (
                     <label key={status} className="flex items-center gap-3 rounded-lg border border-transparent px-2 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100">
                       <input
@@ -271,7 +272,7 @@ export default function InstitutionGenerateReportSection({
 
               <div>
                 <p className="mb-2 text-sm font-medium text-neutral-700">Credential Types</p>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                   {CREDENTIAL_REPORT_TYPE_OPTIONS.map(type => (
                     <label key={type} className="flex items-center gap-3 rounded-lg border border-transparent px-2 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100">
                       <input
@@ -337,7 +338,6 @@ export default function InstitutionGenerateReportSection({
           {!isLoading && generatedReport && (
             <div className="space-y-6">
               <div className="rounded-2xl bg-neutral-950 px-6 py-6 text-white">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">Operations report</p>
                 <h2 className="mt-2 text-2xl font-semibold">{generatedReport.title}</h2>
                 <div className="mt-4 grid grid-cols-1 gap-2 text-sm text-neutral-200 sm:grid-cols-2">
                   <p>{generatedReport.institutionName}</p>
@@ -395,7 +395,7 @@ export default function InstitutionGenerateReportSection({
               )}
 
               {generatedReport.includedSections.studentOperations && (
-                <Card title="Student Operations" className="border-neutral-200 bg-white p-4 sm:p-4">
+                <Card title="Students Account List Sample" className="border-neutral-200 bg-white p-4 sm:p-4">
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                     {generatedReport.studentOperations.metrics.map(metric => (
                       <div key={metric.label} className={`rounded-xl border px-4 py-3 ${getToneClasses(metric.tone)}`}>
@@ -436,7 +436,7 @@ export default function InstitutionGenerateReportSection({
               )}
 
               {generatedReport.includedSections.requestOperations && (
-                <Card title="Request Operations" className="border-neutral-200 bg-white p-4 sm:p-4">
+                <Card title="Credential Request Operations Sample" className="border-neutral-200 bg-white p-4 sm:p-4">
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                     {generatedReport.requestOperations.metrics.map(metric => (
                       <div key={metric.label} className={`rounded-xl border px-4 py-3 ${getToneClasses(metric.tone)}`}>
@@ -595,5 +595,3 @@ export default function InstitutionGenerateReportSection({
     </div>
   );
 }
-
-

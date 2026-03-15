@@ -214,10 +214,7 @@ export default function InstitutionReceiptVerifySection() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <div className="mb-3">
-          <h3 className="text-lg font-semibold text-neutral-900">Receipt Verification Portal</h3>
-        </div>
+      <Card title='Receipt Verification Portal'>
         {isScannerOpen && (
           <div className="mb-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
             <div className="mb-2 inline-flex items-center gap-2 text-xs font-semibold  text-neutral-600">

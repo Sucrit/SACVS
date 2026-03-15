@@ -220,4 +220,3 @@ export default function InstitutionNotificationsSection({
     </div>
   );
 }
-
