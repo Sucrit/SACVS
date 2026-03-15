@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AlertCircle, Camera, CameraOff, CheckCircle2, Clock3, FileSearch, QrCode, XCircle } from 'lucide-react';
 import Card from '../../../components/common/Card';
