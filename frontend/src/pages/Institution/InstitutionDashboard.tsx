@@ -11,6 +11,7 @@ import InstitutionCredentialManageSection from './components/InstitutionCredenti
 import InstitutionNotificationsSection from './components/InstitutionNotificationsSection';
 import InstitutionOverviewSection from './components/InstitutionOverviewSection';
 import InstitutionAnalyticsSection from './components/InstitutionAnalyticsSection';
+import InstitutionGenerateReportSection from './components/InstitutionGenerateReportSection';
 import InstitutionReceiptVerifySection from './components/InstitutionReceiptVerifySection';
 import InstitutionCredentialDetailsDrawer from './components/InstitutionCredentialDetailsDrawer';
 import { useInstitutionDashboardState } from './useInstitutionDashboardState';
@@ -74,6 +75,17 @@ export default function InstitutionDashboard() {
 
       {state.section === 'analytics' && (
         <InstitutionAnalyticsSection
+          students={state.students}
+          requests={state.requests}
+          credentials={state.credentials}
+          isLoadingStudents={state.isLoadingStudents}
+          isLoadingRequests={state.isLoadingRequests}
+          isLoadingCredentials={state.isLoadingCredentials}
+        />
+      )}
+
+      {state.section === 'reports' && (
+        <InstitutionGenerateReportSection
           students={state.students}
           requests={state.requests}
           credentials={state.credentials}

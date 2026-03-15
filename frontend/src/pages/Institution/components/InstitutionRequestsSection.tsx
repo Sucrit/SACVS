@@ -7,6 +7,7 @@ import SearchFilterModal, { SearchFilterGroup } from '../../../components/common
 import ActionMenu from '../../../components/common/ActionMenu';
 import Button from '../../../components/ui/Button';
 import Modal from '../../../components/ui/Modal';
+import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import { CredentialRequest, CredentialType } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
 import { REQUEST_STATUS_OPTIONS, RequestStatusFilter } from '../types';
@@ -347,15 +348,14 @@ export default function InstitutionRequestsSection({
                   setIsIssueFileDragOver(false);
                   onIssueFileChange(issuingRequest.id, event.dataTransfer.files?.[0] ?? null);
                 }}
-                className={`flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition ${
-                  isIssueFileDragOver
-                    ? 'border-cyan-400 bg-cyan-50/60 text-cyan-700'
-                    : 'border-neutral-300 bg-neutral-50 hover:border-cyan-300 hover:bg-cyan-50/40'
-                }`}
+                className={getUploadDropzoneClass({
+                  active: isIssueFileDragOver,
+                  className: 'flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition',
+                })}
               >
                 <Upload size={28} className="mb-3 text-neutral-400" />
                 <p className="text-base text-neutral-700">
-                  <span className="font-semibold text-cyan-700">Upload a file</span> or drag and drop
+                  <span className={UPLOAD_DROPZONE_CTA_CLASS}>Upload a file</span> or drag and drop
                 </p>
                 <p className="mt-2 text-sm text-neutral-500">PDF, PNG, JPG up to 10MB</p>
                 {issueFileByRequestId[issuingRequest.id] && (

@@ -6,6 +6,7 @@ import Badge from '../../../components/common/Badge';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
+import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import {
   CredentialRequest,
   CredentialType,
@@ -300,17 +301,17 @@ export default function InstitutionAwaitingIssuanceSection({
                   onIssueFileChange(issuingRequest.id, file);
                 }}
                 className={`flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition ${
-                  issuingRequest.deliveryMethod === 'PHYSICAL'
-                    ? 'cursor-not-allowed border-neutral-200 bg-neutral-50 text-neutral-400'
-                    : isFileDragOver
-                      ? 'border-cyan-400 bg-cyan-50/60 text-cyan-700'
-                      : 'border-neutral-300 bg-neutral-50 hover:border-cyan-300 hover:bg-cyan-50/40'
+                  getUploadDropzoneClass({
+                    active: isFileDragOver && issuingRequest.deliveryMethod !== 'PHYSICAL',
+                    disabled: issuingRequest.deliveryMethod === 'PHYSICAL',
+                    className: 'flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition',
+                  })
                 }`}
                 aria-disabled={issuingRequest.deliveryMethod === 'PHYSICAL'}
               >
                 <Upload size={28} className="mb-3 text-neutral-400" />
                 <p className="text-base text-neutral-700">
-                  <span className="font-semibold text-cyan-700">Upload a file</span> or drag and drop
+                  <span className={UPLOAD_DROPZONE_CTA_CLASS}>Upload a file</span> or drag and drop
                 </p>
                 <p className="mt-2 text-sm text-neutral-500">PDF, PNG, JPG up to 10MB</p>
                 {issueFileByRequestId[issuingRequest.id] && (

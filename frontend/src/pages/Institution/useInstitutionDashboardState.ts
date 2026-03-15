@@ -193,6 +193,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   const location = useLocation();
   const navigate = useNavigate();
   const section = getInstitutionSection(location.pathname);
+  const isIssueSection = section === 'issue' || section === 'issue-awaiting' || section === 'issue-manage';
 
   // --- Requests state ---
   const [requests, setRequests] = useState<CredentialRequest[]>([]);
@@ -382,7 +383,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   // --- Section-based lazy loading ---
 
   useEffect(() => {
-    if ((section === 'overview' || section === 'analytics')) {
+    if ((section === 'overview' || section === 'analytics' || section === 'reports')) {
       if (!hasLoadedRequests) void loadRequests();
       if (!hasLoadedStudents) void loadStudents();
       if (!hasLoadedCredentials) void loadCredentials();
@@ -398,7 +399,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
       if (!hasLoadedRequests) void loadRequests();
       if (!hasLoadedStudents) void loadStudents();
     }
-    if (section === 'issue') {
+    if (isIssueSection) {
       if (!hasLoadedRequests) void loadRequests();
       if (!hasLoadedStudents) void loadStudents();
       if (!hasLoadedCredentials) void loadCredentials();
@@ -407,7 +408,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
       createEvent('SYSTEM', 'Institution workspace initialized', 'Institution frontend sections loaded.');
       hasInitializedRef.current = true;
     }
-  }, [createEvent, hasLoadedCredentials, hasLoadedNotifications, hasLoadedInboundNotifications, hasLoadedRequests, hasLoadedStudents, loadOutboundNotifications, loadInboundNotifications, loadCredentials, loadRequests, loadStudents, section]);
+  }, [createEvent, hasLoadedCredentials, hasLoadedNotifications, hasLoadedInboundNotifications, hasLoadedRequests, hasLoadedStudents, isIssueSection, loadOutboundNotifications, loadInboundNotifications, loadCredentials, loadRequests, loadStudents, section]);
 
   useEffect(() => {
     if (section !== 'logs' || hasLoadedAuditLogs) return;
@@ -487,15 +488,15 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
 
   // --- Realtime sync ---
 
-  const realtimeRefreshMap = useMemo(() => ({
+    const realtimeRefreshMap = useMemo(() => ({
     users: () => {
-      if (section === 'students' || section === 'overview' || section === 'analytics') void loadStudents();
+      if (section === 'students' || section === 'overview' || section === 'analytics' || section === 'reports') void loadStudents();
     },
     credentialRequests: () => {
-      if (section === 'requests' || section === 'issue' || section === 'overview' || section === 'analytics') void loadRequests();
+      if (section === 'requests' || section === 'issue' || section === 'overview' || section === 'analytics' || section === 'reports') void loadRequests();
     },
     credentials: () => {
-      if (section === 'issue' || section === 'overview' || section === 'analytics') void loadCredentials();
+      if (section === 'issue' || section === 'overview' || section === 'analytics' || section === 'reports') void loadCredentials();
     },
     notifications: () => {
       if (section === 'notifications') void loadInboundNotifications({ silent: true });

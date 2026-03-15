@@ -253,7 +253,7 @@ export default function InstitutionReceiptVerifySection() {
             icon={isScannerActive || isScannerOpen ? <CameraOff size={14} /> : <Camera size={14} />}
             className="rounded-xl"
           >
-            {isStartingScanner ? 'Starting camera...' : isScannerActive || isScannerOpen ? 'Stop scanner' : 'Scan QR with camera'}
+            {isStartingScanner ? 'Starting camera...' : isScannerActive || isScannerOpen ? 'Stop scanner' : 'Scan QR Code'}
           </Button>
         </div>
 

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   Clock3,
+  Download,
   FileSearch,
   FolderOpen,
   Menu,
@@ -64,6 +65,7 @@ const NAV_LINKS: Record<UserRole, NavItem[]> = {
     { to: '/institution/students', label: 'Students', icon: Users },
     { to: '/institution/requests', label: 'Requests', icon: FileText },
     { to: '/institution/analytics', label: 'Analytics', icon: ChartColumnBig },
+    { to: '/institution/reports', label: 'Generate Report', icon: Download },
     { to: '/institution/receipt-verify', label: 'Verify Receipt', icon: FileSearch },
     { to: '/institution/logs', label: 'Audit Logs', icon: History },
     { to: '/institution/notifications', label: 'Notifications', icon: Bell },
@@ -107,8 +109,12 @@ export default function DashboardLayout() {
   const [expandedNavGroup, setExpandedNavGroup] = useState<string | null>(() =>
     location.pathname.startsWith('/institution/issue') ? '/institution/issue' : null,
   );
+  const [collapsedFlyoutGroup, setCollapsedFlyoutGroup] = useState<string | null>(null);
+  const [collapsedFlyoutTop, setCollapsedFlyoutTop] = useState(0);
   const notificationRefreshTimerRef = useRef<number | null>(null);
   const requestIndicatorRefreshTimerRef = useRef<number | null>(null);
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  const collapsedFlyoutRef = useRef<HTMLDivElement | null>(null);
 
   if (isLoading) {
     return <GlobalLoading />;
@@ -259,6 +265,39 @@ export default function DashboardLayout() {
     setHasNewInstitutionRequests(false);
   }, [path, role]);
 
+  useEffect(() => {
+    setCollapsedFlyoutGroup(null);
+  }, [location.pathname, sidebarCollapsed]);
+
+  useEffect(() => {
+    if (!collapsedFlyoutGroup) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const clickedInsideFlyout = collapsedFlyoutRef.current?.contains(target);
+      const clickedInsideSidebar = sidebarRef.current?.contains(target);
+
+      if (!clickedInsideFlyout && !clickedInsideSidebar) {
+        setCollapsedFlyoutGroup(null);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setCollapsedFlyoutGroup(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [collapsedFlyoutGroup]);
+
   if (!expectedRoutePrefix) {
     return <Navigate to="/unauthorized" replace />;
   }
@@ -283,6 +322,7 @@ export default function DashboardLayout() {
 
       {/* ── Sidebar ── */}
       <aside
+        ref={sidebarRef}
         className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-neutral-200 bg-white transition-transform duration-200 ease-in-out md:static md:translate-x-0 ${
           mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
         } ${
@@ -315,6 +355,7 @@ export default function DashboardLayout() {
               const NavIcon = link.icon;
 
               if (link.children) {
+                const childLinks = link.children;
                 const isGroupActive = path.startsWith(link.to);
                 const isExpanded = expandedNavGroup === link.to;
 
@@ -322,8 +363,18 @@ export default function DashboardLayout() {
                   <div key={link.to}>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (sidebarCollapsed) return;
+                      onClick={event => {
+                        if (sidebarCollapsed) {
+                          const buttonRect = event.currentTarget.getBoundingClientRect();
+                          if (buttonRect) {
+                            const flyoutHeightEstimate = 72 + childLinks.length * 42;
+                            const viewportPadding = 16;
+                            const maxTop = window.innerHeight - flyoutHeightEstimate - viewportPadding;
+                            setCollapsedFlyoutTop(Math.max(viewportPadding, Math.min(buttonRect.top, maxTop)));
+                          }
+                          setCollapsedFlyoutGroup(prev => (prev === link.to ? null : link.to));
+                          return;
+                        }
                         setExpandedNavGroup(prev => (prev === link.to ? null : link.to));
                       }}
                       className={`group relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
@@ -342,6 +393,51 @@ export default function DashboardLayout() {
                       )}
                     </button>
                     <AnimatePresence initial={false}>
+                      {sidebarCollapsed && collapsedFlyoutGroup === link.to && (
+                        <motion.div
+                          ref={collapsedFlyoutRef}
+                          initial={{ opacity: 0, x: -8, scale: 0.98 }}
+                          animate={{ opacity: 1, x: 0, scale: 1 }}
+                          exit={{ opacity: 0, x: -8, scale: 0.98 }}
+                          transition={{ duration: 0.16, ease: 'easeOut' }}
+                          className="fixed left-18 z-[60] w-60 rounded-xl border border-neutral-200 bg-white p-2 shadow-2xl"
+                          style={{ top: collapsedFlyoutTop }}
+                        >
+                          <div className="border-b border-neutral-200 px-3 py-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                              {link.label}
+                            </p>
+                          </div>
+                          <div className="mt-1 space-y-1">
+                            {childLinks.map(child => {
+                              const ChildIcon = child.icon;
+                              return (
+                                <NavLink
+                                  key={child.to}
+                                  to={child.to}
+                                  end
+                                  onClick={() => {
+                                    setCollapsedFlyoutGroup(null);
+                                    setMobileNavOpen(false);
+                                  }}
+                                  className={({ isActive }) =>
+                                    `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                                      isActive
+                                        ? 'bg-neutral-100 text-neutral-900'
+                                        : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                                    }`
+                                  }
+                                >
+                                  <ChildIcon size={15} />
+                                  <span className="truncate">{child.label}</span>
+                                </NavLink>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    <AnimatePresence initial={false}>
                       {!sidebarCollapsed && isExpanded && (
                         <motion.div
                           initial={{ height: 0, opacity: 0, y: -6 }}
@@ -351,7 +447,7 @@ export default function DashboardLayout() {
                           className="overflow-hidden"
                         >
                           <div className="mt-0.5 space-y-0.5 pl-4">
-                            {link.children.map((child, index) => {
+                            {childLinks.map((child, index) => {
                               const ChildIcon = child.icon;
                               return (
                                 <motion.div

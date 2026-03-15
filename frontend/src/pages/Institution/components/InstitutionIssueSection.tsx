@@ -6,6 +6,7 @@ import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import Button from '../../../components/ui/Button';
+import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import { useToast } from '../../../hooks/useToast';
 import {
   Credential,
@@ -425,11 +426,10 @@ export default function InstitutionIssueSection({
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-neutral-800">Student Credential Document <span className="text-rose-500">*</span></p>
                 <label
-                  className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors ${
-                    isDirectFileDragActive
-                      ? 'border-sky-300 bg-sky-50'
-                      : 'border-neutral-300 bg-neutral-50 hover:bg-neutral-100'
-                  }`}
+                  className={getUploadDropzoneClass({
+                    active: isDirectFileDragActive,
+                    className: 'flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors',
+                  })}
                   onDragOver={event => {
                     event.preventDefault();
                     setIsDirectFileDragActive(true);
@@ -456,7 +456,7 @@ export default function InstitutionIssueSection({
                   />
                   <Upload size={20} className="mb-3 mt-15 text-neutral-400" />
                   <p className="text-sm text-neutral-700">
-                    <span className="font-semibold text-sky-600">Upload a file</span> or drag and drop
+                    <span className={UPLOAD_DROPZONE_CTA_CLASS}>Upload a file</span> or drag and drop
                   </p>
                   <p className="mt-1 mb-15 text-xs text-neutral-500">PDF, PNG, JPG up to 10MB</p>
                 </label>
@@ -673,15 +673,14 @@ export default function InstitutionIssueSection({
                       setIsIssueFileDragActive(false);
                       onIssueFileChange(issuingRequest.id, event.dataTransfer.files?.[0] ?? null);
                     }}
-                    className={`flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors ${
-                      isIssueFileDragActive
-                        ? 'border-sky-300 bg-sky-50'
-                        : 'border-neutral-300 bg-neutral-50 hover:bg-neutral-100'
-                    }`}
+                    className={getUploadDropzoneClass({
+                      active: isIssueFileDragActive,
+                      className: 'flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors',
+                    })}
                   >
                     <Upload size={28} className="mb-3 text-neutral-400" />
                     <p className="text-base text-neutral-700">
-                      <span className="font-semibold text-sky-600">Upload a file</span> or drag and drop
+                      <span className={UPLOAD_DROPZONE_CTA_CLASS}>Upload a file</span> or drag and drop
                     </p>
                     <p className="mt-2 text-sm text-neutral-500">PDF, PNG, JPG up to 10MB</p>
                     {issueFileByRequestId[issuingRequest.id] && (
@@ -957,7 +956,7 @@ export default function InstitutionIssueSection({
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="credential-reissue-file-upload" className="text-sm font-semibold text-neutral-800">
-                    Replacement File <span className="ml-1 text-rose-500">*</span>
+                    Replacement Credential<span className="ml-1 text-rose-500">*</span>
                   </label>
                   <div
                     role="button"
@@ -985,15 +984,14 @@ export default function InstitutionIssueSection({
                         [reissueCredential.id]: event.dataTransfer.files?.[0] ?? null,
                       }));
                     }}
-                    className={`flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors ${
-                      isReissueFileDragActive
-                        ? 'border-sky-300 bg-sky-50'
-                        : 'border-neutral-300 bg-neutral-50 hover:bg-neutral-100'
-                    }`}
+                    className={getUploadDropzoneClass({
+                      active: isReissueFileDragActive,
+                      className: 'flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors',
+                    })}
                   >
                     <Upload size={28} className="mb-3 text-neutral-400" />
                     <p className="text-base text-neutral-700">
-                      <span className="font-semibold text-sky-600">Upload a file</span> or drag and drop
+                      <span className={UPLOAD_DROPZONE_CTA_CLASS}>Upload a file</span> or drag and drop
                     </p>
                     <p className="mt-2 text-sm text-neutral-500">PDF, PNG, JPG up to 10MB</p>
                     {reissueFileByCredentialId[reissueCredential.id] && (

@@ -3,6 +3,7 @@ import { ClipboardCheck, MoreVertical, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
+import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import Badge from '../../../components/common/Badge';
 import {
   Credential,
@@ -242,7 +243,7 @@ export default function InstitutionCredentialManageSection({
             </div>
             <div className="flex flex-col gap-1.5">
               <label htmlFor="manage-reissue-file-upload" className="text-sm font-semibold text-neutral-800">
-                Replacement File <span className="ml-1 text-rose-500">*</span>
+                Replacement Credential<span className="ml-1 text-rose-500">*</span>
               </label>
               <div
                 role="button"
@@ -270,15 +271,14 @@ export default function InstitutionCredentialManageSection({
                     [reissueCredential.id]: event.dataTransfer.files?.[0] ?? null,
                   }));
                 }}
-                className={`flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition ${
-                  isReissueFileDragOver
-                    ? 'border-cyan-400 bg-cyan-50/60 text-cyan-700'
-                    : 'border-neutral-300 bg-neutral-50 hover:border-cyan-300 hover:bg-cyan-50/40'
-                }`}
+                className={getUploadDropzoneClass({
+                  active: isReissueFileDragOver,
+                  className: 'flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition',
+                })}
               >
                 <Upload size={28} className="mb-3 text-neutral-400" />
                 <p className="text-base text-neutral-700">
-                  <span className="font-semibold text-cyan-700">Upload a file</span> or drag and drop
+                  <span className={UPLOAD_DROPZONE_CTA_CLASS}>Upload a file</span> or drag and drop
                 </p>
                 <p className="mt-2 text-sm text-neutral-500">PDF, PNG, JPG up to 10MB</p>
                 {reissueFileByCredentialId[reissueCredential.id] && (

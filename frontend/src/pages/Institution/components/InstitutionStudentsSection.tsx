@@ -6,6 +6,7 @@ import Badge from '../../../components/common/Badge';
 import ActionMenu from '../../../components/common/ActionMenu';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
+import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import { User, UserStatus } from '../../../services/user.service';
@@ -240,7 +241,7 @@ export default function InstitutionStudentsSection({
             <button
               type="button"
               onClick={() => setActiveModal('bulk')}
-              title="Bulk student import requires OTP verification"
+              title="Bulk student account import using CSV file"
               className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
             >
               <Upload size={14} />
@@ -283,7 +284,7 @@ export default function InstitutionStudentsSection({
                   <td className="hidden px-4 py-3 text-sm text-neutral-700 lg:table-cell">{student.profile?.courseOfStudy || '-'}</td>
                   <td className="px-4 py-3"><Badge status={student.status} /></td>
                   <td className="hidden px-4 py-3 text-xs text-neutral-600 md:table-cell">
-                    <p className="mt-1"><span className="font-semibold text-neutral-700">At:</span> {formatDateTime(student.approvedAt)}</p>
+                    <p className="mt-1"><span className="font-semibold text-neutral-700"></span> {formatDateTime(student.approvedAt)}</p>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex items-center justify-end">
@@ -496,13 +497,11 @@ export default function InstitutionStudentsSection({
               </span>
             </p>
             <label
-              className={`mt-4 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition ${
-                isBulkImporting
-                  ? 'cursor-progress border-neutral-200 bg-neutral-50 text-neutral-400'
-                  : isBulkDragOver
-                    ? 'border-cyan-400 bg-cyan-50/60 text-cyan-700'
-                    : 'border-neutral-300 bg-neutral-50 hover:border-cyan-300 hover:bg-cyan-50/40'
-              }`}
+              className={getUploadDropzoneClass({
+                active: isBulkDragOver && !isBulkImporting,
+                disabled: isBulkImporting,
+                className: 'mt-4 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition',
+              })}
               onDragOver={event => {
                 event.preventDefault();
                 if (!isBulkImporting) setIsBulkDragOver(true);
@@ -526,7 +525,7 @@ export default function InstitutionStudentsSection({
                 Bulk Import File <span className="text-rose-500">*</span>
               </p>
               <p className="text-base text-neutral-700">
-                <span className="font-semibold text-cyan-700">Upload a file</span> or drag and drop
+                <span className={UPLOAD_DROPZONE_CTA_CLASS}>Upload a file</span> or drag and drop
               </p>
               <p className="mt-2 text-sm text-neutral-500">CSV up to 10MB</p>
               <p className="mt-3 text-xs text-neutral-500">

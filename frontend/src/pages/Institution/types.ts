@@ -5,6 +5,7 @@ import { UserStatus } from '../../services/user.service';
 export type InstitutionSection =
   | 'overview'
   | 'analytics'
+  | 'reports'
   | 'students'
   | 'requests'
   | 'receipt-verify'
@@ -53,4 +54,3 @@ export const DEFAULT_STUDENT_FORM: StudentFormState = {
   department: '',
   status: 'APPROVED',
 };
-

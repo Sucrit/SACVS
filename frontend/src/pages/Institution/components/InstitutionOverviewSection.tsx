@@ -1,6 +1,7 @@
 ﻿import { AlertCircle, Boxes, ClipboardCheck, Download, GraduationCap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../../../components/common/Card';
+import { buildSparkline } from '../../../components/common/sparkline';
 import { Credential, CredentialRequest } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
 import { getStudentFullName, getUserInitials } from '../utils';
@@ -15,57 +16,6 @@ interface InstitutionOverviewSectionProps {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-const getControlPoint = (
-  current: { x: number; y: number },
-  previous: { x: number; y: number } | undefined,
-  next: { x: number; y: number } | undefined,
-  reverse?: boolean,
-) => {
-  const p = previous || current;
-  const n = next || current;
-  const smoothing = 0.15;
-  const lengthX = n.x - p.x;
-  const lengthY = n.y - p.y;
-  const length = Math.sqrt(lengthX ** 2 + lengthY ** 2) * smoothing;
-  const angle = Math.atan2(lengthY, lengthX) + (reverse ? Math.PI : 0);
-
-  return {
-    x: current.x + Math.cos(angle) * length,
-    y: current.y + Math.sin(angle) * length,
-  };
-};
-
-const generateSmoothPath = (points: Array<{ x: number; y: number }>) => {
-  if (points.length === 0) return '';
-
-  return points.reduce((acc, point, index, allPoints) => {
-    if (index === 0) return `M ${point.x},${point.y}`;
-    const cps = getControlPoint(allPoints[index - 1], allPoints[index - 2], point);
-    const cpe = getControlPoint(point, allPoints[index - 1], allPoints[index + 1], true);
-    return `${acc} C ${cps.x},${cps.y} ${cpe.x},${cpe.y} ${point.x},${point.y}`;
-  }, '');
-};
-
-const buildSparkline = (counts: number[]) => {
-  const max = Math.max(...counts, 1);
-  const min = Math.min(...counts, 0);
-  const range = Math.max(max - min, 1);
-  const points = counts.map((count, index) => {
-    const x = (index / Math.max(counts.length - 1, 1)) * 100;
-    const normalized = (count - min) / range;
-    const y = 92 - normalized * 64;
-    return { x, y: Number.isFinite(y) ? y : 100 };
-  });
-  const pathD = generateSmoothPath(points);
-  const areaD = `${pathD} L ${points[points.length - 1].x},100 L ${points[0].x},100 Z`;
-
-  return {
-    areaD,
-    pathD,
-    peak: Math.max(...counts, 0),
-  };
-};
 
 const formatPercent = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 
@@ -169,7 +119,8 @@ export default function InstitutionOverviewSection({
   students
     .filter(student => student.status === 'APPROVED')
     .forEach(student => {
-      const timeMs = new Date(student.createdAt).getTime();
+      const approvalTimestamp = student.approvedAt || student.createdAt;
+      const timeMs = new Date(approvalTimestamp).getTime();
       const daysAgo = Math.floor((now - timeMs) / DAY_MS);
 
       if (daysAgo >= 0 && daysAgo < 7) {
@@ -252,9 +203,9 @@ export default function InstitutionOverviewSection({
       ? 'text-emerald-500'
       : 'text-neutral-400';
 
-  const pendingRequestSparkline = buildSparkline(last7DaysPendingRequestCounts);
-  const authorizedStudentsSparkline = buildSparkline(last7DaysAuthorizedStudentCounts);
-  const blockchainSparkline = buildSparkline(last30DaysBlockchainCounts);
+  const pendingRequestSparkline = buildSparkline(last7DaysPendingRequestCounts, { minimumCeiling: 4 });
+  const authorizedStudentsSparkline = buildSparkline(last7DaysAuthorizedStudentCounts, { minimumCeiling: 4 });
+  const blockchainSparkline = buildSparkline(last30DaysBlockchainCounts, { minimumCeiling: 4 });
   const awaitingCompletedTotal = awaitingIssuanceCount + completedRequestsCount;
   const awaitingSharePercent = awaitingCompletedTotal === 0
     ? 0
@@ -436,7 +387,7 @@ export default function InstitutionOverviewSection({
           <div className="mt-4 mb-3">
             <p className="text-3xl font-bold tracking-tight text-neutral-900">{activeStudents.toLocaleString()}</p>
             <p className="mt-1 text-[11px] font-bold text-neutral-400">
-              <span className={authorizedStudentGrowthClassName}>{formatPercent(authorizedStudentGrowth)}</span> LAST MONTH
+              <span className={authorizedStudentGrowthClassName}>{formatPercent(authorizedStudentGrowth)}</span> APPROVALS LAST 30 DAYS
             </p>
           </div>
           <div className="mb-3 h-8 w-full">
@@ -476,7 +427,7 @@ export default function InstitutionOverviewSection({
           <div className="mt-4 mb-3">
             <p className="text-3xl font-bold tracking-tight text-neutral-900">{blockchainCredentials.toLocaleString()}</p>
             <p className="mt-1 text-[11px] font-bold text-neutral-400">
-              <span className={blockchainGrowthClassName}>{formatPercent(blockchainGrowth)}</span> LAST MONTH
+              <span className={blockchainGrowthClassName}>{formatPercent(blockchainGrowth)}</span> ISSUED LAST 30 DAYS
             </p>
           </div>
           <div className="mb-3 h-8 w-full">
@@ -504,7 +455,7 @@ export default function InstitutionOverviewSection({
             </svg>
           </div>
           <div className="mt-auto flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
-            <span>Anchored</span>
+            <span>Issued/anchored trend</span>
             <span>{blockchainSparkline.peak} peak</span>
           </div>
         </div>
@@ -566,16 +517,6 @@ export default function InstitutionOverviewSection({
                   className="text-xs font-semibold text-neutral-600 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-neutral-900 hover:decoration-neutral-900"
                 >
                   See More
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadStudentDirectory}
-                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 transition hover:bg-neutral-100"
-                  aria-label="Download full student directory"
-                  title="Download full student directory"
-                >
-                  <Download size={16} />
-                  Download List
                 </button>
               </div>
             }

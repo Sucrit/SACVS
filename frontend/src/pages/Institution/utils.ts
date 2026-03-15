@@ -6,6 +6,7 @@ export { getApiErrorMessage } from '../../utils/errors';
 
 export const getInstitutionSection = (pathname: string): InstitutionSection => {
   if (pathname.startsWith('/institution/analytics')) return 'analytics';
+  if (pathname.startsWith('/institution/reports')) return 'reports';
   if (pathname.startsWith('/institution/students')) return 'students';
   if (pathname.startsWith('/institution/requests')) return 'requests';
   if (pathname.startsWith('/institution/receipt-verify')) return 'receipt-verify';
