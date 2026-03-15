@@ -109,9 +109,8 @@ export default function InstitutionGenerateReportSection({
   const selectedSectionCount = Object.values(config.includeSections).filter(Boolean).length;
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+    <div className="space-y-6">
       <Card
-        className="xl:sticky xl:top-6"
         title="Generate Report"
         action={<span className="text-xs font-medium text-neutral-400">{selectedSectionCount} sections</span>}
       >
@@ -317,8 +316,7 @@ export default function InstitutionGenerateReportSection({
         </div>
       </Card>
 
-      <div className="space-y-6">
-        <Card title="Report Preview" action={<span className="text-xs font-medium text-neutral-400">PDF-ready</span>}>
+      <Card title="Report Preview" action={<span className="text-xs font-medium text-neutral-400">PDF-ready</span>}>
           {isLoading && (
             <div className="space-y-3">
               <div className="h-24 animate-pulse rounded-xl border border-neutral-200 bg-neutral-100" />
@@ -593,8 +591,8 @@ export default function InstitutionGenerateReportSection({
               )}
             </div>
           )}
-        </Card>
-      </div>
+      </Card>
     </div>
   );
 }
+
