@@ -41,4 +41,4 @@ npx prisma generate
 The blockchain interface service is designed to work against a local or deployed EVM-compatible chain. If you are using Ganache locally, ensure the chain endpoint, contract address, and signing configuration are aligned with the current environment before running issuance flows.
 
 ## Documentation Policy
-The `docs/` folder is the authoritative documentation set. If code behavior and documentation diverge, update the documentation to match the live code or correct the code to match intended behavior. Historical notes should not remain the primary source of truth.
+The `docs/` folder is the authoritative documentation set. If code behavior and documentation diverge, correct the code to match intended behavior. Historical notes should not remain the primary source of truth.
