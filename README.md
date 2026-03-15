@@ -1,6 +1,6 @@
 # Credence
 
-Credence aims to securely create, distribute, and verify students academic credentials in digital form. The goal of the platform is to digitized the entire process from student data management to credential verification.
+Credence aims to securely create, distribute, and verify students academic credentials in digital form. The goal of the platform is to digitized the entire process from student data management to credential verification and issuance.
 
 ## Repository Structure
 - `frontend/`: React/Vite application
