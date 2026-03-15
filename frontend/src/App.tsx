@@ -9,6 +9,7 @@ import AuthPage from './pages/AuthPage';
 import Unauthorized from './pages/Unauthorized';
 import { useLegacyAuth } from './auth/auth-context';
 import CredentialQrVerifyPage from './pages/Public/CredentialQrVerifyPage';
+import GlobalLoading from './components/common/GlobalLoading';
 
 function ReceiptVerifyRedirect() {
   const { token } = useParams<{ token: string }>();
@@ -20,7 +21,7 @@ function RequireAuth({ children }: { children: ReactElement }) {
   const { isAuthenticated, isLoading } = useLegacyAuth();
 
   if (isLoading) {
-    return <div className="h-screen flex items-center justify-center bg-[#f7f7f8] text-neutral-700 font-medium">Loading session...</div>;
+    return <GlobalLoading />;
   }
 
   if (!isAuthenticated) {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { UserButton } from '@clerk/clerk-react';
+import GlobalLoading from '../components/common/GlobalLoading';
 import {
   AlertTriangle,
   Bell,
@@ -110,14 +111,7 @@ export default function DashboardLayout() {
   const requestIndicatorRefreshTimerRef = useRef<number | null>(null);
 
   if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-neutral-50">
-        <div className="flex items-center gap-3 text-sm text-neutral-500">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-600" />
-          Loading session...
-        </div>
-      </div>
-    );
+    return <GlobalLoading />;
   }
 
   if (!user) {
