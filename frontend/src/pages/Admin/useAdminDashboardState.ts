@@ -446,16 +446,25 @@ export function useAdminDashboardState(): AdminDashboardState {
     [...users].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 8),
   [users]);
 
+  const userSearchStrings = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const user of users) {
+      const searchable = [user.id, user.email, user.firstName, user.middleName || '', user.lastName, user.role, user.status, user.institution?.institutionName || ''].join(' ').toLowerCase();
+      map.set(user.id, searchable);
+    }
+    return map;
+  }, [users]);
+
   const filteredUsers = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     return users.filter(user => {
       if (roleFilter !== 'ALL' && user.role !== roleFilter) return false;
       if (statusFilter !== 'ALL' && user.status !== statusFilter) return false;
       if (!keyword) return true;
-      const searchable = [user.id, user.email, user.firstName, user.middleName || '', user.lastName, user.role, user.status, user.institution?.institutionName || ''].join(' ').toLowerCase();
-      return searchable.includes(keyword);
+      const searchable = userSearchStrings.get(user.id);
+      return searchable ? searchable.includes(keyword) : false;
     });
-  }, [users, roleFilter, statusFilter, search]);
+  }, [users, roleFilter, statusFilter, search, userSearchStrings]);
 
   const selectedUser = useMemo(
     () => filteredUsers.find(u => u.id === selectedUserId) || null,
