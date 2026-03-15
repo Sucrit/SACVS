@@ -282,6 +282,21 @@ export class CredentialRequestController {
     }
   }
 
+  async lookupReceiptByCode(req: Request, res: Response): Promise<Response> {
+    const code = typeof req.body?.code === 'string' ? req.body.code : '';
+    if (!code.trim()) {
+      return res.status(400).json({ error: 'Missing receipt code.' });
+    }
+
+    try {
+      const result = await credentialRequestService.lookupReceiptByCode(code);
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error('Error looking up receipt by code:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
   async markPhysicalClaimed(req: Request, res: Response): Promise<Response> {
     const userId = this.getAuthUserId(req);
     if (!userId) {

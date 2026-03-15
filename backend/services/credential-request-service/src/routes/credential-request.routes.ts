@@ -63,4 +63,9 @@ router.post(
   credentialRequestController.verifyApprovalReceipt.bind(credentialRequestController),
 );
 
+router.post(
+  '/requests/lookup-receipt',
+  credentialRequestController.lookupReceiptByCode.bind(credentialRequestController),
+);
+
 export default router;

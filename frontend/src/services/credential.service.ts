@@ -182,6 +182,22 @@ export interface ApprovalReceiptVerificationResult {
   };
 }
 
+export interface ReceiptLookupResult {
+  found: boolean;
+  lookupOnly: true;
+  tokenStatus?: 'ACTIVE' | 'EXPIRED' | 'USED' | 'INVALIDATED';
+  receipt: null | {
+    receiptCode: string;
+    requestId: string;
+    studentName: string;
+    studentNumber: string | null;
+    type: CredentialType;
+    deliveryMethod: DeliveryMethod;
+    approvedAt: string | null;
+    institutionName: string;
+  };
+}
+
 const toMultipartPayload = (data: CreateCredentialPayload | IssueCredentialPayload) => {
   const formData = new FormData();
 
@@ -298,6 +314,11 @@ export const CredentialService = {
 
   verifyApprovalReceipt: async (token: string) => {
     const response = await api.post<ApprovalReceiptVerificationResult>('/credentials/requests/verify-receipt', { token });
+    return response.data;
+  },
+
+  lookupReceiptByCode: async (code: string) => {
+    const response = await api.post<ReceiptLookupResult>('/credentials/requests/lookup-receipt', { code });
     return response.data;
   },
 

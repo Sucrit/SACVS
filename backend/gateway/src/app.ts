@@ -120,7 +120,7 @@ const classifyRoute = (req: express.Request): RouteClass => {
   const path = req.path || req.originalUrl || '';
   const method = req.method.toUpperCase();
 
-  if (path.startsWith('/credentials/verify/qr')) {
+  if (path.startsWith('/credentials/verify/qr') || path.startsWith('/credentials/requests/lookup-receipt')) {
     return 'PUBLIC_VERIFY';
   }
   if (path.startsWith('/credentials/internal/') || path.startsWith('/notifications/system')) {

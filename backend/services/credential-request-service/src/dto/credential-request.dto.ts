@@ -81,3 +81,20 @@ export interface ApprovalReceiptVerificationResultDto {
   };
 }
 
+export type ReceiptTokenStatus = 'ACTIVE' | 'EXPIRED' | 'USED' | 'INVALIDATED';
+
+export interface ReceiptLookupResultDto {
+  found: boolean;
+  lookupOnly: true;
+  tokenStatus?: ReceiptTokenStatus;
+  receipt: null | {
+    receiptCode: string;
+    requestId: string;
+    studentName: string;
+    studentNumber: string | null;
+    type: CredentialType;
+    deliveryMethod: DeliveryMethod;
+    approvedAt: string | null;
+    institutionName: string;
+  };
+}

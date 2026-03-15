@@ -414,4 +414,86 @@ export class CredentialRequestRepository {
       };
     });
   }
+
+  async findApprovalReceiptByCode(
+    receiptCode: string,
+  ): Promise<{
+    tokenStatus: 'ACTIVE' | 'EXPIRED' | 'USED' | 'INVALIDATED';
+    receipt: ApprovalReceiptVerificationView;
+  } | null> {
+    const record = await prisma.credentialRequestApprovalReceipt.findUnique({
+      where: { receiptCode },
+      select: {
+        id: true,
+        requestId: true,
+        receiptCode: true,
+        usedAt: true,
+        invalidatedAt: true,
+        expiresAt: true,
+        request: {
+          select: {
+            type: true,
+            deliveryMethod: true,
+            processedAt: true,
+            student: {
+              select: {
+                firstName: true,
+                middleName: true,
+                lastName: true,
+                profile: {
+                  select: {
+                    studentNumber: true,
+                  },
+                },
+              },
+            },
+            institution: {
+              select: {
+                institutionName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!record) {
+      return null;
+    }
+
+    const now = new Date();
+    let tokenStatus: 'ACTIVE' | 'EXPIRED' | 'USED' | 'INVALIDATED';
+    if (record.invalidatedAt) {
+      tokenStatus = 'INVALIDATED';
+    } else if (record.usedAt) {
+      tokenStatus = 'USED';
+    } else if (record.expiresAt <= now) {
+      tokenStatus = 'EXPIRED';
+    } else {
+      tokenStatus = 'ACTIVE';
+    }
+
+    const studentName = [
+      record.request.student.firstName,
+      record.request.student.middleName,
+      record.request.student.lastName,
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    return {
+      tokenStatus,
+      receipt: {
+        receiptId: record.id,
+        requestId: record.requestId,
+        receiptCode: record.receiptCode,
+        studentName,
+        studentNumber: record.request.student.profile?.studentNumber ?? null,
+        type: record.request.type,
+        deliveryMethod: record.request.deliveryMethod,
+        approvedAt: record.request.processedAt,
+        institutionName: record.request.institution?.institutionName ?? '-',
+      },
+    };
+  }
 }

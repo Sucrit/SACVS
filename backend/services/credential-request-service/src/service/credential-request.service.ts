@@ -15,6 +15,7 @@ import {
   CreateCredentialRequestDto,
   CredentialRequestResponseDto,
   ListCredentialRequestsQueryDto,
+  ReceiptLookupResultDto,
   UpdateCredentialRequestStatusDto,
 } from '../dto/credential-request.dto';
 import {
@@ -949,6 +950,67 @@ export class CredentialRequestService {
       valid: false,
       reason: consumed.outcome,
       receipt: null,
+    };
+  }
+
+  private isReceiptCode(value: string): boolean {
+    return /^APR-[0-9A-Fa-f]{8}$/i.test(value);
+  }
+
+  async lookupReceiptByCode(
+    rawCode: string,
+  ): Promise<ReceiptLookupResultDto> {
+    const code = rawCode.trim().toUpperCase();
+
+    if (!code || !this.isReceiptCode(code)) {
+      await this.createAuditEntry({
+        action: AuditAction.REQUEST_RECEIPT_INVALID,
+        targetType: 'CredentialRequestApprovalReceipt',
+        description: 'Malformed receipt code lookup attempt',
+        metadata: { reason: 'MALFORMED', lookupOnly: true },
+      });
+      return { found: false, lookupOnly: true, receipt: null };
+    }
+
+    const result = await credentialRequestRepository.findApprovalReceiptByCode(code);
+
+    if (!result) {
+      await this.createAuditEntry({
+        action: AuditAction.REQUEST_RECEIPT_INVALID,
+        targetType: 'CredentialRequestApprovalReceipt',
+        description: 'Receipt code lookup: not found',
+        metadata: { reason: 'NOT_FOUND', lookupOnly: true },
+      });
+      return { found: false, lookupOnly: true, receipt: null };
+    }
+
+    await this.createAuditEntry({
+      action: AuditAction.REQUEST_RECEIPT_VERIFIED,
+      targetType: 'CredentialRequestApprovalReceipt',
+      targetId: result.receipt.receiptId,
+      description: `Receipt code lookup: ${result.receipt.receiptCode}`,
+      metadata: {
+        receiptCode: result.receipt.receiptCode,
+        requestId: result.receipt.requestId,
+        tokenStatus: result.tokenStatus,
+        lookupOnly: true,
+      },
+    });
+
+    return {
+      found: true,
+      lookupOnly: true,
+      tokenStatus: result.tokenStatus,
+      receipt: {
+        receiptCode: result.receipt.receiptCode,
+        requestId: result.receipt.requestId,
+        studentName: result.receipt.studentName,
+        studentNumber: result.receipt.studentNumber,
+        type: result.receipt.type as 'TRANSCRIPT' | 'DIPLOMA' | 'CERTIFICATE' | 'DEGREE' | 'LICENSE',
+        deliveryMethod: result.receipt.deliveryMethod,
+        approvedAt: result.receipt.approvedAt ? result.receipt.approvedAt.toISOString() : null,
+        institutionName: result.receipt.institutionName,
+      },
     };
   }
 }
