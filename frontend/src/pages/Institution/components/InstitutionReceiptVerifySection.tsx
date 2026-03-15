@@ -336,7 +336,7 @@ export default function InstitutionReceiptVerifySection() {
                 value={codeInput}
                 onChange={event => setCodeInput(event.target.value.toUpperCase())}
                 onKeyDown={event => event.key === 'Enter' && handleSubmit()}
-                placeholder="APR-179ABA73"
+                placeholder="APR-12345678"
                 className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 font-mono text-sm tracking-wide outline-none focus:border-neutral-300"
               />
             </div>
