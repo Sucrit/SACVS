@@ -1,6 +1,6 @@
 # Credence
 
-Credence is a digital credential issuance and verification platform for institution-managed academic credentials. The platform includes digital credentials, institution student management, credential request handling, direct and request-driven issuance, blockchain, one-time QR verification, approval receipt verification for physical claim workflows, realtime dashboard updates, and a metadata ML risk scoring layer operating in shadow mode for admins to monitor and detect any abusive, malicious, and illegal misuse of the platform.
+Credence aims to securely create, distribute, and verify students academic credentials in digital form. The goal of the platform is to digitized the entire process from student data management to credential verification.
 
 ## Repository Structure
 - `frontend/`: React/Vite application
