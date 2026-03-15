@@ -239,7 +239,7 @@ export default function InstitutionIssueFormSection({
 
   return (
     <Card title="Issue Credential"> 
-        <form className="space-y-8" onSubmit={handleSubmitDirectIssue}>
+          <form className="space-y-8" onSubmit={handleSubmitDirectIssue}>
         <div className="space-y-8">
             
           {/* 1. Student Selection */}

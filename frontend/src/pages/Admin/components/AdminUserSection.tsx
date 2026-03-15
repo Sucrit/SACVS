@@ -121,7 +121,7 @@ export default function AdminUserSection({
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Role</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="hidden px-4 py-3 md:table-cell">Organization</th>
+                <th className="hidden px-4 py-3 md:table-cell">Organization Name</th>
                 <th className="hidden px-4 py-3 sm:table-cell">Created At</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>

@@ -393,7 +393,7 @@ export default function InstitutionOverviewSection({
             </svg>
           </div>
           <div className="mt-auto flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
-            <span>Issued/anchored trend</span>
+            <span>Credential trend</span>
             <span>{blockchainSparkline.peak} peak</span>
           </div>
         </div>
@@ -572,7 +572,7 @@ export default function InstitutionOverviewSection({
                             </div>
                           </div>
                           <p className="mt-2 text-xs text-neutral-500">
-                            {formatShortDate(request.createdAt)} · {request.deliveryMethod}
+                            {formatShortDate(request.createdAt)} ï¿½ {request.deliveryMethod}
                           </p>
                         </div>
                         <span className={`shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] ${getOverviewStatusTextClass(request.status)}`}>

@@ -2,7 +2,6 @@
 import { useNavigate } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
-import { Search } from 'lucide-react';
 import ActionMenu from '../../components/common/ActionMenu';
 import {
   AlertCircle,
@@ -20,6 +19,7 @@ import RecordDetailsDrawer from '../../components/common/RecordDetailsDrawer';
 import AdminRiskEventDetailsDrawer from './components/AdminRiskEventDetailsDrawer';
 import AdminNotificationsSection from './components/AdminNotificationsSection';
 import AdminOverviewSection from './components/AdminOverviewSection';
+import AdminGenerateReportSection from './components/AdminGenerateReportSection';
 import AdminUserSection from './components/AdminUserSection';
 import { formatDateTime } from '../../utils/formatting';
 import {
@@ -58,7 +58,8 @@ export default function AdminDashboard() {
     isMarkingAllNotificationsRead,
     handleMarkNotificationRead,
     handleMarkAllNotificationsRead,
-    auditLogs: _auditLogs,
+    isLoadingCredentialRequests,
+    auditLogs,
     isLoadingAuditLogs,
     auditActionFilter,
     setAuditActionFilter,
@@ -776,6 +777,20 @@ export default function AdminDashboard() {
         />
       )}
       {section === 'risk' && renderRiskReview()}
+      {section === 'reports' && (
+        <AdminGenerateReportSection
+          users={users}
+          requests={credentialRequests}
+          riskEvents={riskEvents}
+          auditLogs={auditLogs}
+          notifications={notifications}
+          isLoadingUsers={isLoadingUsers}
+          isLoadingRequests={isLoadingCredentialRequests}
+          isLoadingRiskEvents={isLoadingRiskEvents}
+          isLoadingAuditLogs={isLoadingAuditLogs}
+          isLoadingNotifications={isLoadingNotifications}
+        />
+      )}
       {section === 'logs' && renderLogsPlaceholder()}
 
       {stepUpModal}

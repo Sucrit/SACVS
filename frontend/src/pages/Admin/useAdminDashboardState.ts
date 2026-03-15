@@ -18,7 +18,7 @@ import { useToast } from '../../hooks/useToast';
 import { getApiErrorMessage } from '../../utils/errors';
 
 // --- Types ---
-export type AdminSection = 'overview' | 'users' | 'risk' | 'logs' | 'notifications';
+export type AdminSection = 'overview' | 'users' | 'risk' | 'reports' | 'logs' | 'notifications';
 export type RoleFilter = UserRole | 'ALL';
 export type StatusFilter = UserStatus | 'ALL';
 
@@ -62,6 +62,7 @@ export const getLinkedOrganizationLabel = (user: User) => {
 const getSection = (pathname: string): AdminSection => {
   if (pathname.includes('/admin/users')) return 'users';
   if (pathname.includes('/admin/risk')) return 'risk';
+  if (pathname.includes('/admin/reports')) return 'reports';
   if (pathname.includes('/admin/logs')) return 'logs';
   if (pathname.includes('/admin/notifications')) return 'notifications';
   return 'overview';
@@ -350,15 +351,15 @@ export function useAdminDashboardState(): AdminDashboardState {
   useEffect(() => { void loadCredentialRequests(); }, [loadCredentialRequests]);
 
   useEffect(() => {
-    if (section === 'logs' && !hasLoadedAuditLogs) void loadAuditLogs();
+    if ((section === 'logs' || section === 'reports') && !hasLoadedAuditLogs) void loadAuditLogs();
   }, [hasLoadedAuditLogs, loadAuditLogs, section]);
 
   useEffect(() => {
-    if (section === 'notifications' && !hasLoadedNotifications) void loadNotifications();
+    if ((section === 'notifications' || section === 'reports') && !hasLoadedNotifications) void loadNotifications();
   }, [hasLoadedNotifications, loadNotifications, section]);
 
   useEffect(() => {
-    if (section === 'risk' || section === 'overview') {
+    if (section === 'risk' || section === 'overview' || section === 'reports') {
       void loadRiskEvents();
       void loadRiskWorkerStatus();
     }
@@ -403,10 +404,10 @@ export function useAdminDashboardState(): AdminDashboardState {
   const realtimeRefreshMap = useMemo(() => ({
     users: () => { if (section !== 'logs') void loadUsers(); },
     credentialRequests: () => { void loadCredentialRequests(); },
-    audit: () => { if (section === 'logs') void loadAuditLogs(); },
-    notifications: () => { if (section === 'notifications') void loadNotifications({ silent: true }); },
+    audit: () => { if (section === 'logs' || section === 'reports') void loadAuditLogs(); },
+    notifications: () => { if (section === 'notifications' || section === 'reports') void loadNotifications({ silent: true }); },
     'security:SECURITY_RISK_EVENTS_UPDATED': () => {
-      if (section === 'risk' || section === 'overview') { void loadRiskEvents(); void loadRiskWorkerStatus(); }
+      if (section === 'risk' || section === 'overview' || section === 'reports') { void loadRiskEvents(); void loadRiskWorkerStatus(); }
     },
   }), [loadAuditLogs, loadCredentialRequests, loadNotifications, loadRiskEvents, loadRiskWorkerStatus, loadUsers, section]);
 
