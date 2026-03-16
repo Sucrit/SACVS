@@ -30,6 +30,18 @@ import {
   RISK_REVIEW_OPTIONS,
 } from './useAdminDashboardState';
 
+const getAuditSeverityTextClass = (severity: AuditSeverity) => {
+  switch (severity) {
+    case 'WARNING':
+      return 'text-error-600';
+    case 'CRITICAL':
+      return 'text-rose-700';
+    case 'INFO':
+    default:
+      return 'text-cyan-700';
+  }
+};
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const {
@@ -641,7 +653,9 @@ export default function AdminDashboard() {
                   >
                     <td className="px-4 py-3 text-xs text-neutral-600">{new Date(log.createdAt).toLocaleString()}</td>
                     <td className="px-4 py-3 text-xs font-semibold text-neutral-800">{log.action}</td>
-                    <td className="hidden px-4 py-3 text-xs text-neutral-700 sm:table-cell">{log.severity}</td>
+                    <td className="hidden px-4 py-3 text-xs sm:table-cell">
+                      <span className={`font-semibold ${getAuditSeverityTextClass(log.severity)}`}>{log.severity}</span>
+                    </td>
                     <td className="hidden px-4 py-3 text-xs text-neutral-600 md:table-cell">{log.actorEmail || '-'}</td>
                     <td className="hidden px-4 py-3 text-sm text-neutral-700 lg:table-cell">{log.description || '-'}</td>
                   </tr>
@@ -688,7 +702,14 @@ export default function AdminDashboard() {
                   fields: [
                     { label: 'Timestamp', value: new Date(selectedAuditLog.createdAt).toLocaleString() },
                     { label: 'Action', value: selectedAuditLog.action },
-                    { label: 'Severity', value: selectedAuditLog.severity },
+                    {
+                      label: 'Severity',
+                      value: (
+                        <span className={`font-semibold ${getAuditSeverityTextClass(selectedAuditLog.severity)}`}>
+                          {selectedAuditLog.severity}
+                        </span>
+                      ),
+                    },
                     { label: 'Actor Role', value: selectedAuditLog.actorRole || '--' },
                     { label: 'Actor', value: selectedAuditLog.actorEmail || 'System' },
                     { label: 'Target Type', value: selectedAuditLog.targetType || '--' },

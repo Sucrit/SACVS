@@ -16,6 +16,18 @@ import InstitutionReceiptVerifySection from './components/InstitutionReceiptVeri
 import InstitutionCredentialDetailsDrawer from './components/InstitutionCredentialDetailsDrawer';
 import { useInstitutionDashboardState } from './useInstitutionDashboardState';
 
+const getAuditSeverityTextClass = (severity: AuditSeverity) => {
+  switch (severity) {
+    case 'WARNING':
+      return 'text-error-600';
+    case 'CRITICAL':
+      return 'text-rose-700';
+    case 'INFO':
+    default:
+      return 'text-cyan-700';
+  }
+};
+
 export default function InstitutionDashboard() {
   const state = useInstitutionDashboardState();
   const [selectedAuditLogId, setSelectedAuditLogId] = useState<string | null>(null);
@@ -274,7 +286,9 @@ export default function InstitutionDashboard() {
                           {new Date(log.createdAt).toLocaleString()}
                         </td>
                         <td className="px-5 py-4 text-sm font-medium text-neutral-900">{log.action}</td>
-                        <td className="hidden px-5 py-4 text-sm text-neutral-600 sm:table-cell">{log.severity}</td>
+                        <td className="hidden px-5 py-4 text-sm sm:table-cell">
+                          <span className={`font-semibold ${getAuditSeverityTextClass(log.severity)}`}>{log.severity}</span>
+                        </td>
                         <td className="hidden px-5 py-4 text-sm text-neutral-600 md:table-cell">
                           {log.actorEmail || '-'}
                         </td>
@@ -325,7 +339,14 @@ export default function InstitutionDashboard() {
                 fields: [
                   { label: 'Timestamp', value: new Date(selectedAuditLog.createdAt).toLocaleString() },
                   { label: 'Action', value: selectedAuditLog.action },
-                  { label: 'Severity', value: selectedAuditLog.severity },
+                  {
+                    label: 'Severity',
+                    value: (
+                      <span className={`font-semibold ${getAuditSeverityTextClass(selectedAuditLog.severity)}`}>
+                        {selectedAuditLog.severity}
+                      </span>
+                    ),
+                  },
                   { label: 'Actor Role', value: selectedAuditLog.actorRole || '--' },
                   { label: 'Actor', value: selectedAuditLog.actorEmail || 'System' },
                   { label: 'Target Type', value: selectedAuditLog.targetType || '--' },
