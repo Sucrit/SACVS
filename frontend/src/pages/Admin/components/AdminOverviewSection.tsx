@@ -207,6 +207,19 @@ export default function AdminOverviewSection({
   const registrationSparkline = buildSparkline(last7DaysCounts, { minimumCeiling: 4 });
   const credentialSparkline = buildSparkline(last30DaysCredCounts, { minimumCeiling: 4 });
 
+  const pendingLast7DaysCounts = Array(7).fill(0);
+  pendingQueue.forEach(u => {
+    const timeMs = new Date(u.createdAt).getTime();
+    const diff = now - timeMs;
+    const daysAgo = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (daysAgo >= 0 && daysAgo < 7) {
+      pendingLast7DaysCounts[6 - daysAgo]++;
+    }
+  });
+
+  const pendingSparkline = buildSparkline(pendingLast7DaysCounts, { minimumCeiling: 4 });
+
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
@@ -323,6 +336,34 @@ export default function AdminOverviewSection({
             <p className="mt-1 text-[11px] font-bold text-neutral-400">
               <span className="text-amber-500">Requires Action</span> INSTITUTIONS
             </p>
+          </div>
+          {/* Sparkline stats for pending approvals */}
+          <div className="mt-2 mb-3 w-full h-8">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+              <defs>
+                <linearGradient id="pendingSparkline" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="rgb(251 191 36)" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="rgb(251 191 36)" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              {!isLoadingUsers && (
+                <g className="animate-sparkline">
+                  <path
+                    fill="url(#pendingSparkline)"
+                    d={pendingSparkline.areaD}
+                  />
+                  <path
+                    vectorEffect="non-scaling-stroke"
+                    fill="none"
+                    stroke="rgb(251 191 36)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d={pendingSparkline.pathD}
+                  />
+                </g>
+              )}
+            </svg>
           </div>
           <div className="flex h-5 items-center">
             {pendingQueue.length > 0 ? (
