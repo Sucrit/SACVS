@@ -71,8 +71,8 @@ export default function AdminOverviewSection({
       key: 'abuse',
       label: 'Confirmed abuse',
       value: riskSummary.confirmedAbuseCount,
-      valueClassName: 'text-neutral-600',
-      labelClassName: 'text-neutral-500',
+      valueClassName: 'text-rose-800',
+      labelClassName: 'text-rose-800',
     },
   ] as const;
 
@@ -184,8 +184,8 @@ export default function AdminOverviewSection({
       key: 'abuse',
       labelLines: ['Abuse'],
       value: riskSummary.confirmedAbuseCount,
-      barClassName: 'bg-neutral-300',
-      textClassName: 'text-neutral-600',
+      barClassName: 'bg-rose-700',
+      textClassName: 'text-rose-700',
     },
   ] as const;
   const riskBlockMax = Math.max(...riskBlocks.map(block => block.value), 1);
@@ -306,7 +306,7 @@ export default function AdminOverviewSection({
               </svg>
             </div>
             <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
-              <span>Approval/completion trend</span>
+              <span>Completion trend</span>
               <span>{credentialSparkline.peak} peak</span>
             </div>
           </div>

@@ -404,14 +404,14 @@ export default function AdminDashboard() {
           </div>
         </div>
         <div className="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center text-neutral-600">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center text-rose-800">
             <UserRoundCheck size={18} />
           </div>
           <div>
-            <p className="text-3xl font-bold tracking-tight text-neutral-700">{riskSummary.confirmedAbuseCount}</p>
+            <p className="text-3xl font-bold tracking-tight text-rose-800">{riskSummary.confirmedAbuseCount}</p>
             <p className="text-[13px] font-medium text-neutral-500">Confirmed abuse</p>
             <p className="mt-1 text-[11px] font-semibold text-neutral-400">
-              <span className="text-neutral-500">{formatRiskDeltaValue(riskCardDeltas.confirmedAbuse)}</span> vs yesterday
+              <span className="text-rose-800">{formatRiskDeltaValue(riskCardDeltas.confirmedAbuse)}</span> vs yesterday
             </p>
           </div>
         </div>
