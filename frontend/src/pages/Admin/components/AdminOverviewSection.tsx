@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import UserAvatar from '../../../components/common/UserAvatar';
+import { LoadingAdminOverviewCard, LoadingTableCard } from '../../../components/common/LoadingCard';
+import EmptyState from '../../../components/ui/EmptyState';
 import { buildSparkline } from '../../../components/common/sparkline';
 import { formatDate, formatDateTime } from '../../../utils/formatting';
 import { getFullName, getInitials } from '../useAdminDashboardState';
@@ -225,232 +227,246 @@ export default function AdminOverviewSection({
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {/* Card 1 & 2 Combined: Total Users & Registrations */}
-        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <h3 className="text-[13px] font-semibold text-neutral-500">Total Users</h3>
-            <Users size={18} className="text-orange-500" />
-          </div>
-          <div className="mt-4 mb-2">
-            <p className="text-3xl font-bold tracking-tight text-neutral-900">
-              {totalUsers.toLocaleString()}
-            </p>
-            <div className="mt-1 flex items-center gap-2 text-[11px] font-bold text-neutral-400">
-              <span>
-                <span className={`text-${totalUsersGrowthNum >= 0 ? 'emerald' : 'rose'}-500`}>{totalUsersGrowthStr}</span> LAST MONTH
-              </span>
-              <span>&bull;</span>
-              <span>
-                <span className={`text-${registrationsGrowthNum >= 0 ? 'emerald' : 'rose'}-500`}>{formattedRegGrowth}</span> LAST 7 DAYS
-              </span>
+        {isLoadingUsers ? (
+          <>
+            <LoadingAdminOverviewCard rows={1} />
+            <LoadingAdminOverviewCard rows={1} />
+            <LoadingAdminOverviewCard rows={1} />
+          </>
+        ) : (
+          <>
+            {/* Card 1 & 2 Combined: Total Users & Registrations */}
+            <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between">
+                <h3 className="text-[13px] font-semibold text-neutral-500">Total Users</h3>
+                <Users size={18} className="text-orange-500" />
+              </div>
+              <div className="mt-4 mb-2">
+                <p className="text-3xl font-bold tracking-tight text-neutral-900">
+                  {totalUsers.toLocaleString()}
+                </p>
+                <div className="mt-1 flex items-center gap-2 text-[11px] font-bold text-neutral-400">
+                  <span>
+                    <span className={`text-${totalUsersGrowthNum >= 0 ? 'emerald' : 'rose'}-500`}>{totalUsersGrowthStr}</span> LAST MONTH
+                  </span>
+                  <span>&bull;</span>
+                  <span>
+                    <span className={`text-${registrationsGrowthNum >= 0 ? 'emerald' : 'rose'}-500`}>{formattedRegGrowth}</span> LAST 7 DAYS
+                  </span>
+                </div>
+              </div>
+              
+              <div className="mt-2 mb-3 w-full h-8">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+                  <defs>
+                    <linearGradient id="regSparkline" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="rgb(249 115 22)" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="rgb(249 115 22)" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  {!isLoadingUsers && (
+                    <g className="animate-sparkline">
+                        <path
+                          fill="url(#regSparkline)"
+                          d={registrationSparkline.areaD}
+                        />
+                        <path
+                        vectorEffect="non-scaling-stroke"
+                        fill="none"
+                        stroke="rgb(249 115 22)"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                          d={registrationSparkline.pathD}
+                        />
+                    </g>
+                  )}
+                </svg>
+              </div>
+
+              <div className="mt-auto text-[10px] font-medium text-neutral-500">
+                Students: {roleDistribution.STUDENT.toLocaleString()} &nbsp; Inst: {roleDistribution.INSTITUTION.toLocaleString()} &nbsp; Admin: {roleDistribution.ADMIN.toLocaleString()}
+              </div>
             </div>
-          </div>
-          
-          <div className="mt-2 mb-3 w-full h-8">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-              <defs>
-                <linearGradient id="regSparkline" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="rgb(249 115 22)" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="rgb(249 115 22)" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              {!isLoadingUsers && (
-                <g className="animate-sparkline">
-                    <path
-                      fill="url(#regSparkline)"
-                      d={registrationSparkline.areaD}
-                    />
-                    <path
-                    vectorEffect="non-scaling-stroke"
-                    fill="none"
-                    stroke="rgb(249 115 22)"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                      d={registrationSparkline.pathD}
-                    />
-                </g>
-              )}
-            </svg>
-          </div>
 
-          <div className="mt-auto text-[10px] font-medium text-neutral-500">
-            Students: {roleDistribution.STUDENT.toLocaleString()} &nbsp; Inst: {roleDistribution.INSTITUTION.toLocaleString()} &nbsp; Admin: {roleDistribution.ADMIN.toLocaleString()}
-          </div>
-        </div>
-
-        {/* New Card 2: Credential Issuance Trend */}
-        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <h3 className="text-[13px] font-semibold text-neutral-500">Credentials Issued</h3>
-            <ShieldAlert size={18} className="text-emerald-500" />
-          </div>
-          <div className="mt-4 mb-5">
-            <p className="text-3xl font-bold tracking-tight text-neutral-900">+{totalCredentialsLastMonth}</p>
-            <p className="mt-1 text-[11px] font-bold text-neutral-400">
-              <span className={`text-${credGrowthNum >= 0 ? 'emerald' : 'rose'}-500`}>{formattedCredGrowth}</span> ISSUED LAST 30 DAYS
-            </p>
-          </div>
-          <div className="mt-auto space-y-2">
-            <div className="h-12 w-full">
-              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-                <defs>
-                  <linearGradient id="credSparkline" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="rgb(16 185 129)" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="rgb(16 185 129)" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                {!isLoadingUsers && (
-                  <g className="animate-sparkline">
-                    <path
-                      fill="url(#credSparkline)"
-                      d={credentialSparkline.areaD}
-                    />
-                    <path
-                      vectorEffect="non-scaling-stroke"
-                      fill="none"
-                      stroke="rgb(16 185 129)"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d={credentialSparkline.pathD}
-                    />
-                  </g>
-                )}
-              </svg>
+            {/* New Card 2: Credential Issuance Trend */}
+            <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between">
+                <h3 className="text-[13px] font-semibold text-neutral-500">Credentials Issued</h3>
+                <ShieldAlert size={18} className="text-emerald-500" />
+              </div>
+              <div className="mt-4 mb-5">
+                <p className="text-3xl font-bold tracking-tight text-neutral-900">+{totalCredentialsLastMonth}</p>
+                <p className="mt-1 text-[11px] font-bold text-neutral-400">
+                  <span className={`text-${credGrowthNum >= 0 ? 'emerald' : 'rose'}-500`}>{formattedCredGrowth}</span> ISSUED LAST 30 DAYS
+                </p>
+              </div>
+              <div className="mt-auto space-y-2">
+                <div className="h-12 w-full">
+                  <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+                    <defs>
+                      <linearGradient id="credSparkline" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor="rgb(16 185 129)" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="rgb(16 185 129)" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    {!isLoadingUsers && (
+                      <g className="animate-sparkline">
+                        <path
+                          fill="url(#credSparkline)"
+                          d={credentialSparkline.areaD}
+                        />
+                        <path
+                          vectorEffect="non-scaling-stroke"
+                          fill="none"
+                          stroke="rgb(16 185 129)"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d={credentialSparkline.pathD}
+                        />
+                      </g>
+                    )}
+                  </svg>
+                </div>
+                <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
+                  <span>Approval/Completion trend</span>
+                  <span>{credentialSparkline.peak} peak</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
-              <span>Approval/Completion trend</span>
-              <span>{credentialSparkline.peak} peak</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Card 3: Pending Approvals */}
-        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <h3 className="text-[13px] font-semibold text-neutral-500">Pending Approvals</h3>
-            <ClipboardList size={18} className="text-amber-500" />
-          </div>
-          <div className="mt-4 mb-5">
-            <p className="text-3xl font-bold tracking-tight text-neutral-900">{pendingQueue.length}</p>
-            <p className="mt-1 text-[11px] font-bold text-neutral-400">
-              <span className="text-amber-500">Requires Action</span> INSTITUTIONS
-            </p>
-          </div>
-          {/* Sparkline stats for pending approvals */}
-          <div className="mt-2 mb-3 w-full h-8">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-              <defs>
-                <linearGradient id="pendingSparkline" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="rgb(251 191 36)" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="rgb(251 191 36)" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              {!isLoadingUsers && (
-                <g className="animate-sparkline">
-                  <path
-                    fill="url(#pendingSparkline)"
-                    d={pendingSparkline.areaD}
-                  />
-                  <path
-                    vectorEffect="non-scaling-stroke"
-                    fill="none"
-                    stroke="rgb(251 191 36)"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d={pendingSparkline.pathD}
-                  />
-                </g>
-              )}
-            </svg>
-          </div>
-          <div className="flex h-5 items-center">
-            {pendingQueue.length > 0 ? (
-              <>
-                {(() => {
-                  const pendingInstitutionListPath = '/admin/users?role=INSTITUTION&status=PENDING';
-
-                  return pendingQueue.slice(0, 2).map((u, i) => (
-                    <Link
-                      key={u.id}
-                      to={`${pendingInstitutionListPath}&userId=${encodeURIComponent(u.id)}`}
-                      className={`block transition-transform hover:-translate-y-0.5 ${i > 0 ? '-ml-2' : ''}`}
-                      style={{ zIndex: 10 - i }}
-                      title={`Open ${getFullName(u)} in pending institution approvals`}
-                      aria-label={`Open ${getFullName(u)} in pending institution approvals`}
-                    >
-                      <UserAvatar initials={getInitials(u)} size="xs" className="border-2 border-white" />
-                    </Link>
-                  ));
-                })()}
-                {pendingQueue.length > 2 && (
-                  <Link
-                    to="/admin/users?role=INSTITUTION&status=PENDING"
-                    className="-ml-2 flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border-2 border-white bg-neutral-100 px-1.5 text-[10px] font-bold text-neutral-600 shadow-sm transition-colors hover:bg-neutral-200"
-                    style={{ zIndex: 0 }}
-                    title={`View ${pendingQueue.length} pending institution approvals`}
-                    aria-label={`View ${pendingQueue.length} pending institution approvals`}
-                  >
-                    +{pendingQueue.length - 2}
-                  </Link>
-                )}
-              </>
-            ) : (
-              <span className="text-[11px] text-neutral-400">All caught up</span>
-            )}
-          </div>
-        </div>
-
-        {/* Card 4: High + Critical Risk Events */}
-        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <h3 className="text-[13px] font-semibold text-neutral-500">High Risk Events</h3>
-            <AlertCircle size={18} className="text-rose-600" />
-          </div>
-          <div className="mt-4 mb-5">
-            <p className="text-3xl font-bold tracking-tight text-rose-600">{mergedRiskCount}</p>
-            <p className="mt-1 text-[11px] font-bold text-neutral-400">
-              <span className="text-rose-600">
-                +{last30DaysRiskCount}
-              </span> LAST 30 DAYS
-            </p>
-          </div>
-          <div className="mt-auto space-y-2">
-            <div className="flex h-20 items-end gap-2.5">
-              {riskBlocks.map(block => {
-                const heightPercent = getRiskBlockHeightPercent(block.value);
-
-                return (
-                  <div key={block.key} className="flex flex-1 flex-col items-center gap-2">
-                    <div className="flex h-12 w-full items-end rounded-sm bg-neutral-50 px-1.5 pb-0.5">
-                      <div
-                        className={`w-full rounded-sm ${block.barClassName} transition-all duration-500`}
-                        style={{ height: `${heightPercent}%` }}
-                        title={`${block.labelLines.join(' ')}: ${block.value}`}
+            {/* Card 3: Pending Approvals */}
+            <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between">
+                <h3 className="text-[13px] font-semibold text-neutral-500">Pending Approvals</h3>
+                <ClipboardList size={18} className="text-amber-500" />
+              </div>
+              <div className="mt-4 mb-5">
+                <p className="text-3xl font-bold tracking-tight text-neutral-900">{pendingQueue.length}</p>
+                <p className="mt-1 text-[11px] font-bold text-neutral-400">
+                  <span className="text-amber-500">Requires Action</span> INSTITUTIONS
+                </p>
+              </div>
+              {/* Sparkline stats for pending approvals */}
+              <div className="mt-2 mb-3 w-full h-8">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+                  <defs>
+                    <linearGradient id="pendingSparkline" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="rgb(251 191 36)" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="rgb(251 191 36)" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  {!isLoadingUsers && (
+                    <g className="animate-sparkline">
+                      <path
+                        fill="url(#pendingSparkline)"
+                        d={pendingSparkline.areaD}
                       />
-                    </div>
-                    <div className="min-h-[2.1rem] text-center leading-none">
-                      {block.labelLines.map((line, index) => (
-                        <p
-                          key={`${block.key}-${line}`}
-                          className={`text-[9px] font-bold uppercase tracking-[0.08em] ${block.textClassName} ${index > 0 ? 'mt-0.5' : ''}`}
+                      <path
+                        vectorEffect="non-scaling-stroke"
+                        fill="none"
+                        stroke="rgb(251 191 36)"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d={pendingSparkline.pathD}
+                      />
+                    </g>
+                  )}
+                </svg>
+              </div>
+              <div className="flex h-5 items-center">
+                {pendingQueue.length > 0 ? (
+                  <>
+                    {(() => {
+                      const pendingInstitutionListPath = '/admin/users?role=INSTITUTION&status=PENDING';
+
+                      return pendingQueue.slice(0, 2).map((u, i) => (
+                        <Link
+                          key={u.id}
+                          to={`${pendingInstitutionListPath}&userId=${encodeURIComponent(u.id)}`}
+                          className={`block transition-transform hover:-translate-y-0.5 ${i > 0 ? '-ml-2' : ''}`}
+                          style={{ zIndex: 10 - i }}
+                          title={`Open ${getFullName(u)} in pending institution approvals`}
+                          aria-label={`Open ${getFullName(u)} in pending institution approvals`}
                         >
-                          {line}
-                        </p>
-                      ))}
-                      <p className="mt-1 text-[10px] font-medium text-neutral-400">{block.value}</p>
-                    </div>
-                  </div>
-                );
-              })}
+                          <UserAvatar initials={getInitials(u)} size="xs" className="border-2 border-white" />
+                        </Link>
+                      ));
+                    })()}
+                    {pendingQueue.length > 2 && (
+                      <Link
+                        to="/admin/users?role=INSTITUTION&status=PENDING"
+                        className="-ml-2 flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border-2 border-white bg-neutral-100 px-1.5 text-[10px] font-bold text-neutral-600 shadow-sm transition-colors hover:bg-neutral-200"
+                        style={{ zIndex: 0 }}
+                        title={`View ${pendingQueue.length} pending institution approvals`}
+                        aria-label={`View ${pendingQueue.length} pending institution approvals`}
+                      >
+                        +{pendingQueue.length - 2}
+                      </Link>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-[11px] text-neutral-400">All caught up</span>
+                )}
+              </div>
             </div>
-            <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
-              <span>Risk summary</span>
+          </>
+        )}
+
+        {isLoadingRiskEvents ? (
+          <LoadingAdminOverviewCard rows={1} />
+        ) : (
+          /* Card 4: High + Critical Risk Events */
+          <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between">
+              <h3 className="text-[13px] font-semibold text-neutral-500">High Risk Events</h3>
+              <AlertCircle size={18} className="text-rose-600" />
+            </div>
+            <div className="mt-4 mb-5">
+              <p className="text-3xl font-bold tracking-tight text-rose-600">{mergedRiskCount}</p>
+              <p className="mt-1 text-[11px] font-bold text-neutral-400">
+                <span className="text-rose-600">
+                  +{last30DaysRiskCount}
+                </span> LAST 30 DAYS
+              </p>
+            </div>
+            <div className="mt-auto space-y-2">
+              <div className="flex h-20 items-end gap-2.5">
+                {riskBlocks.map(block => {
+                  const heightPercent = getRiskBlockHeightPercent(block.value);
+
+                  return (
+                    <div key={block.key} className="flex flex-1 flex-col items-center gap-2">
+                      <div className="flex h-12 w-full items-end rounded-sm bg-neutral-50 px-1.5 pb-0.5">
+                        <div
+                          className={`w-full rounded-sm ${block.barClassName} transition-all duration-500`}
+                          style={{ height: `${heightPercent}%` }}
+                          title={`${block.labelLines.join(' ')}: ${block.value}`}
+                        />
+                      </div>
+                      <div className="min-h-[2.1rem] text-center leading-none">
+                        {block.labelLines.map((line, index) => (
+                          <p
+                            key={`${block.key}-${line}`}
+                            className={`text-[9px] font-bold uppercase tracking-[0.08em] ${block.textClassName} ${index > 0 ? 'mt-0.5' : ''}`}
+                          >
+                            {line}
+                          </p>
+                        ))}
+                        <p className="mt-1 text-[10px] font-medium text-neutral-400">{block.value}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
+                <span>Risk summary</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Pending Approvals + Security Alerts */}
@@ -471,18 +487,15 @@ export default function AdminOverviewSection({
           >
             <div className="flex h-full flex-col">
               {isLoadingUsers && (
-                <div className="space-y-3">
-                  {[1, 2, 3].map(key => (
-                    <div key={key} className="h-16 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
-                  ))}
-                </div>
+                <LoadingTableCard className="border-0 shadow-none" rows={3} />
               )}
               {!isLoadingUsers && pendingQueue.length === 0 && (
-                <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50/50 px-6 py-12 text-center">
-                  <ClipboardList size={28} className="mb-2 text-neutral-400" />
-                  <p className="text-sm font-medium text-neutral-600">No pending approvals</p>
-                  <p className="mt-1 text-xs text-neutral-400">All user registrations have been processed.</p>
-                </div>
+                <EmptyState
+                  title="No pending approvals"
+                  description="All user registrations have been processed."
+                  icon={<ClipboardList size={28} />}
+                  className="my-8 border-none bg-transparent"
+                />
               )}
               {!isLoadingUsers && pendingQueue.length > 0 && (
                 <div className="flex h-full flex-col space-y-3">
@@ -548,17 +561,18 @@ export default function AdminOverviewSection({
             <div className="flex h-full flex-col">
               {isLoadingRiskEvents && (
                 <div className="space-y-3">
-                  {[1, 2, 3].map(key => (
-                    <div key={key} className="h-12 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
-                  ))}
+                  <LoadingAdminOverviewCard rows={1} className="border-0 bg-transparent p-0 shadow-none" />
+                  <LoadingAdminOverviewCard rows={1} className="border-0 bg-transparent p-0 shadow-none" />
                 </div>
               )}
               {!isLoadingRiskEvents && recentHighRiskEvents.length === 0 && (
                 <div className="flex flex-1 flex-col justify-between">
-                  <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50/50 px-4 py-5 text-center">
-                    <AlertCircle size={24} className="mb-2 text-neutral-400" />
-                    <p className="text-sm font-medium text-neutral-600">No recent high/critical alerts</p>
-                  </div>
+                  <EmptyState
+                    title="No high/critical alerts"
+                    description="Everything looks safe at the moment."
+                    icon={<AlertCircle size={24} />}
+                    className="my-4 border-none bg-transparent"
+                  />
 
                   <div className="mt-4 grid grid-cols-2 gap-2">
                     {securityAlertSummaryCards.map(card => (
