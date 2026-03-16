@@ -319,7 +319,7 @@ export default function AdminOverviewSection({
               </svg>
             </div>
             <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
-              <span>Completion trend</span>
+              <span>Approval/Completion trend</span>
               <span>{credentialSparkline.peak} peak</span>
             </div>
           </div>
