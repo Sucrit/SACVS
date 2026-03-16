@@ -1,20 +1,9 @@
 # Credence
 
-Credence aims to securely create, distribute, and verify students academic credentials in digital form. The goal of the platform is to digitized the entire process from student data management to credential verification and issuance.
-
-## Repository Structure
-- `frontend/`: React/Vite application
-- `backend/gateway/`: API gateway, route proxying, rate limiting, and websocket hub
-- `backend/services/user-service/`: users, onboarding, institution student management, step-up OTP
-- `backend/services/credential-service/`: credentials, encrypted document storage, issuance, QR verification
-- `backend/services/credential-request-service/`: request lifecycle, approval receipts, physical claim workflows
-- `backend/services/notification-service/`: in-app notifications and internal notification ingestion
-- `backend/services/blockchain-interface-service/`: blockchain anchoring and chain-facing integration logic
-- `backend/services/security-service/`: offline dataset extraction and shadow ML risk scoring workflows
-- `backend/db/`: shared Prisma schema and migrations
-- `docs/`: canonical engineering, security, operations, and feature documentation
+Credence aims to create, verify, and distribute the students academic credentials in digital form. The goal of the platform is to digitalized the entire process from student credential issuance to credential verification.
 
 ## Start Here
+- Repository Structure: [docs/repo-structure.md](./docs/repo-structure.md)
 - Documentation index: [docs/README.md](./docs/README.md)
 - Local development: [docs/development/local-development.md](./docs/development/local-development.md)
 - Configuration reference: [docs/development/configuration.md](./docs/development/configuration.md)
