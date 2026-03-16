@@ -103,8 +103,9 @@ export default function InstitutionAwaitingIssuanceSection({
           <thead className="bg-neutral-50 text-xs font-semibold text-neutral-500">
             <tr>
               <th className="px-4 py-3">Student</th>
-              <th className="px-4 py-3">Request</th>
-              <th className="hidden px-4 py-3 md:table-cell">Type</th>
+              <th className="px-4 py-3">Request Title</th>
+              <th className="hidden px-4 py-3 md:table-cell">Credential Type</th>
+              <th className="hidden px-4 py-3 sm:table-cell">Delivery Method</th>
               <th className="hidden px-4 py-3 lg:table-cell">Requested At</th>
               <th className="px-4 py-3 text-right">Action</th>
             </tr>
@@ -112,14 +113,14 @@ export default function InstitutionAwaitingIssuanceSection({
           <tbody className="divide-y divide-neutral-100 bg-white">
             {isLoadingRequests && (
               <tr>
-                <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
+                <td colSpan={6} className="px-5 py-8 text-center text-sm text-neutral-500">
                   Loading approved requests...
                 </td>
               </tr>
             )}
             {!isLoadingRequests && readyToIssue.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-5 py-8 text-center text-sm text-neutral-500">
+                <td colSpan={6} className="px-5 py-8 text-center text-sm text-neutral-500">
                   No approved requests ready for issuance.
                 </td>
               </tr>
@@ -169,16 +170,18 @@ export default function InstitutionAwaitingIssuanceSection({
                             className="w-full text-left transition hover:opacity-80"
                           >
                             <p className="text-sm font-semibold text-neutral-900">{request.title}</p>
-                            <p className="mt-1 text-xs text-neutral-500">
-                              {request.deliveryMethod === 'BOTH'
-                                ? 'Digital + physical delivery'
-                                : request.deliveryMethod === 'DIGITAL'
-                                  ? 'Digital delivery'
-                                  : 'Physical delivery'}
-                            </p>
                           </button>
                         </td>
                         <td className="hidden px-4 py-3 text-sm text-neutral-600 md:table-cell">{getRequestTypeLabel(request)}</td>
+                        <td className="hidden px-4 py-3 text-sm text-neutral-600 sm:table-cell">
+                          <p className="text-xs text-neutral-500">
+                            {request.deliveryMethod === 'BOTH'
+                              ? 'Digital + physical'
+                              : request.deliveryMethod === 'DIGITAL'
+                                ? 'Digital'
+                                : 'Physical'}
+                          </p>
+                        </td>
                         <td className="hidden px-4 py-3 text-sm text-neutral-600 lg:table-cell">{formatDateTime(request.createdAt)}</td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex min-w-[240px] flex-col items-end gap-2 whitespace-nowrap">
