@@ -3,7 +3,7 @@ import { twMerge } from 'tailwind-merge';
 
 export function Table({ className, children, ...props }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto rounded-lg border border-neutral-200">
+    <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
       <table className={twMerge('w-full text-left text-sm', className)} {...props}>
         {children}
       </table>

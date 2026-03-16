@@ -500,7 +500,7 @@ export default function AdminOverviewSection({
               )}
               {!isLoadingUsers && pendingQueue.length > 0 && (
                 <div className="flex h-full flex-col space-y-3">
-                  <div className="overflow-x-auto rounded-lg border border-neutral-200">
+                  <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
                     <table className="min-w-full divide-y divide-neutral-200 bg-white text-sm">
                       <thead className="bg-neutral-50 text-left">
                         <tr>

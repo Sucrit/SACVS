@@ -100,7 +100,7 @@ export default function InstitutionAwaitingIssuanceSection({
 
   return (
     <Card title="Awaiting Issuance">
-      <div className="overflow-x-auto rounded-lg border border-neutral-200">
+      <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
         <table className="min-w-[920px] w-full text-left">
           <thead className="bg-neutral-50 text-xs font-semibold text-neutral-500">
             <tr>

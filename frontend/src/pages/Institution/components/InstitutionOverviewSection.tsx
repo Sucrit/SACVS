@@ -486,7 +486,7 @@ export default function InstitutionOverviewSection({
               />
             ) : (
               <div className="flex h-full flex-col">
-                <div className="overflow-x-auto rounded-lg border border-neutral-200">
+                <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
                   <table className="min-w-full text-left text-sm">
                     <thead className="bg-neutral-50 text-xs font-semibold text-neutral-500">
                       <tr>

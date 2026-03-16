@@ -72,7 +72,7 @@ export default function InstitutionCredentialManageSection({
 
   return (
     <Card title="Manage Student Credentials">
-      <div className="rounded-lg border border-neutral-200">
+      <div className="rounded-lg border border-neutral-200 pb-[10px]">
         <table className="w-full text-left">
           <thead className="bg-neutral-50 text-xs font-semibold text-neutral-500">
             <tr>
