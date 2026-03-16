@@ -13,7 +13,7 @@ export default function LoadingCard({ className, rows = 3 }: LoadingCardProps) {
         <div className="skeleton-shimmer h-5 w-5 rounded-full" />
       </div>
       
-      <div className="mt-4 mb-3">
+      <div className="mt-6 mb-3">
         <div className="skeleton-shimmer h-9 w-24 rounded-md" />
         <div className="skeleton-shimmer mt-2 h-3 w-40 rounded-md" />
       </div>

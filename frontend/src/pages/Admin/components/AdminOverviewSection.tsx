@@ -438,7 +438,7 @@ export default function AdminOverviewSection({
                   const heightPercent = getRiskBlockHeightPercent(block.value);
 
                   return (
-                    <div key={block.key} className="flex flex-1 flex-col items-center gap-2">
+                    <div key={block.key} className="flex w-0 flex-1 flex-col items-center gap-2">
                       <div className="flex h-12 w-full items-end rounded-sm bg-neutral-50 px-1.5 pb-0.5">
                         <div
                           className={`w-full rounded-sm ${block.barClassName} transition-all duration-500`}
@@ -574,7 +574,7 @@ export default function AdminOverviewSection({
                     className="my-4 border-none bg-transparent"
                   />
 
-                  <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="mt-1 grid grid-cols-2 gap-2">
                     {securityAlertSummaryCards.map(card => (
                       <div key={card.key} className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-center">
                         <p className={`text-lg font-semibold ${card.valueClassName}`}>{card.value}</p>
