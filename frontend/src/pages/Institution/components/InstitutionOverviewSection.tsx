@@ -446,7 +446,7 @@ export default function InstitutionOverviewSection({
         <div className="xl:col-span-2 xl:h-full">
           <Card
             className="flex h-full flex-col"
-            title="Institution Student Directory"
+            title="Institution's Student Directory"
             action={
               <div className="flex flex-wrap items-center gap-4">
                 <button
