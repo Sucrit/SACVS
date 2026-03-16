@@ -466,22 +466,20 @@ export default function AdminDashboard() {
                 <th className="px-4 py-3">Score</th>
                 <th className="px-4 py-3">Band</th>
                 <th className="hidden px-4 py-3 md:table-cell">Review</th>
-                <th className="hidden px-4 py-3 lg:table-cell">Signals</th>
-                <th className="hidden px-4 py-3 lg:table-cell">Observed</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 bg-white">
               {isLoadingRiskEvents && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-neutral-500">
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-neutral-500">
                     Loading risk events...
                   </td>
                 </tr>
               )}
               {!isLoadingRiskEvents && riskEvents.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-8 text-center text-sm text-neutral-500">
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-neutral-500">
                     No risk events matched the current filters.
                   </td>
                 </tr>
@@ -517,20 +515,6 @@ export default function AdminDashboard() {
                           {event.reviewStatus}
                         </span>
                         <p className="text-neutral-500">{event.reviewedAt ? formatDateTime(event.reviewedAt) : 'Not reviewed'}</p>
-                      </div>
-                    </td>
-                    <td className="hidden px-4 py-3 lg:table-cell">
-                      <div className="max-w-xs space-y-1 text-xs text-neutral-600">
-                        {event.topSignals.length === 0 && <p>-</p>}
-                        {event.topSignals.slice(0, 3).map(signal => (
-                          <p key={signal} className="truncate">{signal}</p>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="hidden px-4 py-3 text-xs text-neutral-600 lg:table-cell">
-                      <div className="space-y-1">
-                        <p>{formatDateTime(event.observedAt)}</p>
-                        <p className="text-neutral-500">Model {event.modelVersion}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
