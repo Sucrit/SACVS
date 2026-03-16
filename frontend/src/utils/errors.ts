@@ -22,7 +22,7 @@ export const getApiErrorMessage = (error: unknown): string | null => {
   }
 
   if (!error.response) {
-    return 'Network error: API gateway is unreachable. Make sure backend services are running.';
+    return 'Network error: API gateway is unreachable.';
   }
 
   const responseData = error.response?.data as { error?: string; message?: string } | undefined;

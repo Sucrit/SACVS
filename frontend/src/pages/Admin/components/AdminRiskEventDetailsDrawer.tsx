@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
@@ -11,6 +11,7 @@ import {
   RiskReviewReasonCode,
   RiskReviewStatus,
 } from '../../../services/risk.service';
+import { formatRiskReviewStatus } from '../../../utils/formatting';
 
 type Props = {
   isOpen: boolean;
@@ -184,7 +185,7 @@ export default function AdminRiskEventDetailsDrawer({
                     </div>
                     <div>
                       <p className="text-xs font-semibold  text-neutral-500">Review Status</p>
-                      <p className="mt-2 text-base font-semibold text-neutral-900">{event.reviewStatus}</p>
+                      <p className="mt-2 text-base font-semibold text-neutral-900">{formatRiskReviewStatus(event.reviewStatus)}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold  text-neutral-500">Reason Code</p>

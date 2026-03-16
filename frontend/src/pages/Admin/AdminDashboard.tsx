@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
@@ -21,7 +21,7 @@ import AdminNotificationsSection from './components/AdminNotificationsSection';
 import AdminOverviewSection from './components/AdminOverviewSection';
 import AdminGenerateReportSection from './components/AdminGenerateReportSection';
 import AdminUserSection from './components/AdminUserSection';
-import { formatDateTime } from '../../utils/formatting';
+import { formatDateTime, formatRiskReviewStatus } from '../../utils/formatting';
 import {
   useAdminDashboardState,
   getRiskBandStyles,
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
       defaultValue: 'ALL',
       options: RISK_REVIEW_OPTIONS.map(option => ({
         value: option,
-        label: option === 'ALL' ? 'Any review state' : option,
+        label: option === 'ALL' ? 'Any review state' : formatRiskReviewStatus(option),
       })),
       onChange: value => setRiskReviewFilter(value as RiskReviewStatus | 'ALL'),
     },
@@ -465,7 +465,7 @@ export default function AdminDashboard() {
                 <th className="hidden px-4 py-3 sm:table-cell">Actor</th>
                 <th className="px-4 py-3">Score</th>
                 <th className="px-4 py-3">Band</th>
-                <th className="hidden px-4 py-3 md:table-cell">Review</th>
+                <th className="hidden px-4 py-3 md:table-cell">Status</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
@@ -511,8 +511,8 @@ export default function AdminDashboard() {
                     </td>
                     <td className="hidden px-4 py-3 text-xs md:table-cell">
                       <div className="space-y-1">
-                        <span className={`inline-flex font-semibold uppercase tracking-[0.08em] ${getRiskReviewStyles(event.reviewStatus)}`}>
-                          {event.reviewStatus}
+                        <span className={`inline-flex font-semibold ${getRiskReviewStyles(event.reviewStatus)}`}>
+                          {formatRiskReviewStatus(event.reviewStatus)}
                         </span>
                         <p className="text-neutral-500">{event.reviewedAt ? formatDateTime(event.reviewedAt) : 'Not reviewed'}</p>
                       </div>
