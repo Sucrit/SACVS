@@ -16,6 +16,10 @@ import { useStepUp } from '../../hooks/useStepUp';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { useToast } from '../../hooks/useToast';
 import { getApiErrorMessage } from '../../utils/errors';
+import { getRoleStyle, getRiskBandStyle, getRiskReviewStyle } from '../../utils/statusStyles';
+
+// Re-export shared style helpers so existing imports continue to work
+export { getRoleStyle as getRoleStyles, getRiskBandStyle as getRiskBandStyles, getRiskReviewStyle as getRiskReviewStyles };
 
 // --- Types ---
 export type AdminSection = 'overview' | 'users' | 'risk' | 'reports' | 'logs' | 'notifications';
@@ -46,12 +50,6 @@ export const getInitials = (user: User) => {
   return `${tokens[0][0] || ''}${tokens[1][0] || ''}`.toUpperCase();
 };
 
-export const getRoleStyles = (role: UserRole) => {
-  if (role === 'ADMIN') return 'text-neutral-800';
-  if (role === 'INSTITUTION') return 'text-cyan-800';
-  return 'text-neutral-700';
-};
-
 export const getLinkedOrganizationLabel = (user: User) => {
   if (user.role === 'INSTITUTION') {
     return user.institution?.institutionName || '-';
@@ -68,20 +66,7 @@ const getSection = (pathname: string): AdminSection => {
   return 'overview';
 };
 
-export const getRiskBandStyles = (riskBand: RiskBand) => {
-  if (riskBand === 'CRITICAL') return 'text-rose-700';
-  if (riskBand === 'HIGH') return 'text-amber-700';
-  if (riskBand === 'MEDIUM') return 'text-cyan-700';
-  return 'text-neutral-700';
-};
 
-export const getRiskReviewStyles = (reviewStatus: RiskReviewStatus) => {
-  if (reviewStatus === 'CONFIRMED_ABUSE') return 'text-rose-700';
-  if (reviewStatus === 'BENIGN') return 'text-emerald-700';
-  if (reviewStatus === 'UNCERTAIN') return 'text-amber-700';
-  if (reviewStatus === 'PENDING_REVIEW') return 'text-amber-500';
-  return 'text-neutral-700';
-};
 
 // =============================================================================
 // Hook

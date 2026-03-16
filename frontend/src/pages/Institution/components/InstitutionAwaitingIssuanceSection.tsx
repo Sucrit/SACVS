@@ -174,7 +174,7 @@ export default function InstitutionAwaitingIssuanceSection({
                         </td>
                         <td className="hidden px-4 py-3 text-sm text-neutral-600 md:table-cell">{getRequestTypeLabel(request)}</td>
                         <td className="hidden px-4 py-3 text-sm text-neutral-600 sm:table-cell">
-                          <p className="text-xs text-neutral-500">
+                          <p className="text-sm text-neutral-500">
                             {request.deliveryMethod === 'BOTH'
                               ? 'Digital + physical'
                               : request.deliveryMethod === 'DIGITAL'

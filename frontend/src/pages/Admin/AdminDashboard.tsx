@@ -24,11 +24,13 @@ import AdminUserSection from './components/AdminUserSection';
 import { formatDateTime, formatRiskReviewStatus } from '../../utils/formatting';
 import {
   useAdminDashboardState,
-  getRiskBandStyles,
-  getRiskReviewStyles,
   RISK_BAND_OPTIONS,
   RISK_REVIEW_OPTIONS,
+  getRiskBandStyles,
 } from './useAdminDashboardState';
+import { getRiskReviewStyle } from '../../utils/statusStyles';
+
+
 
 const getAuditSeverityTextClass = (severity: AuditSeverity) => {
   switch (severity) {
@@ -511,7 +513,7 @@ export default function AdminDashboard() {
                     </td>
                     <td className="hidden px-4 py-3 text-xs md:table-cell">
                       <div className="space-y-1">
-                        <span className={`inline-flex font-semibold text-xs tracking-[0.08em] ${getRiskReviewStyles(event.reviewStatus)}`}>
+                        <span className={`inline-flex font-semibold text-xs tracking-[0.08em] ${getRiskReviewStyle(event.reviewStatus)}`}>
                           {formatRiskReviewStatus(event.reviewStatus)}
                         </span>
                         <p className="text-neutral-500">{event.reviewedAt ? formatDateTime(event.reviewedAt) : 'Not reviewed yet'}</p>
