@@ -514,7 +514,7 @@ export default function AdminDashboard() {
                         <span className={`inline-flex font-semibold text-xs tracking-[0.08em] ${getRiskReviewStyles(event.reviewStatus)}`}>
                           {formatRiskReviewStatus(event.reviewStatus)}
                         </span>
-                        <p className="text-neutral-500">{event.reviewedAt ? formatDateTime(event.reviewedAt) : 'Not reviewed'}</p>
+                        <p className="text-neutral-500">{event.reviewedAt ? formatDateTime(event.reviewedAt) : 'Not reviewed yet'}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">

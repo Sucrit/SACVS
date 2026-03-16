@@ -159,7 +159,7 @@ export default function AdminUserSection({
                     </div>
                   </td>
                   <td className="px-4 py-3 text-xs">
-                    <span className={`rounded-md border px-2.5 py-1 font-semibold ${getRoleStyles(user.role)}`}>
+                    <span className={`font-semibold tracking-[0.08em] ${getRoleStyles(user.role)}`}>
                       {user.role}
                     </span>
                   </td>

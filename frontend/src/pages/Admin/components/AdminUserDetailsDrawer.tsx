@@ -98,7 +98,7 @@ export default function AdminUserDetailsDrawer({
                     <p className="text-xl font-semibold text-neutral-900">{getFullName(user)}</p>
                     <p className="mt-1 text-sm text-neutral-500">{user.email}</p>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <span className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${getRoleStyles(user.role)}`}>
+                      <span className={`text-xs font-semibold tracking-[0.08em] ${getRoleStyles(user.role)}`}>
                         {user.role}
                       </span>
                       <Badge status={user.status} />

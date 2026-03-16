@@ -47,9 +47,9 @@ export const getInitials = (user: User) => {
 };
 
 export const getRoleStyles = (role: UserRole) => {
-  if (role === 'ADMIN') return 'border-neutral-400 bg-neutral-100 text-neutral-800';
-  if (role === 'INSTITUTION') return 'border-cyan-200 bg-cyan-50 text-cyan-800';
-  return 'border-neutral-200 bg-neutral-50 text-neutral-700';
+  if (role === 'ADMIN') return 'text-neutral-800';
+  if (role === 'INSTITUTION') return 'text-cyan-800';
+  return 'text-neutral-700';
 };
 
 export const getLinkedOrganizationLabel = (user: User) => {
