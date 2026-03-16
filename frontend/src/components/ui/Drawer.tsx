@@ -14,7 +14,7 @@ interface DrawerProps {
   width?: string;
 }
 
-export default function Drawer({ open, onClose, title, description, children, footer, className, width = 'max-w-md' }: DrawerProps) {
+export default function Drawer({ open, onClose, title, description, children, footer, className, width = 'max-w-lg' }: DrawerProps) {
   return (
     <AnimatePresence>
       {open && (
@@ -39,23 +39,24 @@ export default function Drawer({ open, onClose, title, description, children, fo
             onClick={e => e.stopPropagation()}
           >
             {title && (
-              <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
+              <div className="flex items-start justify-between border-b border-neutral-200 px-4 py-4 sm:px-7 sm:py-6">
                 <div>
-                  <h2 className="text-base font-semibold text-neutral-900">{title}</h2>
-                  {description && <p className="mt-0.5 text-sm text-neutral-500">{description}</p>}
+                  <h2 className="text-lg font-semibold text-neutral-900">{title}</h2>
+                  {description && <p className="mt-1 text-sm text-neutral-500">{description}</p>}
                 </div>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+                  className="text-neutral-400 transition hover:text-neutral-900"
+                  aria-label="Close drawer"
                 >
-                  <X size={16} />
+                  <X size={24} strokeWidth={1.8} />
                 </button>
               </div>
             )}
-            <div className="flex-1 overflow-y-auto p-5">{children}</div>
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-7 sm:py-6">{children}</div>
             {footer && (
-              <div className="border-t border-neutral-200 bg-neutral-50 px-5 py-4 shrink-0">
+              <div className="border-t border-neutral-200 bg-neutral-50 px-4 py-4 sm:px-7 shrink-0">
                 {footer}
               </div>
             )}

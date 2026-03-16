@@ -27,26 +27,29 @@ export default function RecordDetailsDrawer({
   title,
   description,
   sections,
-  width = 'max-w-xl',
+  width = 'max-w-2xl',
   footer,
 }: RecordDetailsDrawerProps) {
   return (
     <Drawer open={open} onClose={onClose} title={title} description={description} width={width} footer={footer}>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {sections.map((section, sectionIndex) => (
-          <section key={`${section.title || 'section'}-${sectionIndex}`} className="space-y-3">
+          <section
+            key={`${section.title || 'section'}-${sectionIndex}`}
+            className={sectionIndex > 0 ? 'border-t border-neutral-200 pt-6' : ''}
+          >
             {section.title && (
-              <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-500">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
                 {section.title}
               </h3>
             )}
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
               {section.fields.map(field => (
-                <div key={field.label} className="rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-neutral-500">
+                <div key={field.label}>
+                  <p className="text-xs font-semibold text-neutral-500">
                     {field.label}
                   </p>
-                  <div className="mt-1 text-sm text-neutral-800 break-words">{field.value}</div>
+                  <div className="mt-2 text-sm text-neutral-700 break-words">{field.value}</div>
                 </div>
               ))}
             </div>

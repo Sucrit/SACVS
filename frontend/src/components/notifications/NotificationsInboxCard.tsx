@@ -205,16 +205,14 @@ export default function NotificationsInboxCard({
                   onNotificationClick(notification);
                 }
               }}
-              className={`cursor-pointer rounded-lg border px-4 py-3 transition hover:bg-neutral-50 ${
-                notification.read ? 'border-neutral-200 bg-white' : 'border-sky-200 bg-sky-50/50'
-              }`}
+              className="cursor-pointer rounded-lg border border-neutral-200 bg-white px-4 py-3 transition hover:bg-neutral-50"
             >
               <div className="mb-2 flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-neutral-900">{notification.title}</p>
                     {!notification.read && (
-                      <span className="inline-flex h-2 w-2 rounded-full bg-sky-500" />
+                      <span className="inline-flex h-2 w-2 rounded-full bg-error-500" />
                     )}
                     {renderTitleExtras?.(notification)}
                   </div>
