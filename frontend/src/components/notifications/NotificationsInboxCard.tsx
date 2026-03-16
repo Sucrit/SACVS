@@ -3,6 +3,8 @@ import { CheckCheck, MoreHorizontal, Settings } from 'lucide-react';
 import Card from '../common/Card';
 import PaginationControls from '../common/PaginationControls';
 import Button from '../ui/Button';
+import LoadingCard from '../common/LoadingCard';
+import EmptyState from '../ui/EmptyState';
 import {
   AppNotification,
   getNotificationDisplayMessage,
@@ -178,17 +180,19 @@ export default function NotificationsInboxCard({
       </div>
 
       {isLoading && (
-        <div className="space-y-2">
-          {[1, 2, 3].map(item => (
-            <div key={item} className="h-24 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
-          ))}
+        <div className="space-y-3">
+          <LoadingCard rows={1} className="border-0 bg-transparent p-0 shadow-none" />
+          <LoadingCard rows={1} className="border-0 bg-transparent p-0 shadow-none" />
+          <LoadingCard rows={1} className="border-0 bg-transparent p-0 shadow-none" />
         </div>
       )}
 
       {!isLoading && filteredNotifications.length === 0 && (
-        <div className="rounded-lg border border-dashed border-neutral-300 bg-neutral-50 px-6 py-12 text-center text-sm text-neutral-500">
-          {emptyMessage}
-        </div>
+        <EmptyState
+          title=""
+          description={emptyMessage}
+          className="my-4 border-neutral-200"
+        />
       )}
 
       {!isLoading && filteredNotifications.length > 0 && (

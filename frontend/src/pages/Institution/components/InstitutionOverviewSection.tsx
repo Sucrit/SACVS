@@ -1,6 +1,8 @@
 import { AlertCircle, Boxes, ClipboardCheck, GraduationCap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../../../components/common/Card';
+import LoadingCard, { LoadingTableCard } from '../../../components/common/LoadingCard';
+import EmptyState from '../../../components/ui/EmptyState';
 import { buildSparkline } from '../../../components/common/sparkline';
 import { Credential, CredentialRequest } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
@@ -243,204 +245,215 @@ export default function InstitutionOverviewSection({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <h3 className="text-[13px] font-semibold text-neutral-500">Pending Requests</h3>
-            <AlertCircle size={18} className="text-amber-500" />
-          </div>
-          <div className="mt-4 mb-3">
-            <p className="text-3xl font-bold tracking-tight text-neutral-900">{pendingRequests.toLocaleString()}</p>
-            <p className="mt-1 text-[11px] font-bold text-neutral-400">
-              <span className={pendingRequestGrowthClassName}>{formatPercent(pendingRequestGrowth)}</span> LAST 7 DAYS
-            </p>
-          </div>
-          <div className="mb-3 h-8 w-full">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-              <defs>
-                <linearGradient id="institutionPendingSparkline" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="rgb(245 158 11)" stopOpacity="0.24" />
-                  <stop offset="100%" stopColor="rgb(245 158 11)" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              {!isLoadingRequests && (
-                <g className="animate-sparkline">
-                  <path fill="url(#institutionPendingSparkline)" d={pendingRequestSparkline.areaD} />
-                  <path
-                    vectorEffect="non-scaling-stroke"
-                    fill="none"
-                    stroke="rgb(245 158 11)"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d={pendingRequestSparkline.pathD}
-                  />
-                </g>
-              )}
-            </svg>
-          </div>
-          <div className="mt-auto flex items-center justify-between gap-3">
-            <div className="flex h-6 items-center">
-              {recentPendingRequestStudents.length > 0 ? (
-                <>
-                  {recentPendingRequestStudents.slice(0, 2).map((student, index) => (
-                    <button
-                      key={student.id}
-                      type="button"
-                      onClick={() => navigate('/institution/requests')}
-                      className={`flex shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-700 hover:-translate-y-0.5 transition-transform shadow-sm ${index > 0 ? '-ml-2' : ''}`}
-                      title={`Open requests for ${getStudentFullName(student)}`}
-                    >
-                      <UserAvatar initials={getUserInitials(student)} size="xs" className="border-0 shadow-none" />
-                    </button>
-                  ))}
-                  {recentPendingRequestStudents.length > 2 && (
-                    <button
-                      type="button"
-                      onClick={() => navigate('/institution/requests')}
-                      className="-ml-2 flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-neutral-100 px-1 text-[9px] font-bold text-neutral-600 shadow-sm transition-colors hover:bg-neutral-200"
-                      title={`View ${pendingRequests} pending requests`}
-                    >
-                      +{recentPendingRequestStudents.length - 2}
-                    </button>
+        {isLoading ? (
+          <>
+            <LoadingCard className="h-full" rows={1} />
+            <LoadingCard className="h-full" rows={1} />
+            <LoadingCard className="h-full" rows={1} />
+            <LoadingCard className="h-full" rows={1} />
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between">
+                <h3 className="text-[13px] font-semibold text-neutral-500">Pending Requests</h3>
+                <AlertCircle size={18} className="text-amber-500" />
+              </div>
+              <div className="mt-4 mb-3">
+                <p className="text-3xl font-bold tracking-tight text-neutral-900">{pendingRequests.toLocaleString()}</p>
+                <p className="mt-1 text-[11px] font-bold text-neutral-400">
+                  <span className={pendingRequestGrowthClassName}>{formatPercent(pendingRequestGrowth)}</span> LAST 7 DAYS
+                </p>
+              </div>
+              <div className="mb-3 h-8 w-full">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+                  <defs>
+                    <linearGradient id="institutionPendingSparkline" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="rgb(245 158 11)" stopOpacity="0.24" />
+                      <stop offset="100%" stopColor="rgb(245 158 11)" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  {!isLoadingRequests && (
+                    <g className="animate-sparkline">
+                      <path fill="url(#institutionPendingSparkline)" d={pendingRequestSparkline.areaD} />
+                      <path
+                        vectorEffect="non-scaling-stroke"
+                        fill="none"
+                        stroke="rgb(245 158 11)"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin= "round"
+                        d={pendingRequestSparkline.pathD}
+                      />
+                    </g>
                   )}
-                </>
-              ) : (
-                <span className="text-[11px] text-neutral-400">No pending queue</span>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/institution/requests')}
-              className="text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400 transition hover:text-neutral-600"
-            >
-              Open queue
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <h3 className="text-[13px] font-semibold text-neutral-500">Authorized Students</h3>
-            <GraduationCap size={18} className="text-cyan-600" />
-          </div>
-          <div className="mt-4 mb-3">
-            <p className="text-3xl font-bold tracking-tight text-neutral-900">{activeStudents.toLocaleString()}</p>
-            <p className="mt-1 text-[11px] font-bold text-neutral-400">
-              <span className={authorizedStudentGrowthClassName}>{formatPercent(authorizedStudentGrowth)}</span> APPROVALS LAST 30 DAYS
-            </p>
-          </div>
-          <div className="mb-3 h-8 w-full">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-              <defs>
-                <linearGradient id="institutionStudentsSparkline" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="rgb(8 145 178)" stopOpacity="0.22" />
-                  <stop offset="100%" stopColor="rgb(8 145 178)" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              {!isLoadingStudents && (
-                <g className="animate-sparkline">
-                  <path fill="url(#institutionStudentsSparkline)" d={authorizedStudentsSparkline.areaD} />
-                  <path
-                    vectorEffect="non-scaling-stroke"
-                    fill="none"
-                    stroke="rgb(8 145 178)"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d={authorizedStudentsSparkline.pathD}
-                  />
-                </g>
-              )}
-            </svg>
-          </div>
-          <div className="mt-auto text-[10px] font-medium text-neutral-500">
-            Pending: {pendingStudents.toLocaleString()} &nbsp; Suspended: {suspendedStudents.toLocaleString()}
-          </div>
-        </div>
-
-        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <h3 className="text-[13px] font-semibold text-neutral-500">Blockchain Credentials</h3>
-            <Boxes size={18} className="text-cyan-600" />
-          </div>
-          <div className="mt-4 mb-3">
-            <p className="text-3xl font-bold tracking-tight text-neutral-900">{blockchainCredentials.toLocaleString()}</p>
-            <p className="mt-1 text-[11px] font-bold text-neutral-400">
-              <span className={blockchainGrowthClassName}>{formatPercent(blockchainGrowth)}</span> ISSUED LAST 30 DAYS
-            </p>
-          </div>
-          <div className="mb-3 h-8 w-full">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-              <defs>
-                <linearGradient id="institutionBlockchainSparkline" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor="rgb(6 182 212)" stopOpacity="0.22" />
-                  <stop offset="100%" stopColor="rgb(6 182 212)" stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              {!isLoadingCredentials && (
-                <g className="animate-sparkline">
-                  <path fill="url(#institutionBlockchainSparkline)" d={blockchainSparkline.areaD} />
-                  <path
-                    vectorEffect="non-scaling-stroke"
-                    fill="none"
-                    stroke="rgb(6 182 212)"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d={blockchainSparkline.pathD}
-                  />
-                </g>
-              )}
-            </svg>
-          </div>
-          <div className="mt-auto flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
-            <span>Credential trend</span>
-            <span>{blockchainSparkline.peak} peak</span>
-          </div>
-        </div>
-
-        <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <h3 className="text-[13px] font-semibold text-neutral-500">Awaiting Issuance</h3>
-            <ClipboardCheck size={18} className="text-emerald-500" />
-          </div>
-          <div className="mt-4 mb-3">
-            <p className="text-3xl font-bold tracking-tight text-neutral-900">{awaitingIssuanceCount.toLocaleString()}</p>
-            <p className="mt-1 text-[11px] font-bold text-neutral-400">
-              <span className={awaitingComparisonClassName}>{formatPercent(awaitingComparisonPercent)}</span> VS COMPLETED
-            </p>
-          </div>
-          <div className="mb-3 space-y-2.5">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between gap-3 text-[11px] font-semibold">
-                <span className="uppercase tracking-[0.08em] text-amber-500">
-                  Awaiting {awaitingIssuanceCount.toLocaleString()}
-                </span>
-                <span className="text-amber-500">{awaitingSharePercent.toFixed(0)}%</span>
+                </svg>
               </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-neutral-100">
-                <div
-                  className="h-full rounded-full bg-amber-500 transition-[width] duration-500 ease-out"
-                  style={{ width: `${awaitingSharePercent}%` }}
-                />
+              <div className="mt-auto flex items-center justify-between gap-3">
+                <div className="flex h-6 items-center">
+                  {recentPendingRequestStudents.length > 0 ? (
+                    <>
+                      {recentPendingRequestStudents.slice(0, 2).map((student, index) => (
+                        <button
+                          key={student.id}
+                          type="button"
+                          onClick={() => navigate('/institution/requests')}
+                          className={`flex shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-700 hover:-translate-y-0.5 transition-transform shadow-sm ${index > 0 ? '-ml-2' : ''}`}
+                          title={`Open requests for ${getStudentFullName(student)}`}
+                        >
+                          <UserAvatar initials={getUserInitials(student)} size="xs" className="border-0 shadow-none" />
+                        </button>
+                      ))}
+                      {recentPendingRequestStudents.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => navigate('/institution/requests')}
+                          className="-ml-2 flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-neutral-100 px-1 text-[9px] font-bold text-neutral-600 shadow-sm transition-colors hover:bg-neutral-200"
+                          title={`View ${pendingRequests} pending requests`}
+                        >
+                          +{recentPendingRequestStudents.length - 2}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-[11px] text-neutral-400">No pending queue</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/institution/requests')}
+                  className="text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400 transition hover:text-neutral-600"
+                >
+                  Open queue
+                </button>
               </div>
             </div>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between gap-3 text-[11px] font-semibold">
-                <span className="uppercase tracking-[0.08em] text-emerald-500">
-                  Completed {completedRequestsCount.toLocaleString()}
-                </span>
-                <span className="text-emerald-500">{completedSharePercent.toFixed(0)}%</span>
+
+            <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between">
+                <h3 className="text-[13px] font-semibold text-neutral-500">Authorized Students</h3>
+                <GraduationCap size={18} className="text-cyan-600" />
               </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-neutral-100">
-                <div
-                  className="h-full rounded-full bg-emerald-500 transition-[width] duration-500 ease-out"
-                  style={{ width: `${completedSharePercent}%` }}
-                />
+              <div className="mt-4 mb-3">
+                <p className="text-3xl font-bold tracking-tight text-neutral-900">{activeStudents.toLocaleString()}</p>
+                <p className="mt-1 text-[11px] font-bold text-neutral-400">
+                  <span className={authorizedStudentGrowthClassName}>{formatPercent(authorizedStudentGrowth)}</span> APPROVALS LAST 30 DAYS
+                </p>
+              </div>
+              <div className="mb-3 h-8 w-full">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+                  <defs>
+                    <linearGradient id="institutionStudentsSparkline" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="rgb(8 145 178)" stopOpacity="0.22" />
+                      <stop offset="100%" stopColor="rgb(8 145 178)" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  {!isLoadingStudents && (
+                    <g className="animate-sparkline">
+                      <path fill="url(#institutionStudentsSparkline)" d={authorizedStudentsSparkline.areaD} />
+                      <path
+                        vectorEffect="non-scaling-stroke"
+                        fill="none"
+                        stroke="rgb(8 145 178)"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d={authorizedStudentsSparkline.pathD}
+                      />
+                    </g>
+                  )}
+                </svg>
+              </div>
+              <div className="mt-auto text-[10px] font-medium text-neutral-500">
+                Pending: {pendingStudents.toLocaleString()} &nbsp; Suspended: {suspendedStudents.toLocaleString()}
               </div>
             </div>
-          </div>
-        </div>
+
+            <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between">
+                <h3 className="text-[13px] font-semibold text-neutral-500">Blockchain Credentials</h3>
+                <Boxes size={18} className="text-cyan-600" />
+              </div>
+              <div className="mt-4 mb-3">
+                <p className="text-3xl font-bold tracking-tight text-neutral-900">{blockchainCredentials.toLocaleString()}</p>
+                <p className="mt-1 text-[11px] font-bold text-neutral-400">
+                  <span className={blockchainGrowthClassName}>{formatPercent(blockchainGrowth)}</span> ISSUED LAST 30 DAYS
+                </p>
+              </div>
+              <div className="mb-3 h-8 w-full">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
+                  <defs>
+                    <linearGradient id="institutionBlockchainSparkline" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stopColor="rgb(6 182 212)" stopOpacity="0.22" />
+                      <stop offset="100%" stopColor="rgb(6 182 212)" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  {!isLoadingCredentials && (
+                    <g className="animate-sparkline">
+                      <path fill="url(#institutionBlockchainSparkline)" d={blockchainSparkline.areaD} />
+                      <path
+                        vectorEffect="non-scaling-stroke"
+                        fill="none"
+                        stroke="rgb(6 182 212)"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d={blockchainSparkline.pathD}
+                      />
+                    </g>
+                  )}
+                </svg>
+              </div>
+              <div className="mt-auto flex items-center justify-between text-[10px] font-medium uppercase tracking-[0.08em] text-neutral-400">
+                <span>Credential trend</span>
+                <span>{blockchainSparkline.peak} peak</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col justify-between rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between">
+                <h3 className="text-[13px] font-semibold text-neutral-500">Awaiting Issuance</h3>
+                <ClipboardCheck size={18} className="text-emerald-500" />
+              </div>
+              <div className="mt-4 mb-3">
+                <p className="text-3xl font-bold tracking-tight text-neutral-900">{awaitingIssuanceCount.toLocaleString()}</p>
+                <p className="mt-1 text-[11px] font-bold text-neutral-400">
+                  <span className={awaitingComparisonClassName}>{formatPercent(awaitingComparisonPercent)}</span> VS COMPLETED
+                </p>
+              </div>
+              <div className="mb-3 space-y-2.5">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-3 text-[11px] font-semibold">
+                    <span className="uppercase tracking-[0.08em] text-amber-500">
+                      Awaiting {awaitingIssuanceCount.toLocaleString()}
+                    </span>
+                    <span className="text-amber-500">{awaitingSharePercent.toFixed(0)}%</span>
+                  </div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-neutral-100">
+                    <div
+                      className="h-full rounded-full bg-amber-500 transition-[width] duration-500 ease-out"
+                      style={{ width: `${awaitingSharePercent}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-3 text-[11px] font-semibold">
+                    <span className="uppercase tracking-[0.08em] text-emerald-500">
+                      Completed {completedRequestsCount.toLocaleString()}
+                    </span>
+                    <span className="text-emerald-500">{completedSharePercent.toFixed(0)}%</span>
+                  </div>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-neutral-100">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-[width] duration-500 ease-out"
+                      style={{ width: `${completedSharePercent}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -460,21 +473,17 @@ export default function InstitutionOverviewSection({
               </div>
             }
           >
-            {isLoading && (
-              <div className="space-y-3">
-                {[1, 2, 3, 4].map(key => (
-                  <div key={key} className="h-14 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
-                ))}
+            {isLoading ? (
+              <div className="py-2 px-1">
+                <LoadingTableCard rows={5} className="border-0 shadow-none" />
               </div>
-            )}
-
-            {!isLoading && directoryRows.length === 0 && (
-              <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50/50 px-5 py-12 text-sm text-neutral-500">
-                No students found.
-              </div>
-            )}
-
-            {!isLoading && directoryRows.length > 0 && (
+            ) : directoryRows.length === 0 ? (
+              <EmptyState 
+                title="No students found" 
+                description="Your institution student directory is currently empty."
+                className="my-4 border-neutral-200"
+              />
+            ) : (
               <div className="flex h-full flex-col">
                 <div className="overflow-x-auto rounded-lg border border-neutral-200">
                   <table className="min-w-full text-left text-sm">
@@ -536,23 +545,20 @@ export default function InstitutionOverviewSection({
               </button>
             }
           >
-            {isLoadingRequests && (
+            {isLoadingRequests ? (
               <div className="space-y-3">
-                {[1, 2, 3].map(key => (
-                  <div key={key} className="h-16 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
-                ))}
+                <div className="skeleton-shimmer h-24 rounded-lg border border-neutral-200" />
+                <div className="skeleton-shimmer h-24 rounded-lg border border-neutral-200" />
+                <div className="skeleton-shimmer h-24 rounded-lg border border-neutral-200" />
               </div>
-            )}
-
-            {!isLoadingRequests && recentRequestRows.length === 0 && (
-              <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-neutral-300 bg-neutral-50/50 px-4 py-10 text-center">
-                <AlertCircle size={24} className="mb-2 text-neutral-400" />
-                <p className="text-sm font-medium text-neutral-600">No recent credential requests</p>
-                <p className="mt-1 text-xs text-neutral-400">New request activity will appear here.</p>
-              </div>
-            )}
-
-            {!isLoadingRequests && recentRequestRows.length > 0 && (
+            ) : recentRequestRows.length === 0 ? (
+              <EmptyState
+                icon={<AlertCircle size={22} />}
+                title="No recent requests"
+                description="New credential activity will appear here once students start submitting requests."
+                className="my-4 border-neutral-200"
+              />
+            ) : (
               <div className="flex h-full flex-col">
                 <div className="space-y-2">
                   {recentRequestRows.map(({ request, student }) => (
