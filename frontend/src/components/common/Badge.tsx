@@ -23,9 +23,9 @@ const statusStyles: Record<BadgeStatus, string> = {
   ISSUED: 'text-emerald-700',
   REVOKED: 'text-rose-700',
   SUSPENDED: 'text-warning-700',
-  EXPIRED: 'text-neutral-500',
+  EXPIRED: 'text-neutral-600',
   COMPLETED: 'text-success-700',
-  CANCELLED: 'text-neutral-500',
+  CANCELLED: 'text-neutral-700',
 };
 
 export default function Badge({ status, className }: BadgeProps) {
