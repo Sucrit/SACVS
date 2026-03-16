@@ -109,11 +109,9 @@ export default function AdminDashboard() {
     selectedRiskEventId,
     selectedRiskEvent,
     isLoadingSelectedRiskEvent,
-    isExportingRiskReport,
     handleRiskReviewUpdate,
     openRiskEventDetails,
     closeRiskEventDetails,
-    exportReviewedRiskReport,
     stepUpModal,
   } = useAdminDashboardState();
 
