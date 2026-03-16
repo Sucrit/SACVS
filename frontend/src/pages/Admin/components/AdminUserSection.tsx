@@ -5,6 +5,7 @@ import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import PaginationControls from '../../../components/common/PaginationControls';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
+import UserAvatar from '../../../components/common/UserAvatar';
 import AdminUserDetailsDrawer from './AdminUserDetailsDrawer';
 import { User, UserRole, UserStatus } from '../../../services/user.service';
 import { formatDate } from '../../../utils/formatting';
@@ -149,9 +150,7 @@ export default function AdminUserSection({
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
-                        {getInitials(user)}
-                      </div>
+                      <UserAvatar initials={getInitials(user)} />
                       <div>
                         <p className="font-semibold text-neutral-900">{getFullName(user)}</p>
                         <p className="text-xs text-neutral-500">{user.email}</p>

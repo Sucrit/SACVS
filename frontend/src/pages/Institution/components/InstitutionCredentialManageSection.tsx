@@ -3,6 +3,7 @@ import { ClipboardCheck, MoreVertical, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Modal from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
+import UserAvatar from '../../../components/common/UserAvatar';
 import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import Badge from '../../../components/common/Badge';
 import {
@@ -120,9 +121,7 @@ export default function InstitutionCredentialManageSection({
 
                             return (
                               <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
-                                  {getUserInitials(student)}
-                                </div>
+                                <UserAvatar initials={getUserInitials(student)} />
                                 <div>
                                   <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
                                   <p className="mt-1 text-xs text-neutral-500">{student.email}</p>
@@ -342,3 +341,4 @@ export default function InstitutionCredentialManageSection({
     </Card>
   );
 }
+

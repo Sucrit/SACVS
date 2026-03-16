@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import Badge from '../../../components/common/Badge';
+import UserAvatar from '../../../components/common/UserAvatar';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import Button from '../../../components/ui/Button';
 import { User, UserRole, UserStatus } from '../../../services/user.service';
@@ -91,9 +92,7 @@ export default function AdminUserDetailsDrawer({
               <div className="space-y-8">
                 {/* Identity header / profile block */}
                 <section className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-base font-bold text-neutral-700">
-                    {getInitials(user)}
-                  </div>
+                  <UserAvatar initials={getInitials(user)} size="lg" />
                   <div className="min-w-0 flex-1">
                     <p className="text-xl font-semibold text-neutral-900">{getFullName(user)}</p>
                     <p className="mt-1 text-sm text-neutral-500">{user.email}</p>

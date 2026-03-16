@@ -6,6 +6,7 @@ import {
   Users,
 } from 'lucide-react';
 import Card from '../../../components/common/Card';
+import UserAvatar from '../../../components/common/UserAvatar';
 import { buildSparkline } from '../../../components/common/sparkline';
 import { formatDate, formatDateTime } from '../../../utils/formatting';
 import { getFullName, getInitials } from '../useAdminDashboardState';
@@ -500,9 +501,7 @@ export default function AdminOverviewSection({
                           <tr key={user.id} className="hover:bg-neutral-50/50">
                             <td className="px-4 py-3 font-medium text-neutral-900">
                               <div className="flex items-center gap-3">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700">
-                                  {getInitials(user)}
-                                </div>
+                                <UserAvatar initials={getInitials(user)} />
                                 {getFullName(user)}
                               </div>
                             </td>

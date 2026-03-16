@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Check, ClipboardCheck, Search, Upload, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
@@ -10,6 +10,7 @@ import Modal from '../../../components/ui/Modal';
 import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import { CredentialRequest, CredentialType } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
+import UserAvatar from '../../../components/common/UserAvatar';
 import { REQUEST_STATUS_OPTIONS, RequestStatusFilter } from '../types';
 import { formatDate, getStudentFullName, getUserInitials } from '../utils';
 
@@ -234,9 +235,7 @@ export default function InstitutionRequestsSection({
 
                       return (
                         <div className="flex w-full items-center gap-3 text-left">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
-                            {getUserInitials(student)}
-                          </div>
+                          <UserAvatar initials={getUserInitials(student)} />
                           <div>
                             <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
                             <p className="mt-1 text-xs text-neutral-500">{student.profile?.studentNumber || student.email}</p>

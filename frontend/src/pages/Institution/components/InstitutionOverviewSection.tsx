@@ -4,6 +4,7 @@ import Card from '../../../components/common/Card';
 import { buildSparkline } from '../../../components/common/sparkline';
 import { Credential, CredentialRequest } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
+import UserAvatar from '../../../components/common/UserAvatar';
 import { getStudentFullName, getUserInitials } from '../utils';
 
 interface InstitutionOverviewSectionProps {
@@ -286,10 +287,10 @@ export default function InstitutionOverviewSection({
                       key={student.id}
                       type="button"
                       onClick={() => navigate('/institution/requests')}
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-700 text-[10px] font-bold text-white shadow-sm transition-transform hover:-translate-y-0.5 ${index > 0 ? '-ml-2' : ''}`}
+                      className={`flex shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-700 hover:-translate-y-0.5 transition-transform shadow-sm ${index > 0 ? '-ml-2' : ''}`}
                       title={`Open requests for ${getStudentFullName(student)}`}
                     >
-                      {getUserInitials(student)}
+                      <UserAvatar initials={getUserInitials(student)} size="sm" className="border-0 shadow-none" />
                     </button>
                   ))}
                   {recentPendingRequestStudents.length > 2 && (
@@ -490,9 +491,7 @@ export default function InstitutionOverviewSection({
                         <tr key={student.id} className="hover:bg-neutral-50/50">
                           <td className="px-4 py-3 font-medium text-neutral-900">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
-                                {getUserInitials(student)}
-                              </div>
+                              <UserAvatar initials={getUserInitials(student)} />
                               <div>
                                 <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
                                 <p className="text-xs text-neutral-500">{student.email}</p>
@@ -561,9 +560,7 @@ export default function InstitutionOverviewSection({
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
-                              {student ? getUserInitials(student) : 'NA'}
-                            </div>
+                            <UserAvatar initials={student ? getUserInitials(student) : 'NA'} />
                             <div className="min-w-0">
                               <p className="truncate text-sm font-semibold text-neutral-900">
                                 {student ? getStudentFullName(student) : 'Student unavailable'}

@@ -1,4 +1,4 @@
-﻿import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, PauseCircle, Pencil, Search, Trash2, Upload, UserPlus, X, XCircle } from 'lucide-react';
 import Card from '../../../components/common/Card';
@@ -11,6 +11,7 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import { User, UserStatus } from '../../../services/user.service';
 import { StudentFormState, StudentStatusFilter, STUDENT_STATUS_OPTIONS } from '../types';
+import UserAvatar from '../../../components/common/UserAvatar';
 import { getStudentFullName, getUserInitials } from '../utils';
 import {
   DEFAULT_DEPARTMENT_OPTIONS,
@@ -219,7 +220,7 @@ export default function InstitutionStudentsSection({
               <input
                 value={studentSearch}
                 onChange={event => onStudentSearchChange(event.target.value)}
-                placeholder="Search name, email, student #, department..."
+                placeholder="Search name, email, student ID, department..."
                 className="h-9 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-3 text-sm outline-none focus:bg-white focus:ring-2 focus:ring-primary-100 focus:border-primary-500 transition-all"
               />
             </div>
@@ -255,7 +256,7 @@ export default function InstitutionStudentsSection({
             <thead className="bg-neutral-50 text-xs font-semibold  text-neutral-500">
               <tr>
                 <th className="px-4 py-3">Student Information</th>
-                <th className="hidden px-4 py-3 sm:table-cell">Student #</th>
+                <th className="hidden px-4 py-3 sm:table-cell">Student ID</th>
                 <th className="hidden px-4 py-3 md:table-cell">Department</th>
                 <th className="hidden px-4 py-3 lg:table-cell">Program</th>
                 <th className="px-4 py-3">Status</th>
@@ -270,9 +271,7 @@ export default function InstitutionStudentsSection({
                 <tr key={student.id} className="hover:bg-neutral-50/70">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
-                        {getUserInitials(student)}
-                      </div>
+                      <UserAvatar initials={getUserInitials(student)} />
                       <div>
                         <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
                         <p className="mt-1 text-xs text-neutral-500">{student.email}</p>

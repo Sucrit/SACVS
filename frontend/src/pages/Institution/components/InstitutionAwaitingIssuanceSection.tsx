@@ -12,6 +12,7 @@ import {
   CredentialType,
 } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
+import UserAvatar from '../../../components/common/UserAvatar';
 import { formatDateTime, getStudentFullName, getUserInitials } from '../utils';
 
 const EXPIRY_ALLOWED_TYPES: CredentialType[] = ['CERTIFICATE', 'LICENSE'];
@@ -152,9 +153,7 @@ export default function InstitutionAwaitingIssuanceSection({
                                 onClick={() => setSelectedRequestId(request.id)}
                                 className="flex w-full items-center gap-3 text-left transition hover:opacity-80"
                               >
-                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
-                                  {getUserInitials(student)}
-                                </div>
+                                <UserAvatar initials={getUserInitials(student)} />
                                 <div className="min-w-0">
                                   <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
                                   <p className="mt-1 truncate text-xs text-neutral-500">{student.email}</p>

@@ -1,4 +1,5 @@
-﻿import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
+import UserAvatar from '../../../components/common/UserAvatar';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ClipboardCheck, Upload, X } from 'lucide-react';
@@ -277,7 +278,7 @@ export default function InstitutionIssueSection({
         <button
           type="button"
           onClick={() => setIsDirectIssueModalOpen(true)}
-          className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
+          className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-SLATE-700-TEST-MARKER"
           title="Issue credential directly via modal form"
         >
           <ClipboardCheck size={14} />
@@ -532,9 +533,7 @@ export default function InstitutionIssueSection({
 
                         return (
                           <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
-                              {getUserInitials(student)}
-                            </div>
+                            <UserAvatar initials={getUserInitials(student)} />
                             <div>
                               <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
                               <p className="mt-1 text-xs text-neutral-500">{student.email}</p>
@@ -827,9 +826,7 @@ export default function InstitutionIssueSection({
                       <td className="px-4 py-3 text-sm text-neutral-700">
                         {student ? (
                           <div className="flex items-center gap-3">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-200 bg-neutral-100 text-xs font-bold text-neutral-700">
-                              {getUserInitials(student)}
-                            </div>
+                            <UserAvatar initials={getUserInitials(student)} />
                             <div>
                               <p className="font-semibold text-neutral-900">{getStudentFullName(student)}</p>
                               <p className="mt-1 text-xs text-neutral-500">{student.email}</p>
@@ -876,7 +873,7 @@ export default function InstitutionIssueSection({
                                 );
                             }}
                             disabled={updatingCredentialId === credential.id || isLockedForStatusUpdate || isStatusUnchanged}
-                            className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
+                            className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 hover:bg-SLATE-700-TEST-MARKER disabled:opacity-50"
                           >
                             Save
                           </button>
@@ -1048,3 +1045,5 @@ export default function InstitutionIssueSection({
     </div>
   );
 }
+
+

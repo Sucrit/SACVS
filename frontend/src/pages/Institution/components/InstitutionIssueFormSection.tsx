@@ -1,7 +1,8 @@
-﻿import { FormEvent, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, ClipboardCheck, Search, Upload, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
+import UserAvatar from '../../../components/common/UserAvatar';
 import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import Button from '../../../components/ui/Button';
 import { useToast } from '../../../hooks/useToast';
@@ -271,9 +272,7 @@ export default function InstitutionIssueFormSection({
                   >
                     {selectedStudent ? (
                       <>
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-900 text-xs font-semibold text-white">
-                          {getUserInitials(selectedStudent)}
-                        </span>
+                        <UserAvatar initials={getUserInitials(selectedStudent)} className="bg-neutral-900 border-none h-9 w-9" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-semibold text-neutral-900">
                             {studentNameById.get(selectedStudent.id) || selectedStudent.email}
@@ -324,9 +323,7 @@ export default function InstitutionIssueFormSection({
                             onClick={() => handleSelectStudent(student.id)}
                             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition hover:bg-neutral-50"
                           >
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold text-neutral-700">
-                              {getUserInitials(student)}
-                            </span>
+                            <UserAvatar initials={getUserInitials(student)} className="h-9 w-9" />
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-sm font-semibold text-neutral-900">
                                 {studentNameById.get(student.id) || student.email}
