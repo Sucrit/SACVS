@@ -279,7 +279,7 @@ export default function InstitutionOverviewSection({
             </svg>
           </div>
           <div className="mt-auto flex items-center justify-between gap-3">
-            <div className="flex h-7 items-center">
+            <div className="flex h-6 items-center">
               {recentPendingRequestStudents.length > 0 ? (
                 <>
                   {recentPendingRequestStudents.slice(0, 2).map((student, index) => (
@@ -290,14 +290,14 @@ export default function InstitutionOverviewSection({
                       className={`flex shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-700 hover:-translate-y-0.5 transition-transform shadow-sm ${index > 0 ? '-ml-2' : ''}`}
                       title={`Open requests for ${getStudentFullName(student)}`}
                     >
-                      <UserAvatar initials={getUserInitials(student)} size="sm" className="border-0 shadow-none" />
+                      <UserAvatar initials={getUserInitials(student)} size="xs" className="border-0 shadow-none" />
                     </button>
                   ))}
                   {recentPendingRequestStudents.length > 2 && (
                     <button
                       type="button"
                       onClick={() => navigate('/institution/requests')}
-                      className="-ml-2 flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border-2 border-white bg-neutral-100 px-1.5 text-[10px] font-bold text-neutral-600 shadow-sm transition-colors hover:bg-neutral-200"
+                      className="-ml-2 flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-neutral-100 px-1 text-[9px] font-bold text-neutral-600 shadow-sm transition-colors hover:bg-neutral-200"
                       title={`View ${pendingRequests} pending requests`}
                     >
                       +{recentPendingRequestStudents.length - 2}
@@ -525,7 +525,7 @@ export default function InstitutionOverviewSection({
         <div className="xl:h-full">
           <Card
             className="flex h-full flex-col"
-            title="Partnetship Request"
+            title="Partnetship Requests"
             action={
               <button
                 type="button"
@@ -569,7 +569,7 @@ export default function InstitutionOverviewSection({
                             </div>
                           </div>
                           <p className="mt-2 text-xs text-neutral-500">
-                            {formatShortDate(request.createdAt)} � {request.deliveryMethod}
+                            {formatShortDate(request.createdAt)} • {request.deliveryMethod}
                           </p>
                         </div>
                         <span className={`shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] ${getOverviewStatusTextClass(request.status)}`}>

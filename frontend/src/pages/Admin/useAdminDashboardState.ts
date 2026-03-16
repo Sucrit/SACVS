@@ -15,6 +15,7 @@ import { AppNotification, NotificationService } from '../../services/notificatio
 import { useStepUp } from '../../hooks/useStepUp';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { useToast } from '../../hooks/useToast';
+import { useSearchParamsState } from '../../hooks/useSearchParamsState';
 import { getApiErrorMessage } from '../../utils/errors';
 import { getRoleStyle, getRiskBandStyle, getRiskReviewStyle } from '../../utils/statusStyles';
 
@@ -183,9 +184,9 @@ export function useAdminDashboardState(): AdminDashboardState {
   const [usersError, setUsersError] = useState<string | null>(null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
   const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const [search, setSearch] = useSearchParamsState('q', '');
+  const [roleFilter, setRoleFilter] = useSearchParamsState<RoleFilter>('rf', 'ALL');
+  const [statusFilter, setStatusFilter] = useSearchParamsState<StatusFilter>('sf', 'ALL');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   // --- Notification state ---
@@ -202,16 +203,16 @@ export function useAdminDashboardState(): AdminDashboardState {
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
   const [hasLoadedAuditLogs, setHasLoadedAuditLogs] = useState(false);
-  const [auditActionFilter, setAuditActionFilter] = useState<'ALL' | AuditAction>('ALL');
-  const [auditSeverityFilter, setAuditSeverityFilter] = useState<'ALL' | AuditSeverity>('ALL');
+  const [auditActionFilter, setAuditActionFilter] = useSearchParamsState<'ALL' | AuditAction>('aa', 'ALL');
+  const [auditSeverityFilter, setAuditSeverityFilter] = useSearchParamsState<'ALL' | AuditSeverity>('as', 'ALL');
   const [auditPage, setAuditPage] = useState(1);
   const [auditPageSize, setAuditPageSize] = useState(20);
 
   // --- Risk events state ---
   const [riskEvents, setRiskEvents] = useState<RiskEventRecord[]>([]);
   const [isLoadingRiskEvents, setIsLoadingRiskEvents] = useState(false);
-  const [riskBandFilter, setRiskBandFilter] = useState<RiskBand | 'ALL'>('ALL');
-  const [riskReviewFilter, setRiskReviewFilter] = useState<RiskReviewStatus | 'ALL'>('ALL');
+  const [riskBandFilter, setRiskBandFilter] = useSearchParamsState<RiskBand | 'ALL'>('rb', 'ALL');
+  const [riskReviewFilter, setRiskReviewFilter] = useSearchParamsState<RiskReviewStatus | 'ALL'>('rr', 'ALL');
   const [reviewedOnly, setReviewedOnly] = useState(false);
   const [riskPage, setRiskPage] = useState(1);
   const [riskPageSize, setRiskPageSize] = useState(20);

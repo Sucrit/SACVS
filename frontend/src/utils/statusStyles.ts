@@ -71,8 +71,8 @@ export const getRiskBandStyle = (riskBand: RiskBand): string =>
 
 const ROLE_STYLES: Record<UserRole, string> = {
   ADMIN: 'text-neutral-800',
-  INSTITUTION: 'text-cyan-800',
-  STUDENT: 'text-neutral-700',
+  INSTITUTION: 'text-neutral-800',
+  STUDENT: 'text-neutral-800',
 };
 
 export const getRoleStyle = (role: UserRole): string =>

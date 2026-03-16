@@ -376,12 +376,12 @@ export default function AdminOverviewSection({
                     <Link
                       key={u.id}
                       to={`${pendingInstitutionListPath}&userId=${encodeURIComponent(u.id)}`}
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-white bg-slate-700 text-[10px] font-bold text-white shadow-sm transition-transform hover:-translate-y-0.5 ${i > 0 ? '-ml-2' : ''}`}
+                      className={`block transition-transform hover:-translate-y-0.5 ${i > 0 ? '-ml-2' : ''}`}
                       style={{ zIndex: 10 - i }}
                       title={`Open ${getFullName(u)} in pending institution approvals`}
                       aria-label={`Open ${getFullName(u)} in pending institution approvals`}
                     >
-                      {u.firstName?.[0] || u.email[0].toUpperCase()}
+                      <UserAvatar initials={getInitials(u)} size="xs" className="border-2 border-white" />
                     </Link>
                   ));
                 })()}

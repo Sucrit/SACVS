@@ -15,6 +15,7 @@ import {
 } from '../../../services/credential.service';
 import { useStepUp } from '../../../hooks/useStepUp';
 import { useToast } from '../../../hooks/useToast';
+import { useSearchParamsState } from '../../../hooks/useSearchParamsState';
 import { formatStudentStatusLabel, getStudentStatusTextClass } from '../utils';
 import {
   MODAL_BACKDROP_VARIANTS,
@@ -184,9 +185,9 @@ export default function StudentCredentialsSection({
   onOpenDetails,
   heading,
 }: StudentCredentialsSectionProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<CredentialTypeFilter>('ALL');
-  const [dateFilter, setDateFilter] = useState<DateRangeFilter>('ALL');
+  const [searchTerm, setSearchTerm] = useSearchParamsState('cq', '');
+  const [typeFilter, setTypeFilter] = useSearchParamsState<CredentialTypeFilter>('ct', 'ALL');
+  const [dateFilter, setDateFilter] = useSearchParamsState<DateRangeFilter>('cd', 'ALL');
   const [shareCredential, setShareCredential] = useState<Credential | null>(null);
   const [qrToken, setQrToken] = useState<GeneratedQrTokenResponse | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);

@@ -121,8 +121,8 @@ export default function AdminUserSection({
               <tr>
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Role</th>
-                <th className="px-4 py-3">Status</th>
                 <th className="hidden px-4 py-3 md:table-cell">Organization Name</th>
+                <th className="px-4 py-3">Status</th>
                 <th className="hidden px-4 py-3 sm:table-cell">Created At</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
@@ -162,11 +162,11 @@ export default function AdminUserSection({
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <Badge status={user.status} />
-                  </td>
                   <td className="hidden px-4 py-3 text-sm text-neutral-600 md:table-cell">
                     {getLinkedOrganizationLabel(user)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge status={user.status} />
                   </td>
                   <td className="hidden px-4 py-3 text-sm text-neutral-600 sm:table-cell">
                     {formatDate(user.createdAt)}

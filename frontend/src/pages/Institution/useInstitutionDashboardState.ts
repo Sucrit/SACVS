@@ -35,6 +35,7 @@ import {
 import { useStepUp } from '../../hooks/useStepUp';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { useToast } from '../../hooks/useToast';
+import { useSearchParamsState } from '../../hooks/useSearchParamsState';
 
 // --- Helpers (module-level, not exported) ---
 
@@ -202,8 +203,8 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   const [requestsError, setRequestsError] = useState<string | null>(null);
   const [requestsHint, setRequestsHint] = useState<string | null>(null);
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
-  const [requestSearch, setRequestSearch] = useState('');
-  const [requestStatusFilter, setRequestStatusFilter] = useState<RequestStatusFilter>('ALL');
+  const [requestSearch, setRequestSearch] = useSearchParamsState('rq', '');
+  const [requestStatusFilter, setRequestStatusFilter] = useSearchParamsState<RequestStatusFilter>('rs', 'ALL');
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
   const [rejectionReasonByRequestId, setRejectionReasonByRequestId] = useState<Record<string, string>>({});
   const [issueFileByRequestId, setIssueFileByRequestId] = useState<Record<string, File | null>>({});
@@ -219,8 +220,8 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
   const [hasLoadedAuditLogs, setHasLoadedAuditLogs] = useState(false);
-  const [auditActionFilter, setAuditActionFilter] = useState<'ALL' | AuditAction>('ALL');
-  const [auditSeverityFilter, setAuditSeverityFilter] = useState<'ALL' | AuditSeverity>('ALL');
+  const [auditActionFilter, setAuditActionFilter] = useSearchParamsState<'ALL' | AuditAction>('aa', 'ALL');
+  const [auditSeverityFilter, setAuditSeverityFilter] = useSearchParamsState<'ALL' | AuditSeverity>('as', 'ALL');
   const [auditPage, setAuditPage] = useState(1);
   const [auditPageSize, setAuditPageSize] = useState(20);
 
@@ -235,9 +236,9 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   const [updatingStudentId, setUpdatingStudentId] = useState<string | null>(null);
   const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
   const [isBulkImporting, setIsBulkImporting] = useState(false);
-  const [studentSearch, setStudentSearch] = useState('');
-  const [studentStatusFilter, setStudentStatusFilter] = useState<StudentStatusFilter>('ALL');
-  const [studentDepartmentFilter, setStudentDepartmentFilter] = useState('ALL');
+  const [studentSearch, setStudentSearch] = useSearchParamsState('sq', '');
+  const [studentStatusFilter, setStudentStatusFilter] = useSearchParamsState<StudentStatusFilter>('ss', 'ALL');
+  const [studentDepartmentFilter, setStudentDepartmentFilter] = useSearchParamsState('sd', 'ALL');
   const [studentForm, setStudentForm] = useState<StudentFormState>(DEFAULT_STUDENT_FORM);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [editStudentForm, setEditStudentForm] = useState<StudentFormState>(DEFAULT_STUDENT_FORM);

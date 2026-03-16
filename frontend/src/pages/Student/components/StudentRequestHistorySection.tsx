@@ -28,6 +28,7 @@ import {
 } from '../../../services/credential.service';
 import { formatDate, formatStudentStatusLabel, getStudentStatusTextClass } from '../utils';
 import { useToast } from '../../../hooks/useToast';
+import { useSearchParamsState } from '../../../hooks/useSearchParamsState';
 import {
   MODAL_BACKDROP_VARIANTS,
   MODAL_PANEL_VARIANTS,
@@ -69,9 +70,9 @@ export default function StudentRequestHistorySection({
   onDetailsRequestConsumed,
 }: StudentRequestHistorySectionProps) {
   const { showToast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<RequestTypeFilter>('ALL');
-  const [dateFilter, setDateFilter] = useState<DateRangeFilter>('ALL');
+  const [searchTerm, setSearchTerm] = useSearchParamsState('rhq', '');
+  const [typeFilter, setTypeFilter] = useSearchParamsState<RequestTypeFilter>('rht', 'ALL');
+  const [dateFilter, setDateFilter] = useSearchParamsState<DateRangeFilter>('rhd', 'ALL');
   const [openMenuRequestId, setOpenMenuRequestId] = useState<string | null>(null);
   const [detailsRequest, setDetailsRequest] = useState<(CredentialRequest & { _uiKey?: string }) | null>(null);
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
