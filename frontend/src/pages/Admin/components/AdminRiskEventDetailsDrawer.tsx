@@ -185,7 +185,14 @@ export default function AdminRiskEventDetailsDrawer({
                     </div>
                     <div>
                       <p className="text-xs font-semibold  text-neutral-500">Review Status</p>
-                      <p className="mt-2 text-base font-semibold text-neutral-900">{formatRiskReviewStatus(event.reviewStatus)}</p>
+                      <p className={`mt-2 text-sm font-semibold tracking-[0.08em] ${
+                        event.reviewStatus === 'PENDING_REVIEW' ? 'text-amber-500' :
+                        event.reviewStatus === 'CONFIRMED_ABUSE' ? 'text-rose-800' :
+                        event.reviewStatus === 'BENIGN' ? 'text-emerald-600' :
+                        'text-neutral-900'
+                      }`}>
+                        {formatRiskReviewStatus(event.reviewStatus)}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold  text-neutral-500">Reason Code</p>

@@ -79,6 +79,7 @@ export const getRiskReviewStyles = (reviewStatus: RiskReviewStatus) => {
   if (reviewStatus === 'CONFIRMED_ABUSE') return 'text-rose-700';
   if (reviewStatus === 'BENIGN') return 'text-emerald-700';
   if (reviewStatus === 'UNCERTAIN') return 'text-amber-700';
+  if (reviewStatus === 'PENDING_REVIEW') return 'text-amber-500';
   return 'text-neutral-700';
 };
 
