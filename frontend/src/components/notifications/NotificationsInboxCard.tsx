@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCheck, MoreHorizontal, Settings } from 'lucide-react';
 import Card from '../common/Card';
@@ -197,9 +198,12 @@ export default function NotificationsInboxCard({
 
       {!isLoading && filteredNotifications.length > 0 && (
         <div className="space-y-2">
-          {pagedNotifications.map(notification => (
-            <article
+          {pagedNotifications.map((notification, index) => (
+            <motion.article
               key={notification.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
               role="button"
               tabIndex={0}
               onClick={() => onNotificationClick(notification)}
@@ -231,7 +235,7 @@ export default function NotificationsInboxCard({
                   {renderFooter(notification)}
                 </div>
               )}
-            </article>
+            </motion.article>
           ))}
         </div>
       )}

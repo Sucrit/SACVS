@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Bell } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
@@ -136,9 +137,12 @@ export default function InstitutionNotificationsSection({
                   </td>
                 </tr>
               )}
-              {pagedNotifications.map(item => (
-                <tr
+               {pagedNotifications.map((item, index) => (
+                <motion.tr
                   key={item.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
                   className="hover:bg-neutral-50/70"
                 >
                   <td className="px-4 py-3 text-sm text-neutral-700">{item.target}</td>
@@ -147,7 +151,7 @@ export default function InstitutionNotificationsSection({
                   <td className="px-4 py-3 text-sm text-neutral-600">{item.recipientCount}</td>
                   <td className="px-4 py-3 text-sm text-neutral-600">{item.createdByName || item.createdByEmail}</td>
                   <td className="px-4 py-3 text-sm text-neutral-600">{formatDateTime(item.createdAt)}</td>
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>

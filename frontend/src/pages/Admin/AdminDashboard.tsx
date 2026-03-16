@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
@@ -437,15 +438,6 @@ export default function AdminDashboard() {
                 </p>
               </div>
             </div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => void exportReviewedRiskReport()}
-              loading={isExportingRiskReport}
-            >
-              Export reviewed CSV
-            </Button>
           </div>
         }
       >
@@ -487,9 +479,12 @@ export default function AdminDashboard() {
                 </tr>
               )}
               {!isLoadingRiskEvents &&
-                riskEvents.map(event => (
-                  <tr
+                riskEvents.map((event, index) => (
+                  <motion.tr
                     key={event.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
                     className="align-top cursor-pointer hover:bg-neutral-50/70"
                     onClick={() => void openRiskEventDetails(event.id)}
                   >
@@ -547,7 +542,7 @@ export default function AdminDashboard() {
                         />
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
             </tbody>
           </table>
@@ -631,9 +626,12 @@ export default function AdminDashboard() {
                 </tr>
               )}
               {!isLoadingAuditLogs &&
-                pagedAdminAuditLogs.map(log => (
-                  <tr
+                pagedAdminAuditLogs.map((log, index) => (
+                  <motion.tr
                     key={log.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
                     className="cursor-pointer hover:bg-neutral-50/70"
                     onClick={() => setSelectedAuditLogId(log.id)}
                   >
@@ -644,7 +642,7 @@ export default function AdminDashboard() {
                     </td>
                     <td className="hidden px-4 py-3 text-xs text-neutral-600 md:table-cell">{log.actorEmail || '-'}</td>
                     <td className="hidden px-4 py-3 text-sm text-neutral-700 lg:table-cell">{log.description || '-'}</td>
-                  </tr>
+                  </motion.tr>
                 ))}
             </tbody>
           </table>

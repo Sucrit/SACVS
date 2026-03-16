@@ -1,5 +1,6 @@
 import { AlertCircle, Boxes, ClipboardCheck, GraduationCap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import Card from '../../../components/common/Card';
 import LoadingCard, { LoadingTableCard } from '../../../components/common/LoadingCard';
 import EmptyState from '../../../components/ui/EmptyState';
@@ -496,8 +497,14 @@ export default function InstitutionOverviewSection({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-neutral-200 bg-white">
-                      {directoryRows.map(student => (
-                        <tr key={student.id} className="hover:bg-neutral-50/50">
+                      {directoryRows.map((student, index) => (
+                        <motion.tr
+                          key={student.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          className="hover:bg-neutral-50/50"
+                        >
                           <td className="px-4 py-3 font-medium text-neutral-900">
                             <div className="flex items-center gap-3">
                               <UserAvatar initials={getUserInitials(student)} />
@@ -518,7 +525,7 @@ export default function InstitutionOverviewSection({
                               {formatStatusText(student.status)}
                             </span>
                           </td>
-                        </tr>
+                        </motion.tr>
                       ))}
                     </tbody>
                   </table>

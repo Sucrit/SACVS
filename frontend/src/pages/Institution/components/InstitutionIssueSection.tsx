@@ -267,6 +267,201 @@ export default function InstitutionIssueSection({
       const next = { ...previous };
       delete next[reissueCredential.id];
       return next;
+    type: CredentialType;
+    title: string;
+    description?: string;
+    expiryDate?: string;
+    certificateCategory?: CertificateCategory;
+    file: File;
+  }) => Promise<Credential>;
+  onCredentialStatusUpdate: (credentialId: string, status: CredentialStatus) => Promise<void>;
+  onCredentialReissue: (credentialId: string, file?: File) => Promise<void>;
+}
+
+export default function InstitutionIssueSection({
+  students,
+  credentials,
+  isLoadingCredentials,
+  requests,
+  isLoadingRequests,
+  updatingRequestId,
+  issueFileByRequestId,
+  issueExpiryByRequestId,
+  onIssueFileChange,
+  onIssueExpiryChange,
+  onRequestAction,
+  onDirectIssue,
+  onCredentialStatusUpdate,
+  onCredentialReissue
+}: InstitutionIssueSectionProps) {
+  const { showToast } = useToast();
+  const [directForm, setDirectForm] = useState({
+    studentId: '',
+    type: 'TRANSCRIPT' as CredentialType,
+    title: '',
+    description: '',
+    expiryDate: '',
+    certificateCategory: DEFAULT_CERTIFICATE_CATEGORY as CertificateCategory,
+  });
+  const [directFile, setDirectFile] = useState<File | null>(null);
+  const [isDirectFileDragActive, setIsDirectFileDragActive] = useState(false);
+  const [isDirectIssuing, setIsDirectIssuing] = useState(false);
+  const [isDirectIssueModalOpen, setIsDirectIssueModalOpen] = useState(false);
+
+  const [statusByCredentialId, setStatusByCredentialId] = useState<Record<string, CredentialStatus>>({});
+  const [reissueFileByCredentialId, setReissueFileByCredentialId] = useState<Record<string, File | null>>({});
+  const [updatingCredentialId, setUpdatingCredentialId] = useState<string | null>(null);
+  const [reissuingCredentialId, setReissuingCredentialId] = useState<string | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [issuingRequestId, setIssuingRequestId] = useState<string | null>(null);
+  const [isIssueFileDragActive, setIsIssueFileDragActive] = useState(false);
+  const [reissueModalCredentialId, setReissueModalCredentialId] = useState<string | null>(null);
+  const [isReissueFileDragActive, setIsReissueFileDragActive] = useState(false);
+
+  const studentById = useMemo(
+    () => new Map(students.map(student => [student.id, student] as const)),
+    [students],
+  );
+
+  const eligibleStudents = useMemo(
+    () => students.filter(student => student.role === 'STUDENT'),
+    [students],
+  );
+
+  const institutionCredentials = useMemo(
+    () => [...credentials].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    [credentials],
+  );
+
+  const readyToIssue = useMemo(
+    () =>
+      requests
+        .filter(request => request.status === 'APPROVED')
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [requests],
+  );
+  const selectedRequest = useMemo(
+    () => readyToIssue.find(request => request.id === selectedRequestId) || null,
+    [readyToIssue, selectedRequestId],
+  );
+  const selectedRequestStudent = selectedRequest ? studentById.get(selectedRequest.studentId) || null : null;
+  const issuingRequest = useMemo(
+    () => readyToIssue.find(request => request.id === issuingRequestId) || null,
+    [readyToIssue, issuingRequestId],
+  );
+  const issuingRequestCertificateCategory = issuingRequest?.type === 'CERTIFICATE' ? getRequestCertificateCategory(issuingRequest) : DEFAULT_CERTIFICATE_CATEGORY;
+  const issuingRequestRequiresExpiry = issuingRequest ? requiresExpiryDate(issuingRequest.type, issuingRequestCertificateCategory) : false;
+  const reissueCredential = useMemo(
+    () => institutionCredentials.find(credential => credential.id === reissueModalCredentialId) || null,
+    [institutionCredentials, reissueModalCredentialId],
+  );
+  const modalRoot = typeof document !== 'undefined' ? document.body : null;
+
+  const handleSubmitDirectIssue = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const studentId = directForm.studentId.trim();
+    const title = directForm.title.trim();
+    const description = directForm.description.trim();
+
+    if (!studentId) {
+      showToast({ variant: 'warning', message: 'Select a student.' });
+      return;
+    }
+    if (!title) {
+      showToast({ variant: 'warning', message: 'Title is required.' });
+      return;
+    }
+    if (!directFile) {
+      showToast({ variant: 'warning', message: 'Attach a credential file before issuing.' });
+      return;
+    }
+    if (requiresExpiryDate(directForm.type, directForm.certificateCategory) && !directForm.expiryDate) {
+      showToast({
+        variant: 'warning',
+        message: 'Expiry date is required for license and professional certificate credentials.',
+      });
+      return;
+    }
+
+    setIsDirectIssuing(true);
+    try {
+      await onDirectIssue({
+        studentId,
+        type: directForm.type,
+        title,
+        description: description || undefined,
+        expiryDate: supportsExpiryDate(directForm.type) && directForm.expiryDate ? directForm.expiryDate : undefined,
+        certificateCategory: directForm.type === 'CERTIFICATE' ? directForm.certificateCategory : undefined,
+        file: directFile,
+      });
+      setDirectForm({
+        studentId: '',
+        type: 'TRANSCRIPT',
+        title: '',
+        description: '',
+        expiryDate: '',
+        certificateCategory: DEFAULT_CERTIFICATE_CATEGORY,
+      });
+      setDirectFile(null);
+      setIsDirectIssueModalOpen(false);
+      showToast({ variant: 'success', message: 'Credential issued successfully.' });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message === 'STEP_UP_CANCELLED' || error.message === 'STEP_UP_IN_PROGRESS')
+      ) {
+        return;
+      }
+      const message = error instanceof Error && error.message.trim().length > 0
+        ? error.message
+        : 'Unable to issue credential directly.';
+      showToast({ variant: 'error', message });
+    } finally {
+      setIsDirectIssuing(false);
+    }
+  };
+
+  const handleDirectFileSelection = (file: File | null) => {
+    if (!file) {
+      setDirectFile(null);
+      return;
+    }
+
+    if (!DIRECT_UPLOAD_ACCEPTED_MIME.has(file.type)) {
+      showToast({
+        variant: 'warning',
+        message: 'Unsupported file type. Please upload PDF, PNG, or JPG.',
+      });
+      return;
+    }
+
+    if (file.size > DIRECT_UPLOAD_MAX_BYTES) {
+      showToast({
+        variant: 'warning',
+        message: 'File is too large. Maximum file size is 10MB.',
+      });
+      return;
+    }
+
+    setDirectFile(file);
+  };
+
+  const handleConfirmRequestIssue = async () => {
+    if (!issuingRequest) return;
+    await onRequestAction(issuingRequest.id, 'ISSUE');
+    setIssuingRequestId(null);
+    setIsIssueFileDragActive(false);
+  };
+
+  const handleConfirmCredentialReissue = async () => {
+    if (!reissueCredential) return;
+    const file = reissueFileByCredentialId[reissueCredential.id] ?? undefined;
+    await onCredentialReissue(reissueCredential.id, file);
+    setReissueFileByCredentialId(previous => {
+      const next = { ...previous };
+      delete next[reissueCredential.id];
+      return next;
     });
     setReissueModalCredentialId(null);
     setIsReissueFileDragActive(false);
@@ -278,7 +473,7 @@ export default function InstitutionIssueSection({
         <button
           type="button"
           onClick={() => setIsDirectIssueModalOpen(true)}
-          className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-SLATE-700-TEST-MARKER"
+          className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
           title="Issue credential directly via modal form"
         >
           <ClipboardCheck size={14} />
@@ -286,215 +481,214 @@ export default function InstitutionIssueSection({
         </button>
       </div>
 
-      {modalRoot && createPortal(
       <AnimatePresence>
-        {isDirectIssueModalOpen ? (
-        <motion.div
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          variants={MODAL_BACKDROP_VARIANTS}
-          transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
-          onClick={() => setIsDirectIssueModalOpen(false)}
-        >
+        {isDirectIssueModalOpen && modalRoot && createPortal(
           <motion.div
             initial="initial"
             animate="animate"
             exit="exit"
-            variants={MODAL_PANEL_VARIANTS}
+            variants={MODAL_BACKDROP_VARIANTS}
             transition={MODAL_TRANSITION}
-            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg"
-            onClick={event => event.stopPropagation()}
+            className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
+            onClick={() => setIsDirectIssueModalOpen(false)}
           >
-            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
-              <div>
-                <p className="text-sm font-semibold text-neutral-900">Direct Credential Issuance</p>
-                <p className="mt-1 text-xs text-neutral-500">
-                  Issue a credential directly to a selected student account.
-                </p>
+            <motion.div
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={MODAL_PANEL_VARIANTS}
+              transition={MODAL_TRANSITION}
+              className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg"
+              onClick={event => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">Direct Credential Issuance</p>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Issue a credential directly to a selected student account.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDirectIssueModalOpen(false)}
+                  className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
+                  aria-label="Close modal"
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsDirectIssueModalOpen(false)}
-                className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
-                aria-label="Close modal"
-              >
-                <X size={16} />
-              </button>
-            </div>
 
-            <form className="space-y-3 p-5" onSubmit={handleSubmitDirectIssue}>
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold text-neutral-500">Student <span className="text-rose-500">*</span></span>
-                  <select
-                    value={directForm.studentId}
-                    onChange={event => setDirectForm(previous => ({ ...previous, studentId: event.target.value }))}
-                    className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                    required
-                  >
-                    <option value="">Select student</option>
-                    {eligibleStudents.map(student => (
-                      <option key={student.id} value={student.id}>
-                        {(getStudentFullName(student) || student.email)} ({student.profile?.studentNumber || student.id})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold text-neutral-500">Credential Type</span>
-                  <select
-                    value={directForm.type}
-                    onChange={event =>
-                      setDirectForm(previous => {
-                        const nextType = event.target.value as CredentialType;
-                        return {
-                          ...previous,
-                          type: nextType,
-                          expiryDate: supportsExpiryDate(nextType) ? previous.expiryDate : '',
-                          certificateCategory: nextType === 'CERTIFICATE' ? previous.certificateCategory : DEFAULT_CERTIFICATE_CATEGORY,
-                        };
-                      })
-                    }
-                    className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  >
-                    {CREDENTIAL_TYPES.map(type => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold text-neutral-500">Credential Title <span className="text-rose-500">*</span></span>
-                  <input
-                    value={directForm.title}
-                    onChange={event => setDirectForm(previous => ({ ...previous, title: event.target.value }))}
-                    placeholder="Credential title (e.g. Bachelor of Science in IT)"
-                    className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                    required
-                  />
-                </label>
-                <label className="space-y-1.5">
-                  <span className="block text-xs font-semibold text-neutral-500">Description</span>
-                  <input
-                    value={directForm.description}
-                    onChange={event => setDirectForm(previous => ({ ...previous, description: event.target.value }))}
-                    placeholder="Description (optional)"
-                    className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                  />
-                </label>
-                {directForm.type === 'CERTIFICATE' && (
+              <form className="space-y-3 p-5" onSubmit={handleSubmitDirectIssue}>
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                   <label className="space-y-1.5">
-                    <span className="block text-xs font-semibold text-neutral-500">Certificate Category</span>
+                    <span className="block text-xs font-semibold text-neutral-500">Student <span className="text-rose-500">*</span></span>
                     <select
-                      value={directForm.certificateCategory}
-                      onChange={event =>
-                        setDirectForm(previous => ({
-                          ...previous,
-                          certificateCategory: event.target.value as CertificateCategory,
-                        }))
-                      }
+                      value={directForm.studentId}
+                      onChange={event => setDirectForm(previous => ({ ...previous, studentId: event.target.value }))}
                       className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+                      required
                     >
-                      {CERTIFICATE_CATEGORIES.map(category => (
-                        <option key={category} value={category}>
-                          {category}
+                      <option value="">Select student</option>
+                      {eligibleStudents.map(student => (
+                        <option key={student.id} value={student.id}>
+                          {(getStudentFullName(student) || student.email)} ({student.profile?.studentNumber || student.id})
                         </option>
                       ))}
                     </select>
                   </label>
-                )}
-                {supportsExpiryDate(directForm.type) && (
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-medium text-neutral-500">
-                      Expiry Date
-                      {requiresExpiryDate(directForm.type, directForm.certificateCategory) && <span className="ml-1 text-rose-500">*</span>}
-                    </p>
-                    <input
-                      type="date"
-                      value={directForm.expiryDate}
-                      onChange={event => setDirectForm(previous => ({ ...previous, expiryDate: event.target.value }))}
-                      aria-label="Expiry Date"
+                  <label className="space-y-1.5">
+                    <span className="block text-xs font-semibold text-neutral-500">Credential Type</span>
+                    <select
+                      value={directForm.type}
+                      onChange={event =>
+                        setDirectForm(previous => {
+                          const nextType = event.target.value as CredentialType;
+                          return {
+                            ...previous,
+                            type: nextType,
+                            expiryDate: supportsExpiryDate(nextType) ? previous.expiryDate : '',
+                            certificateCategory: nextType === 'CERTIFICATE' ? previous.certificateCategory : DEFAULT_CERTIFICATE_CATEGORY,
+                          };
+                        })
+                      }
                       className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
-                      required={requiresExpiryDate(directForm.type, directForm.certificateCategory)}
+                    >
+                      {CREDENTIAL_TYPES.map(type => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="block text-xs font-semibold text-neutral-500">Credential Title <span className="text-rose-500">*</span></span>
+                    <input
+                      value={directForm.title}
+                      onChange={event => setDirectForm(previous => ({ ...previous, title: event.target.value }))}
+                      placeholder="Credential title (e.g. Bachelor of Science in IT)"
+                      className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+                      required
                     />
-                  </div>
-                )}
-              </div>
+                  </label>
+                  <label className="space-y-1.5">
+                    <span className="block text-xs font-semibold text-neutral-500">Description</span>
+                    <input
+                      value={directForm.description}
+                      onChange={event => setDirectForm(previous => ({ ...previous, description: event.target.value }))}
+                      placeholder="Description (optional)"
+                      className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+                    />
+                  </label>
+                  {directForm.type === 'CERTIFICATE' && (
+                    <label className="space-y-1.5">
+                      <span className="block text-xs font-semibold text-neutral-500">Certificate Category</span>
+                      <select
+                        value={directForm.certificateCategory}
+                        onChange={event =>
+                          setDirectForm(previous => ({
+                            ...previous,
+                            certificateCategory: event.target.value as CertificateCategory,
+                          }))
+                        }
+                        className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+                      >
+                        {CERTIFICATE_CATEGORIES.map(category => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {supportsExpiryDate(directForm.type) && (
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-medium text-neutral-500">
+                        Expiry Date
+                        {requiresExpiryDate(directForm.type, directForm.certificateCategory) && <span className="ml-1 text-rose-500">*</span>}
+                      </p>
+                      <input
+                        type="date"
+                        value={directForm.expiryDate}
+                        onChange={event => setDirectForm(previous => ({ ...previous, expiryDate: event.target.value }))}
+                        aria-label="Expiry Date"
+                        className="h-11 w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm outline-none"
+                        required={requiresExpiryDate(directForm.type, directForm.certificateCategory)}
+                      />
+                    </div>
+                  )}
+                </div>
 
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-neutral-800">Student Credential Document <span className="text-rose-500">*</span></p>
-                <label
-                  className={getUploadDropzoneClass({
-                    active: isDirectFileDragActive,
-                    className: 'flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors',
-                  })}
-                  onDragOver={event => {
-                    event.preventDefault();
-                    setIsDirectFileDragActive(true);
-                  }}
-                  onDragEnter={event => {
-                    event.preventDefault();
-                    setIsDirectFileDragActive(true);
-                  }}
-                  onDragLeave={event => {
-                    event.preventDefault();
-                    setIsDirectFileDragActive(false);
-                  }}
-                  onDrop={event => {
-                    event.preventDefault();
-                    setIsDirectFileDragActive(false);
-                    handleDirectFileSelection(event.dataTransfer.files?.[0] ?? null);
-                  }}
-                >
-                  <input
-                    type="file"
-                    accept="application/pdf,image/png,image/jpeg"
-                    className="hidden"
-                    onChange={event => handleDirectFileSelection(event.target.files?.[0] ?? null)}
-                  />
-                  <Upload size={20} className="mb-3 mt-15 text-neutral-400" />
-                  <p className="text-sm text-neutral-700">
-                    <span className={UPLOAD_DROPZONE_CTA_CLASS}>Upload a file</span> or drag and drop
-                  </p>
-                  <p className="mt-1 mb-15 text-xs text-neutral-500">PDF, PNG, JPG up to 10MB</p>
-                </label>
-                {directFile && (
-                  <p className="text-xs text-neutral-600">
-                    Selected: <span className="font-semibold text-neutral-800">{directFile.name}</span>
-                  </p>
-                )}
-              </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-neutral-800">Student Credential Document <span className="text-rose-500">*</span></p>
+                  <label
+                    className={getUploadDropzoneClass({
+                      active: isDirectFileDragActive,
+                      className: 'flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-4 py-6 text-center transition-colors',
+                    })}
+                    onDragOver={event => {
+                      event.preventDefault();
+                      setIsDirectFileDragActive(true);
+                    }}
+                    onDragEnter={event => {
+                      event.preventDefault();
+                      setIsDirectFileDragActive(true);
+                    }}
+                    onDragLeave={event => {
+                      event.preventDefault();
+                      setIsDirectFileDragActive(false);
+                    }}
+                    onDrop={event => {
+                      event.preventDefault();
+                      setIsDirectFileDragActive(false);
+                      handleDirectFileSelection(event.dataTransfer.files?.[0] ?? null);
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept="application/pdf,image/png,image/jpeg"
+                      className="hidden"
+                      onChange={event => handleDirectFileSelection(event.target.files?.[0] ?? null)}
+                    />
+                    <Upload size={20} className="mb-3 text-neutral-400" />
+                    <p className="text-sm text-neutral-700">
+                      <span className={UPLOAD_DROPZONE_CTA_CLASS}>Upload a file</span> or drag and drop
+                    </p>
+                    <p className="mt-1 text-xs text-neutral-500">PDF, PNG, JPG up to 10MB</p>
+                  </label>
+                  {directFile && (
+                    <p className="text-xs text-neutral-600">
+                      Selected: <span className="font-semibold text-neutral-800">{directFile.name}</span>
+                    </p>
+                  )}
+                </div>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  type="submit"
-                  size="lg"
-                  loading={isDirectIssuing}
-                  icon={<ClipboardCheck size={14} />}
-                  className="rounded-xl"
-                >
-                  Issue Credential
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="lg"
-                  icon={<X size={14} />}
-                  className="rounded-xl"
-                  onClick={() => setIsDirectIssueModalOpen(false)}
-                >
-                  Close
-                </Button>
-              </div>
-            </form>
-          </motion.div>
-        </motion.div>
-      ) : null}
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="submit"
+                    size="lg"
+                    loading={isDirectIssuing}
+                    icon={<ClipboardCheck size={14} />}
+                    className="rounded-xl"
+                  >
+                    Issue Credential
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="lg"
+                    icon={<X size={14} />}
+                    className="rounded-xl"
+                    onClick={() => setIsDirectIssueModalOpen(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>,
+          modalRoot
+        )}
       </AnimatePresence>
-      , modalRoot)}
 
       <Card title="Issue From Approved Requests">
         <div className="overflow-x-auto rounded-lg border border-neutral-200">
@@ -524,8 +718,15 @@ export default function InstitutionIssueSection({
                 </tr>
               )}
               {!isLoadingRequests &&
-                readyToIssue.map(request => (
-                  <tr key={request.id} className="cursor-pointer hover:bg-neutral-50/70" onClick={() => setSelectedRequestId(request.id)}>
+                readyToIssue.map((request, index) => (
+                  <motion.tr
+                    key={request.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    className="cursor-pointer hover:bg-neutral-50/70"
+                    onClick={() => setSelectedRequestId(request.id)}
+                  >
                     <td className="px-4 py-3 text-sm text-neutral-700">
                       {(() => {
                         const student = studentById.get(request.studentId);
@@ -594,7 +795,7 @@ export default function InstitutionIssueSection({
                         )}
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
             </tbody>
           </table>
@@ -602,7 +803,7 @@ export default function InstitutionIssueSection({
       </Card>
 
       <AnimatePresence>
-        {modalRoot && issuingRequest ? createPortal(
+        {modalRoot && issuingRequest && createPortal(
           <motion.div
             initial="initial"
             animate="animate"
@@ -738,9 +939,10 @@ export default function InstitutionIssueSection({
               </div>
             </motion.div>
           </motion.div>,
-          modalRoot,
-        ) : null}
+          modalRoot
+        )}
       </AnimatePresence>
+
       <RecordDetailsDrawer
         open={selectedRequest !== null}
         onClose={() => setSelectedRequestId(null)}
@@ -813,7 +1015,7 @@ export default function InstitutionIssueSection({
                 </tr>
               )}
               {!isLoadingCredentials &&
-                institutionCredentials.map(credential => {
+                institutionCredentials.map((credential, index) => {
                   const isRevoked = credential.status === 'REVOKED';
                   const isExpired = credential.status === 'EXPIRED';
                   const isLockedForStatusUpdate = isRevoked || isExpired;
@@ -822,7 +1024,13 @@ export default function InstitutionIssueSection({
                   const isStatusUnchanged = targetStatus === credential.status;
                   const student = studentById.get(credential.studentId);
                   return (
-                    <tr key={credential.id} className="hover:bg-neutral-50/70">
+                    <motion.tr
+                      key={credential.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      className="hover:bg-neutral-50/70"
+                    >
                       <td className="px-4 py-3 text-sm text-neutral-700">
                         {student ? (
                           <div className="flex items-center gap-3">
@@ -873,7 +1081,7 @@ export default function InstitutionIssueSection({
                                 );
                             }}
                             disabled={updatingCredentialId === credential.id || isLockedForStatusUpdate || isStatusUnchanged}
-                            className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 hover:bg-SLATE-700-TEST-MARKER disabled:opacity-50"
+                            className="inline-flex h-9 items-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
                           >
                             Save
                           </button>
@@ -896,7 +1104,7 @@ export default function InstitutionIssueSection({
                           )}
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   );
                 })}
             </tbody>
@@ -905,7 +1113,7 @@ export default function InstitutionIssueSection({
       </Card>
 
       <AnimatePresence>
-        {modalRoot && reissueCredential ? createPortal(
+        {modalRoot && reissueCredential && createPortal(
           <motion.div
             initial="initial"
             animate="animate"
@@ -1039,11 +1247,9 @@ export default function InstitutionIssueSection({
               </div>
             </motion.div>
           </motion.div>,
-          modalRoot,
-        ) : null}
+          modalRoot
+        )}
       </AnimatePresence>
     </div>
   );
 }
-
-

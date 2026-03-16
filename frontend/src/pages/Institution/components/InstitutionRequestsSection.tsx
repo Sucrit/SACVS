@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Check, ClipboardCheck, Search, Upload, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
@@ -204,9 +205,12 @@ export default function InstitutionRequestsSection({
                   </td>
                 </tr>
               )}
-              {!isLoadingRequests && requests.map(request => (
-                <tr
+               {!isLoadingRequests && requests.map((request, index) => (
+                <motion.tr
                   key={request.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
                   className="cursor-pointer hover:bg-neutral-50/70"
                   onClick={() => setSelectedRequestId(request.id)}
                 >
@@ -300,7 +304,7 @@ export default function InstitutionRequestsSection({
                       </>
                     );
                   })()}
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>

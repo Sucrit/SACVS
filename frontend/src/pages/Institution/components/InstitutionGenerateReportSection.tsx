@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Download, FileText, Filter, Sparkles } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/ui/Button';
@@ -418,14 +419,19 @@ export default function InstitutionGenerateReportSection({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-neutral-200 bg-white">
-                            {generatedReport.studentOperations.previewRows.map(row => (
-                              <tr key={row.id}>
+                            {generatedReport.studentOperations.previewRows.map((row, index) => (
+                              <motion.tr
+                                key={row.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, delay: index * 0.05 }}
+                              >
                                 <td className="px-4 py-3 font-medium text-neutral-900">{row.name}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.studentNumber}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.department}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.status}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.activityDate}</td>
-                              </tr>
+                              </motion.tr>
                             ))}
                           </tbody>
                         </table>
@@ -460,15 +466,20 @@ export default function InstitutionGenerateReportSection({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-neutral-200 bg-white">
-                            {generatedReport.requestOperations.previewRows.map(row => (
-                              <tr key={row.id}>
+                            {generatedReport.requestOperations.previewRows.map((row, index) => (
+                              <motion.tr
+                                key={row.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, delay: index * 0.05 }}
+                              >
                                 <td className="px-4 py-3 font-medium text-neutral-900">{row.title}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.student}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.type}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.delivery}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.status}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.createdAt}</td>
-                              </tr>
+                              </motion.tr>
                             ))}
                           </tbody>
                         </table>
@@ -503,15 +514,20 @@ export default function InstitutionGenerateReportSection({
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-neutral-200 bg-white">
-                            {generatedReport.credentialIssuance.previewRows.map(row => (
-                              <tr key={row.id}>
+                            {generatedReport.credentialIssuance.previewRows.map((row, index) => (
+                              <motion.tr
+                                key={row.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, delay: index * 0.05 }}
+                              >
                                 <td className="px-4 py-3 font-medium text-neutral-900">{row.title}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.student}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.type}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.status}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.issuedAt}</td>
                                 <td className="px-4 py-3 text-neutral-600">{row.anchored}</td>
-                              </tr>
+                              </motion.tr>
                             ))}
                           </tbody>
                         </table>
@@ -548,13 +564,18 @@ export default function InstitutionGenerateReportSection({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200 bg-white">
-                          {generatedReport.departmentBreakdown.map(entry => (
-                            <tr key={entry.department}>
+                          {generatedReport.departmentBreakdown.map((entry, index) => (
+                            <motion.tr
+                              key={entry.department}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                            >
                               <td className="px-4 py-3 font-medium text-neutral-900">{entry.department}</td>
                               <td className="px-4 py-3 text-neutral-600">{entry.students}</td>
                               <td className="px-4 py-3 text-neutral-600">{entry.requests}</td>
                               <td className="px-4 py-3 text-neutral-600">{entry.issued}</td>
-                            </tr>
+                            </motion.tr>
                           ))}
                         </tbody>
                       </table>
@@ -576,12 +597,17 @@ export default function InstitutionGenerateReportSection({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200 bg-white">
-                          {generatedReport.credentialTypeBreakdown.map(entry => (
-                            <tr key={entry.type}>
+                          {generatedReport.credentialTypeBreakdown.map((entry, index) => (
+                            <motion.tr
+                              key={entry.type}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                            >
                               <td className="px-4 py-3 font-medium text-neutral-900">{entry.type}</td>
                               <td className="px-4 py-3 text-neutral-600">{entry.requests}</td>
                               <td className="px-4 py-3 text-neutral-600">{entry.issued}</td>
-                            </tr>
+                            </motion.tr>
                           ))}
                         </tbody>
                       </table>

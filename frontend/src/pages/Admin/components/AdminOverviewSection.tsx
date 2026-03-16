@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   AlertCircle,
   ClipboardList,
@@ -510,8 +511,14 @@ export default function AdminOverviewSection({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-200">
-                        {pendingQueue.slice(0, 5).map(user => (
-                          <tr key={user.id} className="hover:bg-neutral-50/50">
+                        {pendingQueue.slice(0, 5).map((user, index) => (
+                          <motion.tr
+                            key={user.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 }}
+                            className="hover:bg-neutral-50/50"
+                          >
                             <td className="px-4 py-3 font-medium text-neutral-900">
                               <div className="flex items-center gap-3">
                                 <UserAvatar initials={getInitials(user)} />
@@ -521,11 +528,11 @@ export default function AdminOverviewSection({
                             <td className="px-4 py-3 text-neutral-500">
                               <span>{user.email}</span>
                             </td>
-                            <td className="px-4 py-3 text-neutral-600">
+                            <td className="px-4 py-3 text-neutral-500">
                               {user.institution?.institutionName || 'Institution profile pending'}
                             </td>
                             <td className="px-4 py-3 text-neutral-500">{formatDate(user.createdAt)}</td>
-                          </tr>
+                          </motion.tr>
                         ))}
                       </tbody>
                     </table>
@@ -587,8 +594,14 @@ export default function AdminOverviewSection({
               {!isLoadingRiskEvents && recentHighRiskEvents.length > 0 && (
                 <div className="flex h-full flex-col">
                   <div className="space-y-2">
-                    {recentHighRiskEvents.map(event => (
-                      <div key={event.id} className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5">
+                    {recentHighRiskEvents.map((event, index) => (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="rounded-lg border border-neutral-200 bg-white px-3 py-2.5"
+                      >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 space-y-1">
                             <p className="truncate text-sm font-semibold text-neutral-900">{event.action}</p>
@@ -601,7 +614,7 @@ export default function AdminOverviewSection({
                         <p className="mt-1 text-xs text-neutral-500">
                           Score: {event.riskScore.toFixed(2)} · {event.actorRole || 'Unknown actor'}
                         </p>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
 

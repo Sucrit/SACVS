@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { ClipboardCheck, MoreVertical, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Modal from '../../../components/ui/Modal';
@@ -98,9 +99,12 @@ export default function InstitutionCredentialManageSection({
               </tr>
             )}
             {!isLoadingCredentials &&
-              institutionCredentials.map(credential => (
-                <tr
+              institutionCredentials.map((credential, index) => (
+                <motion.tr
                   key={credential.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
                   className="cursor-pointer hover:bg-neutral-50/70"
                   onClick={() => onViewCredentialDetails(credential.id)}
                 >
@@ -217,7 +221,7 @@ export default function InstitutionCredentialManageSection({
                       </>
                     );
                   })()}
-                </tr>
+                </motion.tr>
               ))}
           </tbody>
         </table>
@@ -341,4 +345,3 @@ export default function InstitutionCredentialManageSection({
     </Card>
   );
 }
-

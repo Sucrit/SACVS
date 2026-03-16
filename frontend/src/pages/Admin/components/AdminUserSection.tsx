@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Check, PauseCircle, Search, XCircle } from 'lucide-react';
 import ActionMenu from '../../../components/common/ActionMenu';
 import Card from '../../../components/common/Card';
@@ -142,9 +143,12 @@ export default function AdminUserSection({
                   </td>
                 </tr>
               )}
-              {!isLoadingUsers && pagedUsers.map(user => (
-                <tr
+               {!isLoadingUsers && pagedUsers.map((user, index) => (
+                <motion.tr
                   key={user.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
                   className={`cursor-pointer transition-colors hover:bg-neutral-50/80 ${user.id === selectedUserId ? 'bg-neutral-50' : ''}`}
                   onClick={() => setSelectedUserId(user.id)}
                 >
@@ -206,7 +210,7 @@ export default function AdminUserSection({
                       />
                     </div>
                   </td>
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>

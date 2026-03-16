@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { ClipboardCheck, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import ActionMenu from '../../../components/common/ActionMenu';
@@ -126,9 +127,15 @@ export default function InstitutionAwaitingIssuanceSection({
                 </td>
               </tr>
             )}
-            {!isLoadingRequests &&
-              readyToIssue.map(request => (
-                <tr key={request.id} className="hover:bg-neutral-50/70">
+             {!isLoadingRequests &&
+              readyToIssue.map((request, index) => (
+                <motion.tr
+                  key={request.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="hover:bg-neutral-50/70"
+                >
                   {(() => {
                     return (
                       <>
@@ -207,7 +214,7 @@ export default function InstitutionAwaitingIssuanceSection({
                       </>
                     );
                   })()}
-                </tr>
+                </motion.tr>
               ))}
           </tbody>
         </table>

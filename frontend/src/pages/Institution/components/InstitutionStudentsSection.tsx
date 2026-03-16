@@ -267,8 +267,14 @@ export default function InstitutionStudentsSection({
             <tbody className="divide-y divide-neutral-100 bg-white">
               {isLoadingStudents && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-neutral-500">Loading students...</td></tr>}
               {!isLoadingStudents && students.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-neutral-500">No students found.</td></tr>}
-              {!isLoadingStudents && students.map(student => (
-                <tr key={student.id} className="hover:bg-neutral-50/70">
+              {!isLoadingStudents && students.map((student, index) => (
+                <motion.tr
+                  key={student.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="hover:bg-neutral-50/70"
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <UserAvatar initials={getUserInitials(student)} />
@@ -331,7 +337,7 @@ export default function InstitutionStudentsSection({
                       />
                     </div>
                   </td>
-                </tr>
+                </motion.tr>
               ))}
             </tbody>
           </table>

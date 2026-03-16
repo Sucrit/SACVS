@@ -1,5 +1,6 @@
 
 import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Download, FileText, Filter, ShieldCheck, Sparkles } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/ui/Button';
@@ -474,15 +475,20 @@ export default function AdminGenerateReportSection({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200 bg-white">
-                          {generatedReport.onboardingOversight.previewRows.map(row => (
-                            <tr key={row.id}>
+                          {generatedReport.onboardingOversight.previewRows.map((row, index) => (
+                            <motion.tr
+                              key={row.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                            >
                               <td className="px-4 py-3 font-medium text-neutral-900">{row.name}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.email}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.role}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.status}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.institution}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.activityDate}</td>
-                            </tr>
+                            </motion.tr>
                           ))}
                         </tbody>
                       </table>
@@ -517,15 +523,20 @@ export default function AdminGenerateReportSection({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200 bg-white">
-                          {generatedReport.requestOversight.previewRows.map(row => (
-                            <tr key={row.id}>
+                          {generatedReport.requestOversight.previewRows.map((row, index) => (
+                            <motion.tr
+                              key={row.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                            >
                               <td className="px-4 py-3 font-medium text-neutral-900">{row.title}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.student}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.institution}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.status}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.deliveryMethod}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.createdAt}</td>
-                            </tr>
+                            </motion.tr>
                           ))}
                         </tbody>
                       </table>
@@ -560,15 +571,20 @@ export default function AdminGenerateReportSection({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200 bg-white">
-                          {generatedReport.riskReviewSummary.previewRows.map(row => (
-                            <tr key={row.id}>
+                          {generatedReport.riskReviewSummary.previewRows.map((row, index) => (
+                            <motion.tr
+                              key={row.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                            >
                               <td className="px-4 py-3 font-medium text-neutral-900">{row.action}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.institution}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.riskBand}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.reviewStatus}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.score}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.observedAt}</td>
-                            </tr>
+                            </motion.tr>
                           ))}
                         </tbody>
                       </table>
@@ -602,14 +618,19 @@ export default function AdminGenerateReportSection({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-200 bg-white">
-                          {generatedReport.auditActivitySummary.previewRows.map(row => (
-                            <tr key={row.id}>
+                          {generatedReport.auditActivitySummary.previewRows.map((row, index) => (
+                            <motion.tr
+                              key={row.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                            >
                               <td className="px-4 py-3 font-medium text-neutral-900">{row.action}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.severity}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.actor}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.institution}</td>
                               <td className="px-4 py-3 text-neutral-600">{row.createdAt}</td>
-                            </tr>
+                            </motion.tr>
                           ))}
                         </tbody>
                       </table>

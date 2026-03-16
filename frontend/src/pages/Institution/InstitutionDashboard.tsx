@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { AuditAction, AuditSeverity } from '../../services/audit.service';
 import Card from '../../components/common/Card';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
@@ -276,9 +277,12 @@ export default function InstitutionDashboard() {
                     </tr>
                   )}
                   {!state.isLoadingAuditLogs &&
-                    state.pagedInstitutionAuditLogs.map(log => (
-                      <tr
+                    state.pagedInstitutionAuditLogs.map((log, index) => (
+                      <motion.tr
                         key={log.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
                         className="cursor-pointer transition-colors hover:bg-neutral-50/70"
                         onClick={() => setSelectedAuditLogId(log.id)}
                       >
@@ -295,7 +299,7 @@ export default function InstitutionDashboard() {
                         <td className="hidden px-5 py-4 text-sm text-neutral-600 lg:table-cell">
                           {log.description || '-'}
                         </td>
-                      </tr>
+                      </motion.tr>
                     ))}
                 </tbody>
               </table>
