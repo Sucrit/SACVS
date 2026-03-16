@@ -70,7 +70,7 @@ export default function StudentRequestHistorySection({
   onDetailsRequestConsumed,
 }: StudentRequestHistorySectionProps) {
   const { showToast } = useToast();
-  const [searchTerm, setSearchTerm] = useSearchParamsState('rhq', '');
+  const [searchTerm, setSearchTerm] = useSearchParamsState<string>('rhq', '');
   const [typeFilter, setTypeFilter] = useSearchParamsState<RequestTypeFilter>('rht', 'ALL');
   const [dateFilter, setDateFilter] = useSearchParamsState<DateRangeFilter>('rhd', 'ALL');
   const [openMenuRequestId, setOpenMenuRequestId] = useState<string | null>(null);

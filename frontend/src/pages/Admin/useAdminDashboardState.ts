@@ -13,7 +13,6 @@ import { User, UserRole, UserService, UserStatus } from '../../services/user.ser
 import { CredentialRequest, CredentialService } from '../../services/credential.service';
 import { AppNotification, NotificationService } from '../../services/notification.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useStepUp } from '../../hooks/useStepUp';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { useToast } from '../../hooks/useToast';
@@ -187,7 +186,7 @@ export function useAdminDashboardState(): AdminDashboardState {
   const usersError = userActionError || (usersQueryError ? 'Unable to load users from the server.' : null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
   const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
-  const [search, setSearch] = useSearchParamsState('q', '');
+  const [search, setSearch] = useSearchParamsState<string>('q', '');
   const [roleFilter, setRoleFilter] = useSearchParamsState<RoleFilter>('rf', 'ALL');
   const [statusFilter, setStatusFilter] = useSearchParamsState<StatusFilter>('sf', 'ALL');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -196,6 +195,43 @@ export function useAdminDashboardState(): AdminDashboardState {
   const { data: notificationsData, isLoading: isLoadingNotifications } = useQuery({ queryKey: ['admin-notifications'], queryFn: () => NotificationService.list({ page: 1, pageSize: 100 }), enabled: section === 'notifications' || section === 'reports' });
   const notifications = notificationsData?.items || [];
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
+
+  const setNotifications = (updater: (prev: AppNotification[]) => AppNotification[]) => {
+    queryClient.setQueryData(['admin-notifications'], (oldData: any) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        items: updater(oldData.items || [])
+      };
+    });
+  };
+
+  const setUsers = (updater: (prev: User[]) => User[]) => {
+    queryClient.setQueryData(['admin-users'], (oldData: any) => {
+      if (!oldData) return oldData;
+      return updater(oldData as User[]);
+    });
+  };
+
+  const setRiskEvents = (updater: (prev: RiskEventRecord[]) => RiskEventRecord[]) => {
+    queryClient.setQueryData(['admin-risk-events', { riskPage, riskPageSize, riskBandFilter, riskReviewFilter, reviewedOnly }], (oldData: any) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        items: updater(oldData.items || [])
+      };
+    });
+  };
+
+  const setRiskSummary = (updater: (prev: any) => any) => {
+    queryClient.setQueryData(['admin-risk-events', { riskPage, riskPageSize, riskBandFilter, riskReviewFilter, reviewedOnly }], (oldData: any) => {
+      if (!oldData) return oldData;
+      return {
+        ...oldData,
+        summary: updater(oldData.summary)
+      };
+    });
+  };
 
   // --- Credential requests state ---
   const { data: credentialRequests = [], isLoading: isLoadingCredentialRequests } = useQuery({ queryKey: ['admin-requests'], queryFn: () => CredentialService.listRequests() });
@@ -287,14 +323,17 @@ export function useAdminDashboardState(): AdminDashboardState {
   // --- Realtime sync ---
 
   const realtimeRefreshMap = useMemo(() => ({
-    users: () => { if (section !== 'logs') void loadUsers(); },
-    credentialRequests: () => { void loadCredentialRequests(); },
-    audit: () => { if (section === 'logs' || section === 'reports') void loadAuditLogs(); },
-    notifications: () => { if (section === 'notifications' || section === 'reports') void loadNotifications({ silent: true }); },
+    users: () => { if (section !== 'logs') void queryClient.invalidateQueries({ queryKey: ['admin-users'] }); },
+    credentialRequests: () => { void queryClient.invalidateQueries({ queryKey: ['admin-requests'] }); },
+    audit: () => { if (section === 'logs' || section === 'reports') void queryClient.invalidateQueries({ queryKey: ['admin-audit-logs'] }); },
+    notifications: () => { if (section === 'notifications' || section === 'reports') void queryClient.invalidateQueries({ queryKey: ['admin-notifications'] }); },
     'security:SECURITY_RISK_EVENTS_UPDATED': () => {
-      if (section === 'risk' || section === 'overview' || section === 'reports') { void loadRiskEvents(); void loadRiskWorkerStatus(); }
+      if (section === 'risk' || section === 'overview' || section === 'reports') {
+        void queryClient.invalidateQueries({ queryKey: ['admin-risk-events'] });
+        void queryClient.invalidateQueries({ queryKey: ['admin-risk-worker-status'] });
+      }
     },
-  }), [loadAuditLogs, loadCredentialRequests, loadNotifications, loadRiskEvents, loadRiskWorkerStatus, loadUsers, section]);
+  }), [queryClient, section]);
 
   useRealtimeSync(realtimeRefreshMap);
 
@@ -395,7 +434,7 @@ export function useAdminDashboardState(): AdminDashboardState {
     try {
       await NotificationService.markAllRead();
     } catch (error) {
-      setNotifications(previousNotifications);
+      setNotifications(() => previousNotifications);
       showToast({ variant: 'error', message: getApiErrorMessage(error) || 'Unable to mark notifications as read.' });
     } finally {
       setIsMarkingAllNotificationsRead(false);

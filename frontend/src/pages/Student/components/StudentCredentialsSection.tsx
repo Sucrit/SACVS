@@ -185,7 +185,7 @@ export default function StudentCredentialsSection({
   onOpenDetails,
   heading,
 }: StudentCredentialsSectionProps) {
-  const [searchTerm, setSearchTerm] = useSearchParamsState('cq', '');
+  const [searchTerm, setSearchTerm] = useSearchParamsState<string>('cq', '');
   const [typeFilter, setTypeFilter] = useSearchParamsState<CredentialTypeFilter>('ct', 'ALL');
   const [dateFilter, setDateFilter] = useSearchParamsState<DateRangeFilter>('cd', 'ALL');
   const [shareCredential, setShareCredential] = useState<Credential | null>(null);
