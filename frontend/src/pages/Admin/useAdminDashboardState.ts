@@ -12,6 +12,8 @@ import {
 import { User, UserRole, UserService, UserStatus } from '../../services/user.service';
 import { CredentialRequest, CredentialService } from '../../services/credential.service';
 import { AppNotification, NotificationService } from '../../services/notification.service';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useStepUp } from '../../hooks/useStepUp';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { useToast } from '../../hooks/useToast';
@@ -177,11 +179,12 @@ export function useAdminDashboardState(): AdminDashboardState {
   const location = useLocation();
   const section = getSection(location.pathname);
   const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const queryClient = useQueryClient();
 
   // --- Users state ---
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
-  const [usersError, setUsersError] = useState<string | null>(null);
+  const { data: users = [], isLoading: isLoadingUsers, error: usersQueryError } = useQuery({ queryKey: ['admin-users'], queryFn: () => UserService.list() });
+  const [userActionError, setUsersError] = useState<string | null>(null);
+  const usersError = userActionError || (usersQueryError ? 'Unable to load users from the server.' : null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
   const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
   const [search, setSearch] = useSearchParamsState('q', '');
@@ -190,41 +193,42 @@ export function useAdminDashboardState(): AdminDashboardState {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   // --- Notification state ---
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
-  const [hasLoadedNotifications, setHasLoadedNotifications] = useState(false);
+  const { data: notificationsData, isLoading: isLoadingNotifications } = useQuery({ queryKey: ['admin-notifications'], queryFn: () => NotificationService.list({ page: 1, pageSize: 100 }), enabled: section === 'notifications' || section === 'reports' });
+  const notifications = notificationsData?.items || [];
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
 
   // --- Credential requests state ---
-  const [credentialRequests, setCredentialRequests] = useState<CredentialRequest[]>([]);
-  const [isLoadingCredentialRequests, setIsLoadingCredentialRequests] = useState(true);
+  const { data: credentialRequests = [], isLoading: isLoadingCredentialRequests } = useQuery({ queryKey: ['admin-requests'], queryFn: () => CredentialService.listRequests() });
 
   // --- Audit logs state ---
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
-  const [isLoadingAuditLogs, setIsLoadingAuditLogs] = useState(false);
-  const [hasLoadedAuditLogs, setHasLoadedAuditLogs] = useState(false);
+  const { data: auditLogs = [], isLoading: isLoadingAuditLogs } = useQuery({ queryKey: ['admin-audit-logs'], queryFn: () => AuditService.list(), enabled: section === 'logs' || section === 'reports' });
   const [auditActionFilter, setAuditActionFilter] = useSearchParamsState<'ALL' | AuditAction>('aa', 'ALL');
   const [auditSeverityFilter, setAuditSeverityFilter] = useSearchParamsState<'ALL' | AuditSeverity>('as', 'ALL');
   const [auditPage, setAuditPage] = useState(1);
   const [auditPageSize, setAuditPageSize] = useState(20);
 
   // --- Risk events state ---
-  const [riskEvents, setRiskEvents] = useState<RiskEventRecord[]>([]);
-  const [isLoadingRiskEvents, setIsLoadingRiskEvents] = useState(false);
   const [riskBandFilter, setRiskBandFilter] = useSearchParamsState<RiskBand | 'ALL'>('rb', 'ALL');
   const [riskReviewFilter, setRiskReviewFilter] = useSearchParamsState<RiskReviewStatus | 'ALL'>('rr', 'ALL');
   const [reviewedOnly, setReviewedOnly] = useState(false);
   const [riskPage, setRiskPage] = useState(1);
   const [riskPageSize, setRiskPageSize] = useState(20);
-  const [riskTotal, setRiskTotal] = useState(0);
-  const [riskSummary, setRiskSummary] = useState({
-    pendingReviewCount: 0,
-    highRiskCount: 0,
-    criticalRiskCount: 0,
-    confirmedAbuseCount: 0,
+
+  const { data: riskEventData, isLoading: isLoadingRiskEvents } = useQuery({ 
+    queryKey: ['admin-risk-events', { riskPage, riskPageSize, riskBandFilter, riskReviewFilter, reviewedOnly }], 
+    queryFn: () => RiskService.list({ page: riskPage, pageSize: riskPageSize, riskBand: riskBandFilter, reviewStatus: riskReviewFilter, reviewedOnly }),
+    enabled: section === 'risk' || section === 'overview' || section === 'reports'
   });
-  const [riskWorkerStatus, setRiskWorkerStatus] = useState<RiskWorkerStatus | null>(null);
-  const [isLoadingRiskWorkerStatus, setIsLoadingRiskWorkerStatus] = useState(false);
+  const riskEvents: RiskEventRecord[] = riskEventData?.items || [];
+  const riskTotal: number = riskEventData?.total || 0;
+  const riskSummary: {
+    pendingReviewCount: number;
+    highRiskCount: number;
+    criticalRiskCount: number;
+    confirmedAbuseCount: number;
+  } = riskEventData?.summary || { pendingReviewCount: 0, highRiskCount: 0, criticalRiskCount: 0, confirmedAbuseCount: 0 };
+
+  const { data: riskWorkerStatus = null, isLoading: isLoadingRiskWorkerStatus } = useQuery({ queryKey: ['admin-risk-worker-status'], queryFn: () => RiskService.getWorkerStatus(), enabled: section === 'risk' || section === 'overview' || section === 'reports' });
   const [reviewingRiskEventId, setReviewingRiskEventId] = useState<string | null>(null);
   const [selectedRiskEventId, setSelectedRiskEventId] = useState<string | null>(null);
   const [selectedRiskEvent, setSelectedRiskEvent] = useState<RiskEventRecord | null>(null);
@@ -242,115 +246,9 @@ export function useAdminDashboardState(): AdminDashboardState {
     if (usersError) showToast({ variant: 'error', message: usersError });
   }, [showToast, usersError]);
 
-  // --- Data loaders ---
-
-  const loadUsers = useCallback(async () => {
-    setIsLoadingUsers(true);
-    setUsersError(null);
-    try {
-      setUsers(await UserService.list());
-    } catch (error) {
-      console.error('Failed to load users:', error);
-      setUsers([]);
-      setUsersError('Unable to load users from the server.');
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  }, []);
-
-  const loadAuditLogs = useCallback(async () => {
-    setIsLoadingAuditLogs(true);
-    try {
-      const data = await AuditService.list();
-      setAuditLogs(data);
-      setHasLoadedAuditLogs(true);
-    } catch (error) {
-      setAuditLogs([]);
-      setUsersError(getApiErrorMessage(error) || 'Unable to load admin audit logs.');
-    } finally {
-      setIsLoadingAuditLogs(false);
-    }
-  }, []);
-
-  const loadRiskEvents = useCallback(async () => {
-    setIsLoadingRiskEvents(true);
-    try {
-      const response = await RiskService.list({
-        page: riskPage,
-        pageSize: riskPageSize,
-        riskBand: riskBandFilter,
-        reviewStatus: riskReviewFilter,
-        reviewedOnly,
-      });
-      setRiskEvents(response.items);
-      setRiskTotal(response.total);
-      setRiskSummary(response.summary);
-    } catch (error) {
-      setRiskEvents([]);
-      showToast({ variant: 'error', message: getApiErrorMessage(error) || 'Unable to load risk review records.' });
-    } finally {
-      setIsLoadingRiskEvents(false);
-    }
-  }, [reviewedOnly, riskBandFilter, riskPage, riskPageSize, riskReviewFilter, showToast]);
-
-  const loadRiskWorkerStatus = useCallback(async () => {
-    setIsLoadingRiskWorkerStatus(true);
-    try {
-      setRiskWorkerStatus(await RiskService.getWorkerStatus());
-    } catch (error) {
-      setRiskWorkerStatus(null);
-      showToast({ variant: 'error', message: getApiErrorMessage(error) || 'Unable to load shadow risk worker status.' });
-    } finally {
-      setIsLoadingRiskWorkerStatus(false);
-    }
-  }, [showToast]);
-
-  const loadCredentialRequests = useCallback(async () => {
-    setIsLoadingCredentialRequests(true);
-    try {
-      setCredentialRequests(await CredentialService.listRequests());
-    } catch {
-      setCredentialRequests([]);
-    } finally {
-      setIsLoadingCredentialRequests(false);
-    }
-  }, []);
-
-  const loadNotifications = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
-    if (!silent) setIsLoadingNotifications(true);
-    try {
-      const data = await NotificationService.list({ page: 1, pageSize: 100 });
-      setNotifications(data.items);
-      setHasLoadedNotifications(true);
-    } catch (error) {
-      if (!silent) {
-        setNotifications([]);
-        showToast({ variant: 'error', message: getApiErrorMessage(error) || 'Unable to load admin notifications.' });
-      }
-    } finally {
-      if (!silent) setIsLoadingNotifications(false);
-    }
-  }, [showToast]);
-
   // --- Section-based loading ---
 
-  useEffect(() => { void loadUsers(); }, [loadUsers]);
-  useEffect(() => { void loadCredentialRequests(); }, [loadCredentialRequests]);
-
-  useEffect(() => {
-    if ((section === 'logs' || section === 'reports') && !hasLoadedAuditLogs) void loadAuditLogs();
-  }, [hasLoadedAuditLogs, loadAuditLogs, section]);
-
-  useEffect(() => {
-    if ((section === 'notifications' || section === 'reports') && !hasLoadedNotifications) void loadNotifications();
-  }, [hasLoadedNotifications, loadNotifications, section]);
-
-  useEffect(() => {
-    if (section === 'risk' || section === 'overview' || section === 'reports') {
-      void loadRiskEvents();
-      void loadRiskWorkerStatus();
-    }
-  }, [loadRiskEvents, loadRiskWorkerStatus, section]);
+// Handled by React Query variables
 
   useEffect(() => {
     if (section !== 'users') {
