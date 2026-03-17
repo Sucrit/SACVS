@@ -1,0 +1,9 @@
+{
+  "name": "sacvs",
+  "private": true,
+  "scripts": {
+    "test:backend": "npm --prefix backend/services/user-service test && npm --prefix backend/services/credential-request-service test && npm --prefix backend/services/credential-service test && npm --prefix backend/services/security-service test",
+    "typecheck:backend": "npm --prefix backend/services/user-service run typecheck && npm --prefix backend/services/credential-request-service run typecheck && npm --prefix backend/services/credential-service run typecheck && npm --prefix backend/services/security-service run typecheck",
+    "verify:backend": "npm run typecheck:backend && npm run test:backend"
+  }
+}
