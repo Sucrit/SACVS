@@ -8,7 +8,10 @@ import { ToastProvider } from './components/common/ToastProvider'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { queryClient } from './lib/queryClient'
+
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+const ENABLE_QUERY_DEVTOOLS = import.meta.env.DEV && import.meta.env.VITE_ENABLE_QUERY_DEVTOOLS === 'true'
+
 if (!PUBLISHABLE_KEY) {
   throw new Error('Add your Clerk Publishable Key to the .env file')
 }
@@ -27,7 +30,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <ToastProvider>
           <QueryClientProvider client={queryClient}>
             <App />
-            <ReactQueryDevtools initialIsOpen={false} />
+            {ENABLE_QUERY_DEVTOOLS && <ReactQueryDevtools initialIsOpen={false} />}
           </QueryClientProvider>
         </ToastProvider>
       </LegacyAuthProvider>
