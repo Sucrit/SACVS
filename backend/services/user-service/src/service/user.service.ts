@@ -7,6 +7,7 @@ import {
   CreateInstitutionStudentDto,
   CompleteOrganizationOnboardingDto,
   CreateUserDto,
+  StudentSex,
   VerifyStepUpChallengeDto,
   UpdateUserRoleDto,
   UpdateUserStatusDto,
@@ -20,6 +21,18 @@ import { notificationClient } from '../client/notification.client';
 import { realtimeClient } from '../client/realtime.client';
 
 const userRepository = new UserRepository();
+const PH_PHONE_REGEX = /^\+63\d{10}$/;
+const VALID_STUDENT_SEXES = new Set<StudentSex>(['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY']);
+const REQUIRED_STUDENT_PROFILE_FIELDS: Array<keyof UpsertStudentProfileDto> = [
+  'studentNumber',
+  'street',
+  'barangay',
+  'city',
+  'province',
+  'courseOfStudy',
+  'yearLevel',
+  'department',
+];
 
 const normalizeEmail = (value: string): string => value.trim().toLowerCase();
 const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, errorCode: string): Promise<T> => {
@@ -64,6 +77,10 @@ const normalizeErrorMessage = (error: unknown): string => {
 type WithApprover = { approvedById: string | null };
 
 export class UserService {
+  private isValidPhilippinePhoneNumber(value: string): boolean {
+    return PH_PHONE_REGEX.test(value.trim());
+  }
+
   private formatFullName(user: {
     firstName: string;
     middleName?: string | null;
@@ -141,6 +158,240 @@ export class UserService {
     return trimmed.length > 0 ? trimmed : null;
   }
 
+  private inferOrganizationRoleFromPayload(payload: unknown): 'INSTITUTION' | null {
+    if (!payload || typeof payload !== 'object') {
+      return null;
+    }
+
+    const data = payload as Record<string, unknown>;
+    const role = typeof data.role === 'string' ? data.role : null;
+    if (role === 'INSTITUTION') {
+      return role;
+    }
+
+    const hasInstitutionHints =
+      typeof data.institutionName === 'string' ||
+      typeof data.name === 'string' ||
+      typeof data.accreditationNumber === 'string';
+
+    return hasInstitutionHints ? 'INSTITUTION' : null;
+  }
+
+  private isLikelyOrganizationOnboardingPayload(payload: unknown): boolean {
+    if (!payload || typeof payload !== 'object') {
+      return false;
+    }
+
+    const data = payload as Record<string, unknown>;
+    const hasOrgCommonHints =
+      typeof data.firstName === 'string' ||
+      typeof data.lastName === 'string' ||
+      typeof data.registrationNumber === 'string' ||
+      typeof data.organizationEmail === 'string' ||
+      typeof data.phoneNumber === 'string' ||
+      typeof data.organizationName === 'string' ||
+      typeof data.institutionName === 'string' ||
+      typeof data.name === 'string' ||
+      typeof data.accreditationNumber === 'string';
+
+    const hasStudentHints =
+      typeof data.studentNumber === 'string' ||
+      typeof data.street === 'string' ||
+      typeof data.barangay === 'string' ||
+      typeof data.city === 'string' ||
+      typeof data.province === 'string' ||
+      typeof data.courseOfStudy === 'string' ||
+      typeof data.yearLevel === 'string' ||
+      typeof data.department === 'string';
+
+    return hasOrgCommonHints && !hasStudentHints;
+  }
+
+  private normalizeOrganizationOnboardingPayload(payload: unknown): CompleteOrganizationOnboardingDto {
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('INVALID_REQUEST_PAYLOAD');
+    }
+
+    const body = { ...(payload as Record<string, unknown>) };
+    if (typeof body.organizationName === 'string' && body.role === 'INSTITUTION' && typeof body.institutionName !== 'string') {
+      body.institutionName = body.organizationName;
+    }
+    if (body.role === 'INSTITUTION' && typeof body.institutionName !== 'string' && typeof body.name === 'string') {
+      body.institutionName = body.name;
+    }
+
+    const data = body as Partial<CompleteOrganizationOnboardingDto>;
+    if (data.role !== 'INSTITUTION') {
+      throw new Error('MISSING_REQUIRED_FIELD:role');
+    }
+    if (typeof data.firstName !== 'string' || data.firstName.trim().length === 0) {
+      throw new Error('MISSING_REQUIRED_FIELD:firstName');
+    }
+    if (typeof data.lastName !== 'string' || data.lastName.trim().length === 0) {
+      throw new Error('MISSING_REQUIRED_FIELD:lastName');
+    }
+
+    const requiredCommonFields: Array<keyof CompleteOrganizationOnboardingDto> = [
+      'registrationNumber',
+      'organizationEmail',
+      'phoneNumber',
+    ];
+    const missingCommonField = requiredCommonFields.find((field) => {
+      const value = data[field];
+      return typeof value !== 'string' || value.trim().length === 0;
+    });
+    if (missingCommonField) {
+      throw new Error(`MISSING_REQUIRED_FIELD:${missingCommonField}`);
+    }
+
+    if (!this.isValidPhilippinePhoneNumber(data.phoneNumber!)) {
+      throw new Error('INVALID_PHONE_NUMBER');
+    }
+    if (typeof data.institutionName !== 'string' || data.institutionName.trim().length === 0) {
+      throw new Error('MISSING_REQUIRED_FIELD:institutionName');
+    }
+    if (typeof data.accreditationNumber !== 'string' || data.accreditationNumber.trim().length === 0) {
+      throw new Error('MISSING_REQUIRED_FIELD:accreditationNumber');
+    }
+
+    return {
+      role: 'INSTITUTION',
+      firstName: data.firstName.trim(),
+      middleName: this.normalizeOptionalString(data.middleName),
+      lastName: data.lastName.trim(),
+      registrationNumber: data.registrationNumber!.trim(),
+      organizationEmail: data.organizationEmail!.trim(),
+      phoneNumber: data.phoneNumber!.trim(),
+      institutionName: data.institutionName.trim(),
+      accreditationNumber: data.accreditationNumber.trim(),
+    };
+  }
+
+  private normalizeStudentProfilePayload(payload: unknown): UpsertStudentProfileDto {
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('INVALID_REQUEST_PAYLOAD');
+    }
+
+    const profileData = payload as Partial<UpsertStudentProfileDto>;
+    const missingField = REQUIRED_STUDENT_PROFILE_FIELDS.find((field) => {
+      const value = profileData[field];
+      return typeof value !== 'string' || value.trim().length === 0;
+    });
+    if (missingField) {
+      throw new Error(`MISSING_REQUIRED_FIELD:${missingField}`);
+    }
+
+    const parsedZipCode = Number(profileData.zipCode);
+    if (!Number.isInteger(parsedZipCode) || parsedZipCode <= 0) {
+      throw new Error('MISSING_REQUIRED_FIELD:zipCode');
+    }
+
+    let normalizedBirthday: string | null | undefined = undefined;
+    if (typeof profileData.birthday !== 'undefined') {
+      if (profileData.birthday === null) {
+        normalizedBirthday = null;
+      } else if (typeof profileData.birthday === 'string') {
+        const trimmed = profileData.birthday.trim();
+        if (!trimmed) {
+          normalizedBirthday = null;
+        } else {
+          const parsed = new Date(trimmed);
+          if (Number.isNaN(parsed.getTime())) {
+            throw new Error('INVALID_BIRTHDAY');
+          }
+          normalizedBirthday = trimmed;
+        }
+      } else {
+        throw new Error('INVALID_BIRTHDAY');
+      }
+    }
+
+    if (typeof profileData.sex !== 'undefined' && profileData.sex !== null && !VALID_STUDENT_SEXES.has(profileData.sex)) {
+      throw new Error('INVALID_SEX');
+    }
+    if (
+      typeof profileData.guardianFullName !== 'undefined' &&
+      profileData.guardianFullName !== null &&
+      typeof profileData.guardianFullName !== 'string'
+    ) {
+      throw new Error('INVALID_GUARDIAN_FULL_NAME');
+    }
+    if (
+      typeof profileData.guardianRelationship !== 'undefined' &&
+      profileData.guardianRelationship !== null &&
+      typeof profileData.guardianRelationship !== 'string'
+    ) {
+      throw new Error('INVALID_GUARDIAN_RELATIONSHIP');
+    }
+    if (
+      typeof profileData.phone !== 'undefined' &&
+      profileData.phone !== null &&
+      typeof profileData.phone !== 'string'
+    ) {
+      throw new Error('INVALID_PHONE');
+    }
+    if (
+      typeof profileData.phone === 'string' &&
+      profileData.phone.trim().length > 0 &&
+      !this.isValidPhilippinePhoneNumber(profileData.phone)
+    ) {
+      throw new Error('INVALID_PHONE_FORMAT');
+    }
+
+    return {
+      studentNumber: profileData.studentNumber!.trim(),
+      street: profileData.street!.trim(),
+      barangay: profileData.barangay!.trim(),
+      city: profileData.city!.trim(),
+      province: profileData.province!.trim(),
+      zipCode: parsedZipCode,
+      phone: typeof profileData.phone === 'string' ? profileData.phone.trim() : profileData.phone,
+      courseOfStudy: profileData.courseOfStudy!.trim(),
+      yearLevel: profileData.yearLevel!.trim(),
+      department: profileData.department!.trim(),
+      birthday: normalizedBirthday,
+      sex: profileData.sex,
+      guardianFullName:
+        typeof profileData.guardianFullName === 'string'
+          ? profileData.guardianFullName.trim()
+          : profileData.guardianFullName,
+      guardianRelationship:
+        typeof profileData.guardianRelationship === 'string'
+          ? profileData.guardianRelationship.trim()
+          : profileData.guardianRelationship,
+    };
+  }
+
+  private async assertImmutableStudentProfileFields(
+    userId: string,
+    profileData: UpsertStudentProfileDto,
+  ): Promise<void> {
+    const currentUser = await this.getCurrentUser(userId);
+    const currentProfile = currentUser?.profile;
+
+    if (currentProfile?.birthday) {
+      const existingBirthdayDate = new Date(currentProfile.birthday).toISOString().slice(0, 10);
+      const incomingBirthdayDate =
+        typeof profileData.birthday === 'undefined'
+          ? undefined
+          : profileData.birthday === null
+            ? null
+            : new Date(profileData.birthday).toISOString().slice(0, 10);
+
+      if (incomingBirthdayDate !== undefined && incomingBirthdayDate !== existingBirthdayDate) {
+        throw new Error('BIRTHDAY_IMMUTABLE');
+      }
+    }
+
+    if (
+      currentProfile?.sex &&
+      typeof profileData.sex !== 'undefined' &&
+      profileData.sex !== currentProfile.sex
+    ) {
+      throw new Error('SEX_IMMUTABLE');
+    }
+  }
+
   private async addApproverNames<T extends WithApprover>(
     records: T[],
   ): Promise<Array<T & { approverName: string | null }>> {
@@ -160,6 +411,68 @@ export class UserService {
   ): Promise<T & { approverName: string | null }> {
     const [enriched] = await this.addApproverNames([record]);
     return enriched;
+  }
+
+  private publishInstitutionEvent(
+    institutionId: string,
+    action:
+      | 'institution.student.created'
+      | 'institution.student.bulk_imported'
+      | 'institution.student.status.updated'
+      | 'institution.student.updated'
+      | 'institution.student.deleted',
+    entityId?: string,
+    payload?: Record<string, unknown>,
+  ): void {
+    void realtimeClient.publishMany([
+      {
+        domain: 'users',
+        action,
+        entityId,
+        scope: { institutionIds: [institutionId], roles: ['ADMIN', 'INSTITUTION'] },
+        payload,
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
+      },
+    ]);
+  }
+
+  private publishAdminUserEvent(
+    action: 'admin.user.status.updated' | 'admin.user.role.updated',
+    entityId: string,
+  ): void {
+    void realtimeClient.publishMany([
+      {
+        domain: 'users',
+        action,
+        entityId,
+        scope: { roles: ['ADMIN'] },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN'] },
+      },
+    ]);
+  }
+
+  private publishProfileUpdatedEvent(userId: string): void {
+    void realtimeClient.publishMany([
+      {
+        domain: 'users',
+        action: 'profile.updated',
+        entityId: userId,
+        scope: { userIds: [userId], roles: ['ADMIN', 'INSTITUTION'] },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
+      },
+    ]);
   }
 
   private isClerkUserNotFoundError(error: unknown): boolean {
@@ -209,21 +522,7 @@ export class UserService {
     id: string;
     institutionId: string;
   }> {
-    const actor = await userRepository.getUserContextById(actorUserId);
-    if (!actor) {
-      throw new Error('ACTOR_NOT_FOUND');
-    }
-    if (actor.role !== 'INSTITUTION') {
-      throw new Error('FORBIDDEN_ROLE');
-    }
-    if (!actor.institutionId) {
-      throw new Error('INSTITUTION_CONTEXT_MISSING');
-    }
-
-    return {
-      id: actor.id,
-      institutionId: actor.institutionId,
-    };
+    return this.getInstitutionActorContext(actorUserId);
   }
 
   private async createInstitutionStudentForContext(
@@ -437,19 +736,7 @@ export class UserService {
       console.error('Failed to write institution student creation audit entry:', error);
     }
     const enriched = await this.addApproverName(student);
-    void realtimeClient.publishMany([
-      {
-        domain: 'users',
-        action: 'institution.student.created',
-        entityId: student.id,
-        scope: { institutionIds: [actor.institutionId], roles: ['ADMIN', 'INSTITUTION'] },
-      },
-      {
-        domain: 'audit',
-        action: 'log.created',
-        scope: { roles: ['ADMIN', 'INSTITUTION'] },
-      },
-    ]);
+    this.publishInstitutionEvent(actor.institutionId, 'institution.student.created', student.id);
     return enriched;
   }
 
@@ -484,19 +771,10 @@ export class UserService {
       }
     }
 
-    void realtimeClient.publishMany([
-      {
-        domain: 'users',
-        action: 'institution.student.bulk_imported',
-        scope: { institutionIds: [actor.institutionId], roles: ['ADMIN', 'INSTITUTION'] },
-        payload: { created, failed: failed.length },
-      },
-      {
-        domain: 'audit',
-        action: 'log.created',
-        scope: { roles: ['ADMIN', 'INSTITUTION'] },
-      },
-    ]);
+    this.publishInstitutionEvent(actor.institutionId, 'institution.student.bulk_imported', undefined, {
+      created,
+      failed: failed.length,
+    });
     return { created, failed };
   }
 
@@ -510,20 +788,41 @@ export class UserService {
 
   async upsertStudentProfileByUserId(userId: string, data: UpsertStudentProfileDto) {
     const updated = await userRepository.upsertStudentProfileByUserId(userId, data);
-    void realtimeClient.publishMany([
-      {
-        domain: 'users',
-        action: 'profile.updated',
-        entityId: userId,
-        scope: { userIds: [userId], roles: ['ADMIN', 'INSTITUTION'] },
-      },
-      {
-        domain: 'audit',
-        action: 'log.created',
-        scope: { roles: ['ADMIN', 'INSTITUTION'] },
-      },
-    ]);
+    this.publishProfileUpdatedEvent(userId);
     return updated;
+  }
+
+  async completeOrganizationOnboardingFromPayload(
+    clerkUserId: string,
+    payload: unknown,
+    authenticatedEmail?: string | null,
+  ) {
+    const data = this.normalizeOrganizationOnboardingPayload(payload);
+    return this.completeOrganizationOnboarding(clerkUserId, data, authenticatedEmail);
+  }
+
+  async submitOwnProfile(input: {
+    userId: string;
+    authRole?: string | null;
+    authenticatedEmail?: string | null;
+    payload: unknown;
+  }) {
+    const inferredRole = this.inferOrganizationRoleFromPayload(input.payload);
+    if (inferredRole || this.isLikelyOrganizationOnboardingPayload(input.payload)) {
+      return this.completeOrganizationOnboardingFromPayload(
+        input.userId,
+        input.payload,
+        input.authenticatedEmail,
+      );
+    }
+
+    if (input.authRole !== 'STUDENT') {
+      throw new Error('STUDENT_PROFILE_FORBIDDEN');
+    }
+
+    const normalized = this.normalizeStudentProfilePayload(input.payload);
+    await this.assertImmutableStudentProfileFields(input.userId, normalized);
+    return this.upsertStudentProfileByUserId(input.userId, normalized);
   }
 
   async completeOrganizationOnboarding(
@@ -606,19 +905,7 @@ export class UserService {
     }
 
     const enriched = await this.addApproverName(updated);
-    void realtimeClient.publishMany([
-      {
-        domain: 'users',
-        action: 'institution.student.status.updated',
-        entityId: studentUserId,
-        scope: { institutionIds: [actor.institutionId], roles: ['ADMIN', 'INSTITUTION'] },
-      },
-      {
-        domain: 'audit',
-        action: 'log.created',
-        scope: { roles: ['ADMIN', 'INSTITUTION'] },
-      },
-    ]);
+    this.publishInstitutionEvent(actor.institutionId, 'institution.student.status.updated', studentUserId);
     return enriched;
   }
 
@@ -640,19 +927,7 @@ export class UserService {
     }
 
     const enriched = await this.addApproverName(updated);
-    void realtimeClient.publishMany([
-      {
-        domain: 'users',
-        action: 'institution.student.updated',
-        entityId: studentUserId,
-        scope: { institutionIds: [actor.institutionId], roles: ['ADMIN', 'INSTITUTION'] },
-      },
-      {
-        domain: 'audit',
-        action: 'log.created',
-        scope: { roles: ['ADMIN', 'INSTITUTION'] },
-      },
-    ]);
+    this.publishInstitutionEvent(actor.institutionId, 'institution.student.updated', studentUserId);
     return enriched;
   }
 
@@ -680,55 +955,19 @@ export class UserService {
       throw new Error('STUDENT_NOT_FOUND_OR_FORBIDDEN');
     }
 
-    void realtimeClient.publishMany([
-      {
-        domain: 'users',
-        action: 'institution.student.deleted',
-        entityId: studentUserId,
-        scope: { institutionIds: [actor.institutionId], roles: ['ADMIN', 'INSTITUTION'] },
-      },
-      {
-        domain: 'audit',
-        action: 'log.created',
-        scope: { roles: ['ADMIN', 'INSTITUTION'] },
-      },
-    ]);
+    this.publishInstitutionEvent(actor.institutionId, 'institution.student.deleted', studentUserId);
     return deleted;
   }
 
   async updateUserStatus(userId: string, data: UpdateUserStatusDto, actorId?: string | null) {
     const updated = await userRepository.updateUserStatus(userId, data.status, actorId);
-    void realtimeClient.publishMany([
-      {
-        domain: 'users',
-        action: 'admin.user.status.updated',
-        entityId: userId,
-        scope: { roles: ['ADMIN'] },
-      },
-      {
-        domain: 'audit',
-        action: 'log.created',
-        scope: { roles: ['ADMIN'] },
-      },
-    ]);
+    this.publishAdminUserEvent('admin.user.status.updated', userId);
     return updated;
   }
 
   async updateUserRole(userId: string, data: UpdateUserRoleDto, actorId?: string | null) {
     const updated = await userRepository.updateUserRole(userId, data.role, actorId);
-    void realtimeClient.publishMany([
-      {
-        domain: 'users',
-        action: 'admin.user.role.updated',
-        entityId: userId,
-        scope: { roles: ['ADMIN'] },
-      },
-      {
-        domain: 'audit',
-        action: 'log.created',
-        scope: { roles: ['ADMIN'] },
-      },
-    ]);
+    this.publishAdminUserEvent('admin.user.role.updated', userId);
     return updated;
   }
 

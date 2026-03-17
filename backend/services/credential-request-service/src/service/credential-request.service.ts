@@ -20,6 +20,7 @@ import {
 } from '../dto/credential-request.dto';
 import {
   ApprovalReceiptVerificationView,
+  CredentialRequestScope,
   CredentialRequestRepository,
   UserContext,
 } from '../repository/credential-request.repository';
@@ -371,6 +372,181 @@ export class CredentialRequestService {
     return role === Role.INSTITUTION;
   }
 
+  private async getActorOrThrow(actorUserId: string): Promise<UserContext> {
+    const actor = await credentialRequestRepository.getUserContextById(actorUserId);
+    if (!actor) {
+      throw new Error('ACTOR_NOT_FOUND');
+    }
+    return actor;
+  }
+
+  private async getRequestScopeOrThrow(requestId: string): Promise<CredentialRequestScope> {
+    const target = await credentialRequestRepository.getCredentialRequestScopeById(requestId);
+    if (!target) {
+      throw new Error('REQUEST_NOT_FOUND');
+    }
+    return target;
+  }
+
+  private assertInstitutionScopedAccess(actor: UserContext, target: CredentialRequestScope): void {
+    if (this.isInstitutionScopedRole(actor.role)) {
+      if (!actor.institutionId) {
+        throw new Error('INSTITUTION_CONTEXT_MISSING');
+      }
+      const targetInstitutionId = target.institutionId ?? target.student.institutionId;
+      if (!targetInstitutionId || targetInstitutionId !== actor.institutionId) {
+        throw new Error('FORBIDDEN_SCOPE');
+      }
+    }
+  }
+
+  private publishRequestStatusRealtime(
+    request: Pick<PrismaCredentialRequest, 'id' | 'studentId' | 'institutionId'>,
+  ): void {
+    void realtimeClient.publishMany([
+      {
+        domain: 'credentialRequests',
+        action: 'credential-request.status.updated',
+        entityId: request.id,
+        scope: {
+          userIds: [request.studentId],
+          roles: ['ADMIN', 'INSTITUTION'],
+          institutionIds: request.institutionId ? [request.institutionId] : [],
+        },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
+      },
+    ]);
+  }
+
+  private async handleStudentRequestCancellation(
+    actor: UserContext,
+    requestId: string,
+    target: CredentialRequestScope,
+    status: CredentialRequestStatus,
+  ): Promise<CredentialRequestResponseDto> {
+    const canAccess = target.studentId === actor.id || target.requesterId === actor.id;
+    if (!canAccess) {
+      throw new Error('FORBIDDEN_SCOPE');
+    }
+    if (status !== CredentialRequestStatus.CANCELLED) {
+      throw new Error('FORBIDDEN_STATUS_FOR_ROLE');
+    }
+    if (target.status !== CredentialRequestStatus.PENDING) {
+      throw new Error('CANNOT_CANCEL_NON_PENDING');
+    }
+
+    const updatedByStudent = await credentialRequestRepository.updateCredentialRequestStatus(requestId, {
+      status,
+      processedById: null,
+      processedAt: null,
+      rejectionReason: null,
+    });
+
+    await this.createAuditEntry({
+      action: AuditAction.CREDENTIAL_REQUEST_REJECTED,
+      actorId: actor.id,
+      targetType: 'CredentialRequest',
+      targetId: requestId,
+      description: `Student cancelled credential request "${updatedByStudent.title}"`,
+      metadata: {
+        status: updatedByStudent.status,
+        requestId,
+      },
+    });
+    this.publishRequestStatusRealtime(updatedByStudent);
+
+    return toCredentialRequestResponse(updatedByStudent);
+  }
+
+  private async handleManagedRequestStatusUpdate(
+    actor: UserContext,
+    requestId: string,
+    target: CredentialRequestScope,
+    data: UpdateCredentialRequestStatusDto,
+    status: CredentialRequestStatus,
+    providedCredentialId: string | null,
+  ): Promise<CredentialRequestResponseDto> {
+    if (actor.role !== Role.ADMIN && !this.isInstitutionScopedRole(actor.role)) {
+      throw new Error('FORBIDDEN_ROLE');
+    }
+
+    this.assertInstitutionScopedAccess(actor, target);
+
+    if (status === CredentialRequestStatus.REJECTED && !parseOptionalString(data.rejectionReason)) {
+      throw new Error('REJECTION_REASON_REQUIRED');
+    }
+
+    const completionCredentialId =
+      status === CredentialRequestStatus.COMPLETED
+        ? providedCredentialId ?? target.credentialId
+        : null;
+
+    if (status === CredentialRequestStatus.COMPLETED && !completionCredentialId) {
+      throw new Error('CREDENTIAL_ID_REQUIRED_FOR_COMPLETION');
+    }
+
+    const processedStatuses = new Set<CredentialRequestStatus>([
+      CredentialRequestStatus.APPROVED,
+      CredentialRequestStatus.COMPLETED,
+      CredentialRequestStatus.REJECTED,
+      CredentialRequestStatus.CANCELLED,
+    ]);
+
+    const updated = await credentialRequestRepository.updateCredentialRequestStatus(requestId, {
+      status,
+      processedById: processedStatuses.has(status) ? actor.id : null,
+      processedAt: processedStatuses.has(status) ? new Date() : null,
+      rejectionReason: status === CredentialRequestStatus.REJECTED
+        ? parseOptionalString(data.rejectionReason)
+        : null,
+      ...(status === CredentialRequestStatus.COMPLETED
+        ? { credentialId: completionCredentialId }
+        : Object.prototype.hasOwnProperty.call(data, 'credentialId')
+          ? { credentialId: providedCredentialId }
+          : {}),
+    });
+
+    if (
+      updated.status === CredentialRequestStatus.APPROVED &&
+      (target.deliveryMethod === DeliveryMethod.PHYSICAL || target.deliveryMethod === DeliveryMethod.BOTH)
+    ) {
+      await this.createApprovalReceiptTokenForRequest(updated.id, actor.id);
+    }
+
+    if (actor.role === Role.ADMIN || this.isInstitutionScopedRole(actor.role)) {
+      void this.notifyStudentAboutRequestStatusUpdate(updated, target.status, actor);
+    }
+
+    const auditActionByStatus: Partial<Record<CredentialRequestStatus, AuditAction>> = {
+      APPROVED: AuditAction.CREDENTIAL_REQUEST_APPROVED,
+      COMPLETED: AuditAction.CREDENTIAL_REQUEST_COMPLETED,
+      REJECTED: AuditAction.CREDENTIAL_REQUEST_REJECTED,
+      CANCELLED: AuditAction.CREDENTIAL_REQUEST_REJECTED,
+    };
+
+    await this.createAuditEntry({
+      action: auditActionByStatus[updated.status] ?? AuditAction.SETTINGS_CHANGED,
+      actorId: actor.id,
+      targetType: 'CredentialRequest',
+      targetId: updated.id,
+      description: `${actor.role} changed request "${updated.title}" status from ${target.status} to ${updated.status}`,
+      metadata: {
+        requestId: updated.id,
+        previousStatus: target.status,
+        nextStatus: updated.status,
+        studentId: updated.studentId,
+        institutionId: updated.institutionId,
+      },
+    });
+    this.publishRequestStatusRealtime(updated);
+
+    return toCredentialRequestResponse(updated);
+  }
+
   private ensureCanCreateForRole(actor: UserContext): void {
     if (!['STUDENT', 'INSTITUTION'].includes(actor.role)) {
       throw new Error('FORBIDDEN_ROLE');
@@ -587,15 +763,8 @@ export class CredentialRequestService {
     requestId: string,
     data: UpdateCredentialRequestStatusDto,
   ): Promise<CredentialRequestResponseDto> {
-    const actor = await credentialRequestRepository.getUserContextById(actorUserId);
-    if (!actor) {
-      throw new Error('ACTOR_NOT_FOUND');
-    }
-
-    const target = await credentialRequestRepository.getCredentialRequestScopeById(requestId);
-    if (!target) {
-      throw new Error('REQUEST_NOT_FOUND');
-    }
+    const actor = await this.getActorOrThrow(actorUserId);
+    const target = await this.getRequestScopeOrThrow(requestId);
 
     const status = data.status as CredentialRequestStatus;
     const providedCredentialId = parseOptionalString(data.credentialId);
@@ -605,155 +774,17 @@ export class CredentialRequestService {
     }
 
     if (actor.role === Role.STUDENT) {
-      const canAccess = target.studentId === actor.id || target.requesterId === actor.id;
-      if (!canAccess) {
-        throw new Error('FORBIDDEN_SCOPE');
-      }
-      if (status !== CredentialRequestStatus.CANCELLED) {
-        throw new Error('FORBIDDEN_STATUS_FOR_ROLE');
-      }
-      if (target.status !== CredentialRequestStatus.PENDING) {
-        throw new Error('CANNOT_CANCEL_NON_PENDING');
-      }
-
-      const updatedByStudent = await credentialRequestRepository.updateCredentialRequestStatus(requestId, {
-        status,
-        processedById: null,
-        processedAt: null,
-        rejectionReason: null,
-      });
-
-      await this.createAuditEntry({
-        action: AuditAction.CREDENTIAL_REQUEST_REJECTED,
-        actorId: actor.id,
-        targetType: 'CredentialRequest',
-        targetId: requestId,
-        description: `Student cancelled credential request "${updatedByStudent.title}"`,
-        metadata: {
-          status: updatedByStudent.status,
-          requestId,
-        },
-      });
-      void realtimeClient.publishMany([
-        {
-          domain: 'credentialRequests',
-          action: 'credential-request.status.updated',
-          entityId: updatedByStudent.id,
-          scope: {
-            userIds: [updatedByStudent.studentId],
-            roles: ['ADMIN', 'INSTITUTION'],
-            institutionIds: updatedByStudent.institutionId ? [updatedByStudent.institutionId] : [],
-          },
-        },
-        {
-          domain: 'audit',
-          action: 'log.created',
-          scope: { roles: ['ADMIN', 'INSTITUTION'] },
-        },
-      ]);
-
-      return toCredentialRequestResponse(updatedByStudent);
+      return this.handleStudentRequestCancellation(actor, requestId, target, status);
     }
 
-    if (actor.role !== Role.ADMIN && !this.isInstitutionScopedRole(actor.role)) {
-      throw new Error('FORBIDDEN_ROLE');
-    }
-
-    if (this.isInstitutionScopedRole(actor.role)) {
-      if (!actor.institutionId) {
-        throw new Error('INSTITUTION_CONTEXT_MISSING');
-      }
-      const targetInstitutionId = target.institutionId ?? target.student.institutionId;
-      if (!targetInstitutionId || targetInstitutionId !== actor.institutionId) {
-        throw new Error('FORBIDDEN_SCOPE');
-      }
-    }
-
-    if (status === CredentialRequestStatus.REJECTED && !parseOptionalString(data.rejectionReason)) {
-      throw new Error('REJECTION_REASON_REQUIRED');
-    }
-
-    const completionCredentialId =
-      status === CredentialRequestStatus.COMPLETED
-        ? providedCredentialId ?? target.credentialId
-        : null;
-
-    if (status === CredentialRequestStatus.COMPLETED && !completionCredentialId) {
-      throw new Error('CREDENTIAL_ID_REQUIRED_FOR_COMPLETION');
-    }
-
-    const processedStatuses = new Set<CredentialRequestStatus>([
-      CredentialRequestStatus.APPROVED,
-      CredentialRequestStatus.COMPLETED,
-      CredentialRequestStatus.REJECTED,
-      CredentialRequestStatus.CANCELLED,
-    ]);
-
-    const updated = await credentialRequestRepository.updateCredentialRequestStatus(requestId, {
+    return this.handleManagedRequestStatusUpdate(
+      actor,
+      requestId,
+      target,
+      data,
       status,
-      processedById: processedStatuses.has(status) ? actor.id : null,
-      processedAt: processedStatuses.has(status) ? new Date() : null,
-      rejectionReason: status === CredentialRequestStatus.REJECTED
-        ? parseOptionalString(data.rejectionReason)
-        : null,
-      ...(status === CredentialRequestStatus.COMPLETED
-        ? { credentialId: completionCredentialId }
-        : Object.prototype.hasOwnProperty.call(data, 'credentialId')
-          ? { credentialId: providedCredentialId }
-          : {}),
-    });
-
-    if (
-      updated.status === CredentialRequestStatus.APPROVED &&
-      (target.deliveryMethod === DeliveryMethod.PHYSICAL || target.deliveryMethod === DeliveryMethod.BOTH)
-    ) {
-      await this.createApprovalReceiptTokenForRequest(updated.id, actor.id);
-    }
-
-    if (actor.role === Role.ADMIN || this.isInstitutionScopedRole(actor.role)) {
-      void this.notifyStudentAboutRequestStatusUpdate(updated, target.status, actor);
-    }
-
-    const auditActionByStatus: Partial<Record<CredentialRequestStatus, AuditAction>> = {
-      APPROVED: AuditAction.CREDENTIAL_REQUEST_APPROVED,
-      COMPLETED: AuditAction.CREDENTIAL_REQUEST_COMPLETED,
-      REJECTED: AuditAction.CREDENTIAL_REQUEST_REJECTED,
-      CANCELLED: AuditAction.CREDENTIAL_REQUEST_REJECTED,
-    };
-
-    await this.createAuditEntry({
-      action: auditActionByStatus[updated.status] ?? AuditAction.SETTINGS_CHANGED,
-      actorId: actor.id,
-      targetType: 'CredentialRequest',
-      targetId: updated.id,
-      description: `${actor.role} changed request "${updated.title}" status from ${target.status} to ${updated.status}`,
-      metadata: {
-        requestId: updated.id,
-        previousStatus: target.status,
-        nextStatus: updated.status,
-        studentId: updated.studentId,
-        institutionId: updated.institutionId,
-      },
-    });
-    void realtimeClient.publishMany([
-      {
-        domain: 'credentialRequests',
-        action: 'credential-request.status.updated',
-        entityId: updated.id,
-        scope: {
-          userIds: [updated.studentId],
-          roles: ['ADMIN', 'INSTITUTION'],
-          institutionIds: updated.institutionId ? [updated.institutionId] : [],
-        },
-      },
-      {
-        domain: 'audit',
-        action: 'log.created',
-        scope: { roles: ['ADMIN', 'INSTITUTION'] },
-      },
-    ]);
-
-    return toCredentialRequestResponse(updated);
+      providedCredentialId,
+    );
   }
 
   async markPhysicalClaimed(
@@ -761,29 +792,14 @@ export class CredentialRequestService {
     requestId: string,
     notes?: string,
   ): Promise<CredentialRequestResponseDto> {
-    const actor = await credentialRequestRepository.getUserContextById(actorUserId);
-    if (!actor) {
-      throw new Error('ACTOR_NOT_FOUND');
-    }
-
-    const target = await credentialRequestRepository.getCredentialRequestScopeById(requestId);
-    if (!target) {
-      throw new Error('REQUEST_NOT_FOUND');
-    }
+    const actor = await this.getActorOrThrow(actorUserId);
+    const target = await this.getRequestScopeOrThrow(requestId);
 
     if (actor.role !== Role.ADMIN && !this.isInstitutionScopedRole(actor.role)) {
       throw new Error('FORBIDDEN_ROLE');
     }
 
-    if (this.isInstitutionScopedRole(actor.role)) {
-      if (!actor.institutionId) {
-        throw new Error('INSTITUTION_CONTEXT_MISSING');
-      }
-      const targetInstitutionId = target.institutionId ?? target.student.institutionId;
-      if (!targetInstitutionId || targetInstitutionId !== actor.institutionId) {
-        throw new Error('FORBIDDEN_SCOPE');
-      }
-    }
+    this.assertInstitutionScopedAccess(actor, target);
 
     if (target.deliveryMethod !== DeliveryMethod.PHYSICAL && target.deliveryMethod !== DeliveryMethod.BOTH) {
       throw new Error('PHYSICAL_CLAIM_NOT_APPLICABLE');
@@ -829,23 +845,7 @@ export class CredentialRequestService {
       },
     });
 
-    void realtimeClient.publishMany([
-      {
-        domain: 'credentialRequests',
-        action: 'credential-request.status.updated',
-        entityId: updated.id,
-        scope: {
-          userIds: [updated.studentId],
-          roles: ['ADMIN', 'INSTITUTION'],
-          institutionIds: updated.institutionId ? [updated.institutionId] : [],
-        },
-      },
-      {
-        domain: 'audit',
-        action: 'log.created',
-        scope: { roles: ['ADMIN', 'INSTITUTION'] },
-      },
-    ]);
+    this.publishRequestStatusRealtime(updated);
 
     return toCredentialRequestResponse(updated);
   }
@@ -854,15 +854,8 @@ export class CredentialRequestService {
     actorUserId: string,
     requestId: string,
   ): Promise<ApprovalReceiptResponseDto> {
-    const actor = await credentialRequestRepository.getUserContextById(actorUserId);
-    if (!actor) {
-      throw new Error('ACTOR_NOT_FOUND');
-    }
-
-    const target = await credentialRequestRepository.getCredentialRequestScopeById(requestId);
-    if (!target) {
-      throw new Error('REQUEST_NOT_FOUND');
-    }
+    const actor = await this.getActorOrThrow(actorUserId);
+    const target = await this.getRequestScopeOrThrow(requestId);
     if (target.status !== CredentialRequestStatus.APPROVED) {
       throw new Error('REQUEST_NOT_APPROVED');
     }
@@ -873,15 +866,7 @@ export class CredentialRequestService {
     if (actor.role === Role.STUDENT && target.studentId !== actor.id) {
       throw new Error('FORBIDDEN_SCOPE');
     }
-    if (this.isInstitutionScopedRole(actor.role)) {
-      if (!actor.institutionId) {
-        throw new Error('INSTITUTION_CONTEXT_MISSING');
-      }
-      const targetInstitutionId = target.institutionId ?? target.student.institutionId;
-      if (!targetInstitutionId || targetInstitutionId !== actor.institutionId) {
-        throw new Error('FORBIDDEN_SCOPE');
-      }
-    }
+    this.assertInstitutionScopedAccess(actor, target);
     if (actor.role !== Role.STUDENT && actor.role !== Role.ADMIN && !this.isInstitutionScopedRole(actor.role)) {
       throw new Error('FORBIDDEN_ROLE');
     }

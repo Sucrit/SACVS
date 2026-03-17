@@ -4,19 +4,15 @@ import {
   BulkCreateInstitutionStudentsDto,
   CreateInstitutionStudentDto,
   CreateStepUpChallengeDto,
-  CompleteOrganizationOnboardingDto,
   CreateUserDto,
   VerifyStepUpChallengeDto,
-  StudentSex,
   UpdateUserRoleDto,
   UpdateUserStatusDto,
-  UpsertStudentProfileDto,
   UserStatus,
 } from '../dto/user.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 const userService = new UserService();
-const PH_PHONE_REGEX = /^\+63\d{10}$/;
 
 const getAuthUserId = (req: Request): string | null => {
   const authReq = req as AuthenticatedRequest;
@@ -29,10 +25,6 @@ const getAuthUserEmail = (req: Request): string | null => {
 };
 
 export class UserController {
-  private isValidPhilippinePhoneNumber(value: string): boolean {
-    return PH_PHONE_REGEX.test(value.trim());
-  }
-
   private isStudentEmailAlreadyExistsError(error: unknown): boolean {
     if (error instanceof Error) {
       const message = error.message.toLowerCase();
@@ -76,6 +68,69 @@ export class UserController {
     }
 
     return false;
+  }
+
+  private mapProfileWorkflowError(error: unknown, res: Response): Response | null {
+    if (!(error instanceof Error)) {
+      return null;
+    }
+
+    if (error.message.startsWith('MISSING_REQUIRED_FIELD:')) {
+      const field = error.message.split(':')[1] ?? 'field';
+      return res.status(400).json({ error: `Missing required field: ${field}` });
+    }
+
+    const map: Record<string, { code: number; error: string }> = {
+      INVALID_REQUEST_PAYLOAD: { code: 400, error: 'Invalid request payload.' },
+      INVALID_PHONE_NUMBER: {
+        code: 400,
+        error: 'Invalid phoneNumber format. Use +63 followed by 10 digits (e.g. +639123456789).',
+      },
+      INVALID_PHONE_FORMAT: {
+        code: 400,
+        error: 'Invalid phone format. Use +63 followed by 10 digits (e.g. +639123456789).',
+      },
+      INVALID_PHONE: { code: 400, error: 'Invalid phone value.' },
+      INVALID_BIRTHDAY: { code: 400, error: 'Invalid birthday value.' },
+      INVALID_SEX: { code: 400, error: 'Invalid sex value.' },
+      INVALID_GUARDIAN_FULL_NAME: { code: 400, error: 'Invalid guardianFullName value.' },
+      INVALID_GUARDIAN_RELATIONSHIP: { code: 400, error: 'Invalid guardianRelationship value.' },
+      BIRTHDAY_IMMUTABLE: {
+        code: 400,
+        error: 'Birthday is a one-time setup field and can no longer be changed.',
+      },
+      SEX_IMMUTABLE: {
+        code: 400,
+        error: 'Sex is a one-time setup field and can no longer be changed.',
+      },
+      STUDENT_PROFILE_FORBIDDEN: {
+        code: 403,
+        error: 'Only student accounts can submit student profiles.',
+      },
+      CLERK_TIMEOUT: { code: 504, error: 'Identity provider timed out. Please try again.' },
+      CLERK_UNAVAILABLE: { code: 502, error: 'Identity provider is unavailable. Please try again.' },
+      CLERK_EMAIL_NOT_AVAILABLE: { code: 400, error: 'Authenticated account has no usable email.' },
+      EMAIL_ALREADY_LINKED_TO_ANOTHER_ACCOUNT: {
+        code: 409,
+        error: 'Email is already linked to another account.',
+      },
+    };
+
+    const mapped = map[error.message];
+    if (mapped) {
+      return res.status(mapped.code).json({ error: mapped.error });
+    }
+
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: string }).code === 'P2002'
+    ) {
+      return res.status(409).json({ error: 'A record with the same unique value already exists.' });
+    }
+
+    return null;
   }
 
   private validateInstitutionStudentPayload(payload: unknown): {
@@ -202,88 +257,17 @@ export class UserController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const body = (req.body ?? {}) as Record<string, unknown>;
-    // Legacy payload compatibility: support "organizationName".
-    if (typeof body.organizationName === 'string') {
-      if (body.role === 'INSTITUTION' && typeof body.institutionName !== 'string') {
-        body.institutionName = body.organizationName;
-      }
-    }
-    // Backward compatibility for older clients that still send "name".
-    if (body.role === 'INSTITUTION' && typeof body.institutionName !== 'string' && typeof body.name === 'string') {
-      body.institutionName = body.name;
-    }
-
-    const data = body as unknown as CompleteOrganizationOnboardingDto;
-    if (data?.role !== 'INSTITUTION') {
-      return res.status(400).json({ error: 'Missing required field: role' });
-    }
-    if (!data?.firstName || typeof data.firstName !== 'string') {
-      return res.status(400).json({ error: 'Missing required field: firstName' });
-    }
-    if (!data?.lastName || typeof data.lastName !== 'string') {
-      return res.status(400).json({ error: 'Missing required field: lastName' });
-    }
-
-    const requiredCommonFields: Array<keyof CompleteOrganizationOnboardingDto> = [
-      'registrationNumber',
-      'organizationEmail',
-      'phoneNumber',
-    ];
-
-    const missingCommonField = requiredCommonFields.find(field => {
-      const value = data?.[field];
-      return typeof value !== 'string' || value.trim().length === 0;
-    });
-
-    if (missingCommonField) {
-      return res.status(400).json({ error: `Missing required field: ${missingCommonField}` });
-    }
-
-    if (!this.isValidPhilippinePhoneNumber(data.phoneNumber)) {
-      return res.status(400).json({
-        error: 'Invalid phoneNumber format. Use +63 followed by 10 digits (e.g. +639123456789).',
-      });
-    }
-
-    if (
-      !data.institutionName ||
-      typeof data.institutionName !== 'string' ||
-      data.institutionName.trim().length === 0
-    ) {
-      return res.status(400).json({ error: 'Missing required field: institutionName' });
-    }
-    if (
-      !data.accreditationNumber ||
-      typeof data.accreditationNumber !== 'string' ||
-      data.accreditationNumber.trim().length === 0
-    ) {
-      return res.status(400).json({ error: 'Missing required field: accreditationNumber' });
-    }
-
     try {
-      const user = await userService.completeOrganizationOnboarding(userId, data, userEmail ?? undefined);
+      const user = await userService.completeOrganizationOnboardingFromPayload(
+        userId,
+        req.body,
+        userEmail ?? undefined,
+      );
       return res.status(200).json(user);
     } catch (error) {
-      if (error instanceof Error && error.message === 'CLERK_TIMEOUT') {
-        return res.status(504).json({ error: 'Identity provider timed out. Please try again.' });
-      }
-      if (error instanceof Error && error.message === 'CLERK_UNAVAILABLE') {
-        return res.status(502).json({ error: 'Identity provider is unavailable. Please try again.' });
-      }
-      if (error instanceof Error && error.message === 'CLERK_EMAIL_NOT_AVAILABLE') {
-        return res.status(400).json({ error: 'Authenticated account has no usable email.' });
-      }
-      if (error instanceof Error && error.message === 'EMAIL_ALREADY_LINKED_TO_ANOTHER_ACCOUNT') {
-        return res.status(409).json({ error: 'Email is already linked to another account.' });
-      }
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        (error as { code?: string }).code === 'P2002'
-      ) {
-        return res.status(409).json({ error: 'A record with the same unique value already exists.' });
+      const mapped = this.mapProfileWorkflowError(error, res);
+      if (mapped) {
+        return mapped;
       }
 
       console.error('Error completing organization onboarding:', error);
@@ -298,150 +282,20 @@ export class UserController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const inferredRole = this.inferOrganizationRoleFromPayload(req.body);
-    if (inferredRole || this.isLikelyOrganizationOnboardingPayload(req.body)) {
-      if (!req.body || typeof req.body !== 'object') {
-        return res.status(400).json({ error: 'Invalid request payload.' });
-      }
-
-      const bodyWithRole = req.body as Record<string, unknown>;
-      if (typeof bodyWithRole.role !== 'string' && inferredRole) {
-        bodyWithRole.role = inferredRole;
-      }
-
-      if (typeof bodyWithRole.role !== 'string') {
-        return res.status(400).json({ error: 'Missing required field: role' });
-      }
-
-      return this.completeOrganizationOnboarding(req, res);
-    }
-
-    if (authReq.auth?.role !== 'STUDENT') {
-      return res.status(403).json({ error: 'Only student accounts can submit student profiles.' });
-    }
-
-    const profileData: UpsertStudentProfileDto = req.body;
-    const requiredStringFields: Array<keyof UpsertStudentProfileDto> = [
-      'studentNumber',
-      'street',
-      'barangay',
-      'city',
-      'province',
-      'courseOfStudy',
-      'yearLevel',
-      'department',
-    ];
-
-    const missingField = requiredStringFields.find(field => {
-      const value = profileData?.[field];
-      return typeof value !== 'string' || value.trim().length === 0;
-    });
-
-    if (missingField) {
-      return res.status(400).json({ error: `Missing required field: ${missingField}` });
-    }
-
-    const parsedZipCode = Number(profileData?.zipCode);
-    if (!Number.isInteger(parsedZipCode) || parsedZipCode <= 0) {
-      return res.status(400).json({ error: 'Missing required field: zipCode' });
-    }
-
-    let normalizedBirthday: string | null | undefined = undefined;
-    if (typeof profileData.birthday !== 'undefined') {
-      if (profileData.birthday === null) {
-        normalizedBirthday = null;
-      } else if (typeof profileData.birthday === 'string') {
-        const trimmed = profileData.birthday.trim();
-        if (!trimmed) {
-          normalizedBirthday = null;
-        } else {
-          const parsed = new Date(trimmed);
-          if (Number.isNaN(parsed.getTime())) {
-            return res.status(400).json({ error: 'Invalid birthday value.' });
-          }
-          normalizedBirthday = trimmed;
-        }
-      } else {
-        return res.status(400).json({ error: 'Invalid birthday value.' });
-      }
-    }
-
-    const validSexes: StudentSex[] = ['MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY'];
-    if (typeof profileData.sex !== 'undefined' && profileData.sex !== null && !validSexes.includes(profileData.sex)) {
-      return res.status(400).json({ error: 'Invalid sex value.' });
-    }
-
-    if (typeof profileData.guardianFullName !== 'undefined' && profileData.guardianFullName !== null && typeof profileData.guardianFullName !== 'string') {
-      return res.status(400).json({ error: 'Invalid guardianFullName value.' });
-    }
-
-    if (typeof profileData.guardianRelationship !== 'undefined' && profileData.guardianRelationship !== null && typeof profileData.guardianRelationship !== 'string') {
-      return res.status(400).json({ error: 'Invalid guardianRelationship value.' });
-    }
-
-    if (
-      typeof profileData.phone !== 'undefined' &&
-      profileData.phone !== null &&
-      typeof profileData.phone !== 'string'
-    ) {
-      return res.status(400).json({ error: 'Invalid phone value.' });
-    }
-
-    if (
-      typeof profileData.phone === 'string' &&
-      profileData.phone.trim().length > 0 &&
-      !this.isValidPhilippinePhoneNumber(profileData.phone)
-    ) {
-      return res.status(400).json({
-        error: 'Invalid phone format. Use +63 followed by 10 digits (e.g. +639123456789).',
-      });
-    }
-
     try {
-      const currentUser = await userService.getCurrentUser(userId);
-      const currentProfile = currentUser?.profile;
-
-      if (currentProfile?.birthday) {
-        const existingBirthdayDate = new Date(currentProfile.birthday).toISOString().slice(0, 10);
-        const incomingBirthdayDate =
-          normalizedBirthday === undefined
-            ? undefined
-            : normalizedBirthday === null
-              ? null
-              : new Date(normalizedBirthday).toISOString().slice(0, 10);
-
-        if (incomingBirthdayDate !== undefined && incomingBirthdayDate !== existingBirthdayDate) {
-          return res.status(400).json({ error: 'Birthday is a one-time setup field and can no longer be changed.' });
-        }
-      }
-
-      if (
-        currentProfile?.sex &&
-        typeof profileData.sex !== 'undefined' &&
-        profileData.sex !== currentProfile.sex
-      ) {
-        return res.status(400).json({ error: 'Sex is a one-time setup field and can no longer be changed.' });
-      }
-
-      const updatedUser = await userService.upsertStudentProfileByUserId(userId, {
-        ...profileData,
-        zipCode: parsedZipCode,
-        phone:
-          typeof profileData.phone === 'string'
-            ? profileData.phone.trim()
-            : profileData.phone,
-        birthday: normalizedBirthday,
-        guardianFullName:
-          typeof profileData.guardianFullName === 'string'
-            ? profileData.guardianFullName.trim()
-            : profileData.guardianFullName,
-        guardianRelationship:
-          typeof profileData.guardianRelationship === 'string'
-            ? profileData.guardianRelationship.trim()
-            : profileData.guardianRelationship,
+      const updatedUser = await userService.submitOwnProfile({
+        userId,
+        authRole: authReq.auth?.role ?? null,
+        authenticatedEmail: authReq.auth?.email ?? null,
+        payload: req.body,
       });
       return res.status(200).json(updatedUser);
     } catch (error) {
+      const mapped = this.mapProfileWorkflowError(error, res);
+      if (mapped) {
+        return mapped;
+      }
+
       console.error('Error upserting student profile:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }

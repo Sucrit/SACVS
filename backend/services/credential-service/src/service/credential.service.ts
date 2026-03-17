@@ -110,6 +110,33 @@ interface UpdateCredentialStatusOptions {
   allowExpiredReissue?: boolean;
 }
 
+interface CredentialScopeRecord {
+  id: string;
+  title: string;
+  type: CredentialType;
+  status: CredentialStatus;
+  issuedById: string;
+  studentId: string;
+  fileHash: string | null;
+  chain: string | null;
+  txHash: string | null;
+  blockNumber: number | null;
+  anchoredAt: Date | null;
+  issuedDate: Date | null;
+  expiryDate: Date | null;
+  metadata: Prisma.JsonValue | null;
+  student: {
+    institutionId: string | null;
+  };
+}
+
+interface CredentialStatusBuildResult {
+  currentStatus: CredentialStatus;
+  nextStatus: CredentialStatus;
+  updateData: Prisma.CredentialUncheckedUpdateInput;
+  effectiveFileHash: string | null;
+}
+
 export class CredentialService {
   private static autoExpirySweepInFlight = false;
   private static lastAutoExpirySweepAt = 0;
@@ -402,6 +429,293 @@ export class CredentialService {
     }
   }
 
+  private async loadCredentialScopeOrThrow(credentialId: string): Promise<CredentialScopeRecord> {
+    const scope = await credentialRepository.getCredentialScopeById(credentialId);
+    if (!scope) {
+      throw new Error('CREDENTIAL_NOT_FOUND');
+    }
+    return scope;
+  }
+
+  private assertCredentialStatusTransitionAllowed(
+    currentStatus: CredentialStatus,
+    nextStatus: CredentialStatus,
+    options?: UpdateCredentialStatusOptions,
+  ): void {
+    if (currentStatus === nextStatus && !options?.allowNoopStatus) {
+      throw new Error('STATUS_UNCHANGED');
+    }
+    if (nextStatus === CredentialStatus.EXPIRED) {
+      throw new Error('EXPIRED_STATUS_SYSTEM_MANAGED');
+    }
+    if (
+      currentStatus === CredentialStatus.EXPIRED &&
+      !(options?.allowExpiredReissue && nextStatus === CredentialStatus.ISSUED)
+    ) {
+      throw new Error('CREDENTIAL_EXPIRED_IMMUTABLE');
+    }
+    if (currentStatus === CredentialStatus.REVOKED) {
+      throw new Error('CREDENTIAL_REVOKED_IMMUTABLE');
+    }
+    if (!this.isValidTransition(currentStatus, nextStatus)) {
+      throw new Error('INVALID_STATUS_TRANSITION');
+    }
+  }
+
+  private buildCredentialStatusUpdate(
+    scope: CredentialScopeRecord,
+    statusData: UpdateCredentialStatusDto,
+  ): CredentialStatusBuildResult {
+    const currentStatus = scope.status;
+    const nextStatus = statusData.status as CredentialStatus;
+    const updateData: Prisma.CredentialUncheckedUpdateInput = {
+      status: nextStatus,
+    };
+    const isNonExpiringCredential = NON_EXPIRING_TYPES.has(scope.type);
+    let parsedExpiryDate: Date | null | undefined;
+    let certificateCategory: CertificateCategory = 'ACADEMIC';
+
+    if (hasField(statusData, 'description')) {
+      updateData.description = parseOptionalString(statusData.description) ?? null;
+    }
+    if (hasField(statusData, 'filename')) {
+      updateData.filename = parseOptionalString(statusData.filename) ?? null;
+    }
+    if (hasField(statusData, 'mimeType')) {
+      updateData.mimeType = parseOptionalString(statusData.mimeType) ?? null;
+    }
+    if (hasField(statusData, 'storageKey')) {
+      updateData.storageKey = parseOptionalString(statusData.storageKey) ?? null;
+    }
+    if (hasField(statusData, 'fileHash')) {
+      updateData.fileHash = parseOptionalString(statusData.fileHash) ?? null;
+    }
+    if (hasField(statusData, 'metadata')) {
+      updateData.metadata = statusData.metadata === null ? Prisma.JsonNull : statusData.metadata;
+      if (scope.type === CredentialType.CERTIFICATE) {
+        validateCertificateCategoryIfPresent(statusData.metadata);
+      }
+    }
+    if (scope.type === CredentialType.CERTIFICATE) {
+      if (hasField(statusData, 'metadata')) {
+        certificateCategory = extractCertificateCategory(statusData.metadata) ?? 'ACADEMIC';
+      } else {
+        validateCertificateCategoryIfPresent(scope.metadata);
+        certificateCategory = extractCertificateCategory(scope.metadata) ?? 'ACADEMIC';
+      }
+    }
+    if (hasField(statusData, 'chain')) {
+      updateData.chain = parseOptionalString(statusData.chain) ?? null;
+    }
+    if (hasField(statusData, 'txHash')) {
+      updateData.txHash = parseOptionalString(statusData.txHash) ?? null;
+    }
+    if (hasField(statusData, 'blockNumber')) {
+      if (typeof statusData.blockNumber !== 'undefined' && !Number.isInteger(statusData.blockNumber)) {
+        throw new Error('INVALID_BLOCK_NUMBER');
+      }
+      updateData.blockNumber = statusData.blockNumber ?? null;
+    }
+    if (hasField(statusData, 'anchoredAt')) {
+      updateData.anchoredAt = parseOptionalDate(statusData.anchoredAt, 'INVALID_ANCHORED_AT');
+    }
+    if (hasField(statusData, 'issuedDate')) {
+      updateData.issuedDate = parseOptionalDate(statusData.issuedDate, 'INVALID_ISSUED_DATE');
+    }
+    if (hasField(statusData, 'expiryDate')) {
+      parsedExpiryDate = isNonExpiringCredential
+        ? null
+        : parseOptionalDate(statusData.expiryDate, 'INVALID_EXPIRY_DATE');
+      updateData.expiryDate = parsedExpiryDate;
+    }
+
+    if (nextStatus === CredentialStatus.ISSUED && !hasField(statusData, 'issuedDate') && !scope.issuedDate) {
+      updateData.issuedDate = new Date();
+    }
+
+    if (nextStatus === CredentialStatus.ISSUED) {
+      if (isNonExpiringCredential) {
+        updateData.expiryDate = null;
+      } else if (scope.type === CredentialType.LICENSE) {
+        const effectiveExpiryDate = hasField(statusData, 'expiryDate')
+          ? parsedExpiryDate ?? null
+          : scope.expiryDate;
+        if (!effectiveExpiryDate) {
+          throw new Error('EXPIRY_DATE_REQUIRED');
+        }
+      } else if (scope.type === CredentialType.CERTIFICATE && certificateCategory === 'PROFESSIONAL') {
+        const effectiveExpiryDate = hasField(statusData, 'expiryDate')
+          ? parsedExpiryDate ?? null
+          : scope.expiryDate;
+        if (!effectiveExpiryDate) {
+          throw new Error('EXPIRY_DATE_REQUIRED');
+        }
+      }
+    }
+
+    const incomingFileHash = hasField(statusData, 'fileHash')
+      ? parseOptionalString(statusData.fileHash) ?? null
+      : null;
+    const effectiveFileHash = incomingFileHash ?? scope.fileHash;
+
+    return {
+      currentStatus,
+      nextStatus,
+      updateData,
+      effectiveFileHash,
+    };
+  }
+
+  private async runBlockchainSideEffects(
+    scope: CredentialScopeRecord,
+    build: CredentialStatusBuildResult,
+  ): Promise<void> {
+    const hasOnChainRecord = Boolean(scope.chain || scope.txHash || scope.blockNumber || scope.anchoredAt);
+    const nextFileHash = parseOptionalString(build.updateData.fileHash as string | null | undefined) ?? null;
+    const fileHashChanged = nextFileHash !== null && nextFileHash !== scope.fileHash;
+    const shouldAnchor =
+      build.nextStatus === CredentialStatus.ISSUED &&
+      (build.currentStatus !== CredentialStatus.ISSUED || fileHashChanged || !hasOnChainRecord);
+
+    if (shouldAnchor) {
+      if (!build.effectiveFileHash) {
+        throw new Error('MISSING_CREDENTIAL_FILE');
+      }
+
+      try {
+        const anchored = await blockchainClient.anchorCredential({
+          credentialId: scope.id,
+          studentId: scope.studentId,
+          fileHash: build.effectiveFileHash,
+          allowReissue: true,
+        });
+
+        build.updateData.chain = anchored.chain;
+        build.updateData.txHash = anchored.txHash;
+        build.updateData.blockNumber = Number.isInteger(anchored.blockNumber)
+          ? anchored.blockNumber
+          : null;
+        build.updateData.anchoredAt =
+          parseOptionalDate(anchored.anchoredAt, 'INVALID_ANCHORED_AT') ?? new Date();
+      } catch (error) {
+        console.error('Blockchain anchor failed:', error);
+        if (error instanceof Error && error.message === 'BLOCKCHAIN_INTERFACE_UNREACHABLE') {
+          throw new Error('BLOCKCHAIN_INTERFACE_UNREACHABLE');
+        }
+        if (error instanceof Error && error.message === 'INTERNAL_AUTH_MISCONFIGURED') {
+          throw new Error('INTERNAL_AUTH_MISCONFIGURED');
+        }
+        throw new Error('BLOCKCHAIN_ANCHOR_FAILED');
+      }
+    }
+
+    if (build.nextStatus === CredentialStatus.REVOKED && hasOnChainRecord) {
+      try {
+        await blockchainClient.revokeCredential({
+          credentialId: scope.id,
+        });
+      } catch (error) {
+        console.error('Blockchain revoke failed:', error);
+        if (error instanceof Error && error.message === 'BLOCKCHAIN_INTERFACE_UNREACHABLE') {
+          throw new Error('BLOCKCHAIN_INTERFACE_UNREACHABLE');
+        }
+        if (error instanceof Error && error.message === 'INTERNAL_AUTH_MISCONFIGURED') {
+          throw new Error('INTERNAL_AUTH_MISCONFIGURED');
+        }
+        throw new Error('BLOCKCHAIN_REVOKE_FAILED');
+      }
+    }
+  }
+
+  private publishCredentialRealtime(
+    updated: Awaited<ReturnType<CredentialRepository['updateCredential']>>,
+    action: 'credential.issued' | 'credential.status.updated',
+  ): void {
+    void realtimeClient.publishMany([
+      {
+        domain: 'credentials',
+        action,
+        entityId: updated.id,
+        scope: {
+          userIds: [updated.studentId],
+          roles: ['ADMIN', 'INSTITUTION'],
+          institutionIds: updated.student.institutionId ? [updated.student.institutionId] : [],
+        },
+      },
+      {
+        domain: 'audit',
+        action: 'log.created',
+        scope: { roles: ['ADMIN', 'INSTITUTION'] },
+      },
+    ]);
+  }
+
+  private async recordCredentialStatusEffects(
+    actor: CredentialActor,
+    scope: CredentialScopeRecord,
+    updated: Awaited<ReturnType<CredentialRepository['updateCredential']>>,
+    build: CredentialStatusBuildResult,
+    options?: UpdateCredentialStatusOptions,
+  ): Promise<void> {
+    if (build.nextStatus === CredentialStatus.ISSUED) {
+      await this.createAuditEntry({
+        action: 'CREDENTIAL_ISSUED',
+        actorId: actor.userId,
+        actorRole: actor.role,
+        targetType: 'Credential',
+        targetId: updated.id,
+        description: 'Credential issued',
+      });
+    }
+
+    if (build.currentStatus !== build.nextStatus && build.nextStatus !== CredentialStatus.ISSUED) {
+      await this.createAuditEntry({
+        action:
+          build.nextStatus === CredentialStatus.REVOKED
+            ? 'CREDENTIAL_REVOKED'
+            : build.nextStatus === CredentialStatus.PENDING
+              ? 'SETTINGS_CHANGED'
+              : 'CREDENTIAL_VERIFIED',
+        actorId: actor.userId,
+        actorRole: actor.role,
+        targetType: 'Credential',
+        targetId: updated.id,
+        description: `Credential status changed from ${build.currentStatus} to ${build.nextStatus}`,
+        metadata: {
+          previousStatus: build.currentStatus,
+          nextStatus: build.nextStatus,
+        },
+      });
+    }
+
+    const institutionName = this.formatIssuerInstitutionName(updated.issuedBy);
+    if (options?.notifyIssued && build.nextStatus === CredentialStatus.ISSUED) {
+      void this.emitIssuedNotification({
+        userId: scope.studentId,
+        credentialId: updated.id,
+        credentialType: scope.type,
+        credentialTitle: updated.title,
+        institutionName,
+        isReissue: build.currentStatus === CredentialStatus.ISSUED,
+      });
+      this.publishCredentialRealtime(updated, 'credential.issued');
+      return;
+    }
+
+    if (build.currentStatus !== build.nextStatus) {
+      void this.emitStatusChangedNotification({
+        userId: scope.studentId,
+        credentialId: updated.id,
+        credentialType: scope.type,
+        credentialTitle: updated.title,
+        institutionName,
+        previousStatus: build.currentStatus,
+        nextStatus: build.nextStatus,
+      });
+      this.publishCredentialRealtime(updated, 'credential.status.updated');
+    }
+  }
+
   async auditCredentialDocumentAccess(payload: {
     actorId?: string | null;
     actorRole?: `${Role}`;
@@ -649,288 +963,17 @@ export class CredentialService {
     await this.maybeRunAutoExpirySweep();
     this.ensureCanManageCredentials(actor);
 
-    const scope = await credentialRepository.getCredentialScopeById(credentialId);
-    if (!scope) {
-      throw new Error('CREDENTIAL_NOT_FOUND');
-    }
-
+    const scope = await this.loadCredentialScopeOrThrow(credentialId);
     if (!this.canAccessCredential(actor, scope)) {
       throw new Error('FORBIDDEN_SCOPE');
     }
 
-    const currentStatus = scope.status;
     const nextStatus = statusData.status as CredentialStatus;
-
-    if (currentStatus === nextStatus && !options?.allowNoopStatus) {
-      throw new Error('STATUS_UNCHANGED');
-    }
-
-    if (nextStatus === CredentialStatus.EXPIRED) {
-      throw new Error('EXPIRED_STATUS_SYSTEM_MANAGED');
-    }
-
-    if (
-      currentStatus === CredentialStatus.EXPIRED &&
-      !(options?.allowExpiredReissue && nextStatus === CredentialStatus.ISSUED)
-    ) {
-      throw new Error('CREDENTIAL_EXPIRED_IMMUTABLE');
-    }
-
-    if (currentStatus === CredentialStatus.REVOKED) {
-      throw new Error('CREDENTIAL_REVOKED_IMMUTABLE');
-    }
-
-    if (!this.isValidTransition(currentStatus, nextStatus)) {
-      throw new Error('INVALID_STATUS_TRANSITION');
-    }
-
-    const updateData: Prisma.CredentialUncheckedUpdateInput = {
-      status: nextStatus,
-    };
-    const isNonExpiringCredential = NON_EXPIRING_TYPES.has(scope.type);
-    let parsedExpiryDate: Date | null | undefined;
-    let certificateCategory: CertificateCategory = 'ACADEMIC';
-
-    if (hasField(statusData, 'description')) {
-      updateData.description = parseOptionalString(statusData.description) ?? null;
-    }
-    if (hasField(statusData, 'filename')) {
-      updateData.filename = parseOptionalString(statusData.filename) ?? null;
-    }
-    if (hasField(statusData, 'mimeType')) {
-      updateData.mimeType = parseOptionalString(statusData.mimeType) ?? null;
-    }
-    if (hasField(statusData, 'storageKey')) {
-      updateData.storageKey = parseOptionalString(statusData.storageKey) ?? null;
-    }
-    if (hasField(statusData, 'fileHash')) {
-      updateData.fileHash = parseOptionalString(statusData.fileHash) ?? null;
-    }
-    if (hasField(statusData, 'metadata')) {
-      updateData.metadata = statusData.metadata === null ? Prisma.JsonNull : statusData.metadata;
-      if (scope.type === CredentialType.CERTIFICATE) {
-        validateCertificateCategoryIfPresent(statusData.metadata);
-      }
-    }
-    if (scope.type === CredentialType.CERTIFICATE) {
-      if (hasField(statusData, 'metadata')) {
-        certificateCategory = extractCertificateCategory(statusData.metadata) ?? 'ACADEMIC';
-      } else {
-        validateCertificateCategoryIfPresent(scope.metadata);
-        certificateCategory = extractCertificateCategory(scope.metadata) ?? 'ACADEMIC';
-      }
-    }
-    if (hasField(statusData, 'chain')) {
-      updateData.chain = parseOptionalString(statusData.chain) ?? null;
-    }
-    if (hasField(statusData, 'txHash')) {
-      updateData.txHash = parseOptionalString(statusData.txHash) ?? null;
-    }
-    if (hasField(statusData, 'blockNumber')) {
-      if (
-        typeof statusData.blockNumber !== 'undefined' &&
-        !Number.isInteger(statusData.blockNumber)
-      ) {
-        throw new Error('INVALID_BLOCK_NUMBER');
-      }
-      updateData.blockNumber = statusData.blockNumber ?? null;
-    }
-    if (hasField(statusData, 'anchoredAt')) {
-      updateData.anchoredAt = parseOptionalDate(statusData.anchoredAt, 'INVALID_ANCHORED_AT');
-    }
-    if (hasField(statusData, 'issuedDate')) {
-      updateData.issuedDate = parseOptionalDate(statusData.issuedDate, 'INVALID_ISSUED_DATE');
-    }
-    if (hasField(statusData, 'expiryDate')) {
-      parsedExpiryDate = isNonExpiringCredential
-        ? null
-        : parseOptionalDate(statusData.expiryDate, 'INVALID_EXPIRY_DATE');
-      updateData.expiryDate = parsedExpiryDate;
-    }
-
-    if (nextStatus === CredentialStatus.ISSUED && !hasField(statusData, 'issuedDate') && !scope.issuedDate) {
-      updateData.issuedDate = new Date();
-    }
-
-    if (nextStatus === CredentialStatus.ISSUED) {
-      if (isNonExpiringCredential) {
-        updateData.expiryDate = null;
-      } else if (scope.type === CredentialType.LICENSE) {
-        const effectiveExpiryDate = hasField(statusData, 'expiryDate')
-          ? parsedExpiryDate ?? null
-          : scope.expiryDate;
-
-        if (!effectiveExpiryDate) {
-          throw new Error('EXPIRY_DATE_REQUIRED');
-        }
-      } else if (scope.type === CredentialType.CERTIFICATE && certificateCategory === 'PROFESSIONAL') {
-        const effectiveExpiryDate = hasField(statusData, 'expiryDate')
-          ? parsedExpiryDate ?? null
-          : scope.expiryDate;
-
-        if (!effectiveExpiryDate) {
-          throw new Error('EXPIRY_DATE_REQUIRED');
-        }
-      }
-    }
-
-    const hasOnChainRecord = Boolean(scope.chain || scope.txHash || scope.blockNumber || scope.anchoredAt);
-    const incomingFileHash = hasField(statusData, 'fileHash')
-      ? parseOptionalString(statusData.fileHash) ?? null
-      : null;
-    const effectiveFileHash = incomingFileHash ?? scope.fileHash;
-    const fileHashChanged = incomingFileHash !== null && incomingFileHash !== scope.fileHash;
-    const shouldAnchor =
-      nextStatus === CredentialStatus.ISSUED &&
-      (currentStatus !== CredentialStatus.ISSUED || fileHashChanged || !hasOnChainRecord);
-
-    if (shouldAnchor) {
-      if (!effectiveFileHash) {
-        throw new Error('MISSING_CREDENTIAL_FILE');
-      }
-
-      try {
-        const anchored = await blockchainClient.anchorCredential({
-          credentialId: scope.id,
-          studentId: scope.studentId,
-          fileHash: effectiveFileHash,
-          allowReissue: true,
-        });
-
-        updateData.chain = anchored.chain;
-        updateData.txHash = anchored.txHash;
-        updateData.blockNumber = Number.isInteger(anchored.blockNumber)
-          ? anchored.blockNumber
-          : null;
-        updateData.anchoredAt =
-          parseOptionalDate(anchored.anchoredAt, 'INVALID_ANCHORED_AT') ?? new Date();
-      } catch (error) {
-        console.error('Blockchain anchor failed:', error);
-        if (error instanceof Error && error.message === 'BLOCKCHAIN_INTERFACE_UNREACHABLE') {
-          throw new Error('BLOCKCHAIN_INTERFACE_UNREACHABLE');
-        }
-        if (error instanceof Error && error.message === 'INTERNAL_AUTH_MISCONFIGURED') {
-          throw new Error('INTERNAL_AUTH_MISCONFIGURED');
-        }
-        throw new Error('BLOCKCHAIN_ANCHOR_FAILED');
-      }
-    }
-
-    if (
-      nextStatus === CredentialStatus.REVOKED &&
-      hasOnChainRecord
-    ) {
-      try {
-        await blockchainClient.revokeCredential({
-          credentialId: scope.id,
-        });
-      } catch (error) {
-        console.error('Blockchain revoke failed:', error);
-        if (error instanceof Error && error.message === 'BLOCKCHAIN_INTERFACE_UNREACHABLE') {
-          throw new Error('BLOCKCHAIN_INTERFACE_UNREACHABLE');
-        }
-        if (error instanceof Error && error.message === 'INTERNAL_AUTH_MISCONFIGURED') {
-          throw new Error('INTERNAL_AUTH_MISCONFIGURED');
-        }
-        throw new Error('BLOCKCHAIN_REVOKE_FAILED');
-      }
-    }
-
-    const updated = await credentialRepository.updateCredential(credentialId, updateData);
-
-    if (nextStatus === CredentialStatus.ISSUED) {
-      await this.createAuditEntry({
-        action: 'CREDENTIAL_ISSUED',
-        actorId: actor.userId,
-        actorRole: actor.role,
-        targetType: 'Credential',
-        targetId: updated.id,
-        description: 'Credential issued',
-      });
-    }
-
-    if (currentStatus !== nextStatus && nextStatus !== CredentialStatus.ISSUED) {
-      await this.createAuditEntry({
-        action:
-          nextStatus === CredentialStatus.REVOKED
-            ? 'CREDENTIAL_REVOKED'
-            : nextStatus === CredentialStatus.PENDING
-              ? 'SETTINGS_CHANGED'
-              : 'CREDENTIAL_VERIFIED',
-        actorId: actor.userId,
-        actorRole: actor.role,
-        targetType: 'Credential',
-        targetId: updated.id,
-        description: `Credential status changed from ${currentStatus} to ${nextStatus}`,
-        metadata: {
-          previousStatus: currentStatus,
-          nextStatus,
-        },
-      });
-    }
-
-    if (options?.notifyIssued && nextStatus === CredentialStatus.ISSUED) {
-      const isReissue = currentStatus === CredentialStatus.ISSUED;
-      const institutionName = this.formatIssuerInstitutionName(updated.issuedBy);
-
-      void this.emitIssuedNotification({
-        userId: scope.studentId,
-        credentialId: updated.id,
-        credentialType: scope.type,
-        credentialTitle: updated.title,
-        institutionName,
-        isReissue,
-      });
-      void realtimeClient.publishMany([
-        {
-          domain: 'credentials',
-          action: 'credential.issued',
-          entityId: updated.id,
-          scope: {
-            userIds: [updated.studentId],
-            roles: ['ADMIN', 'INSTITUTION'],
-            institutionIds: updated.student.institutionId ? [updated.student.institutionId] : [],
-          },
-        },
-        {
-          domain: 'audit',
-          action: 'log.created',
-          scope: { roles: ['ADMIN', 'INSTITUTION'] },
-        },
-      ]);
-      return updated;
-    }
-
-    if (currentStatus !== nextStatus) {
-      const institutionName = this.formatIssuerInstitutionName(updated.issuedBy);
-      void this.emitStatusChangedNotification({
-        userId: scope.studentId,
-        credentialId: updated.id,
-        credentialType: scope.type,
-        credentialTitle: updated.title,
-        institutionName,
-        previousStatus: currentStatus,
-        nextStatus,
-      });
-      void realtimeClient.publishMany([
-        {
-          domain: 'credentials',
-          action: 'credential.status.updated',
-          entityId: updated.id,
-          scope: {
-            userIds: [updated.studentId],
-            roles: ['ADMIN', 'INSTITUTION'],
-            institutionIds: updated.student.institutionId ? [updated.student.institutionId] : [],
-          },
-        },
-        {
-          domain: 'audit',
-          action: 'log.created',
-          scope: { roles: ['ADMIN', 'INSTITUTION'] },
-        },
-      ]);
-    }
-
+    this.assertCredentialStatusTransitionAllowed(scope.status, nextStatus, options);
+    const build = this.buildCredentialStatusUpdate(scope, statusData);
+    await this.runBlockchainSideEffects(scope, build);
+    const updated = await credentialRepository.updateCredential(credentialId, build.updateData);
+    await this.recordCredentialStatusEffects(actor, scope, updated, build, options);
     return updated;
   }
 

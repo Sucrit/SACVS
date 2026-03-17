@@ -5,13 +5,13 @@
   "scripts": {
     "predev": "prisma generate",
     "dev": "nodemon",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
-    "migrate:encrypt-uploads": "node scripts/migrate_encrypt_uploads.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "migrate:encrypt-uploads": "node scripts/migrate_encrypt_uploads.js"
   },
   "keywords": [],
   "author": "",
@@ -32,6 +32,7 @@
     "nodemon": "^3.1.11",
     "prisma": "^7.4.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }
