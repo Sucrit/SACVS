@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import {
   RiskBand,
+  Prisma,
   RiskReviewReasonCode,
   RiskReviewStatus,
 } from '../../../../db/node_modules/@prisma/client';
@@ -82,6 +83,32 @@ function serializeRiskEvent(item: Awaited<ReturnType<RiskRepository['getRiskEven
 }
 
 export class RiskController {
+  private mapError(error: unknown, res: Response): Response | null {
+    const map: Record<string, { code: number; error: string }> = {
+      INVALID_RISK_EVENT_ID: { code: 400, error: 'Risk event id is required.' },
+      INVALID_REVIEW_STATUS: { code: 400, error: 'Invalid reviewStatus value.' },
+      INVALID_REVIEW_REASON_CODE: { code: 400, error: 'Invalid reviewReasonCode value.' },
+    };
+
+    if (error instanceof Error) {
+      const mapped = map[error.message];
+      if (mapped) {
+        return res.status(mapped.code).json({ error: mapped.error });
+      }
+    }
+
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: string }).code === 'P2025'
+    ) {
+      return res.status(404).json({ error: 'Risk event not found.' });
+    }
+
+    return null;
+  }
+
   async getWorkerStatus(_req: Request, res: Response): Promise<Response> {
     const status = shadowRiskWorker.getStatus();
 
@@ -103,25 +130,33 @@ export class RiskController {
   }
 
   async listRiskEvents(req: Request, res: Response): Promise<Response> {
-    const page = parsePositiveInt(req.query.page, 1);
-    const pageSize = Math.min(parsePositiveInt(req.query.pageSize, 20), 100);
-    const { riskBand, reviewStatus, reviewedOnly } = parseRiskFilters(req);
+    try {
+      const page = parsePositiveInt(req.query.page, 1);
+      const pageSize = Math.min(parsePositiveInt(req.query.pageSize, 20), 100);
+      const { riskBand, reviewStatus, reviewedOnly } = parseRiskFilters(req);
 
-    const result = await repository.listRiskEventRecords({
-      page,
-      pageSize,
-      riskBand,
-      reviewStatus,
-      reviewedOnly,
-    });
+      const result = await repository.listRiskEventRecords({
+        page,
+        pageSize,
+        riskBand,
+        reviewStatus,
+        reviewedOnly,
+      });
 
-    return res.json({
-      items: result.items.map(item => serializeRiskEvent(item)),
-      total: result.total,
-      page,
-      pageSize,
-      summary: result.summary,
-    });
+      return res.json({
+        items: result.items.map(item => serializeRiskEvent(item)),
+        total: result.total,
+        page,
+        pageSize,
+        summary: result.summary,
+      });
+    } catch (error) {
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error listing risk events:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 
   async getRiskEventDetails(req: Request, res: Response): Promise<Response> {
@@ -131,94 +166,110 @@ export class RiskController {
       return res.status(400).json({ error: 'Risk event id is required.' });
     }
 
-    const item = await repository.getRiskEventRecordById(id);
-    if (!item) {
-      return res.status(404).json({ error: 'Risk event not found.' });
-    }
+    try {
+      const item = await repository.getRiskEventRecordById(id);
+      if (!item) {
+        return res.status(404).json({ error: 'Risk event not found.' });
+      }
 
-    return res.json(serializeRiskEvent(item));
+      return res.json(serializeRiskEvent(item));
+    } catch (error) {
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error fetching risk event details:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 
   async exportReviewedRiskEvents(req: Request, res: Response): Promise<Response> {
-    const { riskBand, reviewStatus, reviewedOnly } = parseRiskFilters(req);
-    const rows = await repository.listReviewedRiskEventRecords({
-      riskBand,
-      reviewStatus,
-      reviewedOnly,
-    });
+    try {
+      const { riskBand, reviewStatus, reviewedOnly } = parseRiskFilters(req);
+      const rows = await repository.listReviewedRiskEventRecords({
+        riskBand,
+        reviewStatus,
+        reviewedOnly,
+      });
 
-    const header = [
-      'id',
-      'eventId',
-      'correlationId',
-      'actorId',
-      'actorRole',
-      'action',
-      'riskScore',
-      'riskBand',
-      'reviewStatus',
-      'reviewedById',
-      'reviewedAt',
-      'reviewReasonCode',
-      'reviewReasonDetail',
-      'reviewNotes',
-      'modelVersion',
-      'targetType',
-      'targetId',
-      'institutionId',
-      'observedAt',
-      'topSignals',
-    ];
+      const header = [
+        'id',
+        'eventId',
+        'correlationId',
+        'actorId',
+        'actorRole',
+        'action',
+        'riskScore',
+        'riskBand',
+        'reviewStatus',
+        'reviewedById',
+        'reviewedAt',
+        'reviewReasonCode',
+        'reviewReasonDetail',
+        'reviewNotes',
+        'modelVersion',
+        'targetType',
+        'targetId',
+        'institutionId',
+        'observedAt',
+        'topSignals',
+      ];
 
-    const escapeCsv = (value: unknown) => {
-      if (value === null || value === undefined) {
-        return '';
-      }
-      const stringValue = Array.isArray(value) ? value.join(' | ') : String(value);
-      if (/[",\n]/.test(stringValue)) {
-        return `"${stringValue.replace(/"/g, '""')}"`;
-      }
-      return stringValue;
-    };
+      const escapeCsv = (value: unknown) => {
+        if (value === null || value === undefined) {
+          return '';
+        }
+        const stringValue = Array.isArray(value) ? value.join(' | ') : String(value);
+        if (/[",\n]/.test(stringValue)) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      };
 
-    const lines = [
-      header.join(','),
-      ...rows.map(row =>
-        [
-          row.id,
-          row.eventId,
-          row.correlationId,
-          row.actorId,
-          row.featuresSnapshot.actorRole,
-          row.action,
-          row.riskScore.toFixed(2),
-          row.riskBand,
-          row.reviewStatus,
-          row.reviewedById,
-          row.reviewedAt?.toISOString() ?? '',
-          row.reviewReasonCode,
-          row.reviewReasonDetail,
-          row.reviewNotes,
-          row.modelVersion,
-          row.featuresSnapshot.targetType,
-          row.featuresSnapshot.targetId,
-          row.featuresSnapshot.institutionId,
-          row.featuresSnapshot.observedAt.toISOString(),
-          Array.isArray(row.topSignals) ? row.topSignals : [],
-        ]
-          .map(escapeCsv)
-          .join(','),
-      ),
-    ];
+      const lines = [
+        header.join(','),
+        ...rows.map(row =>
+          [
+            row.id,
+            row.eventId,
+            row.correlationId,
+            row.actorId,
+            row.featuresSnapshot.actorRole,
+            row.action,
+            row.riskScore.toFixed(2),
+            row.riskBand,
+            row.reviewStatus,
+            row.reviewedById,
+            row.reviewedAt?.toISOString() ?? '',
+            row.reviewReasonCode,
+            row.reviewReasonDetail,
+            row.reviewNotes,
+            row.modelVersion,
+            row.featuresSnapshot.targetType,
+            row.featuresSnapshot.targetId,
+            row.featuresSnapshot.institutionId,
+            row.featuresSnapshot.observedAt.toISOString(),
+            Array.isArray(row.topSignals) ? row.topSignals : [],
+          ]
+            .map(escapeCsv)
+            .join(','),
+        ),
+      ];
 
-    const stamp = new Date().toISOString().slice(0, 10);
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="risk-review-report-${stamp}.csv"`,
-    );
+      const stamp = new Date().toISOString().slice(0, 10);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="risk-review-report-${stamp}.csv"`,
+      );
 
-    return res.send(lines.join('\n'));
+      return res.send(lines.join('\n'));
+    } catch (error) {
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error exporting reviewed risk events:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 
   async updateRiskReviewStatus(req: Request, res: Response): Promise<Response> {
@@ -253,23 +304,31 @@ export class RiskController {
       return res.status(400).json({ error: 'Invalid reviewReasonCode value.' });
     }
 
-    const updated = await repository.updateRiskReviewStatus({
-      id,
-      reviewStatus: reviewStatus as RiskReviewStatus,
-      reviewedById: auth.sub,
-      reviewReasonCode: (reviewReasonCode as RiskReviewReasonCode | null) ?? null,
-      reviewReasonDetail,
-      reviewNotes,
-    });
+    try {
+      const updated = await repository.updateRiskReviewStatus({
+        id,
+        reviewStatus: reviewStatus as RiskReviewStatus,
+        reviewedById: auth.sub,
+        reviewReasonCode: (reviewReasonCode as RiskReviewReasonCode | null) ?? null,
+        reviewReasonDetail,
+        reviewNotes,
+      });
 
-    return res.json({
-      id: updated.id,
-      reviewStatus: updated.reviewStatus,
-      reviewedById: updated.reviewedById,
-      reviewedAt: updated.reviewedAt?.toISOString() ?? null,
-      reviewReasonCode: updated.reviewReasonCode,
-      reviewReasonDetail: updated.reviewReasonDetail,
-      reviewNotes: updated.reviewNotes,
-    });
+      return res.json({
+        id: updated.id,
+        reviewStatus: updated.reviewStatus,
+        reviewedById: updated.reviewedById,
+        reviewedAt: updated.reviewedAt?.toISOString() ?? null,
+        reviewReasonCode: updated.reviewReasonCode,
+        reviewReasonDetail: updated.reviewReasonDetail,
+        reviewNotes: updated.reviewNotes,
+      });
+    } catch (error) {
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error updating risk review status:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
   }
 }

@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "ts-node src/server.ts",
+    "test": "vitest run",
     "db:generate": "prisma generate",
     "typecheck": "tsc --noEmit",
     "dataset:extract": "ts-node src/scripts/extract-risk-dataset.ts",
@@ -23,6 +24,7 @@
     "@types/node": "^24.3.0",
     "prisma": "^7.4.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }

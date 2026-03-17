@@ -20,6 +20,69 @@ export class CredentialRequestController {
     return (req as AuthenticatedRequest).auth?.sub ?? null;
   }
 
+  private mapError(
+    error: unknown,
+    res: Response,
+    overrides: Record<string, { code: number; error: string }> = {},
+  ): Response | null {
+    if (!(error instanceof Error)) {
+      return null;
+    }
+
+    const baseMap: Record<string, { code: number; error: string }> = {
+      INVALID_STATUS: { code: 400, error: 'Invalid status query value.' },
+      INVALID_REQUEST_PAYLOAD: { code: 400, error: 'Invalid request payload.' },
+      ACTOR_NOT_FOUND: { code: 404, error: 'Authenticated user record was not found.' },
+      INSTITUTION_CONTEXT_MISSING: {
+        code: 403,
+        error: 'Institution context is missing for this account.',
+      },
+      REQUEST_NOT_FOUND: { code: 404, error: 'Credential request not found.' },
+      REQUEST_NOT_APPROVED: {
+        code: 400,
+        error: 'Receipt is available only for approved requests.',
+      },
+      RECEIPT_NOT_REQUIRED: {
+        code: 400,
+        error: 'Receipt is not required for DIGITAL delivery.',
+      },
+      REQUEST_RECEIPT_TOKEN_PEPPER_MISSING: {
+        code: 500,
+        error: 'REQUEST_RECEIPT_TOKEN_PEPPER_MISSING',
+      },
+      REQUEST_RECEIPT_VERIFY_BASE_URL_MISSING: {
+        code: 500,
+        error: 'REQUEST_RECEIPT_VERIFY_BASE_URL_MISSING',
+      },
+      FOREIGN_KEY_CONSTRAINT: {
+        code: 400,
+        error: 'One or more referenced records do not exist.',
+      },
+      DATABASE_SCHEMA_MISMATCH: {
+        code: 500,
+        error: 'Database schema is out of sync with the service.',
+      },
+      RELATED_RECORD_NOT_FOUND: {
+        code: 400,
+        error: 'One or more related records were not found.',
+      },
+    };
+
+    const mapped = { ...baseMap, ...overrides }[error.message];
+    if (mapped) {
+      return res.status(mapped.code).json({ error: mapped.error });
+    }
+
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2003') {
+        return res.status(400).json({ error: 'One or more referenced records do not exist.' });
+      }
+      return res.status(400).json({ error: `Database request failed (${error.code}).` });
+    }
+
+    return null;
+  }
+
   private parseListQuery(query: Request['query']): ListCredentialRequestsQueryDto {
     const status = typeof query.status === 'string' ? query.status : undefined;
     const studentId = typeof query.studentId === 'string' ? query.studentId : undefined;
@@ -49,15 +112,8 @@ export class CredentialRequestController {
       const requests = await credentialRequestService.listCredentialRequests(userId, query);
       return res.status(200).json(requests);
     } catch (error) {
-      if (error instanceof Error && error.message === 'INVALID_STATUS') {
-        return res.status(400).json({ error: 'Invalid status query value.' });
-      }
-      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
-        return res.status(404).json({ error: 'Authenticated user record was not found.' });
-      }
-      if (error instanceof Error && error.message === 'INSTITUTION_CONTEXT_MISSING') {
-        return res.status(403).json({ error: 'Institution context is missing for this account.' });
-      }
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
 
       console.error('Error listing credential requests:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
@@ -91,33 +147,12 @@ export class CredentialRequestController {
       const created = await credentialRequestService.createCredentialRequest(userId, payload as CreateCredentialRequestDto);
       return res.status(201).json(created);
     } catch (error) {
-      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
-        return res.status(404).json({ error: 'Authenticated user record was not found.' });
-      }
-      if (error instanceof Error && error.message === 'FORBIDDEN_ROLE') {
-        return res.status(403).json({ error: 'This role cannot create credential requests.' });
-      }
-      if (error instanceof Error && error.message === 'TITLE_REQUIRED') {
-        return res.status(400).json({ error: 'Missing required field: title' });
-      }
-      if (error instanceof Error && error.message === 'STUDENT_ID_REQUIRED') {
-        return res.status(400).json({ error: 'Missing required field: studentId' });
-      }
-      if (error instanceof Error && error.message === 'INSTITUTION_CONTEXT_MISSING') {
-        return res.status(403).json({ error: 'Institution context is missing for this account.' });
-      }
-      if (error instanceof Error && error.message === 'FOREIGN_KEY_CONSTRAINT') {
-        return res.status(400).json({ error: 'One or more referenced records do not exist.' });
-      }
-      if (error instanceof Error && error.message === 'DATABASE_SCHEMA_MISMATCH') {
-        return res.status(500).json({ error: 'Database schema is out of sync with the service.' });
-      }
-      if (error instanceof Error && error.message === 'RELATED_RECORD_NOT_FOUND') {
-        return res.status(400).json({ error: 'One or more related records were not found.' });
-      }
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        return res.status(400).json({ error: `Database request failed (${error.code}).` });
-      }
+      const mapped = this.mapError(error, res, {
+        FORBIDDEN_ROLE: { code: 403, error: 'This role cannot create credential requests.' },
+        TITLE_REQUIRED: { code: 400, error: 'Missing required field: title' },
+        STUDENT_ID_REQUIRED: { code: 400, error: 'Missing required field: studentId' },
+      });
+      if (mapped) return mapped;
 
       console.error('Error creating credential request:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
@@ -139,12 +174,10 @@ export class CredentialRequestController {
       }
       return res.status(200).json(request);
     } catch (error) {
-      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
-        return res.status(404).json({ error: 'Authenticated user record was not found.' });
-      }
-      if (error instanceof Error && error.message === 'FORBIDDEN_SCOPE') {
-        return res.status(403).json({ error: 'Not allowed to access this credential request.' });
-      }
+      const mapped = this.mapError(error, res, {
+        FORBIDDEN_SCOPE: { code: 403, error: 'Not allowed to access this credential request.' },
+      });
+      if (mapped) return mapped;
 
       console.error('Error fetching credential request:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
@@ -179,39 +212,34 @@ export class CredentialRequestController {
       );
       return res.status(200).json(updated);
     } catch (error) {
-      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
-        return res.status(404).json({ error: 'Authenticated user record was not found.' });
-      }
-      if (error instanceof Error && error.message === 'FORBIDDEN_ROLE') {
-        return res.status(403).json({ error: 'This account is not allowed to update request status.' });
-      }
-      if (error instanceof Error && error.message === 'FORBIDDEN_STATUS_FOR_ROLE') {
-        return res.status(403).json({ error: 'Student accounts can only cancel requests.' });
-      }
-      if (error instanceof Error && error.message === 'CANNOT_CANCEL_NON_PENDING') {
-        return res.status(400).json({ error: 'Only pending requests can be cancelled.' });
-      }
-      if (error instanceof Error && error.message === 'INSTITUTION_CONTEXT_MISSING') {
-        return res.status(403).json({ error: 'Institution context is missing for this account.' });
-      }
-      if (error instanceof Error && error.message === 'FORBIDDEN_SCOPE') {
-        return res.status(403).json({ error: 'Not allowed to modify this credential request.' });
-      }
-      if (error instanceof Error && error.message === 'REQUEST_NOT_FOUND') {
-        return res.status(404).json({ error: 'Credential request not found.' });
-      }
-      if (error instanceof Error && error.message === 'REJECTION_REASON_REQUIRED') {
-        return res.status(400).json({ error: 'Rejection reason is required for rejected requests.' });
-      }
-      if (error instanceof Error && error.message === 'CREDENTIAL_ID_REQUIRED_FOR_COMPLETION') {
-        return res.status(400).json({ error: 'A credential must be linked before completing this request.' });
-      }
-      if (error instanceof Error && error.message === 'INVALID_STATUS_TRANSITION') {
-        return res.status(400).json({ error: 'Invalid status transition.' });
-      }
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
-        return res.status(400).json({ error: 'One or more referenced records do not exist.' });
-      }
+      const mapped = this.mapError(error, res, {
+        FORBIDDEN_ROLE: {
+          code: 403,
+          error: 'This account is not allowed to update request status.',
+        },
+        FORBIDDEN_STATUS_FOR_ROLE: {
+          code: 403,
+          error: 'Student accounts can only cancel requests.',
+        },
+        CANNOT_CANCEL_NON_PENDING: {
+          code: 400,
+          error: 'Only pending requests can be cancelled.',
+        },
+        FORBIDDEN_SCOPE: {
+          code: 403,
+          error: 'Not allowed to modify this credential request.',
+        },
+        REJECTION_REASON_REQUIRED: {
+          code: 400,
+          error: 'Rejection reason is required for rejected requests.',
+        },
+        CREDENTIAL_ID_REQUIRED_FOR_COMPLETION: {
+          code: 400,
+          error: 'A credential must be linked before completing this request.',
+        },
+        INVALID_STATUS_TRANSITION: { code: 400, error: 'Invalid status transition.' },
+      });
+      if (mapped) return mapped;
 
       console.error('Error updating credential request status:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
@@ -230,33 +258,17 @@ export class CredentialRequestController {
       const receipt = await credentialRequestService.getApprovalReceipt(userId, requestId);
       return res.status(200).json(receipt);
     } catch (error) {
-      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
-        return res.status(404).json({ error: 'Authenticated user record was not found.' });
-      }
-      if (error instanceof Error && error.message === 'REQUEST_NOT_FOUND') {
-        return res.status(404).json({ error: 'Credential request not found.' });
-      }
-      if (error instanceof Error && error.message === 'REQUEST_NOT_APPROVED') {
-        return res.status(400).json({ error: 'Receipt is available only for approved requests.' });
-      }
-      if (error instanceof Error && error.message === 'RECEIPT_NOT_REQUIRED') {
-        return res.status(400).json({ error: 'Receipt is not required for DIGITAL delivery.' });
-      }
-      if (error instanceof Error && error.message === 'FORBIDDEN_SCOPE') {
-        return res.status(403).json({ error: 'Not allowed to access this approval receipt.' });
-      }
-      if (error instanceof Error && error.message === 'FORBIDDEN_ROLE') {
-        return res.status(403).json({ error: 'This account is not allowed to access approval receipts.' });
-      }
-      if (error instanceof Error && error.message === 'INSTITUTION_CONTEXT_MISSING') {
-        return res.status(403).json({ error: 'Institution context is missing for this account.' });
-      }
-      if (error instanceof Error && error.message === 'REQUEST_RECEIPT_TOKEN_PEPPER_MISSING') {
-        return res.status(500).json({ error: 'REQUEST_RECEIPT_TOKEN_PEPPER_MISSING' });
-      }
-      if (error instanceof Error && error.message === 'REQUEST_RECEIPT_VERIFY_BASE_URL_MISSING') {
-        return res.status(500).json({ error: 'REQUEST_RECEIPT_VERIFY_BASE_URL_MISSING' });
-      }
+      const mapped = this.mapError(error, res, {
+        FORBIDDEN_SCOPE: {
+          code: 403,
+          error: 'Not allowed to access this approval receipt.',
+        },
+        FORBIDDEN_ROLE: {
+          code: 403,
+          error: 'This account is not allowed to access approval receipts.',
+        },
+      });
+      if (mapped) return mapped;
 
       console.error('Error fetching request approval receipt:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
@@ -273,9 +285,8 @@ export class CredentialRequestController {
       const result = await credentialRequestService.verifyApprovalReceiptToken(token);
       return res.status(200).json(result);
     } catch (error) {
-      if (error instanceof Error && error.message === 'REQUEST_RECEIPT_TOKEN_PEPPER_MISSING') {
-        return res.status(500).json({ error: 'REQUEST_RECEIPT_TOKEN_PEPPER_MISSING' });
-      }
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
 
       console.error('Error verifying request approval receipt:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
@@ -310,34 +321,29 @@ export class CredentialRequestController {
       const updated = await credentialRequestService.markPhysicalClaimed(userId, requestId, notes);
       return res.status(200).json(updated);
     } catch (error) {
-      if (error instanceof Error && error.message === 'ACTOR_NOT_FOUND') {
-        return res.status(404).json({ error: 'Authenticated user record was not found.' });
-      }
-      if (error instanceof Error && error.message === 'REQUEST_NOT_FOUND') {
-        return res.status(404).json({ error: 'Credential request not found.' });
-      }
-      if (error instanceof Error && error.message === 'FORBIDDEN_ROLE') {
-        return res.status(403).json({ error: 'This account is not allowed to mark physical claims.' });
-      }
-      if (error instanceof Error && error.message === 'FORBIDDEN_SCOPE') {
-        return res.status(403).json({ error: 'Not allowed to modify this credential request.' });
-      }
-      if (error instanceof Error && error.message === 'INSTITUTION_CONTEXT_MISSING') {
-        return res.status(403).json({ error: 'Institution context is missing for this account.' });
-      }
-      if (error instanceof Error && error.message === 'PHYSICAL_CLAIM_NOT_APPLICABLE') {
-        return res.status(400).json({
+      const mapped = this.mapError(error, res, {
+        FORBIDDEN_ROLE: {
+          code: 403,
+          error: 'This account is not allowed to mark physical claims.',
+        },
+        FORBIDDEN_SCOPE: {
+          code: 403,
+          error: 'Not allowed to modify this credential request.',
+        },
+        PHYSICAL_CLAIM_NOT_APPLICABLE: {
+          code: 400,
           error: 'Physical claim action applies only to PHYSICAL or BOTH delivery requests.',
-        });
-      }
-      if (error instanceof Error && error.message === 'REQUEST_NOT_APPROVED') {
-        return res.status(400).json({ error: 'Only approved requests can be marked as physically claimed.' });
-      }
-      if (error instanceof Error && error.message === 'DIGITAL_ISSUANCE_REQUIRED_BEFORE_PHYSICAL_CLAIM') {
-        return res.status(400).json({
+        },
+        REQUEST_NOT_APPROVED: {
+          code: 400,
+          error: 'Only approved requests can be marked as physically claimed.',
+        },
+        DIGITAL_ISSUANCE_REQUIRED_BEFORE_PHYSICAL_CLAIM: {
+          code: 400,
           error: 'For BOTH delivery, issue/link the digital credential before marking physical claim.',
-        });
-      }
+        },
+      });
+      if (mapped) return mapped;
 
       console.error('Error marking physical claim:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
