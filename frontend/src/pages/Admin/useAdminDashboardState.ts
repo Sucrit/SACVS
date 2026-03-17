@@ -17,6 +17,7 @@ import { useStepUp } from '../../hooks/useStepUp';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { useToast } from '../../hooks/useToast';
 import { useSearchParamsState } from '../../hooks/useSearchParamsState';
+import { appQueryKeys } from '../../lib/queryKeys';
 import { getApiErrorMessage } from '../../utils/errors';
 import { getRoleStyle, getRiskBandStyle, getRiskReviewStyle } from '../../utils/statusStyles';
 
@@ -66,6 +67,11 @@ const getSection = (pathname: string): AdminSection => {
   if (pathname.includes('/admin/logs')) return 'logs';
   if (pathname.includes('/admin/notifications')) return 'notifications';
   return 'overview';
+};
+
+const timeSensitiveQueryOptions = {
+  staleTime: 1000 * 30,
+  refetchOnWindowFocus: 'always' as const,
 };
 
 
@@ -181,7 +187,7 @@ export function useAdminDashboardState(): AdminDashboardState {
   const queryClient = useQueryClient();
 
   // --- Users state ---
-  const { data: users = [], isLoading: isLoadingUsers, error: usersQueryError } = useQuery({ queryKey: ['admin-users'], queryFn: () => UserService.list() });
+  const { data: users = [], isLoading: isLoadingUsers, error: usersQueryError } = useQuery({ queryKey: appQueryKeys.admin.users(), queryFn: () => UserService.list() });
   const [userActionError, setUsersError] = useState<string | null>(null);
   const usersError = userActionError || (usersQueryError ? 'Unable to load users from the server.' : null);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
@@ -192,12 +198,12 @@ export function useAdminDashboardState(): AdminDashboardState {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   // --- Notification state ---
-  const { data: notificationsData, isLoading: isLoadingNotifications } = useQuery({ queryKey: ['admin-notifications'], queryFn: () => NotificationService.list({ page: 1, pageSize: 100 }), enabled: section === 'notifications' || section === 'reports' });
+  const { data: notificationsData, isLoading: isLoadingNotifications } = useQuery({ queryKey: appQueryKeys.admin.notifications(), queryFn: () => NotificationService.list({ page: 1, pageSize: 100 }), enabled: section === 'notifications' || section === 'reports', ...timeSensitiveQueryOptions });
   const notifications = notificationsData?.items || [];
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
 
   const setNotifications = (updater: (prev: AppNotification[]) => AppNotification[]) => {
-    queryClient.setQueryData(['admin-notifications'], (oldData: any) => {
+    queryClient.setQueryData(appQueryKeys.admin.notifications(), (oldData: any) => {
       if (!oldData) return oldData;
       return {
         ...oldData,
@@ -207,14 +213,14 @@ export function useAdminDashboardState(): AdminDashboardState {
   };
 
   const setUsers = (updater: (prev: User[]) => User[]) => {
-    queryClient.setQueryData(['admin-users'], (oldData: any) => {
+    queryClient.setQueryData(appQueryKeys.admin.users(), (oldData: any) => {
       if (!oldData) return oldData;
       return updater(oldData as User[]);
     });
   };
 
   const setRiskEvents = (updater: (prev: RiskEventRecord[]) => RiskEventRecord[]) => {
-    queryClient.setQueryData(['admin-risk-events', { riskPage, riskPageSize, riskBandFilter, riskReviewFilter, reviewedOnly }], (oldData: any) => {
+    queryClient.setQueryData(appQueryKeys.admin.riskEvents({ riskPage, riskPageSize, riskBandFilter, riskReviewFilter, reviewedOnly }), (oldData: any) => {
       if (!oldData) return oldData;
       return {
         ...oldData,
@@ -224,7 +230,7 @@ export function useAdminDashboardState(): AdminDashboardState {
   };
 
   const setRiskSummary = (updater: (prev: any) => any) => {
-    queryClient.setQueryData(['admin-risk-events', { riskPage, riskPageSize, riskBandFilter, riskReviewFilter, reviewedOnly }], (oldData: any) => {
+    queryClient.setQueryData(appQueryKeys.admin.riskEvents({ riskPage, riskPageSize, riskBandFilter, riskReviewFilter, reviewedOnly }), (oldData: any) => {
       if (!oldData) return oldData;
       return {
         ...oldData,
@@ -234,10 +240,10 @@ export function useAdminDashboardState(): AdminDashboardState {
   };
 
   // --- Credential requests state ---
-  const { data: credentialRequests = [], isLoading: isLoadingCredentialRequests } = useQuery({ queryKey: ['admin-requests'], queryFn: () => CredentialService.listRequests() });
+  const { data: credentialRequests = [], isLoading: isLoadingCredentialRequests } = useQuery({ queryKey: appQueryKeys.admin.requests(), queryFn: () => CredentialService.listRequests() });
 
   // --- Audit logs state ---
-  const { data: auditLogs = [], isLoading: isLoadingAuditLogs } = useQuery({ queryKey: ['admin-audit-logs'], queryFn: () => AuditService.list(), enabled: section === 'logs' || section === 'reports' });
+  const { data: auditLogs = [], isLoading: isLoadingAuditLogs } = useQuery({ queryKey: appQueryKeys.admin.auditLogs(), queryFn: () => AuditService.list(), enabled: section === 'logs' || section === 'reports', ...timeSensitiveQueryOptions });
   const [auditActionFilter, setAuditActionFilter] = useSearchParamsState<'ALL' | AuditAction>('aa', 'ALL');
   const [auditSeverityFilter, setAuditSeverityFilter] = useSearchParamsState<'ALL' | AuditSeverity>('as', 'ALL');
   const [auditPage, setAuditPage] = useState(1);
@@ -251,9 +257,10 @@ export function useAdminDashboardState(): AdminDashboardState {
   const [riskPageSize, setRiskPageSize] = useState(20);
 
   const { data: riskEventData, isLoading: isLoadingRiskEvents } = useQuery({ 
-    queryKey: ['admin-risk-events', { riskPage, riskPageSize, riskBandFilter, riskReviewFilter, reviewedOnly }], 
+    queryKey: appQueryKeys.admin.riskEvents({ riskPage, riskPageSize, riskBandFilter, riskReviewFilter, reviewedOnly }), 
     queryFn: () => RiskService.list({ page: riskPage, pageSize: riskPageSize, riskBand: riskBandFilter, reviewStatus: riskReviewFilter, reviewedOnly }),
-    enabled: section === 'risk' || section === 'overview' || section === 'reports'
+    enabled: section === 'risk' || section === 'overview' || section === 'reports',
+    ...timeSensitiveQueryOptions,
   });
   const riskEvents: RiskEventRecord[] = riskEventData?.items || [];
   const riskTotal: number = riskEventData?.total || 0;
@@ -264,7 +271,7 @@ export function useAdminDashboardState(): AdminDashboardState {
     confirmedAbuseCount: number;
   } = riskEventData?.summary || { pendingReviewCount: 0, highRiskCount: 0, criticalRiskCount: 0, confirmedAbuseCount: 0 };
 
-  const { data: riskWorkerStatus = null, isLoading: isLoadingRiskWorkerStatus } = useQuery({ queryKey: ['admin-risk-worker-status'], queryFn: () => RiskService.getWorkerStatus(), enabled: section === 'risk' || section === 'overview' || section === 'reports' });
+  const { data: riskWorkerStatus = null, isLoading: isLoadingRiskWorkerStatus } = useQuery({ queryKey: appQueryKeys.admin.riskWorkerStatus(), queryFn: () => RiskService.getWorkerStatus(), enabled: section === 'risk' || section === 'overview' || section === 'reports', ...timeSensitiveQueryOptions });
   const [reviewingRiskEventId, setReviewingRiskEventId] = useState<string | null>(null);
   const [selectedRiskEventId, setSelectedRiskEventId] = useState<string | null>(null);
   const [selectedRiskEvent, setSelectedRiskEvent] = useState<RiskEventRecord | null>(null);
@@ -323,17 +330,17 @@ export function useAdminDashboardState(): AdminDashboardState {
   // --- Realtime sync ---
 
   const realtimeRefreshMap = useMemo(() => ({
-    users: () => { if (section !== 'logs') void queryClient.invalidateQueries({ queryKey: ['admin-users'] }); },
-    credentialRequests: () => { void queryClient.invalidateQueries({ queryKey: ['admin-requests'] }); },
-    audit: () => { if (section === 'logs' || section === 'reports') void queryClient.invalidateQueries({ queryKey: ['admin-audit-logs'] }); },
-    notifications: () => { if (section === 'notifications' || section === 'reports') void queryClient.invalidateQueries({ queryKey: ['admin-notifications'] }); },
+    users: () => { if (section !== 'logs') void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.users() }); },
+    credentialRequests: () => { void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.requests() }); },
+    audit: () => { if (section === 'logs' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.auditLogs() }); },
+    notifications: () => { if (section === 'notifications' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.notifications() }); },
     'security:SECURITY_RISK_EVENTS_UPDATED': () => {
       if (section === 'risk' || section === 'overview' || section === 'reports') {
-        void queryClient.invalidateQueries({ queryKey: ['admin-risk-events'] });
-        void queryClient.invalidateQueries({ queryKey: ['admin-risk-worker-status'] });
+        void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.riskEventsRoot() });
+        void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.riskWorkerStatus() });
       }
     },
-  }), [queryClient, section]);
+  }), [queryClient, riskBandFilter, riskPage, riskPageSize, riskReviewFilter, reviewedOnly, section]);
 
   useRealtimeSync(realtimeRefreshMap);
 

@@ -1,16 +1,22 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Credential,
   CredentialRequest,
   CredentialService,
   CreateCredentialRequestPayload,
 } from '../../services/credential.service';
-import { AppNotification, NotificationService } from '../../services/notification.service';
+import {
+  AppNotification,
+  NotificationListResponse,
+  NotificationService,
+} from '../../services/notification.service';
 import { User, UserService } from '../../services/user.service';
 import { getApiErrorMessage, getStudentCredentialDetailId, getStudentSection } from './utils';
 import { useLegacyAuth } from '../../auth/auth-context';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
+import { appQueryKeys } from '../../lib/queryKeys';
 import { useToast } from '../../hooks/useToast';
 import { toErrorMessage } from '../../utils/errors';
 import { StudentSection } from './types';
@@ -26,6 +32,40 @@ const sortRequestsByNewest = (
     if (Number.isNaN(bTime)) return -1;
     return bTime - aTime;
   });
+
+const toStudentRequestUiItem = (item: CredentialRequest): CredentialRequest & { _uiKey: string } => ({
+  ...item,
+  _uiKey: item.id,
+});
+
+const timeSensitiveQueryOptions = {
+  staleTime: 1000 * 30,
+  refetchOnWindowFocus: 'always' as const,
+};
+
+const studentCredentialsQueryOptions = () => ({
+  queryKey: appQueryKeys.student.credentials(),
+  queryFn: () => CredentialService.listMine(),
+});
+
+const studentRequestsQueryOptions = () => ({
+  queryKey: appQueryKeys.student.requests(),
+  queryFn: async () => {
+    const data = await CredentialService.listRequests();
+    return sortRequestsByNewest(data.map(toStudentRequestUiItem));
+  },
+});
+
+const studentNotificationsQueryOptions = () => ({
+  queryKey: appQueryKeys.student.notifications(),
+  queryFn: () => NotificationService.list({ page: 1, pageSize: 100 }),
+  ...timeSensitiveQueryOptions,
+});
+
+const studentProfileQueryOptions = () => ({
+  queryKey: appQueryKeys.student.profile(),
+  queryFn: () => UserService.getMe(),
+});
 
 export interface StudentDashboardState {
   section: StudentSection;
@@ -85,6 +125,7 @@ export interface StudentDashboardState {
 export function useStudentDashboardState(): StudentDashboardState {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user: sessionUser } = useLegacyAuth();
   const section = getStudentSection(location.pathname);
   const credentialDetailId = getStudentCredentialDetailId(location.pathname);
@@ -93,26 +134,13 @@ export function useStudentDashboardState(): StudentDashboardState {
   const shouldLoadNotifications = section === 'notifications';
   const shouldLoadProfile = section === 'profile';
 
-  const [credentials, setCredentials] = useState<Credential[]>([]);
   const [selectedCredentialId, setSelectedCredentialId] = useState<string | null>(null);
   const [requestDetailsFromQueryId, setRequestDetailsFromQueryId] = useState<string | null>(null);
-  const [isLoadingCredentials, setIsLoadingCredentials] = useState(true);
-  const [hasLoadedCredentials, setHasLoadedCredentials] = useState(false);
-
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [cancelingRequestId, setCancelingRequestId] = useState<string | null>(null);
   const [animatedRequestIds, setAnimatedRequestIds] = useState<string[]>([]);
-  const [requests, setRequests] = useState<Array<CredentialRequest & { _uiKey?: string }>>([]);
-  const [isLoadingRequests, setIsLoadingRequests] = useState(true);
-  const [hasLoadedRequests, setHasLoadedRequests] = useState(false);
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
-  const [hasLoadedNotifications, setHasLoadedNotifications] = useState(false);
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
-  const [studentProfileUser, setStudentProfileUser] = useState<User | null>(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isSavingProfilePersonalInfo, setIsSavingProfilePersonalInfo] = useState(false);
-  const [hasLoadedProfile, setHasLoadedProfile] = useState(false);
   const { showToast } = useToast();
   const [requestForm, setRequestForm] = useState<CreateCredentialRequestPayload>({
     type: 'TRANSCRIPT',
@@ -122,86 +150,93 @@ export function useStudentDashboardState(): StudentDashboardState {
     deliveryMethod: 'DIGITAL',
   });
 
-  // --- Data loaders ---
+  const {
+    data: credentials = [],
+    isLoading: isLoadingCredentials,
+    isFetching: isFetchingCredentials,
+    error: credentialsError,
+    status: credentialsStatus,
+  } = useQuery({
+    ...studentCredentialsQueryOptions(),
+    enabled: shouldLoadCredentials,
+  });
 
-  const loadCredentials = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
-    if (!silent) setIsLoadingCredentials(true);
-    try {
-      const data = await CredentialService.listMine();
-      setCredentials(data);
-      setHasLoadedCredentials(true);
-    } catch (error) {
-      console.error('Failed to load credentials:', error);
-      if (!silent) {
-        setCredentials([]);
-        showToast({ variant: 'error', message: toErrorMessage(error, 'Unable to load credentials from the server.') });
+  const {
+    data: requests = [],
+    isLoading: isLoadingRequests,
+    isFetching: isFetchingRequests,
+    error: requestsError,
+    status: requestsStatus,
+  } = useQuery({
+    ...studentRequestsQueryOptions(),
+    enabled: shouldLoadRequests,
+  });
+
+  const {
+    data: notificationsData,
+    isLoading: isLoadingNotifications,
+    isFetching: isFetchingNotifications,
+    error: notificationsError,
+    status: notificationsStatus,
+  } = useQuery({
+    ...studentNotificationsQueryOptions(),
+    enabled: shouldLoadNotifications,
+  });
+  const notifications = notificationsData?.items || [];
+
+  const {
+    data: studentProfileUser = null,
+    isLoading: isLoadingProfile,
+    isFetching: isFetchingProfile,
+    error: profileError,
+    status: profileStatus,
+  } = useQuery({
+    ...studentProfileQueryOptions(),
+    enabled: shouldLoadProfile,
+  });
+
+  const setRequestsCache = useCallback((
+    updater: (previous: Array<CredentialRequest & { _uiKey?: string }>) => Array<CredentialRequest & { _uiKey?: string }>,
+  ) => {
+    queryClient.setQueryData(appQueryKeys.student.requests(), (oldData: Array<CredentialRequest & { _uiKey?: string }> | undefined) => {
+      return updater(oldData || []);
+    });
+  }, [queryClient]);
+
+  const setNotificationsCache = useCallback((
+    updater: (previous: AppNotification[]) => AppNotification[],
+  ) => {
+    queryClient.setQueryData(appQueryKeys.student.notifications(), (oldData: NotificationListResponse | undefined) => {
+      if (!oldData) {
+        const nextItems = updater([]);
+        return {
+          items: nextItems,
+          pagination: { page: 1, pageSize: 100, total: nextItems.length },
+        };
       }
-    } finally {
-      if (!silent) setIsLoadingCredentials(false);
+
+      const nextItems = updater(oldData.items || []);
+      return {
+        ...oldData,
+        items: nextItems,
+        pagination: {
+          ...oldData.pagination,
+          total: Math.max(oldData.pagination?.total || 0, nextItems.length),
+        },
+      };
+    });
+  }, [queryClient]);
+
+  const setProfileCache = useCallback((profile: User) => {
+    queryClient.setQueryData(appQueryKeys.student.profile(), profile);
+  }, [queryClient]);
+
+  const invalidateIfCached = useCallback((queryKey: ReturnType<typeof appQueryKeys.student[keyof typeof appQueryKeys.student]>) => {
+    const queryState = queryClient.getQueryState(queryKey);
+    if (queryState?.dataUpdatedAt) {
+      void queryClient.invalidateQueries({ queryKey });
     }
-  }, [showToast]);
-
-  const loadRequests = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
-    if (!silent) setIsLoadingRequests(true);
-    try {
-      const data = await CredentialService.listRequests();
-      setRequests(sortRequestsByNewest(data.map(item => ({ ...item, _uiKey: item.id }))));
-      setHasLoadedRequests(true);
-    } catch (error) {
-      console.error('Failed to load requests:', error);
-      if (!silent) {
-        setRequests([]);
-        showToast({ variant: 'error', message: toErrorMessage(error, 'Unable to load requests from the server.') });
-      }
-    } finally {
-      if (!silent) setIsLoadingRequests(false);
-    }
-  }, [showToast]);
-
-  const loadProfile = useCallback(async () => {
-    setIsLoadingProfile(true);
-    try {
-      const me = await UserService.getMe();
-      setStudentProfileUser(me);
-      setHasLoadedProfile(true);
-    } catch (error) {
-      console.error('Failed to load student profile:', error);
-      setStudentProfileUser(null);
-      showToast({ variant: 'error', message: toErrorMessage(error, 'Unable to load profile information from the server.') });
-    } finally {
-      setIsLoadingProfile(false);
-    }
-  }, [showToast]);
-
-  const loadNotifications = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
-    if (!silent) setIsLoadingNotifications(true);
-    try {
-      const data = await NotificationService.list({ page: 1, pageSize: 100 });
-      setNotifications(data.items);
-      setHasLoadedNotifications(true);
-    } catch (error) {
-      console.error('Failed to load notifications:', error);
-      if (!silent) {
-        setNotifications([]);
-        showToast({ variant: 'error', message: toErrorMessage(error, 'Unable to load notifications from the server.') });
-      }
-    } finally {
-      if (!silent) setIsLoadingNotifications(false);
-    }
-  }, [showToast]);
-
-  // --- Realtime sync ---
-
-  const realtimeRefreshMap = useMemo(() => ({
-    credentials: () => { if (shouldLoadCredentials) void loadCredentials({ silent: true }); },
-    credentialRequests: () => { if (shouldLoadRequests) void loadRequests({ silent: true }); },
-    notifications: () => { if (shouldLoadNotifications) void loadNotifications({ silent: true }); },
-    users: () => { if (shouldLoadProfile) void loadProfile(); },
-  }), [loadCredentials, loadNotifications, loadProfile, loadRequests, shouldLoadCredentials, shouldLoadNotifications, shouldLoadProfile, shouldLoadRequests]);
-
-  useRealtimeSync(realtimeRefreshMap);
-
-  // --- Section-based lazy loading ---
+  }, [queryClient]);
 
   useEffect(() => {
     if (section === 'overview') {
@@ -210,28 +245,118 @@ export function useStudentDashboardState(): StudentDashboardState {
   }, [navigate, section]);
 
   useEffect(() => {
-    if (shouldLoadCredentials && !hasLoadedCredentials) void loadCredentials();
-    if (shouldLoadRequests && !hasLoadedRequests) void loadRequests();
-    if (shouldLoadNotifications && !hasLoadedNotifications) void loadNotifications();
-    if (shouldLoadProfile && !hasLoadedProfile) void loadProfile();
-  }, [
-    hasLoadedCredentials, hasLoadedNotifications, hasLoadedProfile, hasLoadedRequests,
-    loadCredentials, loadNotifications, loadProfile, loadRequests,
-    shouldLoadCredentials, shouldLoadNotifications, shouldLoadProfile, shouldLoadRequests,
-  ]);
+    if (shouldLoadCredentials && credentialsError) {
+      showToast({ variant: 'error', message: toErrorMessage(credentialsError, 'Unable to load credentials from the server.') });
+    }
+  }, [credentialsError, shouldLoadCredentials, showToast]);
 
-  // --- Credential selection sync ---
+  useEffect(() => {
+    if (shouldLoadRequests && requestsError) {
+      showToast({ variant: 'error', message: toErrorMessage(requestsError, 'Unable to load requests from the server.') });
+    }
+  }, [requestsError, shouldLoadRequests, showToast]);
+
+  useEffect(() => {
+    if (shouldLoadNotifications && notificationsError) {
+      showToast({ variant: 'error', message: toErrorMessage(notificationsError, 'Unable to load notifications from the server.') });
+    }
+  }, [notificationsError, shouldLoadNotifications, showToast]);
+
+  useEffect(() => {
+    if (shouldLoadProfile && profileError) {
+      showToast({ variant: 'error', message: toErrorMessage(profileError, 'Unable to load profile information from the server.') });
+    }
+  }, [profileError, shouldLoadProfile, showToast]);
+
+  useEffect(() => {
+    if (section !== 'credentials' || credentialsStatus !== 'success' || isFetchingCredentials) return;
+
+    const timer = window.setTimeout(() => {
+      void queryClient.prefetchQuery(studentRequestsQueryOptions());
+    }, 150);
+
+    return () => window.clearTimeout(timer);
+  }, [credentialsStatus, isFetchingCredentials, queryClient, section]);
+
+  useEffect(() => {
+    if (section !== 'requests' || requestsStatus !== 'success' || isFetchingRequests) return;
+
+    const timer = window.setTimeout(() => {
+      void queryClient.prefetchQuery(studentCredentialsQueryOptions());
+      void queryClient.prefetchQuery(studentNotificationsQueryOptions());
+    }, 150);
+
+    return () => window.clearTimeout(timer);
+  }, [isFetchingRequests, queryClient, requestsStatus, section]);
+
+  useEffect(() => {
+    if (section !== 'notifications' || notificationsStatus !== 'success' || isFetchingNotifications) return;
+
+    const timer = window.setTimeout(() => {
+      void queryClient.prefetchQuery(studentRequestsQueryOptions());
+    }, 150);
+
+    return () => window.clearTimeout(timer);
+  }, [isFetchingNotifications, notificationsStatus, queryClient, section]);
+
+  useEffect(() => {
+    if (section !== 'profile' || profileStatus !== 'success' || isFetchingProfile) return;
+
+    const timer = window.setTimeout(() => {
+      void queryClient.prefetchQuery(studentNotificationsQueryOptions());
+      void queryClient.prefetchQuery(studentRequestsQueryOptions());
+    }, 200);
+
+    return () => window.clearTimeout(timer);
+  }, [isFetchingProfile, profileStatus, queryClient, section]);
+
+  const realtimeRefreshMap = useMemo(() => ({
+    credentials: () => {
+      if (shouldLoadCredentials) {
+        void queryClient.invalidateQueries({ queryKey: appQueryKeys.student.credentials() });
+        return;
+      }
+      invalidateIfCached(appQueryKeys.student.credentials());
+    },
+    credentialRequests: () => {
+      if (shouldLoadRequests) {
+        void queryClient.invalidateQueries({ queryKey: appQueryKeys.student.requests() });
+        return;
+      }
+      invalidateIfCached(appQueryKeys.student.requests());
+    },
+    notifications: () => {
+      if (shouldLoadNotifications) {
+        void queryClient.invalidateQueries({ queryKey: appQueryKeys.student.notifications() });
+        return;
+      }
+      invalidateIfCached(appQueryKeys.student.notifications());
+    },
+    users: () => {
+      if (shouldLoadProfile) {
+        void queryClient.invalidateQueries({ queryKey: appQueryKeys.student.profile() });
+        return;
+      }
+      invalidateIfCached(appQueryKeys.student.profile());
+    },
+  }), [invalidateIfCached, queryClient, shouldLoadCredentials, shouldLoadNotifications, shouldLoadProfile, shouldLoadRequests]);
+
+  useRealtimeSync(realtimeRefreshMap);
 
   useEffect(() => {
     if (!shouldLoadCredentials) return;
-    if (credentials.length === 0) { setSelectedCredentialId(null); return; }
-    if (credentialDetailId) { setSelectedCredentialId(credentialDetailId); return; }
+    if (credentials.length === 0) {
+      setSelectedCredentialId(null);
+      return;
+    }
+    if (credentialDetailId) {
+      setSelectedCredentialId(credentialDetailId);
+      return;
+    }
     if (!selectedCredentialId || !credentials.some(c => c.id === selectedCredentialId)) {
       setSelectedCredentialId(credentials[0].id);
     }
   }, [credentialDetailId, credentials, selectedCredentialId, shouldLoadCredentials]);
-
-  // --- Request deep-link from notifications ---
 
   useEffect(() => {
     if (section !== 'requests') return;
@@ -248,10 +373,11 @@ export function useStudentDashboardState(): StudentDashboardState {
         try {
           const fetched = await CredentialService.getRequestById(requestId);
           if (!isCancelled && fetched) {
-            targetRequestId = fetched.id;
-            setRequests(previous => {
-              if (previous.some(r => r.id === fetched.id)) return previous;
-              return [{ ...fetched, _uiKey: fetched.id }, ...previous];
+            const uiRequest = toStudentRequestUiItem(fetched);
+            targetRequestId = uiRequest.id;
+            setRequestsCache(previous => {
+              if (previous.some(r => r.id === uiRequest.id)) return previous;
+              return sortRequestsByNewest([uiRequest, ...previous]);
             });
           }
         } catch (error) {
@@ -269,9 +395,7 @@ export function useStudentDashboardState(): StudentDashboardState {
 
     void openRequestDetailsFromQuery();
     return () => { isCancelled = true; };
-  }, [isLoadingRequests, location.search, navigate, requests, section]);
-
-  // --- Computed ---
+  }, [isLoadingRequests, location.search, navigate, requests, section, setRequestsCache]);
 
   const selectedCredential = useMemo(
     () => credentials.find(c => c.id === (credentialDetailId || selectedCredentialId)) ?? null,
@@ -285,8 +409,6 @@ export function useStudentDashboardState(): StudentDashboardState {
 
   const isCredentialsEmptyPage = section === 'credentials' && !isLoadingCredentials && credentials.length === 0;
 
-  // --- Handlers ---
-
   const handleRequestSubmit = async (event: FormEvent<HTMLFormElement>): Promise<boolean> => {
     event.preventDefault();
     setIsSubmittingRequest(true);
@@ -299,13 +421,12 @@ export function useStudentDashboardState(): StudentDashboardState {
         deliveryMethod: requestForm.deliveryMethod,
       });
 
-      if (shouldLoadRequests) {
-        setRequests(previous => sortRequestsByNewest([
-          { ...created, _uiKey: created.id },
-          ...previous.filter(r => r.id !== created.id),
-        ]));
-        setAnimatedRequestIds(previous => previous.includes(created.id) ? previous : [created.id, ...previous]);
-      }
+      const createdUiRequest = toStudentRequestUiItem(created);
+      setRequestsCache(previous => sortRequestsByNewest([
+        createdUiRequest,
+        ...previous.filter(r => r.id !== createdUiRequest.id),
+      ]));
+      setAnimatedRequestIds(previous => previous.includes(created.id) ? previous : [created.id, ...previous]);
 
       setRequestForm({ type: 'TRANSCRIPT', title: '', description: '', purpose: '', deliveryMethod: 'DIGITAL' });
       window.setTimeout(() => { setAnimatedRequestIds(previous => previous.filter(id => id !== created.id)); }, 900);
@@ -322,10 +443,11 @@ export function useStudentDashboardState(): StudentDashboardState {
 
   const handleCancelRequest = async (requestId: string): Promise<void> => {
     setCancelingRequestId(requestId);
-    const previousRequest = requests.find(r => r.id === requestId) || null;
+    const previousRequests = queryClient.getQueryData<Array<CredentialRequest & { _uiKey?: string }>>(appQueryKeys.student.requests()) || [];
+    const previousRequest = previousRequests.find(r => r.id === requestId) || null;
     if (previousRequest) {
       const nowIso = new Date().toISOString();
-      setRequests(previous => sortRequestsByNewest(
+      setRequestsCache(previous => sortRequestsByNewest(
         previous.map(r => r.id === requestId ? { ...r, status: 'CANCELLED' as const, updatedAt: nowIso } : r),
       ));
       setAnimatedRequestIds(previous => previous.includes(requestId) ? previous : [requestId, ...previous]);
@@ -333,18 +455,20 @@ export function useStudentDashboardState(): StudentDashboardState {
 
     try {
       const updated = await CredentialService.updateRequestStatus(requestId, 'CANCELLED');
-      setRequests(previous => sortRequestsByNewest(
-        previous.map(r => r.id === requestId ? { ...updated, _uiKey: r._uiKey || updated.id } : r),
+      const updatedUiRequest = toStudentRequestUiItem(updated);
+      setRequestsCache(previous => sortRequestsByNewest(
+        previous.map(r => r.id === requestId ? { ...updatedUiRequest, _uiKey: r._uiKey || updatedUiRequest.id } : r),
       ));
       window.setTimeout(() => { setAnimatedRequestIds(previous => previous.filter(id => id !== requestId)); }, 900);
       showToast({ variant: 'success', message: 'Request cancelled successfully.' });
     } catch (error) {
       console.error('Failed to cancel credential request:', error);
-      if (previousRequest) {
-        setRequests(previous => sortRequestsByNewest(previous.map(r => (r.id === requestId ? previousRequest : r))));
-      }
+      queryClient.setQueryData(appQueryKeys.student.requests(), previousRequests);
       setAnimatedRequestIds(previous => previous.filter(id => id !== requestId));
       showToast({ variant: 'error', message: toErrorMessage(error, 'Unable to cancel request right now.') });
+      if (!previousRequest) {
+        void queryClient.invalidateQueries({ queryKey: appQueryKeys.student.requests() });
+      }
     } finally {
       setCancelingRequestId(null);
     }
@@ -357,7 +481,7 @@ export function useStudentDashboardState(): StudentDashboardState {
   const handleMarkNotificationRead = async (notificationId: string) => {
     try {
       const updated = await NotificationService.markRead(notificationId, true);
-      setNotifications(previous => previous.map(item => (item.id === notificationId ? updated : item)));
+      setNotificationsCache(previous => previous.map(item => (item.id === notificationId ? updated : item)));
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
       showToast({ variant: 'error', message: toErrorMessage(error, 'Unable to update notification state.') });
@@ -365,10 +489,12 @@ export function useStudentDashboardState(): StudentDashboardState {
   };
 
   const handleMarkAllNotificationsRead = async () => {
+    if (isMarkingAllNotificationsRead || notifications.every(item => item.read)) return;
+
     setIsMarkingAllNotificationsRead(true);
     try {
       await NotificationService.markAllRead();
-      setNotifications(previous => previous.map(item => ({ ...item, read: true })));
+      setNotificationsCache(previous => previous.map(item => ({ ...item, read: true })));
       showToast({ variant: 'success', message: 'All notifications marked as read.' });
     } catch (error) {
       console.error('Failed to mark all notifications as read:', error);
@@ -410,7 +536,7 @@ export function useStudentDashboardState(): StudentDashboardState {
         guardianFullName: payload.guardianFullName,
         guardianRelationship: payload.guardianRelationship,
       });
-      setStudentProfileUser(updated);
+      setProfileCache(updated);
     } catch (error) {
       const message = getApiErrorMessage(error) || 'Unable to update personal information.';
       throw new Error(message);

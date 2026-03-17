@@ -490,8 +490,8 @@ export default function InstitutionOverviewSection({
                   <table className="min-w-full text-left text-sm">
                     <thead className="bg-neutral-50 text-xs font-semibold text-neutral-500">
                       <tr>
-                        <th className="px-4 py-3">Student</th>
-                        <th className="hidden px-4 py-3 sm:table-cell">Student ID</th>
+                        <th className="px-4 py-3">Student's Information</th>
+                        <th className="hidden px-4 py-3 sm:table-cell">Student's ID</th>
                         <th className="hidden px-4 py-3 md:table-cell">Program</th>
                         <th className="px-4 py-3">Status</th>
                       </tr>

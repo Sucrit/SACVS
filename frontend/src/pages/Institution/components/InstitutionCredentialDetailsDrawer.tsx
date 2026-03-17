@@ -1,7 +1,9 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Download, ExternalLink, Link2, X } from 'lucide-react';
 import Badge from '../../../components/common/Badge';
 import { useToast } from '../../../hooks/useToast';
+import { appQueryKeys } from '../../../lib/queryKeys';
 import { Credential, CredentialService } from '../../../services/credential.service';
 import { formatDateTime } from '../utils';
 
@@ -35,10 +37,17 @@ export default function InstitutionCredentialDetailsDrawer({
 }: InstitutionCredentialDetailsDrawerProps) {
   const { showToast } = useToast();
   const [isVisible, setIsVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [credential, setCredential] = useState<Credential | null>(null);
   const [documentBlob, setDocumentBlob] = useState<Blob | null>(null);
   const [isLoadingDocument, setIsLoadingDocument] = useState(false);
+  const {
+    data: credential = null,
+    isLoading,
+    error: credentialError,
+  } = useQuery<Credential | null>({
+    queryKey: credentialId ? appQueryKeys.institution.credentialDetail(credentialId) : ['institution-credential-detail', 'empty'],
+    queryFn: () => (credentialId ? CredentialService.getById(credentialId) : Promise.resolve(null)),
+    enabled: isOpen && Boolean(credentialId),
+  });
 
   useEffect(() => {
     if (!credentialId) {
@@ -59,37 +68,17 @@ export default function InstitutionCredentialDetailsDrawer({
   }, [credentialId, isOpen]);
 
   useEffect(() => {
-    if (!isOpen || !credentialId) return;
-
-    let isCancelled = false;
-    setIsLoading(true);
-    setCredential(null);
     setDocumentBlob(null);
+  }, [credentialId, isOpen]);
 
-    void CredentialService.getById(credentialId)
-      .then(data => {
-        if (!isCancelled) {
-          setCredential(data);
-        }
-      })
-      .catch(error => {
-        if (!isCancelled) {
-          showToast({
-            variant: 'error',
-            message: error instanceof Error ? error.message : 'Unable to load credential details.',
-          });
-        }
-      })
-      .finally(() => {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      });
+  useEffect(() => {
+    if (!credentialError) return;
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [credentialId, isOpen, showToast]);
+    showToast({
+      variant: 'error',
+      message: credentialError instanceof Error ? credentialError.message : 'Unable to load credential details.',
+    });
+  }, [credentialError, showToast]);
 
   useEffect(() => {
     if (!isOpen || !credentialId || !credential || !credential.storageKey) return;

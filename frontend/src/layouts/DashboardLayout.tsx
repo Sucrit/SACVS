@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { UserButton } from '@clerk/clerk-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import GlobalLoading from '../components/common/GlobalLoading';
 import {
   AlertTriangle,
@@ -33,6 +34,7 @@ import {
 } from '../services/notification.service';
 import { CredentialService } from '../services/credential.service';
 import { useLegacyAuth } from '../auth/auth-context';
+import { appQueryKeys } from '../lib/queryKeys';
 import { realtimeService } from '../services/realtime.service';
 import logoCompact from '../assets/c-version_logo.png';
 
@@ -102,20 +104,63 @@ const INSTITUTION_REQUESTS_LAST_SEEN_KEY = 'institution_requests_last_seen_at';
 
 export default function DashboardLayout() {
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { user, isLoading } = useLegacyAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
-  const [hasNewInstitutionRequests, setHasNewInstitutionRequests] = useState(false);
   const [expandedNavGroup, setExpandedNavGroup] = useState<string | null>(() =>
     location.pathname.startsWith('/institution/issue') ? '/institution/issue' : null,
   );
   const [collapsedFlyoutGroup, setCollapsedFlyoutGroup] = useState<string | null>(null);
   const [collapsedFlyoutTop, setCollapsedFlyoutTop] = useState(0);
+  const [lastSeenInstitutionRequestAt, setLastSeenInstitutionRequestAt] = useState(() => {
+    if (typeof window === 'undefined') {
+      return 0;
+    }
+    const stored = window.localStorage.getItem(INSTITUTION_REQUESTS_LAST_SEEN_KEY);
+    const parsed = stored ? Number(stored) : 0;
+    return Number.isNaN(parsed) ? 0 : parsed;
+  });
   const notificationRefreshTimerRef = useRef<number | null>(null);
   const requestIndicatorRefreshTimerRef = useRef<number | null>(null);
   const sidebarRef = useRef<HTMLElement | null>(null);
   const collapsedFlyoutRef = useRef<HTMLDivElement | null>(null);
+  const rawRole = user?.role as UserRole | undefined;
+  const path = location.pathname;
+
+  const timeSensitiveQueryOptions = {
+    staleTime: 1000 * 30,
+    refetchOnWindowFocus: 'always' as const,
+  };
+
+  const { data: unreadNotificationsCount = 0 } = useQuery({
+    queryKey: appQueryKeys.layout.unreadNotificationsCount(),
+    queryFn: async () => {
+      const unread = await NotificationService.list({ read: false, page: 1, pageSize: 200 });
+      return withoutStepUpOtpNotifications(unread.items).length;
+    },
+    enabled: Boolean(user),
+    ...timeSensitiveQueryOptions,
+  });
+
+  const { data: newestPendingRequestTime = 0 } = useQuery({
+    queryKey: appQueryKeys.layout.institutionPendingRequestIndicator(),
+    queryFn: async () => {
+      const pendingRequests = await CredentialService.listRequests({ status: 'PENDING' });
+      return pendingRequests.reduce((latest, request) => {
+        const createdAtTime = new Date(request.createdAt).getTime();
+        if (Number.isNaN(createdAtTime)) return latest;
+        return Math.max(latest, createdAtTime);
+      }, 0);
+    },
+    enabled: rawRole === 'INSTITUTION',
+    ...timeSensitiveQueryOptions,
+  });
+
+  const hasNewInstitutionRequests = useMemo(
+    () => rawRole === 'INSTITUTION' && newestPendingRequestTime > lastSeenInstitutionRequestAt,
+    [lastSeenInstitutionRequestAt, newestPendingRequestTime, rawRole],
+  );
 
   if (isLoading) {
     return <GlobalLoading />;
@@ -147,7 +192,6 @@ export default function DashboardLayout() {
   };
 
   const expectedRoutePrefix = roleRoutes[role];
-  const path = location.pathname;
   const navLinks = NAV_LINKS[role] || [];
   const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
   const firstName = user.firstName || displayName;
@@ -159,66 +203,12 @@ export default function DashboardLayout() {
     return 'Good evening';
   })();
 
-  const loadUnreadNotificationsCount = useCallback(async () => {
-    try {
-      const unread = await NotificationService.list({ read: false, page: 1, pageSize: 200 });
-      setUnreadNotificationsCount(withoutStepUpOtpNotifications(unread.items).length);
-    } catch (error) {
-      console.error('Failed to load unread notifications:', error);
-    }
-  }, []);
-
-  const refreshInstitutionRequestIndicator = useCallback(async () => {
-    if (role !== 'INSTITUTION') {
-      setHasNewInstitutionRequests(false);
-      return;
-    }
-
-    try {
-      const pendingRequests = await CredentialService.listRequests({ status: 'PENDING' });
-      if (pendingRequests.length === 0) {
-        setHasNewInstitutionRequests(false);
-        return;
-      }
-
-      const newestPendingRequestTime = pendingRequests.reduce((latest, request) => {
-        const createdAtTime = new Date(request.createdAt).getTime();
-        if (Number.isNaN(createdAtTime)) return latest;
-        return Math.max(latest, createdAtTime);
-      }, 0);
-
-      if (!newestPendingRequestTime) {
-        setHasNewInstitutionRequests(false);
-        return;
-      }
-
-      const lastSeenRaw = window.localStorage.getItem(INSTITUTION_REQUESTS_LAST_SEEN_KEY);
-      const lastSeenTime = lastSeenRaw ? Number(lastSeenRaw) : 0;
-      setHasNewInstitutionRequests(newestPendingRequestTime > (Number.isNaN(lastSeenTime) ? 0 : lastSeenTime));
-    } catch (error) {
-      console.error('Failed to refresh institution request indicator:', error);
-    }
-  }, [role]);
-
-  useEffect(() => {
-    void loadUnreadNotificationsCount();
-  }, [loadUnreadNotificationsCount]);
-
-  useEffect(() => {
-    if (role !== 'INSTITUTION') {
-      setHasNewInstitutionRequests(false);
-      return;
-    }
-
-    void refreshInstitutionRequestIndicator();
-  }, [refreshInstitutionRequestIndicator, role]);
-
   useEffect(() => {
     const scheduleNotificationRefresh = () => {
       if (notificationRefreshTimerRef.current) return;
       notificationRefreshTimerRef.current = window.setTimeout(() => {
         notificationRefreshTimerRef.current = null;
-        void loadUnreadNotificationsCount();
+        void queryClient.invalidateQueries({ queryKey: appQueryKeys.layout.unreadNotificationsCount() });
       }, 350);
     };
 
@@ -227,7 +217,7 @@ export default function DashboardLayout() {
       requestIndicatorRefreshTimerRef.current = window.setTimeout(() => {
         requestIndicatorRefreshTimerRef.current = null;
         if (role === 'INSTITUTION') {
-          void refreshInstitutionRequestIndicator();
+          void queryClient.invalidateQueries({ queryKey: appQueryKeys.layout.institutionPendingRequestIndicator() });
         }
       }, 350);
     };
@@ -253,8 +243,7 @@ export default function DashboardLayout() {
       }
     };
   }, [
-    loadUnreadNotificationsCount,
-    refreshInstitutionRequestIndicator,
+    queryClient,
     role,
   ]);
 
@@ -262,8 +251,9 @@ export default function DashboardLayout() {
     if (role !== 'INSTITUTION' || !path.startsWith('/institution/requests')) {
       return;
     }
-    window.localStorage.setItem(INSTITUTION_REQUESTS_LAST_SEEN_KEY, String(Date.now()));
-    setHasNewInstitutionRequests(false);
+    const timestamp = Date.now();
+    window.localStorage.setItem(INSTITUTION_REQUESTS_LAST_SEEN_KEY, String(timestamp));
+    setLastSeenInstitutionRequestAt(timestamp);
   }, [path, role]);
 
   useEffect(() => {
@@ -347,7 +337,7 @@ export default function DashboardLayout() {
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto px-2 py-3">
           <div className="space-y-0.5">
-            {navLinks.map(link => {
+            {navLinks.map((link: NavItem) => {
               const isNotificationsLink = link.to.endsWith('/notifications');
               const showRequestAlert =
                 role === 'INSTITUTION' &&
@@ -410,7 +400,7 @@ export default function DashboardLayout() {
                             </p>
                           </div>
                           <div className="mt-1 space-y-1">
-                            {childLinks.map(child => {
+                            {childLinks.map((child: NonNullable<NavItem['children']>[number]) => {
                               const ChildIcon = child.icon;
                               return (
                                 <NavLink
@@ -448,7 +438,7 @@ export default function DashboardLayout() {
                           className="overflow-hidden"
                         >
                           <div className="mt-0.5 space-y-0.5 pl-4">
-                            {childLinks.map((child, index) => {
+                            {childLinks.map((child: NonNullable<NavItem['children']>[number], index: number) => {
                               const ChildIcon = child.icon;
                               return (
                                 <motion.div

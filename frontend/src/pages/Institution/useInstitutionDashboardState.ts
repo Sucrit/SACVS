@@ -36,6 +36,7 @@ import {
 import { useStepUp } from '../../hooks/useStepUp';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { useToast } from '../../hooks/useToast';
+import { appQueryKeys } from '../../lib/queryKeys';
 
 // --- Helpers (module-level, not exported) ---
 
@@ -71,6 +72,11 @@ const toIsoDateFromInput = (value: string): string | undefined => {
   const date = new Date(`${trimmed}T00:00:00.000Z`);
   if (Number.isNaN(date.getTime())) return undefined;
   return date.toISOString();
+};
+
+const timeSensitiveQueryOptions = {
+  staleTime: 1000 * 30,
+  refetchOnWindowFocus: 'always' as const,
 };
 
 // =============================================================================
@@ -198,7 +204,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   const queryClient = useQueryClient();
 
   // --- Requests state ---
-  const { data: requests = [], isLoading: isLoadingRequests } = useQuery({ queryKey: ['institution-requests'], queryFn: () => CredentialService.listRequests() });
+  const { data: requests = [], isLoading: isLoadingRequests } = useQuery({ queryKey: appQueryKeys.institution.requests(), queryFn: () => CredentialService.listRequests() });
   const [requestsError, setRequestsError] = useState<string | null>(null);
   const [requestsHint, setRequestsHint] = useState<string | null>(null);
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
@@ -211,17 +217,17 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   const [requestDetailsFromQueryId, setRequestDetailsFromQueryId] = useState<string | null>(null);
 
   // --- Credentials state ---
-  const { data: credentials = [], isLoading: isLoadingCredentials } = useQuery({ queryKey: ['institution-credentials'], queryFn: () => CredentialService.list() });
+  const { data: credentials = [], isLoading: isLoadingCredentials } = useQuery({ queryKey: appQueryKeys.institution.credentials(), queryFn: () => CredentialService.list() });
 
   // --- Audit logs state ---
-  const { data: auditLogs = [], isLoading: isLoadingAuditLogs } = useQuery({ queryKey: ['institution-audit-logs'], queryFn: () => AuditService.list(), enabled: section === 'logs' || section === 'reports' });
+  const { data: auditLogs = [], isLoading: isLoadingAuditLogs } = useQuery({ queryKey: appQueryKeys.institution.auditLogs(), queryFn: () => AuditService.list(), enabled: section === 'logs' || section === 'reports', ...timeSensitiveQueryOptions });
   const [auditActionFilter, setAuditActionFilter] = useState<'ALL' | AuditAction>('ALL');
   const [auditSeverityFilter, setAuditSeverityFilter] = useState<'ALL' | AuditSeverity>('ALL');
   const [auditPage, setAuditPage] = useState(1);
   const [auditPageSize, setAuditPageSize] = useState(20);
 
   // --- Students state ---
-  const { data: students = [], isLoading: isLoadingStudents } = useQuery({ queryKey: ['institution-students'], queryFn: () => UserService.listInstitutionStudents() });
+  const { data: students = [], isLoading: isLoadingStudents } = useQuery({ queryKey: appQueryKeys.institution.students(), queryFn: () => UserService.listInstitutionStudents() });
   const [studentsError, setStudentsError] = useState<string | null>(null);
   const [studentsHint, setStudentsHint] = useState<string | null>(null);
   const [createStudentError, setCreateStudentError] = useState<string | null>(null);
@@ -241,7 +247,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   // --- Notifications state ---
   const [, setActivityEvents] = useState<ActivityEvent[]>([]);
   const [outboundNotifications, setOutboundNotifications] = useState<OutboundNotification[]>([]);
-  const { data: inboundNotificationsData, isLoading: isLoadingInboundNotifications } = useQuery({ queryKey: ['institution-notifications'], queryFn: () => NotificationService.list({ page: 1, pageSize: 100 }), enabled: section === 'notifications' || section === 'reports' });
+  const { data: inboundNotificationsData, isLoading: isLoadingInboundNotifications } = useQuery({ queryKey: appQueryKeys.institution.notifications(), queryFn: () => NotificationService.list({ page: 1, pageSize: 100 }), enabled: section === 'notifications' || section === 'reports', ...timeSensitiveQueryOptions });
   const inboundNotifications = inboundNotificationsData?.items || [];
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
   const [notificationTarget, setNotificationTarget] = useState<NotificationTarget>('ALL');
@@ -282,28 +288,28 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   useEffect(() => { if (notificationHint) showToast({ variant: 'info', message: notificationHint }); }, [notificationHint, showToast]);
 
   const setRequests = (updater: (prev: CredentialRequest[]) => CredentialRequest[]) => {
-    queryClient.setQueryData(['institution-requests'], (oldData: any) => {
+    queryClient.setQueryData(appQueryKeys.institution.requests(), (oldData: any) => {
       if (!oldData) return oldData;
       return updater(oldData as CredentialRequest[]);
     });
   };
 
   const setCredentials = (updater: (prev: Credential[]) => Credential[]) => {
-    queryClient.setQueryData(['institution-credentials'], (oldData: any) => {
+    queryClient.setQueryData(appQueryKeys.institution.credentials(), (oldData: any) => {
       if (!oldData) return oldData;
       return updater(oldData as Credential[]);
     });
   };
 
   const setStudents = (updater: (prev: User[]) => User[]) => {
-    queryClient.setQueryData(['institution-students'], (oldData: any) => {
+    queryClient.setQueryData(appQueryKeys.institution.students(), (oldData: any) => {
       if (!oldData) return oldData;
       return updater(oldData as User[]);
     });
   };
 
   const setInboundNotifications = (updater: (prev: AppNotification[]) => AppNotification[]) => {
-    queryClient.setQueryData(['institution-notifications'], (oldData: any) => {
+    queryClient.setQueryData(appQueryKeys.institution.notifications(), (oldData: any) => {
       if (!oldData) return oldData;
       return {
         ...oldData,
@@ -411,19 +417,19 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
 
   const realtimeRefreshMap = useMemo(() => ({
     users: () => {
-      if (section === 'students' || section === 'overview' || section === 'analytics' || section === 'reports') void queryClient.invalidateQueries({ queryKey: ['institution-students'] });
+      if (section === 'students' || section === 'overview' || section === 'analytics' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.students() });
     },
     credentialRequests: () => {
-      if (section === 'requests' || section === 'issue' || section === 'overview' || section === 'analytics' || section === 'reports') void queryClient.invalidateQueries({ queryKey: ['institution-requests'] });
+      if (section === 'requests' || section === 'issue' || section === 'overview' || section === 'analytics' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.requests() });
     },
     credentials: () => {
-      if (section === 'issue' || section === 'overview' || section === 'analytics' || section === 'reports') void queryClient.invalidateQueries({ queryKey: ['institution-credentials'] });
+      if (section === 'issue' || section === 'overview' || section === 'analytics' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.credentials() });
     },
     notifications: () => {
-      if (section === 'notifications') void queryClient.invalidateQueries({ queryKey: ['institution-notifications'] });
+      if (section === 'notifications' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.notifications() });
     },
     audit: () => {
-      if (section === 'logs') void queryClient.invalidateQueries({ queryKey: ['institution-audit-logs'] });
+      if (section === 'logs' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.auditLogs() });
     },
   }), [queryClient, section]);
 
@@ -652,7 +658,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
       setStudentForm(DEFAULT_STUDENT_FORM);
       setCreateStudentHint('Student account created successfully.');
       createEvent('STUDENT', 'Student account created', `${payload.email} was added.`);
-      void queryClient.invalidateQueries({ queryKey: ['institution-students'] });
+      void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.students() });
     } catch (error) {
       setCreateStudentError(getApiErrorMessage(error) || 'Unable to create student account.');
       console.error('Failed to create student:', error);
@@ -678,7 +684,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
       const result = await UserService.createInstitutionStudentsBulk({ students: parsed.students }, stepUpToken);
       setStudentsHint(`Bulk import complete: ${result.created} created, ${result.failed.length} failed.`);
       createEvent('STUDENT', 'Bulk student import', `${result.created} created, ${result.failed.length} failed.`);
-      void queryClient.invalidateQueries({ queryKey: ['institution-students'] });
+      void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.students() });
     } catch (error) {
       if (error instanceof Error && (error.message === 'STEP_UP_CANCELLED' || error.message === 'STEP_UP_IN_PROGRESS')) return;
       setStudentsError('Unable to import students from CSV.');
@@ -785,7 +791,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
         await CredentialService.markPhysicalClaimed(requestId);
         setRequestsHint('Physical credential claim recorded. Request marked as completed.');
         createEvent('REQUEST', 'Physical claim recorded', `Request ${requestId} marked as physically claimed.`);
-        void queryClient.invalidateQueries({ queryKey: ['institution-credentials'] });
+        void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.credentials() });
         return;
       }
 
@@ -806,7 +812,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
             setRequestsHint(`Request ${requestId} updated.`);
           }
         }
-        void queryClient.invalidateQueries({ queryKey: ['institution-credentials'] });
+        void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.credentials() });
       } finally {
         setUpdatingRequestId(null);
       }
@@ -839,7 +845,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     setSelectedRequestIds([]);
     setRequestsHint(`Bulk ${action.toLowerCase()} complete: ${succeeded} updated, ${failed} failed.`);
     createEvent('REQUEST', 'Bulk request processing', `${action} applied to ${results.length} requests; ${succeeded} succeeded.`);
-    void queryClient.invalidateQueries({ queryKey: ['institution-credentials'] });
+    void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.credentials() });
   };
 
   // --- Credential handlers ---
@@ -890,7 +896,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
 
       setRequestsHint('Credential issued successfully.');
       createEvent('REQUEST', 'Credential issued directly', `Credential ${issued.id} issued to student ${payload.studentId}.`);
-      void queryClient.invalidateQueries({ queryKey: ['institution-credentials'] });
+      void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.credentials() });
       return issued;
     } catch (error) {
       if (error instanceof Error && (error.message === 'STEP_UP_CANCELLED' || error.message === 'STEP_UP_IN_PROGRESS')) throw error;
