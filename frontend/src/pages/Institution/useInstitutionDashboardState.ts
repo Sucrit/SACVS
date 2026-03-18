@@ -106,7 +106,10 @@ export interface InstitutionDashboardState {
   editStudentForm: StudentFormState;
   setEditStudentFormValue: (field: keyof StudentFormState, value: string) => void;
   handleCreateStudent: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  handleBulkCsvUpload: (fileOrEvent: File | ChangeEvent<HTMLInputElement>) => Promise<void>;
+  handleBulkCsvUpload: (
+    fileOrEvent: File | ChangeEvent<HTMLInputElement>,
+    options?: { onBeforeStepUp?: () => void },
+  ) => Promise<'success' | 'cancelled' | 'failed' | 'validation-error'>;
   handleStudentStatusUpdate: (studentId: string, status: UserStatus) => Promise<void>;
   handleStartEditStudent: (student: User) => void;
   handleSaveEditedStudent: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -667,15 +670,22 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     }
   };
 
-  const handleBulkCsvUpload = async (fileOrEvent: File | ChangeEvent<HTMLInputElement>) => {
+  const handleBulkCsvUpload = async (
+    fileOrEvent: File | ChangeEvent<HTMLInputElement>,
+    options?: { onBeforeStepUp?: () => void },
+  ): Promise<'success' | 'cancelled' | 'failed' | 'validation-error'> => {
     const file = fileOrEvent instanceof File ? fileOrEvent : fileOrEvent.target.files?.[0];
-    if (!file) return;
+    if (!file) return 'failed';
     setStudentsError(null);
     setStudentsHint(null);
     setIsBulkImporting(true);
     try {
       const parsed = parseCsvStudents(await file.text());
-      if (parsed.error) { setStudentsError(parsed.error); return; }
+      if (parsed.error) {
+        setStudentsError(parsed.error);
+        return 'validation-error';
+      }
+      options?.onBeforeStepUp?.();
       const stepUpToken = await requestStepUpToken({
         action: 'BULK_STUDENT_CREATE',
         title: 'Confirm Bulk Student Import',
@@ -685,10 +695,14 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
       setStudentsHint(`Bulk import complete: ${result.created} created, ${result.failed.length} failed.`);
       createEvent('STUDENT', 'Bulk student import', `${result.created} created, ${result.failed.length} failed.`);
       void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.students() });
+      return 'success';
     } catch (error) {
-      if (error instanceof Error && (error.message === 'STEP_UP_CANCELLED' || error.message === 'STEP_UP_IN_PROGRESS')) return;
+      if (error instanceof Error && (error.message === 'STEP_UP_CANCELLED' || error.message === 'STEP_UP_IN_PROGRESS')) {
+        return 'cancelled';
+      }
       setStudentsError('Unable to import students from CSV.');
       console.error('Failed bulk importing students:', error);
+      return 'failed';
     } finally {
       setIsBulkImporting(false);
       if (!(fileOrEvent instanceof File)) {

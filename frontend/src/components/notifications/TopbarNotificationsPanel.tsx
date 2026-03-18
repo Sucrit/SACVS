@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, CheckCheck, Monitor, MoreVertical } from 'lucide-react';
 import { AppNotification, getNotificationDisplayMessage } from '../../services/notification.service';
-import { formatDateTime } from '../../utils/formatting';
+import { formatRelativeTimeCompact } from './notificationTime';
 
 type ReadFilter = 'ALL' | 'UNREAD';
 
@@ -100,10 +100,7 @@ export default function TopbarNotificationsPanel({
             <span className="font-semibold text-neutral-900">{notification.title}</span>{' '}
             {getMessage(notification)}
           </p>
-          <p className="mt-1 text-xs text-neutral-500">{formatDateTime(notification.createdAt)}</p>
-          <div className="mt-1 text-[11px] font-medium uppercase tracking-[0.02em] text-neutral-500">
-            {notification.type.replace(/_/g, ' ')}
-          </div>
+          <p className="mt-1 text-xs text-neutral-500">{formatRelativeTimeCompact(notification.createdAt)}</p>
         </div>
         {!notification.read && (
           <span className="mt-2 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-error-500" />
@@ -113,7 +110,7 @@ export default function TopbarNotificationsPanel({
   );
 
   return (
-    <div className="flex max-h-full w-full flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-xl">
+    <div className="max-h-full w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white shadow-xl">
       <div className="flex items-start justify-between px-4 pt-2.5">
         <div className="min-w-0">
           <h2 className="text-2xl font-semibold text-neutral-900">Notifications</h2>
@@ -190,13 +187,13 @@ export default function TopbarNotificationsPanel({
         <button
           type="button"
           onClick={onSeeAll}
-          className="shrink-0 text-sm font-semibold text-neutral-600 transition hover:text-neutral-900"
+          className="text-xs font-semibold text-neutral-600 underline decoration-neutral-300 underline-offset-4 transition-colors hover:text-neutral-900 hover:decoration-neutral-900"
         >
           See all
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-2.5">
+      <div className="px-4 py-2.5">
         {isLoading ? (
           <div className="space-y-2.5">
             {Array.from({ length: 4 }).map((_, index) => (

@@ -72,8 +72,6 @@ export default function StudentNotificationsSection({
           </span>
         ) : null
       }
-      renderFooter={notification => notification.type.replace(/_/g, ' ')}
     />
   );
 }
-

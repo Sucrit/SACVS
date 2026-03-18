@@ -8,6 +8,7 @@ import ButtonLoadingContent from '../../../components/common/ButtonLoadingConten
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import Input from '../../../components/ui/Input';
+import Modal from '../../../components/ui/Modal';
 import Select from '../../../components/ui/Select';
 import { User, UserStatus } from '../../../services/user.service';
 import { StudentFormState, StudentStatusFilter, STUDENT_STATUS_OPTIONS } from '../types';
@@ -30,7 +31,10 @@ interface InstitutionStudentsSectionProps {
   isBulkImporting: boolean;
   onSetStudentFormValue: (field: keyof StudentFormState, value: string) => void;
   onCreateStudent: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-  onBulkCsvUpload: (fileOrEvent: File | ChangeEvent<HTMLInputElement>) => Promise<void>;
+  onBulkCsvUpload: (
+    fileOrEvent: File | ChangeEvent<HTMLInputElement>,
+    options?: { onBeforeStepUp?: () => void },
+  ) => Promise<'success' | 'cancelled' | 'failed' | 'validation-error'>;
   students: User[];
   isLoadingStudents: boolean;
   studentSearch: string;
@@ -101,6 +105,40 @@ export default function InstitutionStudentsSection({
 }: InstitutionStudentsSectionProps) {
   const [activeModal, setActiveModal] = useState<'add' | 'bulk' | null>(null);
   const [isBulkDragOver, setIsBulkDragOver] = useState(false);
+  const [selectedBulkFile, setSelectedBulkFile] = useState<File | null>(null);
+
+  const closeBulkModal = (clearSelectedFile = true) => {
+    setActiveModal(null);
+    setIsBulkDragOver(false);
+    if (clearSelectedFile) {
+      setSelectedBulkFile(null);
+    }
+  };
+
+  const handleBulkImport = async (fileOrEvent: File | ChangeEvent<HTMLInputElement>) => {
+    if (isBulkImporting) return;
+
+    const file = fileOrEvent instanceof File ? fileOrEvent : fileOrEvent.target.files?.[0];
+    if (!file) return;
+
+    setSelectedBulkFile(file);
+
+    const result = await onBulkCsvUpload(fileOrEvent, {
+      onBeforeStepUp: () => {
+        closeBulkModal(false);
+      },
+    });
+
+    if (result === 'success') {
+      setSelectedBulkFile(null);
+      return;
+    }
+
+    if (result === 'cancelled' || result === 'failed') {
+      setActiveModal('bulk');
+      return;
+    }
+  };
 
   const addFormCourseOptions = useMemo(() => {
     const values = new Set<string>();
@@ -241,7 +279,10 @@ export default function InstitutionStudentsSection({
             </button>
             <button
               type="button"
-              onClick={() => setActiveModal('bulk')}
+              onClick={() => {
+                setSelectedBulkFile(null);
+                setActiveModal('bulk');
+              }}
               title="Bulk student account import using CSV file"
               className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
             >
@@ -458,91 +499,96 @@ export default function InstitutionStudentsSection({
       )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {activeModal === 'bulk' && (
-        <motion.div
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          variants={MODAL_BACKDROP_VARIANTS}
-          transition={MODAL_TRANSITION}
-          className="fixed inset-0 z-90 flex items-center justify-center bg-neutral-900/60 p-4 backdrop-blur-[1px]"
-          onClick={() => setActiveModal(null)}
+      <Modal
+        open={activeModal === 'bulk'}
+        onClose={() => closeBulkModal()}
+        title="Bulk Student Account Import (CSV)"
+        description="Upload a CSV file to create multiple student accounts at once."
+        size="xl"
+      >
+        <p className="text-sm text-neutral-600">
+          Strictly use the header format below:
+          <span className="mt-2 block max-w-full break-all rounded-lg bg-neutral-50 p-2 text-xs text-neutral-700">
+            email,firstName,middleName,lastName,studentNumber,courseOfStudy,yearLevel,department
+          </span>
+        </p>
+
+        <label
+          className={getUploadDropzoneClass({
+            active: isBulkDragOver && !isBulkImporting,
+            disabled: isBulkImporting,
+            className: 'mt-4 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition',
+          })}
+          onDragOver={event => {
+            event.preventDefault();
+            if (!isBulkImporting) setIsBulkDragOver(true);
+          }}
+          onDragLeave={event => {
+            event.preventDefault();
+            setIsBulkDragOver(false);
+          }}
+          onDrop={event => {
+            event.preventDefault();
+            setIsBulkDragOver(false);
+            if (isBulkImporting) return;
+            const file = event.dataTransfer.files?.[0];
+            if (file) {
+              void handleBulkImport(file);
+            }
+          }}
         >
-          <motion.div
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            variants={MODAL_PANEL_VARIANTS}
-            transition={MODAL_TRANSITION}
-            className="w-full max-w-[95vw] overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-lg sm:max-w-xl"
-            onClick={event => event.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-3 border-b border-neutral-200 px-5 py-4">
-              <div>
-                <p className="text-sm font-semibold text-neutral-900">Bulk Student Account Import (CSV)</p>
-                <p className="mt-1 text-xs text-neutral-500">
-                  Upload a CSV file to create multiple student accounts at once.
-                </p>
-              </div>
+          <Upload size={28} className="mb-3 text-neutral-400" />
+          <p className="mb-2 text-xs font-semibold text-neutral-500">
+            Bulk Import File <span className="text-rose-500">*</span>
+          </p>
+          <p className="text-base text-neutral-700">
+            <span className={UPLOAD_DROPZONE_CTA_CLASS}>Upload a file</span> or drag and drop
+          </p>
+          <p className="mt-2 text-sm text-neutral-500">CSV up to 10MB</p>
+          <p className="mt-3 text-xs text-neutral-500">
+            {isBulkImporting ? <ButtonLoadingContent label="Importing" /> : 'Select your institution bulk import file'}
+          </p>
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            onChange={event => {
+              void handleBulkImport(event);
+            }}
+            className="hidden"
+          />
+        </label>
+
+        {selectedBulkFile && (
+          <div className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-500">
+              Selected CSV
+            </p>
+            <p className="mt-1 text-sm font-medium text-neutral-800">{selectedBulkFile.name}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => setActiveModal(null)}
-                className="inline-flex h-7 w-7 items-center justify-center text-neutral-500 transition-colors hover:text-neutral-900"
-                aria-label="Close modal"
+                onClick={() => {
+                  void handleBulkImport(selectedBulkFile);
+                }}
+                disabled={isBulkImporting}
+                className="inline-flex h-9 items-center gap-2 rounded-lg bg-neutral-900 px-4 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <X size={16} />
+                <Upload size={14} />
+                Continue with selected file
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedBulkFile(null)}
+                disabled={isBulkImporting}
+                className="inline-flex h-9 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <X size={14} />
+                Clear file
               </button>
             </div>
-            <div className="p-5">
-            <p className="text-sm text-neutral-600">
-              Strictly use the header format below:
-              <span className="mt-2 block max-w-full break-all rounded-lg bg-neutral-50 p-2 text-xs text-neutral-700">
-                email,firstName,middleName,lastName,studentNumber,courseOfStudy,yearLevel,department
-              </span>
-            </p>
-            <label
-              className={getUploadDropzoneClass({
-                active: isBulkDragOver && !isBulkImporting,
-                disabled: isBulkImporting,
-                className: 'mt-4 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-8 text-center transition',
-              })}
-              onDragOver={event => {
-                event.preventDefault();
-                if (!isBulkImporting) setIsBulkDragOver(true);
-              }}
-              onDragLeave={event => {
-                event.preventDefault();
-                setIsBulkDragOver(false);
-              }}
-              onDrop={event => {
-                event.preventDefault();
-                setIsBulkDragOver(false);
-                if (isBulkImporting) return;
-                const file = event.dataTransfer.files?.[0];
-                if (file) {
-                  void onBulkCsvUpload(file);
-                }
-              }}
-            >
-              <Upload size={28} className="mb-3 text-neutral-400" />
-              <p className="mb-2 text-xs font-semibold text-neutral-500">
-                Bulk Import File <span className="text-rose-500">*</span>
-              </p>
-              <p className="text-base text-neutral-700">
-                <span className={UPLOAD_DROPZONE_CTA_CLASS}>Upload a file</span> or drag and drop
-              </p>
-              <p className="mt-2 text-sm text-neutral-500">CSV up to 10MB</p>
-              <p className="mt-3 text-xs text-neutral-500">
-                {isBulkImporting ? <ButtonLoadingContent label="Importing" /> : 'Select your institution bulk import file'}
-              </p>
-              <input type="file" accept=".csv,text/csv" onChange={event => { void onBulkCsvUpload(event); }} className="hidden" />
-            </label>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-      </AnimatePresence>
+          </div>
+        )}
+      </Modal>
 
       <AnimatePresence>
         {editingStudentId && (

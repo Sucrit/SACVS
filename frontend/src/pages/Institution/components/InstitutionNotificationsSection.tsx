@@ -51,7 +51,6 @@ export default function InstitutionNotificationsSection({
       pageSize={8}
       itemLabel="received notifications"
       getMessage={getNotificationDisplayMessage}
-      renderFooter={notification => notification.type.replace(/_/g, ' ')}
     />
   );
 }

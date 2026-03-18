@@ -1,4 +1,3 @@
-import { type ReactNode } from 'react';
 import NotificationsInboxCard from '../../../components/notifications/NotificationsInboxCard';
 import {
   AppNotification,
@@ -24,10 +23,6 @@ interface AdminNotificationsSectionProps {
   }) => void;
   onOpenNotificationsPage: () => void;
 }
-
-const renderNotificationFooter = (notification: AppNotification): ReactNode => {
-  return notification.type.replace(/_/g, ' ');
-};
 
 export default function AdminNotificationsSection({
   notifications,
@@ -73,7 +68,6 @@ export default function AdminNotificationsSection({
       onMarkAllRead={onMarkAllRead}
       onNotificationClick={handleNotificationClick}
       getMessage={getNotificationDisplayMessage}
-      renderFooter={renderNotificationFooter}
     />
   );
 }

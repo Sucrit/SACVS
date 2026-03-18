@@ -10,7 +10,7 @@ import {
   AppNotification,
   getNotificationDisplayMessage,
 } from '../../services/notification.service';
-import { formatDateTime } from '../../utils/formatting';
+import { formatRelativeTimeCompact } from './notificationTime';
 
 type ReadFilter = 'ALL' | 'UNREAD';
 
@@ -215,7 +215,7 @@ export default function NotificationsInboxCard({
               }}
               className="cursor-pointer rounded-lg border border-neutral-200 bg-white px-4 py-3 transition hover:bg-neutral-50"
             >
-              <div className="mb-2 flex items-start justify-between gap-3">
+              <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-neutral-900">{notification.title}</p>
@@ -225,13 +225,13 @@ export default function NotificationsInboxCard({
                     {renderTitleExtras?.(notification)}
                   </div>
                   <p className="text-sm text-neutral-600">{getMessage(notification)}</p>
-                  <p className="text-xs text-neutral-500">{formatDateTime(notification.createdAt)}</p>
+                  <p className="text-xs text-neutral-500">{formatRelativeTimeCompact(notification.createdAt)}</p>
                 </div>
                 {renderItemActions?.(notification)}
               </div>
 
               {renderFooter && (
-                <div className="flex items-center gap-2 text-[11px] font-medium text-neutral-500">
+                <div className="hidden items-center gap-2 text-[11px] font-medium text-neutral-500">
                   {renderFooter(notification)}
                 </div>
               )}

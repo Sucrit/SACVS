@@ -59,7 +59,7 @@ export default function InstitutionAnnouncementsSection({
   return (
     <div className="space-y-6">
       <Card
-        title="Announcements"
+        title="Institution Announcements Log"
         action={
           <button
             type="button"

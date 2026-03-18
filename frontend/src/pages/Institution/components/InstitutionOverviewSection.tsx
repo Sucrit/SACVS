@@ -541,7 +541,7 @@ export default function InstitutionOverviewSection({
         <div className="xl:h-full">
           <Card
             className="flex h-full flex-col"
-            title="Partnetship Requests"
+            title="Requests Overview"
             action={
               <button
                 type="button"
