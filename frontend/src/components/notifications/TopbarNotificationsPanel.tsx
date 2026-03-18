@@ -103,7 +103,7 @@ export default function TopbarNotificationsPanel({
           <p className="mt-1 text-xs text-neutral-500">{formatRelativeTimeCompact(notification.createdAt)}</p>
         </div>
         {!notification.read && (
-          <span className="mt-2 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-error-500" />
+          <span className="mt-2 inline-flex h-2.5 w-2.5 shrink-0 rounded-full bg-sky-500" />
         )}
       </div>
     </button>

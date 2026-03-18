@@ -220,7 +220,7 @@ export default function NotificationsInboxCard({
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-neutral-900">{notification.title}</p>
                     {!notification.read && (
-                      <span className="inline-flex h-2 w-2 rounded-full bg-error-500" />
+                      <span className="inline-flex h-2 w-2 rounded-full bg-sky-500" />
                     )}
                     {renderTitleExtras?.(notification)}
                   </div>
