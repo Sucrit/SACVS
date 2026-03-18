@@ -331,7 +331,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   }, [createEvent]);
 
   useEffect(() => {
-    if (section === 'notifications') {
+    if (section === 'announcement') {
       void NotificationService.listInstitutionBroadcasts()
         .then(setOutboundNotifications)
         .catch(error => {

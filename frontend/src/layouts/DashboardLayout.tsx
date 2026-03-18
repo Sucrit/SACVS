@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Navigate, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { UserButton } from '@clerk/clerk-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import GlobalLoading from '../components/common/GlobalLoading';
@@ -30,13 +30,19 @@ import {
 import { UserRole } from '../services/user.service';
 import {
   AppNotification,
+  NotificationListResponse,
   NotificationService,
+  getNotificationDisplayMessage,
 } from '../services/notification.service';
 import { CredentialService } from '../services/credential.service';
 import { useLegacyAuth } from '../auth/auth-context';
 import { appQueryKeys } from '../lib/queryKeys';
 import { realtimeService } from '../services/realtime.service';
 import logoCompact from '../assets/c-version_logo.png';
+import TopbarNotificationsPanel from '../components/notifications/TopbarNotificationsPanel';
+import { resolveAdminNotificationDestination } from '../pages/Admin/notificationDestination';
+import { resolveInstitutionNotificationDestination } from '../pages/Institution/notificationDestination';
+import { resolveStudentNotificationDestination } from '../pages/Student/notificationDestination';
 
 interface NavItem {
   to: string;
@@ -50,7 +56,6 @@ const NAV_LINKS: Record<UserRole, NavItem[]> = {
     { to: '/student/credentials', label: 'Credentials', icon: GraduationCap },
     { to: '/student/requests', label: 'Requests', icon: FileText },
     { to: '/student/profile', label: 'Profile', icon: User },
-    { to: '/student/notifications', label: 'Notifications', icon: Bell },
   ],
   INSTITUTION: [
     { to: '/institution', label: 'Overview', icon: LayoutDashboard },
@@ -66,11 +71,11 @@ const NAV_LINKS: Record<UserRole, NavItem[]> = {
     },
     { to: '/institution/students', label: 'Students', icon: Users },
     { to: '/institution/requests', label: 'Requests', icon: FileText },
+    { to: '/institution/announcement', label: 'Announcement', icon: Bell },
     { to: '/institution/analytics', label: 'Analytics', icon: ChartColumnBig },
     { to: '/institution/reports', label: 'Reports', icon: Download },
     { to: '/institution/receipt-verify', label: 'Verify Receipt', icon: FileSearch },
     { to: '/institution/logs', label: 'Audit Logs', icon: History },
-    { to: '/institution/notifications', label: 'Notifications', icon: Bell },
   ],
   ADMIN: [
     { to: '/admin', label: 'Overview', icon: LayoutDashboard },
@@ -78,7 +83,6 @@ const NAV_LINKS: Record<UserRole, NavItem[]> = {
     { to: '/admin/risk', label: 'Risk Review', icon: AlertTriangle },
     { to: '/admin/reports', label: 'Reports', icon: Download },
     { to: '/admin/logs', label: 'Audit Logs', icon: History },
-    { to: '/admin/notifications', label: 'Notifications', icon: Bell },
   ],
 };
 
@@ -104,6 +108,7 @@ const INSTITUTION_REQUESTS_LAST_SEEN_KEY = 'institution_requests_last_seen_at';
 
 export default function DashboardLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user, isLoading } = useLegacyAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -113,6 +118,8 @@ export default function DashboardLayout() {
   );
   const [collapsedFlyoutGroup, setCollapsedFlyoutGroup] = useState<string | null>(null);
   const [collapsedFlyoutTop, setCollapsedFlyoutTop] = useState(0);
+  const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
+  const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
   const [lastSeenInstitutionRequestAt, setLastSeenInstitutionRequestAt] = useState(() => {
     if (typeof window === 'undefined') {
       return 0;
@@ -123,6 +130,8 @@ export default function DashboardLayout() {
   });
   const notificationRefreshTimerRef = useRef<number | null>(null);
   const requestIndicatorRefreshTimerRef = useRef<number | null>(null);
+  const notificationsPanelRef = useRef<HTMLDivElement | null>(null);
+  const notificationsButtonRef = useRef<HTMLButtonElement | null>(null);
   const sidebarRef = useRef<HTMLElement | null>(null);
   const collapsedFlyoutRef = useRef<HTMLDivElement | null>(null);
   const rawRole = user?.role as UserRole | undefined;
@@ -133,7 +142,7 @@ export default function DashboardLayout() {
     refetchOnWindowFocus: 'always' as const,
   };
 
-  const { data: unreadNotificationsCount = 0 } = useQuery({
+  useQuery({
     queryKey: appQueryKeys.layout.unreadNotificationsCount(),
     queryFn: async () => {
       const unread = await NotificationService.list({ read: false, page: 1, pageSize: 200 });
@@ -142,6 +151,34 @@ export default function DashboardLayout() {
     enabled: Boolean(user),
     ...timeSensitiveQueryOptions,
   });
+
+  const notificationsQueryKey =
+    rawRole === 'ADMIN'
+      ? appQueryKeys.admin.notifications()
+      : rawRole === 'INSTITUTION'
+        ? appQueryKeys.institution.notifications()
+        : rawRole === 'STUDENT'
+          ? appQueryKeys.student.notifications()
+          : null;
+
+  const {
+    data: notificationsData,
+    isLoading: isLoadingNotificationsPanel,
+  } = useQuery({
+    queryKey: notificationsQueryKey ?? ['layout', 'notifications', 'disabled'],
+    queryFn: () => NotificationService.list({ page: 1, pageSize: 100 }),
+    enabled: Boolean(user) && Boolean(notificationsQueryKey),
+    ...timeSensitiveQueryOptions,
+  });
+
+  const inboxNotifications = useMemo(
+    () => withoutStepUpOtpNotifications(notificationsData?.items || []),
+    [notificationsData],
+  );
+  const visibleUnreadNotificationsCount = useMemo(
+    () => inboxNotifications.filter(notification => !notification.read).length,
+    [inboxNotifications],
+  );
 
   const { data: newestPendingRequestTime = 0 } = useQuery({
     queryKey: appQueryKeys.layout.institutionPendingRequestIndicator(),
@@ -161,6 +198,15 @@ export default function DashboardLayout() {
     () => rawRole === 'INSTITUTION' && newestPendingRequestTime > lastSeenInstitutionRequestAt,
     [lastSeenInstitutionRequestAt, newestPendingRequestTime, rawRole],
   );
+
+  const roleNotificationsRoute =
+    rawRole === 'ADMIN'
+      ? '/admin/notifications'
+      : rawRole === 'INSTITUTION'
+        ? '/institution/notifications'
+        : rawRole === 'STUDENT'
+          ? '/student/notifications'
+          : null;
 
   if (isLoading) {
     return <GlobalLoading />;
@@ -209,6 +255,9 @@ export default function DashboardLayout() {
       notificationRefreshTimerRef.current = window.setTimeout(() => {
         notificationRefreshTimerRef.current = null;
         void queryClient.invalidateQueries({ queryKey: appQueryKeys.layout.unreadNotificationsCount() });
+        if (notificationsQueryKey) {
+          void queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
+        }
       }, 350);
     };
 
@@ -243,6 +292,7 @@ export default function DashboardLayout() {
       }
     };
   }, [
+    notificationsQueryKey,
     queryClient,
     role,
   ]);
@@ -259,6 +309,10 @@ export default function DashboardLayout() {
   useEffect(() => {
     setCollapsedFlyoutGroup(null);
   }, [location.pathname, sidebarCollapsed]);
+
+  useEffect(() => {
+    setIsNotificationsPanelOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!collapsedFlyoutGroup) {
@@ -289,6 +343,34 @@ export default function DashboardLayout() {
     };
   }, [collapsedFlyoutGroup]);
 
+  useEffect(() => {
+    if (!isNotificationsPanelOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const clickedPanel = notificationsPanelRef.current?.contains(target);
+      const clickedButton = notificationsButtonRef.current?.contains(target);
+      if (!clickedPanel && !clickedButton) {
+        setIsNotificationsPanelOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsNotificationsPanelOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isNotificationsPanelOpen]);
+
   if (!expectedRoutePrefix) {
     return <Navigate to="/unauthorized" replace />;
   }
@@ -300,6 +382,132 @@ export default function DashboardLayout() {
   if (role === 'INSTITUTION' && path.startsWith('/institution/history')) {
     return <Navigate to="/institution/requests" replace />;
   }
+
+  const syncNotificationCaches = (nextItems: AppNotification[]) => {
+    if (!notificationsQueryKey) {
+      return;
+    }
+
+    queryClient.setQueryData(
+      notificationsQueryKey,
+      (oldData: NotificationListResponse | undefined) => ({
+        items: nextItems,
+        pagination: oldData?.pagination ?? {
+          page: 1,
+          pageSize: 100,
+          total: nextItems.length,
+        },
+      }),
+    );
+
+    queryClient.setQueryData(
+      appQueryKeys.layout.unreadNotificationsCount(),
+      withoutStepUpOtpNotifications(nextItems).filter(notification => !notification.read).length,
+    );
+  };
+
+  const handleMarkNotificationRead = async (notificationId: string) => {
+    const target = inboxNotifications.find(notification => notification.id === notificationId);
+    if (!target || target.read) {
+      return;
+    }
+
+    const previousItems = notificationsData?.items || [];
+    const optimisticItems = previousItems.map(item =>
+      item.id === notificationId ? { ...item, read: true } : item,
+    );
+
+    syncNotificationCaches(optimisticItems);
+
+    try {
+      const updated = await NotificationService.markRead(notificationId, true);
+      syncNotificationCaches(previousItems.map(item => (item.id === updated.id ? updated : item)));
+    } catch {
+      syncNotificationCaches(previousItems);
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    if (isMarkingAllNotificationsRead || inboxNotifications.every(notification => notification.read)) {
+      return;
+    }
+
+    const previousItems = notificationsData?.items || [];
+    setIsMarkingAllNotificationsRead(true);
+    syncNotificationCaches(previousItems.map(item => ({ ...item, read: true })));
+
+    try {
+      await NotificationService.markAllRead();
+    } catch {
+      syncNotificationCaches(previousItems);
+    } finally {
+      setIsMarkingAllNotificationsRead(false);
+    }
+  };
+
+  const handleSeeAllNotifications = () => {
+    setIsNotificationsPanelOpen(false);
+    if (roleNotificationsRoute) {
+      navigate(roleNotificationsRoute);
+    }
+  };
+
+  const handleNotificationPanelClick = (notification: AppNotification) => {
+    if (!notification.read) {
+      void handleMarkNotificationRead(notification.id);
+    }
+
+    setIsNotificationsPanelOpen(false);
+
+    if (role === 'ADMIN') {
+      const destination = resolveAdminNotificationDestination(notification);
+      if (destination.kind === 'risk') {
+        const params = new URLSearchParams();
+        if (destination.riskEventId) params.set('riskEventId', destination.riskEventId);
+        if (destination.targetId) params.set('targetId', destination.targetId);
+        if (destination.actorId) params.set('actorId', destination.actorId);
+        navigate(`/admin/risk${params.toString() ? `?${params.toString()}` : ''}`);
+        return;
+      }
+      if (destination.kind === 'users') {
+        const params = new URLSearchParams();
+        if (destination.userId) params.set('userId', destination.userId);
+        if (destination.roleFilter) params.set('role', destination.roleFilter);
+        if (destination.statusFilter) params.set('status', destination.statusFilter);
+        navigate(`/admin/users${params.toString() ? `?${params.toString()}` : ''}`);
+        return;
+      }
+      navigate('/admin/notifications');
+      return;
+    }
+
+    if (role === 'INSTITUTION') {
+      const destination = resolveInstitutionNotificationDestination(notification);
+      if (destination.kind === 'credential') {
+        navigate(`/institution/issue/manage?credentialId=${encodeURIComponent(destination.credentialId)}`);
+        return;
+      }
+      if (destination.kind === 'request') {
+        navigate(`/institution/requests?requestId=${encodeURIComponent(destination.requestId)}`);
+        return;
+      }
+      navigate('/institution/notifications');
+      return;
+    }
+
+    if (role === 'STUDENT') {
+      const destination = resolveStudentNotificationDestination(notification);
+      if (destination.kind === 'credential') {
+        navigate(`/student/credentials/${encodeURIComponent(destination.credentialId)}`);
+        return;
+      }
+      if (destination.kind === 'request') {
+        navigate(`/student/requests?requestId=${encodeURIComponent(destination.requestId)}`);
+        return;
+      }
+      navigate('/student/notifications');
+    }
+  };
 
   return (
     <div className="flex h-dvh overflow-hidden bg-neutral-50 font-sans selection:bg-primary-600 selection:text-white">
@@ -338,7 +546,6 @@ export default function DashboardLayout() {
         <nav className="flex-1 overflow-y-auto px-2 py-3">
           <div className="space-y-0.5">
             {navLinks.map((link: NavItem) => {
-              const isNotificationsLink = link.to.endsWith('/notifications');
               const showRequestAlert =
                 role === 'INSTITUTION' &&
                 link.to === '/institution/requests' &&
@@ -489,23 +696,15 @@ export default function DashboardLayout() {
                   }
                   title={sidebarCollapsed ? link.label : undefined}
                 >
-                  <span className="relative shrink-0">
-                    <NavIcon size={16} />
-                    {showRequestAlert && (
-                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-error-500" />
-                    )}
-                    {isNotificationsLink && unreadNotificationsCount > 0 && sidebarCollapsed && (
-                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-error-500" />
-                    )}
-                  </span>
-                  {!sidebarCollapsed && (
-                    <span className="truncate flex-1">{link.label}</span>
-                  )}
-                  {!sidebarCollapsed && isNotificationsLink && unreadNotificationsCount > 0 && (
-                    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-error-500 px-1.5 text-[10px] font-semibold text-white">
-                      {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                    <span className="relative shrink-0">
+                      <NavIcon size={16} />
+                      {showRequestAlert && (
+                        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-error-500" />
+                      )}
                     </span>
-                  )}
+                    {!sidebarCollapsed && (
+                      <span className="truncate flex-1">{link.label}</span>
+                    )}
                 </NavLink>
               );
             })}
@@ -547,11 +746,60 @@ export default function DashboardLayout() {
           <div className="flex flex-1 items-center justify-end gap-1">
             <div id="top-nav-search-portal" className="flex flex-1 justify-end mx-2 sm:mx-4" />
 
-            <div className="mx-1 h-5 w-px bg-neutral-200" />
+            <div className="flex items-center gap-3">
+              <div className="relative inline-flex items-center">
+                <button
+                  ref={notificationsButtonRef}
+                  type="button"
+                  onClick={() => setIsNotificationsPanelOpen(previous => !previous)}
+                  className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700"
+                  aria-label="Open notifications"
+                  aria-expanded={isNotificationsPanelOpen}
+                >
+                  <Bell size={18} />
+                  {visibleUnreadNotificationsCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-error-500 px-1 text-[10px] font-bold text-white">
+                      {visibleUnreadNotificationsCount > 99 ? '99+' : visibleUnreadNotificationsCount}
+                    </span>
+                  )}
+                </button>
 
-            {/* User avatar */}
-            <div className="relative inline-flex items-center">
-              <UserButton afterSignOutUrl="/" />
+                <AnimatePresence>
+                  {isNotificationsPanelOpen && (
+                    <motion.div
+                      ref={notificationsPanelRef}
+                      initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                      transition={{ duration: 0.16, ease: 'easeOut' }}
+                      className="fixed inset-x-3 top-16 z-[70] h-[min(34rem,calc(100dvh-5rem))] sm:absolute sm:right-0 sm:left-auto sm:top-12 sm:w-[26rem] sm:h-[min(32rem,calc(100dvh-4.5rem))]"
+                    >
+                      <TopbarNotificationsPanel
+                        notifications={inboxNotifications}
+                        isLoading={isLoadingNotificationsPanel}
+                        isMarkingAllRead={isMarkingAllNotificationsRead}
+                        unreadCount={visibleUnreadNotificationsCount}
+                        onMarkAllRead={handleMarkAllNotificationsRead}
+                        onNotificationClick={handleNotificationPanelClick}
+                        onSeeAll={handleSeeAllNotifications}
+                        getMessage={notification =>
+                          getNotificationDisplayMessage(notification, {
+                            institutionNameFallback:
+                              role === 'STUDENT' ? user.institution?.institutionName || null : null,
+                          })
+                        }
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="h-5 w-px bg-neutral-200" />
+
+              {/* User avatar */}
+              <div className="relative ml-1 inline-flex items-center">
+                <UserButton afterSignOutUrl="/" />
+              </div>
             </div>
           </div>
         </header>

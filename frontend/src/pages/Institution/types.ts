@@ -8,6 +8,7 @@ export type InstitutionSection =
   | 'reports'
   | 'students'
   | 'requests'
+  | 'announcement'
   | 'receipt-verify'
   | 'issue'
   | 'issue-awaiting'

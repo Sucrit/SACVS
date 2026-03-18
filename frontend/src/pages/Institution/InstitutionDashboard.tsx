@@ -9,6 +9,7 @@ import InstitutionRequestsSection from './components/InstitutionRequestsSection'
 import InstitutionIssueSection from './components/InstitutionIssueFormSection';
 import InstitutionAwaitingIssuanceSection from './components/InstitutionAwaitingIssuanceSection';
 import InstitutionCredentialManageSection from './components/InstitutionCredentialManageSection';
+import InstitutionAnnouncementsSection from './components/InstitutionAnnouncementsSection';
 import InstitutionNotificationsSection from './components/InstitutionNotificationsSection';
 import InstitutionOverviewSection from './components/InstitutionOverviewSection';
 import InstitutionAnalyticsSection from './components/InstitutionAnalyticsSection';
@@ -215,20 +216,11 @@ export default function InstitutionDashboard() {
 
       {state.section === 'notifications' && (
         <InstitutionNotificationsSection
-          notificationTarget={state.notificationTarget}
-          notificationTitle={state.notificationTitle}
-          notificationMessage={state.notificationMessage}
-          notifications={state.outboundNotifications}
           inboundNotifications={state.inboundNotifications}
           isLoadingInboundNotifications={state.isLoadingInboundNotifications}
           isMarkingAllNotificationsRead={state.isMarkingAllNotificationsRead}
           onMarkNotificationRead={state.handleMarkNotificationRead}
           onMarkAllNotificationsRead={state.handleMarkAllNotificationsRead}
-          isSubmitting={state.isSubmittingNotification}
-          onTargetChange={state.setNotificationTarget}
-          onTitleChange={state.setNotificationTitle}
-          onMessageChange={state.setNotificationMessage}
-          onSubmit={state.handleNotificationSubmit}
           onOpenCredential={(credentialId: string) =>
             state.navigate(`/institution/issue/manage?credentialId=${encodeURIComponent(credentialId)}`)
           }
@@ -236,6 +228,20 @@ export default function InstitutionDashboard() {
             state.navigate(`/institution/requests?requestId=${encodeURIComponent(requestId)}`)
           }
           onOpenNotificationsPage={() => state.navigate('/institution/notifications')}
+        />
+      )}
+
+      {state.section === 'announcement' && (
+        <InstitutionAnnouncementsSection
+          notificationTarget={state.notificationTarget}
+          notificationTitle={state.notificationTitle}
+          notificationMessage={state.notificationMessage}
+          notifications={state.outboundNotifications}
+          isSubmitting={state.isSubmittingNotification}
+          onTargetChange={state.setNotificationTarget}
+          onTitleChange={state.setNotificationTitle}
+          onMessageChange={state.setNotificationMessage}
+          onSubmit={state.handleNotificationSubmit}
         />
       )}
 
