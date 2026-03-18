@@ -453,30 +453,48 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     return ['ALL', ...Array.from(values).sort((a, b) => a.localeCompare(b))];
   }, [students]);
 
+  const studentSearchStrings = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const student of students) {
+      const searchable = [student.firstName, student.middleName || '', student.lastName, student.email, student.profile?.studentNumber || '', student.profile?.department || ''].join(' ').toLowerCase();
+      map.set(student.id, searchable);
+    }
+    return map;
+  }, [students]);
+
   const filteredStudents = useMemo(() => {
     const keyword = studentSearch.trim().toLowerCase();
     return students.filter(student => {
       if (studentStatusFilter !== 'ALL' && student.status !== studentStatusFilter) return false;
       if (studentDepartmentFilter !== 'ALL' && student.profile?.department !== studentDepartmentFilter) return false;
       if (!keyword) return true;
-      const searchable = [student.firstName, student.middleName || '', student.lastName, student.email, student.profile?.studentNumber || '', student.profile?.department || ''].join(' ').toLowerCase();
-      return searchable.includes(keyword);
+      const searchable = studentSearchStrings.get(student.id);
+      return searchable ? searchable.includes(keyword) : false;
     });
-  }, [studentDepartmentFilter, studentSearch, studentStatusFilter, students]);
+  }, [studentDepartmentFilter, studentSearch, studentStatusFilter, students, studentSearchStrings]);
 
-  const filteredRequests = useMemo(() => {
+  const requestSearchStrings = useMemo(() => {
     const studentById = new Map(students.map(s => [s.id, s] as const));
-    const keyword = requestSearch.trim().toLowerCase();
-    return requests.filter(request => {
-      if (requestStatusFilter !== 'ALL' && request.status !== requestStatusFilter) return false;
-      if (!keyword) return true;
+    const map = new Map<string, string>();
+    for (const request of requests) {
       const student = studentById.get(request.studentId);
       const studentName = student ? [student.firstName, student.middleName, student.lastName].filter(Boolean).join(' ') : '';
       const studentNumber = student?.profile?.studentNumber || '';
       const searchable = [request.id, request.title, request.type, request.status, request.rejectionReason || '', studentName, studentNumber].join(' ').toLowerCase();
-      return searchable.includes(keyword);
+      map.set(request.id, searchable);
+    }
+    return map;
+  }, [requests, students]);
+
+  const filteredRequests = useMemo(() => {
+    const keyword = requestSearch.trim().toLowerCase();
+    return requests.filter(request => {
+      if (requestStatusFilter !== 'ALL' && request.status !== requestStatusFilter) return false;
+      if (!keyword) return true;
+      const searchable = requestSearchStrings.get(request.id);
+      return searchable ? searchable.includes(keyword) : false;
     });
-  }, [requestSearch, requestStatusFilter, requests, students]);
+  }, [requestSearch, requestStatusFilter, requests, requestSearchStrings]);
 
   const institutionAuditActionOptions = useMemo(
     () => ['ALL', ...Array.from(new Set(auditLogs.map(log => log.action))).sort()] as Array<'ALL' | AuditAction>,
