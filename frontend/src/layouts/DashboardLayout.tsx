@@ -755,14 +755,14 @@ export default function DashboardLayout() {
                   className="relative inline-flex h-10 w-10 items-center justify-center rounded-full text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700"
                   aria-label="Open notifications"
                   aria-expanded={isNotificationsPanelOpen}
-                >
-                  <Bell size={18} />
-                  {visibleUnreadNotificationsCount > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-error-500 px-1 text-[10px] font-bold text-white">
-                      {visibleUnreadNotificationsCount > 99 ? '99+' : visibleUnreadNotificationsCount}
-                    </span>
-                  )}
-                </button>
+                  >
+                    <Bell size={20} />
+                    {visibleUnreadNotificationsCount > 0 && (
+                      <span className="absolute right-0 top-0 inline-flex h-4.5 min-w-4.5 -translate-y-0.5 translate-x-0.5 items-center justify-center rounded-full bg-error-500 px-1 text-[9px] font-bold leading-none text-white">
+                        {visibleUnreadNotificationsCount > 99 ? '99+' : visibleUnreadNotificationsCount}
+                      </span>
+                    )}
+                  </button>
 
                 <AnimatePresence>
                   {isNotificationsPanelOpen && (
