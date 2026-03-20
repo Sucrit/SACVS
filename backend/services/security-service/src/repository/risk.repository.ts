@@ -464,6 +464,56 @@ export class RiskRepository {
     });
   }
 
+  async getRiskCardDeltas(query: RiskEventFilterQuery, startOfToday: Date, startOfTomorrow: Date) {
+    const where = this.buildRiskEventWhere(query);
+
+    const startOfYesterday = new Date(startOfToday.getTime() - 24 * 60 * 60 * 1000);
+
+    const skipPendingReview = query.reviewStatus && query.reviewStatus !== RiskReviewStatus.PENDING_REVIEW;
+    const skipConfirmedAbuse = query.reviewStatus && query.reviewStatus !== RiskReviewStatus.CONFIRMED_ABUSE;
+    const skipHighRisk = query.riskBand && query.riskBand !== RiskBand.HIGH;
+    const skipCriticalRisk = query.riskBand && query.riskBand !== RiskBand.CRITICAL;
+
+    const [
+      pendingReviewToday, pendingReviewYesterday,
+      highRiskToday, highRiskYesterday,
+      criticalRiskToday, criticalRiskYesterday,
+      confirmedAbuseToday, confirmedAbuseYesterday,
+    ] = await Promise.all([
+      skipPendingReview ? Promise.resolve(0) : prisma.riskEventRecord.count({
+        where: { ...where, reviewStatus: RiskReviewStatus.PENDING_REVIEW, featuresSnapshot: { observedAt: { gte: startOfToday, lt: startOfTomorrow } } },
+      }),
+      skipPendingReview ? Promise.resolve(0) : prisma.riskEventRecord.count({
+        where: { ...where, reviewStatus: RiskReviewStatus.PENDING_REVIEW, featuresSnapshot: { observedAt: { gte: startOfYesterday, lt: startOfToday } } },
+      }),
+      skipHighRisk ? Promise.resolve(0) : prisma.riskEventRecord.count({
+        where: { ...where, riskBand: RiskBand.HIGH, featuresSnapshot: { observedAt: { gte: startOfToday, lt: startOfTomorrow } } },
+      }),
+      skipHighRisk ? Promise.resolve(0) : prisma.riskEventRecord.count({
+        where: { ...where, riskBand: RiskBand.HIGH, featuresSnapshot: { observedAt: { gte: startOfYesterday, lt: startOfToday } } },
+      }),
+      skipCriticalRisk ? Promise.resolve(0) : prisma.riskEventRecord.count({
+        where: { ...where, riskBand: RiskBand.CRITICAL, featuresSnapshot: { observedAt: { gte: startOfToday, lt: startOfTomorrow } } },
+      }),
+      skipCriticalRisk ? Promise.resolve(0) : prisma.riskEventRecord.count({
+        where: { ...where, riskBand: RiskBand.CRITICAL, featuresSnapshot: { observedAt: { gte: startOfYesterday, lt: startOfToday } } },
+      }),
+      skipConfirmedAbuse ? Promise.resolve(0) : prisma.riskEventRecord.count({
+        where: { ...where, reviewStatus: RiskReviewStatus.CONFIRMED_ABUSE, reviewedAt: { gte: startOfToday, lt: startOfTomorrow } },
+      }),
+      skipConfirmedAbuse ? Promise.resolve(0) : prisma.riskEventRecord.count({
+        where: { ...where, reviewStatus: RiskReviewStatus.CONFIRMED_ABUSE, reviewedAt: { gte: startOfYesterday, lt: startOfToday } },
+      }),
+    ]);
+
+    return {
+      pendingReview: pendingReviewToday - pendingReviewYesterday,
+      highRisk: highRiskToday - highRiskYesterday,
+      criticalRisk: criticalRiskToday - criticalRiskYesterday,
+      confirmedAbuse: confirmedAbuseToday - confirmedAbuseYesterday,
+    };
+  }
+
   async listRiskEventRecords(query: RiskEventListQuery) {
     const where = this.buildRiskEventWhere(query);
 

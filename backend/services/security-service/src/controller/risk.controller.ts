@@ -129,6 +129,32 @@ export class RiskController {
     });
   }
 
+  async getRiskSummaryDeltas(req: Request, res: Response): Promise<Response> {
+    try {
+      const { riskBand, reviewStatus, reviewedOnly } = parseRiskFilters(req);
+      const startOfToday = typeof req.query.startOfToday === 'string' && req.query.startOfToday
+        ? new Date(req.query.startOfToday)
+        : new Date(new Date().setHours(0, 0, 0, 0));
+      const startOfTomorrow = typeof req.query.startOfTomorrow === 'string' && req.query.startOfTomorrow
+        ? new Date(req.query.startOfTomorrow)
+        : new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+      const result = await repository.getRiskCardDeltas(
+        { riskBand, reviewStatus, reviewedOnly },
+        startOfToday,
+        startOfTomorrow
+      );
+
+      return res.json(result);
+    } catch (error) {
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error getting risk summary deltas:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
   async listRiskEvents(req: Request, res: Response): Promise<Response> {
     try {
       const page = parsePositiveInt(req.query.page, 1);

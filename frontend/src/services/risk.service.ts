@@ -100,6 +100,28 @@ export const RiskService = {
     return response.data;
   },
 
+  getSummaryDeltas: async (query: {
+    riskBand?: RiskBand | 'ALL';
+    reviewStatus?: RiskReviewStatus | 'ALL';
+    reviewedOnly?: boolean;
+    startOfToday?: string;
+    startOfTomorrow?: string;
+  } = {}) => {
+    const response = await api.get<{
+      pendingReview: number;
+      highRisk: number;
+      criticalRisk: number;
+      confirmedAbuse: number;
+    }>('/security/risk-events/summary-deltas', {
+      params: {
+        ...query,
+        riskBand: query.riskBand === 'ALL' ? undefined : query.riskBand,
+        reviewStatus: query.reviewStatus === 'ALL' ? undefined : query.reviewStatus,
+      },
+    });
+    return response.data;
+  },
+
   getWorkerStatus: async () => {
     const response = await api.get<RiskWorkerStatus>('/security/risk-worker/status');
     return response.data;

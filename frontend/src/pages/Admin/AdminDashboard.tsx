@@ -136,60 +136,23 @@ export default function AdminDashboard() {
 
     const loadRiskCardDeltas = async () => {
       try {
-        const response = await RiskService.list({
-          page: 1,
-          pageSize: Math.max(riskTotal, 1000),
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+        const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
+
+        const response = await RiskService.getSummaryDeltas({
           riskBand: riskBandFilter,
           reviewStatus: riskReviewFilter,
           reviewedOnly,
+          startOfToday,
+          startOfTomorrow,
         });
 
         if (cancelled) {
           return;
         }
 
-        const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
-        const startOfTomorrow = startOfToday + 24 * 60 * 60 * 1000;
-
-        const countByDay = (
-          predicate: (item: (typeof response.items)[number]) => boolean,
-          getTimestamp: (item: (typeof response.items)[number]) => string | null,
-        ) => {
-          let todayCount = 0;
-          let yesterdayCount = 0;
-
-          response.items.forEach(item => {
-            if (!predicate(item)) {
-              return;
-            }
-
-            const timestamp = getTimestamp(item);
-            if (!timestamp) {
-              return;
-            }
-
-            const timeMs = new Date(timestamp).getTime();
-            if (timeMs >= startOfToday && timeMs < startOfTomorrow) {
-              todayCount += 1;
-              return;
-            }
-
-            if (timeMs >= startOfYesterday && timeMs < startOfToday) {
-              yesterdayCount += 1;
-            }
-          });
-
-          return todayCount - yesterdayCount;
-        };
-
-        setRiskCardDeltas({
-          pendingReview: countByDay(item => item.reviewStatus === 'PENDING_REVIEW', item => item.observedAt),
-          highRisk: countByDay(item => item.riskBand === 'HIGH', item => item.observedAt),
-          criticalRisk: countByDay(item => item.riskBand === 'CRITICAL', item => item.observedAt),
-          confirmedAbuse: countByDay(item => item.reviewStatus === 'CONFIRMED_ABUSE', item => item.reviewedAt),
-        });
+        setRiskCardDeltas(response);
       } catch {
         if (!cancelled) {
           setRiskCardDeltas({
