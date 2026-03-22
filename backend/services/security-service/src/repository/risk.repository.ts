@@ -779,6 +779,7 @@ export class RiskRepository {
     id: string;
     report: Prisma.InputJsonValue;
     model: string;
+    error?: string | null;
   }) {
     return prisma.riskEventRecord.update({
       where: { id: input.id },
@@ -787,7 +788,7 @@ export class RiskRepository {
         adminReadableReportStatus: AdminReadableReportStatus.READY,
         adminReadableReportGeneratedAt: new Date(),
         adminReadableReportModel: input.model,
-        adminReadableReportError: null,
+        adminReadableReportError: input.error ?? null,
       },
       select: { id: true },
     });

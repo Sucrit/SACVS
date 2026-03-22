@@ -4,6 +4,7 @@ export type RiskBand = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type RiskReviewStatus = 'PENDING_REVIEW' | 'CONFIRMED_ABUSE' | 'BENIGN' | 'UNCERTAIN';
 export type RiskActorRole = 'STUDENT' | 'ADMIN' | 'INSTITUTION' | null;
 export type ReadableReportStatus = 'PENDING' | 'READY' | 'FAILED';
+export type ReadableReportSource = 'GEMINI' | 'GROQ' | 'TOGETHER' | 'LOCAL';
 export type RiskReviewReasonCode =
   | 'OTP_BRUTE_FORCE'
   | 'TOKEN_ABUSE'
@@ -54,6 +55,7 @@ export interface RiskEventRecord {
   features?: Record<string, unknown> | null;
   readableReport?: {
     status: ReadableReportStatus;
+    source?: ReadableReportSource;
     generatedAt: string | null;
     model: string | null;
     error?: string | null;

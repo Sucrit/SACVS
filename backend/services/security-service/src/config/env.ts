@@ -94,4 +94,19 @@ export const ENV = {
   GEMINI_API_KEY: parseOptionalString(process.env.GEMINI_API_KEY),
   GEMINI_MODEL: parseOptionalString(process.env.GEMINI_MODEL) || 'gemini-2.0-flash',
   GEMINI_TIMEOUT_MS: Math.max(2_000, parseNumber(process.env.GEMINI_TIMEOUT_MS, 15_000)),
+  GROQ_API_KEY: parseOptionalString(process.env.GROQ_API_KEY),
+  GROQ_MODEL: parseOptionalString(process.env.GROQ_MODEL) || 'llama-3.1-8b-instant',
+  GROQ_TIMEOUT_MS: Math.max(2_000, parseNumber(process.env.GROQ_TIMEOUT_MS, 15_000)),
+  TOGETHER_API_KEY: parseOptionalString(process.env.TOGETHER_API_KEY),
+  TOGETHER_MODEL:
+    parseOptionalString(process.env.TOGETHER_MODEL) || 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+  TOGETHER_TIMEOUT_MS: Math.max(2_000, parseNumber(process.env.TOGETHER_TIMEOUT_MS, 15_000)),
+  AI_REPORT_RATE_LIMIT_WINDOW_MS: Math.max(
+    60_000,
+    parseNumber(process.env.AI_REPORT_RATE_LIMIT_WINDOW_MS, 5 * 60_000),
+  ),
+  AI_REPORT_RATE_LIMIT_MAX_REQUESTS: Math.max(
+    1,
+    parseNumber(process.env.AI_REPORT_RATE_LIMIT_MAX_REQUESTS, 3),
+  ),
 } as const;

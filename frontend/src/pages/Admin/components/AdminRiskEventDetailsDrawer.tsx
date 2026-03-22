@@ -124,6 +124,7 @@ export default function AdminRiskEventDetailsDrawer({
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const readableReport = event?.readableReport ?? null;
   const readableReportStatus = readableReport?.status ?? 'PENDING';
+  const reportSourceLabel = readableReport?.source === 'LOCAL' ? 'Local summary' : 'AI summary';
 
   useEffect(() => {
     if (!isOpen) {
@@ -316,6 +317,20 @@ export default function AdminRiskEventDetailsDrawer({
                       {!isGeneratingReadableReport && readableReportStatus === 'READY' && (
                         <div className="space-y-4">
                           <div>
+                            <div className="mb-3 flex flex-wrap items-center gap-2">
+                              <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                readableReport?.source === 'LOCAL'
+                                  ? 'bg-neutral-200 text-neutral-700'
+                                  : 'bg-cyan-100 text-cyan-700'
+                              }`}>
+                                {reportSourceLabel}
+                              </span>
+                              {readableReport?.error && readableReport?.source === 'LOCAL' && (
+                                <span className="text-[11px] text-neutral-500">
+                                  External AI unavailable; showing fallback summary.
+                                </span>
+                              )}
+                            </div>
                             <p className="text-sm leading-6 text-neutral-700">
                               {readableReport?.summary || 'No readable summary was returned for this event.'}
                             </p>
