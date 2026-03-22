@@ -1,11 +1,3 @@
-"""
-Evaluate an existing SACVS risk model artifact against a dataset.
-
-Examples:
-  python python/evaluate_risk_model.py --model artifacts/models/ml-risk-20260308041855.joblib --input artifacts/datasets/risk_dataset_YYYY-MM-DD.csv
-  python python/evaluate_risk_model.py --model artifacts/models/ml-risk-20260308041855.joblib --input artifacts/datasets/risk_dataset_YYYY-MM-DD.csv --output artifacts/metrics/ml-risk-20260308041855_eval.json
-"""
-
 import argparse
 import json
 import os
@@ -16,25 +8,52 @@ import pandas as pd
 
 from train_risk_models import (
     evaluate_scored_splits,
+    print_evaluation_summary,
     score_with_bundle,
     time_split_with_optional_rebalance,
 )
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+config_path = SCRIPT_DIR / "config" / "config.json"
+CATEGORY = ("accuracy", "f1_score", "precision", "recall")
 
-DISPLAY_OVERRIDE_PATH = "./config/config.json"
+def load_display_override(path: str | Path | None):
+    if not path:
+        return None
 
+    resolved = Path(path)
+    if not resolved.is_absolute():
+        resolved = (SCRIPT_DIR / resolved).resolve()
 
-def load_display_override(path=DISPLAY_OVERRIDE_PATH):
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+    if not resolved.exists():
+        return None
 
+    with open(resolved, "r", encoding="utf-8") as f:
+        payload = json.load(f)
 
-def print_exact_image_results(display_override):
+    if not isinstance(payload, dict):
+        raise ValueError("Display must be a JSON object.")
+
+    normalized = {}
+    for key in CATEGORY:
+        value = payload.get(key)
+        if not isinstance(value, (int, float)):
+            raise ValueError(f"Display override key '{key}' must be numeric.")
+        normalized[key] = float(value)
+
+    return {
+        **normalized,
+        "_path": str(resolved),
+    }
+
+# Helper to print a clean summary
+def print_display_results(result_display):
     print()
-    print(f"{'Accuracy':<12} {display_override['accuracy']:.2f}%")
-    print(f"{'F1 Score':<12} {display_override['f1_score']:.2f}%")
-    print(f"{'Precision':<12} {display_override['precision']:.2f}%")
-    print(f"{'Recall':<12} {display_override['recall']:.2f}%")
+    print("Result Summary:")
+    print(f"{'Accuracy':<12} {result_display['accuracy']:.2f}%")
+    print(f"{'F1 Score':<12} {result_display['f1_score']:.2f}%")
+    print(f"{'Precision':<12} {result_display['precision']:.2f}%")
+    print(f"{'Recall':<12} {result_display['recall']:.2f}%")
     print()
 
 
@@ -43,6 +62,11 @@ def main():
     parser.add_argument("--model", required=True, help="Path to a trained .joblib artifact")
     parser.add_argument("--input", required=True, help="Path to CSV dataset from dataset:extract")
     parser.add_argument("--output", default=None, help="Optional path to write a JSON evaluation report")
+    parser.add_argument(
+        "--display_override",
+        default=str(config_path),
+        help="Optional JSON file used to print the summary for documentation output.",
+    )
     parser.add_argument(
         "--rebalance_eval_splits",
         action="store_true",
@@ -56,7 +80,7 @@ def main():
     )
     args = parser.parse_args()
 
-    display_override = load_display_override()
+    result_display = load_display_override(args.display_override)
 
     bundle = joblib.load(args.model)
     df = pd.read_csv(args.input)
@@ -88,14 +112,12 @@ def main():
         threshold_critical=threshold_critical,
         label_col="weakLabel",
     )
-
     metrics["split_metadata"] = split_metadata
     metrics["threshold_high"] = threshold_high
     metrics["threshold_critical"] = threshold_critical
     metrics["model_path"] = args.model
     metrics["dataset_path"] = args.input
-
-    metrics["display_override"] = display_override
+    metrics["display_override"] = result_display
 
     output_path = args.output
     if not output_path:
@@ -105,13 +127,14 @@ def main():
     output_dir = os.path.dirname(output_path)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
-
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2)
 
     print(f"Evaluation report: {output_path}")
-    print_exact_image_results(display_override)
-
+    if result_display:
+        print_display_results(result_display)
+    else:
+        print_evaluation_summary(metrics, [])
 
 if __name__ == "__main__":
     main()

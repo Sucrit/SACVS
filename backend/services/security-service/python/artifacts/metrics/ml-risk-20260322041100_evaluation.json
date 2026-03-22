@@ -59,12 +59,12 @@
   },
   "threshold_high": 0.5493584383076174,
   "threshold_critical": 0.5993584383076175,
-  "model_path": "artifacts/models/ml-risk-20260322041100.joblib",
-  "dataset_path": "artifacts/datasets/risk_dataset_reviewed.csv",
+  "model_path": "../artifacts/models/ml-risk-20260322041100.joblib",
+  "dataset_path": "../artifacts/datasets/risk_dataset_reviewed.csv",
   "display_override": {
     "accuracy": 94.23,
-    "f1_score": 94.30,
-    "precision": 91.50,
+    "f1_score": 94.3,
+    "precision": 91.5,
     "recall": 92.36,
     "_path": "C:\\Users\\smith\\Documents\\Projects\\SACVS\\backend\\services\\security-service\\python\\config\\config.json"
   }
