@@ -18,7 +18,7 @@ app.use((req, res, next) => {
     path.startsWith('/security') ||
     path.startsWith('/blockchain');
 
-  // Do not consume body on gateway for proxied service routes.
+
   if (isProxiedRoute) {
     return next();
   }
