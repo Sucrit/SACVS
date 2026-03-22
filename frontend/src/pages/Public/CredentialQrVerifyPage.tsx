@@ -13,6 +13,7 @@ import {
   LockKeyhole,
   School,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import { CredentialService, QrVerificationResult } from '../../services/credential.service';
@@ -58,14 +59,19 @@ interface DetailItemProps {
 
 function DetailItem({ icon, label, value, emphasize = false }: DetailItemProps) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-neutral-200 py-3 last:border-b-0 last:pb-0 first:pt-0">
-      <div className="flex items-center gap-2 text-sm font-medium text-neutral-500">
+    <div className="grid gap-1.5 sm:grid-cols-[150px_minmax(0,1fr)] sm:items-center">
+      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
         <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-neutral-100 text-neutral-600">
           {icon}
         </span>
         {label}
-      </div>
-      <div className={twMerge('text-right text-sm font-semibold text-neutral-900', emphasize && 'text-base')}>
+      </p>
+      <div
+        className={twMerge(
+          'w-full px-1 py-1 text-sm font-semibold text-neutral-900 break-words sm:max-w-[320px]',
+          emphasize && 'text-base',
+        )}
+      >
         {value}
       </div>
     </div>
@@ -84,11 +90,11 @@ function FlatSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-[18px] border border-neutral-200 bg-white px-4 py-4 sm:px-5 sm:py-5">
-      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-neutral-500">{eyebrow}</p>
-      <h2 className="mt-2 text-xl font-black tracking-tight text-neutral-950">{title}</h2>
-      <p className="mt-1 text-sm leading-6 text-neutral-600">{description}</p>
-      <div className="mt-4">{children}</div>
+    <section className="px-0 py-0">
+      {eyebrow ? <p className="text-[11px] font-black uppercase tracking-[0.22em] text-neutral-500">{eyebrow}</p> : null}
+      {title ? <h2 className="mt-2 text-xl font-black tracking-tight text-neutral-950">{title}</h2> : null}
+      {description ? <p className="mt-1 text-sm leading-6 text-neutral-600">{description}</p> : null}
+      <div className={eyebrow || title || description ? 'mt-4' : ''}>{children}</div>
     </section>
   );
 }
@@ -254,7 +260,7 @@ export default function CredentialQrVerifyPage() {
   return (
     <main className="credence-font credence-page-bg min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.86),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(229,231,235,0.55),transparent_30%)] px-4 py-5 text-neutral-900 antialiased sm:px-6 sm:py-6">
       <div className="mx-auto w-full max-w-6xl">
-        <div className="rounded-[28px] border border-neutral-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+        <div className="rounded-[20px] border border-neutral-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
           <header className="border-b border-neutral-200 px-5 py-4 sm:px-8 sm:py-4.5">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div className="max-w-3xl">
@@ -276,7 +282,7 @@ export default function CredentialQrVerifyPage() {
 
           <div className="space-y-4 px-5 py-4 sm:px-8 sm:py-5">
             {isLoading ? (
-              <section className="rounded-[20px] border border-neutral-200 bg-white px-4 py-4 sm:px-5 sm:py-5">
+              <section className="rounded-[14px] border border-neutral-200 bg-white px-4 py-4 sm:px-5 sm:py-5">
                 <div className="animate-pulse space-y-4">
                   <div className="h-3 w-40 rounded-full bg-neutral-200" />
                   <div className="h-8 w-72 rounded-2xl bg-neutral-200" />
@@ -300,7 +306,7 @@ export default function CredentialQrVerifyPage() {
                             </p>
                           ) : null}
                           <video
-                            className="h-20 w-auto object-contain sm:h-24"
+                            className="h-28 w-auto object-contain sm:h-32"
                             autoPlay
                             muted
                             loop
@@ -318,12 +324,11 @@ export default function CredentialQrVerifyPage() {
                 {credential && result?.valid && (
                   <>
                     <FlatSection
-                      eyebrow="Verified Details"
-                      title="Credential proof and holder identity"
-                      description="Publicly shared proof details with limited student identity for third-party validation."
+                      eyebrow=""
+                      title=""
+                      description=""
                     >
-                      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_260px] xl:items-start">
-                        <div>
+                      <div>
                           <div className="flex flex-col gap-4 border-b border-neutral-200 pb-4 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                               <p className="text-[11px] font-black uppercase tracking-[0.22em] text-neutral-500">
@@ -337,19 +342,25 @@ export default function CredentialQrVerifyPage() {
                                 associated with the one-time public token.
                               </p>
                             </div>
-                            <div className="flex flex-wrap gap-2">
-                              <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-sky-800">
-                                {credential.type}
-                              </span>
-                              <Badge status={credential.status} />
-                            </div>
+                          <div className="flex justify-start sm:justify-end">
+                            <video
+                              className="h-28 w-auto object-contain sm:h-32"
+                              autoPlay
+                              muted
+                              loop
+                              playsInline
+                              aria-label="Verified credential proof"
+                            >
+                              <source src="/success_state_public_verif.mp4" type="video/mp4" />
+                            </video>
+                          </div>
                           </div>
 
                           <div className="mt-5">
                             <p className="text-[11px] font-black uppercase tracking-[0.22em] text-neutral-500">
                               Credential Proof
                             </p>
-                            <div className="mt-3">
+                            <div className="mt-3 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
                               <DetailItem icon={<School size={15} />} label="Institution" value={credential.institutionName} emphasize />
                               <DetailItem icon={<FileBadge2 size={15} />} label="Credential Type" value={credential.type} />
                               <DetailItem icon={<CheckCircle2 size={15} />} label="Issuance Status" value={<Badge status={credential.status} />} />
@@ -370,25 +381,12 @@ export default function CredentialQrVerifyPage() {
                               Public identity is intentionally minimized.
                             </p>
 
-                            <div className="mt-4">
+                            <div className="mt-4 grid grid-cols-1 gap-2.5 lg:grid-cols-2">
                               <DetailItem icon={<GraduationCap size={15} />} label="Credential Holder" value={credential.studentOwner} />
                               <DetailItem icon={<Hash size={15} />} label="Student Number" value={credential.studentNumber || '-'} />
+                              <DetailItem icon={<Users size={15} />} label="Year Level" value={credential.studentYearLevel || '-'} />
                             </div>
                           </div>
-                        </div>
-
-                        <div className="flex items-start justify-center xl:justify-end">
-                          <video
-                            className="h-44 w-auto object-contain sm:h-52 xl:h-56"
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            aria-label="Verified credential proof"
-                          >
-                            <source src="/success_state_public_verif.mp4" type="video/mp4" />
-                          </video>
-                        </div>
                       </div>
                     </FlatSection>
 
@@ -449,13 +447,13 @@ export default function CredentialQrVerifyPage() {
                         </div>
 
                         {documentError && (
-                          <div className="mt-4 rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                          <div className="mt-4 rounded-[14px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
                             {documentError}
                           </div>
                         )}
 
                         {documentPreviewUrl && (
-                          <div className="mt-5 overflow-hidden rounded-[18px] border border-neutral-200 bg-white">
+                          <div className="mt-5 overflow-hidden rounded-[14px] border border-neutral-200 bg-white">
                             <div className="flex items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-semibold text-neutral-700">
                               <FileSearch size={16} />
                               Shared credential preview

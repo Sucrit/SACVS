@@ -258,6 +258,7 @@ export class CredentialService {
       email: string;
       profile: {
         studentNumber: string;
+        yearLevel: string;
       } | null;
     };
     issuedBy: {
@@ -285,6 +286,7 @@ export class CredentialService {
       studentOwner: studentOwner || 'Student',
       studentEmail: view.student.email,
       studentNumber: view.student.profile?.studentNumber ?? null,
+      studentYearLevel: view.student.profile?.yearLevel ?? null,
       issuedDate: view.issuedDate ? view.issuedDate.toISOString() : null,
       expiryDate: view.expiryDate ? view.expiryDate.toISOString() : null,
       institutionName,

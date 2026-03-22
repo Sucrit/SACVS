@@ -535,6 +535,7 @@ export class CredentialRepository {
       email: string;
       profile: {
         studentNumber: string;
+        yearLevel: string;
       } | null;
     };
     issuedBy: {
@@ -566,6 +567,7 @@ export class CredentialRepository {
             profile: {
               select: {
                 studentNumber: true,
+                yearLevel: true,
               },
             },
           },

@@ -132,6 +132,7 @@ export interface QrVerificationCredentialView {
   studentOwner: string;
   studentEmail: string;
   studentNumber: string | null;
+  studentYearLevel: string | null;
   issuedDate: string | null;
   expiryDate: string | null;
   institutionName: string;
