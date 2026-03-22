@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 
-const { mockRepository, mockWorker } = vi.hoisted(() => ({
+const { mockRepository, mockWorker, mockReadableReportService } = vi.hoisted(() => ({
   mockRepository: {
     listRiskEventRecords: vi.fn(),
     getRiskEventRecordById: vi.fn(),
@@ -11,6 +11,9 @@ const { mockRepository, mockWorker } = vi.hoisted(() => ({
   mockWorker: {
     getStatus: vi.fn(),
   },
+  mockReadableReportService: {
+    ensureReadableReport: vi.fn(),
+  },
 }));
 
 vi.mock('../../repository/risk.repository', () => ({
@@ -19,6 +22,10 @@ vi.mock('../../repository/risk.repository', () => ({
 
 vi.mock('../../runtime/shadow-risk.worker', () => ({
   shadowRiskWorker: mockWorker,
+}));
+
+vi.mock('../../service/risk-readable-report.service', () => ({
+  riskReadableReportService: mockReadableReportService,
 }));
 
 import { RiskController } from '../risk.controller';
@@ -103,5 +110,67 @@ describe('RiskController', () => {
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: 'Internal Server Error' });
+  });
+
+  it('fetches risk event details without auto-generating a readable report', async () => {
+    const controller = new RiskController();
+    const req = { params: { id: 'risk-1' } } as unknown as Request;
+    const res = createResponseMock();
+    mockRepository.getRiskEventRecordById.mockResolvedValue({
+      id: 'risk-1',
+      eventId: 'evt-1',
+      correlationId: null,
+      actorId: 'actor-1',
+      action: 'ACCESS_DENIED',
+      riskScore: 82.4,
+      riskBand: 'CRITICAL',
+      topSignals: ['high_failure_ratio_15m'],
+      modelVersion: 'shadow-heuristic-v1',
+      inferenceTs: new Date('2026-03-22T01:00:00.000Z'),
+      reviewStatus: 'PENDING_REVIEW',
+      reviewedById: null,
+      reviewedAt: null,
+      reviewReasonCode: null,
+      reviewReasonDetail: null,
+      reviewNotes: null,
+      adminReadableReport: null,
+      adminReadableReportStatus: 'PENDING',
+      adminReadableReportGeneratedAt: null,
+      adminReadableReportModel: null,
+      adminReadableReportError: null,
+      createdAt: new Date('2026-03-22T01:00:00.000Z'),
+      featuresSnapshot: {
+        id: 'snapshot-1',
+        actorRole: 'INSTITUTION',
+        institutionId: null,
+        targetType: 'StepUpChallenge',
+        targetId: 'target-1',
+        observedAt: new Date('2026-03-22T01:00:00.000Z'),
+        featuresWindowStart: null,
+        featuresWindowEnd: null,
+        ipHash: null,
+        userAgentHash: null,
+        features: { velocity_15m: 5 },
+      },
+    });
+
+    await controller.getRiskEventDetails(req, res);
+
+    expect(mockRepository.getRiskEventRecordById).toHaveBeenCalledWith('risk-1');
+    expect(mockReadableReportService.ensureReadableReport).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalled();
+  });
+
+  it('returns 404 when regenerating a readable report for a missing event', async () => {
+    const controller = new RiskController();
+    const req = { params: { id: 'missing-risk' } } as unknown as Request;
+    const res = createResponseMock();
+    mockReadableReportService.ensureReadableReport.mockResolvedValue(null);
+
+    await controller.regenerateReadableReport(req, res);
+
+    expect(mockReadableReportService.ensureReadableReport).toHaveBeenCalledWith('missing-risk', { force: true });
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: 'Risk event not found.' });
   });
 });

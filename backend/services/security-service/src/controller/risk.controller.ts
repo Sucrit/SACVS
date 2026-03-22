@@ -8,6 +8,7 @@ import {
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { RiskRepository } from '../repository/risk.repository';
 import { shadowRiskWorker } from '../runtime/shadow-risk.worker';
+import { riskReadableReportService } from '../service/risk-readable-report.service';
 
 const repository = new RiskRepository();
 
@@ -79,6 +80,15 @@ function serializeRiskEvent(item: Awaited<ReturnType<RiskRepository['getRiskEven
     userAgentHash: item.featuresSnapshot.userAgentHash,
     featureSnapshotId: item.featuresSnapshot.id,
     features: item.featuresSnapshot.features,
+    readableReport: {
+      status: item.adminReadableReportStatus,
+      generatedAt: item.adminReadableReportGeneratedAt?.toISOString() ?? null,
+      model: item.adminReadableReportModel,
+      error: item.adminReadableReportError,
+      ...(item.adminReadableReport && typeof item.adminReadableReport === 'object' && !Array.isArray(item.adminReadableReport)
+        ? item.adminReadableReport
+        : {}),
+    },
   };
 }
 
@@ -178,6 +188,29 @@ export class RiskController {
       if (mapped) return mapped;
 
       console.error('Error fetching risk event details:', error);
+      return res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+
+  async regenerateReadableReport(req: Request, res: Response): Promise<Response> {
+    const id = typeof req.params.id === 'string' ? req.params.id : '';
+
+    if (!id) {
+      return res.status(400).json({ error: 'Risk event id is required.' });
+    }
+
+    try {
+      const item = await riskReadableReportService.ensureReadableReport(id, { force: true });
+      if (!item) {
+        return res.status(404).json({ error: 'Risk event not found.' });
+      }
+
+      return res.json(serializeRiskEvent(item));
+    } catch (error) {
+      const mapped = this.mapError(error, res);
+      if (mapped) return mapped;
+
+      console.error('Error regenerating readable risk report:', error);
       return res.status(500).json({ error: 'Internal Server Error' });
     }
   }

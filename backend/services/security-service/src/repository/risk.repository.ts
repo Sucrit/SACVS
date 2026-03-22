@@ -1,5 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
+  AdminReadableReportStatus,
   AuditAction,
   GatewayRequestTelemetry,
   Prisma,
@@ -11,7 +12,13 @@ import {
   Role,
 } from '../../../../db/node_modules/@prisma/client';
 import { ENV } from '../config/env';
-import { GatewayTelemetryEvent, ReviewedLabel, SourceAuditEvent } from '../types/risk';
+import {
+  GatewayTelemetryEvent,
+  InstitutionAggregateStats,
+  ReviewedLabel,
+  SourceAuditEvent,
+  TargetActivityStats,
+} from '../types/risk';
 
 const prismaAdapter = new PrismaPg({ connectionString: ENV.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: prismaAdapter });
@@ -54,6 +61,11 @@ export class RiskRepository {
     reviewReasonCode: true,
     reviewReasonDetail: true,
     reviewNotes: true,
+    adminReadableReport: true,
+    adminReadableReportStatus: true,
+    adminReadableReportGeneratedAt: true,
+    adminReadableReportModel: true,
+    adminReadableReportError: true,
     createdAt: true,
     featuresSnapshot: {
       select: {
@@ -224,6 +236,199 @@ export class RiskRepository {
       select: { createdAt: true },
     });
     return row?.createdAt ?? null;
+  }
+
+  async getActorPreviousEventAt(actorId: string, eventAt: Date): Promise<Date | null> {
+    const row = await prisma.auditLog.findFirst({
+      where: {
+        actorId,
+        createdAt: {
+          lt: eventAt,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+    return row?.createdAt ?? null;
+  }
+
+  async getActorInstitutionId(actorId: string): Promise<string | null> {
+    const row = await prisma.user.findUnique({
+      where: { id: actorId },
+      select: { institutionId: true },
+    });
+    return row?.institutionId ?? null;
+  }
+
+  async getInstitutionAggregateStats(
+    institutionId: string,
+    eventAt: Date,
+  ): Promise<InstitutionAggregateStats | null> {
+    const window30d = new Date(eventAt.getTime() - 30 * 24 * 60 * 60_000);
+    const [
+      institution,
+      activeStudentCount,
+      studentCreations30d,
+      credentialIssues30d,
+      requestVelocity30d,
+      notificationBroadcasts30d,
+      lastInstitutionActivity,
+    ] = await Promise.all([
+      prisma.institution.findUnique({
+        where: { id: institutionId },
+        select: { id: true, createdAt: true },
+      }),
+      prisma.user.count({
+        where: {
+          role: Role.STUDENT,
+          status: 'APPROVED',
+          institutionId,
+        },
+      }),
+      prisma.user.count({
+        where: {
+          role: Role.STUDENT,
+          institutionId,
+          createdAt: {
+            gte: window30d,
+            lt: eventAt,
+          },
+        },
+      }),
+      prisma.credential.count({
+        where: {
+          status: 'ISSUED',
+          student: {
+            institutionId,
+          },
+          OR: [
+            {
+              issuedDate: {
+                gte: window30d,
+                lt: eventAt,
+              },
+            },
+            {
+              issuedDate: null,
+              createdAt: {
+                gte: window30d,
+                lt: eventAt,
+              },
+            },
+          ],
+        },
+      }),
+      prisma.credentialRequest.count({
+        where: {
+          institutionId,
+          createdAt: {
+            gte: window30d,
+            lt: eventAt,
+          },
+        },
+      }),
+      prisma.notificationBroadcast.count({
+        where: {
+          institutionId,
+          createdAt: {
+            gte: window30d,
+            lt: eventAt,
+          },
+        },
+      }),
+      prisma.auditLog.findFirst({
+        where: {
+          createdAt: {
+            lt: eventAt,
+          },
+          actor: {
+            institutionId,
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      }),
+    ]);
+
+    if (!institution) return null;
+
+    return {
+      institutionId,
+      activeStudentCount,
+      institutionAgeDays: Math.max(
+        0,
+        (eventAt.getTime() - institution.createdAt.getTime()) / (24 * 60 * 60_000),
+      ),
+      studentCreations30d,
+      credentialIssues30d,
+      requestVelocity30d,
+      notificationBroadcasts30d,
+      daysSinceLastInstitutionActivity: lastInstitutionActivity
+        ? Math.max(
+            0,
+            (eventAt.getTime() - lastInstitutionActivity.createdAt.getTime()) /
+              (24 * 60 * 60_000),
+          )
+        : null,
+    };
+  }
+
+  async getTargetActivityStats(targetId: string, eventAt: Date): Promise<TargetActivityStats> {
+    const window15m = new Date(eventAt.getTime() - 15 * 60_000);
+    const window1h = new Date(eventAt.getTime() - 60 * 60_000);
+    const window24h = new Date(eventAt.getTime() - 24 * 60 * 60_000);
+    const verificationActions = [
+      AuditAction.CREDENTIAL_VERIFIED,
+      AuditAction.CREDENTIAL_VERIFIED_BY_BLOCKCHAIN,
+      AuditAction.QR_TOKEN_CONSUMED,
+      AuditAction.REQUEST_RECEIPT_VERIFIED,
+    ];
+    const verificationFailureActions = [
+      AuditAction.QR_TOKEN_INVALID,
+      AuditAction.QR_TOKEN_EXPIRED,
+      AuditAction.REQUEST_RECEIPT_INVALID,
+      AuditAction.REQUEST_RECEIPT_EXPIRED,
+    ];
+    const countWhere = async (from: Date, actions?: AuditAction[]) =>
+      prisma.auditLog.count({
+        where: {
+          targetId,
+          ...(actions ? { action: { in: actions } } : {}),
+          createdAt: {
+            gte: from,
+            lt: eventAt,
+          },
+        },
+      });
+
+    const [
+      targetTouches15m,
+      verificationCount15m,
+      verificationCount1h,
+      verificationCount24h,
+      verificationFailureCount15m,
+      verificationFailureCount1h,
+      verificationFailureCount24h,
+    ] = await Promise.all([
+      countWhere(window15m),
+      countWhere(window15m, verificationActions),
+      countWhere(window1h, verificationActions),
+      countWhere(window24h, verificationActions),
+      countWhere(window15m, verificationFailureActions),
+      countWhere(window1h, verificationFailureActions),
+      countWhere(window24h, verificationFailureActions),
+    ]);
+
+    return {
+      targetId,
+      targetTouches15m,
+      verificationCount15m,
+      verificationCount1h,
+      verificationCount24h,
+      verificationFailureCount15m,
+      verificationFailureCount1h,
+      verificationFailureCount24h,
+    };
   }
 
   async listAlreadyScoredEventIds(since: Date): Promise<Set<string>> {
@@ -556,6 +761,51 @@ export class RiskRepository {
         reviewReasonDetail: true,
         reviewNotes: true,
       },
+    });
+  }
+
+  async markReadableReportPending(id: string) {
+    return prisma.riskEventRecord.update({
+      where: { id },
+      data: {
+        adminReadableReportStatus: AdminReadableReportStatus.PENDING,
+        adminReadableReportError: null,
+      },
+      select: { id: true },
+    });
+  }
+
+  async updateReadableReportSuccess(input: {
+    id: string;
+    report: Prisma.InputJsonValue;
+    model: string;
+  }) {
+    return prisma.riskEventRecord.update({
+      where: { id: input.id },
+      data: {
+        adminReadableReport: input.report,
+        adminReadableReportStatus: AdminReadableReportStatus.READY,
+        adminReadableReportGeneratedAt: new Date(),
+        adminReadableReportModel: input.model,
+        adminReadableReportError: null,
+      },
+      select: { id: true },
+    });
+  }
+
+  async updateReadableReportFailure(input: {
+    id: string;
+    error: string;
+    model?: string | null;
+  }) {
+    return prisma.riskEventRecord.update({
+      where: { id: input.id },
+      data: {
+        adminReadableReportStatus: AdminReadableReportStatus.FAILED,
+        adminReadableReportError: input.error,
+        adminReadableReportModel: input.model ?? null,
+      },
+      select: { id: true },
     });
   }
 }

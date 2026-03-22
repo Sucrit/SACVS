@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-03-22T01:42:03.244Z",
+  "lookbackHours": 8760,
+  "outputPath": "C:\\Users\\smith\\Documents\\Projects\\SACVS\\backend\\services\\security-service\\artifacts\\datasets\\risk_dataset_1year.csv",
+  "totalRows": 66,
+  "labelCounts": {
+    "positive": 39,
+    "negative": 27
+  },
+  "labelSourceCounts": {
+    "weak_seed": 29,
+    "future_followup": 36,
+    "analyst_review": 1
+  },
+  "splitCounts": {
+    "train": {
+      "total": 46,
+      "positive": 33,
+      "negative": 13,
+      "positiveRate": 0.717391304347826
+    },
+    "valid": {
+      "total": 10,
+      "positive": 0,
+      "negative": 10,
+      "positiveRate": 0
+    },
+    "test": {
+      "total": 10,
+      "positive": 6,
+      "negative": 4,
+      "positiveRate": 0.6
+    }
+  },
+  "monthCounts": {
+    "2026-03": {
+      "total": 66,
+      "positive": 39,
+      "negative": 27
+    }
+  },
+  "weekCounts": {
+    "2026-W12": {
+      "total": 66,
+      "positive": 39,
+      "negative": 27
+    }
+  }
+}

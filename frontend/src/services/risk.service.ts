@@ -3,6 +3,7 @@ import { api } from '../api/client';
 export type RiskBand = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type RiskReviewStatus = 'PENDING_REVIEW' | 'CONFIRMED_ABUSE' | 'BENIGN' | 'UNCERTAIN';
 export type RiskActorRole = 'STUDENT' | 'ADMIN' | 'INSTITUTION' | null;
+export type ReadableReportStatus = 'PENDING' | 'READY' | 'FAILED';
 export type RiskReviewReasonCode =
   | 'OTP_BRUTE_FORCE'
   | 'TOKEN_ABUSE'
@@ -51,6 +52,16 @@ export interface RiskEventRecord {
   userAgentHash?: string | null;
   featureSnapshotId?: string;
   features?: Record<string, unknown> | null;
+  readableReport?: {
+    status: ReadableReportStatus;
+    generatedAt: string | null;
+    model: string | null;
+    error?: string | null;
+    summary?: string;
+    findings?: string[];
+    recommendedReviewFocus?: string[];
+    disclaimer?: string;
+  } | null;
 }
 
 export interface RiskEventListResponse {
@@ -131,6 +142,11 @@ export const RiskService = {
     return response.data;
   },
 
+  regenerateReadableReport: async (id: string) => {
+    const response = await api.post<RiskEventRecord>(`/security/risk-events/${id}/readable-report`);
+    return response.data;
+  },
+
   exportReviewed: async (query: {
     riskBand?: RiskBand | 'ALL';
     reviewStatus?: RiskReviewStatus | 'ALL';
@@ -147,4 +163,3 @@ export const RiskService = {
     return response.data;
   },
 };
-

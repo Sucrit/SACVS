@@ -109,8 +109,10 @@ export default function AdminDashboard() {
     selectedRiskEventId,
     selectedRiskEvent,
     isLoadingSelectedRiskEvent,
+    generatingReadableReportForId,
     handleRiskReviewUpdate,
     openRiskEventDetails,
+    regenerateReadableReport,
     closeRiskEventDetails,
     stepUpModal,
   } = useAdminDashboardState();
@@ -655,8 +657,10 @@ export default function AdminDashboard() {
         event={selectedRiskEvent}
         isLoading={isLoadingSelectedRiskEvent}
         isSavingReview={reviewingRiskEventId === selectedRiskEvent?.id}
+        isGeneratingReadableReport={generatingReadableReportForId === selectedRiskEvent?.id}
         onClose={closeRiskEventDetails}
         onSaveReview={handleRiskReviewUpdate}
+        onRegenerateReadableReport={(id) => void regenerateReadableReport(id)}
       />
     </div>
   );

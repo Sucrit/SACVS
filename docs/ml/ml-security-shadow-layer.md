@@ -12,7 +12,7 @@ Add a metadata-only ML risk scoring layer that operates beside, not instead of, 
 
 ## Recommended Model Strategy
 ### Supervised baseline
-- Gradient-Boosted Trees using LightGBM or XGBoost
+- Gradient-Boosted Trees using LightGBM and XGBoost
 - good fit for tabular security metadata
 - explainable and fast enough for practical scoring
 

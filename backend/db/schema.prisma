@@ -147,6 +147,12 @@ enum RiskReviewStatus {
   UNCERTAIN
 }
 
+enum AdminReadableReportStatus {
+  PENDING
+  READY
+  FAILED
+}
+
 enum RiskReviewReasonCode {
   OTP_BRUTE_FORCE
   TOKEN_ABUSE
@@ -585,6 +591,11 @@ model RiskEventRecord {
   reviewReasonCode    RiskReviewReasonCode?
   reviewReasonDetail  String?
   reviewNotes         String?
+  adminReadableReport Json?
+  adminReadableReportStatus AdminReadableReportStatus @default(PENDING)
+  adminReadableReportGeneratedAt DateTime?
+  adminReadableReportModel String?
+  adminReadableReportError String?
   createdAt           DateTime         @default(now())
 
   @@index([eventId])

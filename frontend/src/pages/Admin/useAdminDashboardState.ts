@@ -164,6 +164,7 @@ export interface AdminDashboardState {
   selectedRiskEventId: string | null;
   selectedRiskEvent: RiskEventRecord | null;
   isLoadingSelectedRiskEvent: boolean;
+  generatingReadableReportForId: string | null;
   isExportingRiskReport: boolean;
   handleRiskReviewUpdate: (
     id: string,
@@ -173,6 +174,7 @@ export interface AdminDashboardState {
     reviewNotes?: string | null,
   ) => Promise<void>;
   openRiskEventDetails: (id: string) => Promise<void>;
+  regenerateReadableReport: (id: string) => Promise<void>;
   closeRiskEventDetails: () => void;
   exportReviewedRiskReport: () => Promise<void>;
 
@@ -276,6 +278,7 @@ export function useAdminDashboardState(): AdminDashboardState {
   const [selectedRiskEventId, setSelectedRiskEventId] = useState<string | null>(null);
   const [selectedRiskEvent, setSelectedRiskEvent] = useState<RiskEventRecord | null>(null);
   const [isLoadingSelectedRiskEvent, setIsLoadingSelectedRiskEvent] = useState(false);
+  const [generatingReadableReportForId, setGeneratingReadableReportForId] = useState<string | null>(null);
   const [isExportingRiskReport, setIsExportingRiskReport] = useState(false);
   const handledUserQueryRef = useRef<string | null>(null);
   const handledRiskQueryRef = useRef<string | null>(null);
@@ -596,7 +599,22 @@ export function useAdminDashboardState(): AdminDashboardState {
     setSelectedRiskEventId(null);
     setSelectedRiskEvent(null);
     setIsLoadingSelectedRiskEvent(false);
+    setGeneratingReadableReportForId(null);
   }, []);
+
+  const regenerateReadableReport = useCallback(async (id: string) => {
+    setGeneratingReadableReportForId(id);
+    try {
+      const refreshed = await RiskService.regenerateReadableReport(id);
+      setSelectedRiskEvent(previous => (previous?.id === id ? refreshed : previous));
+      setRiskEvents(previous => previous.map(event => (event.id === id ? { ...event, readableReport: refreshed.readableReport } : event)));
+      showToast({ variant: 'success', message: 'Readable findings report refreshed.' });
+    } catch (error) {
+      showToast({ variant: 'error', message: getApiErrorMessage(error) || 'Unable to regenerate readable findings report.' });
+    } finally {
+      setGeneratingReadableReportForId(null);
+    }
+  }, [showToast]);
 
   useEffect(() => {
     const riskEventId = searchParams.get('riskEventId');
@@ -730,9 +748,11 @@ export function useAdminDashboardState(): AdminDashboardState {
     selectedRiskEventId,
     selectedRiskEvent,
     isLoadingSelectedRiskEvent,
+    generatingReadableReportForId,
     isExportingRiskReport,
     handleRiskReviewUpdate,
     openRiskEventDetails,
+    regenerateReadableReport,
     closeRiskEventDetails,
     exportReviewedRiskReport,
 

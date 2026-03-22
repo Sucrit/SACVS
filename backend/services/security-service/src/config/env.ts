@@ -43,6 +43,11 @@ function parseRequiredString(value: string | undefined, label: string): string {
   return trimmed;
 }
 
+function parseOptionalString(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
 export const ENV = {
   PORT: parseNumber(process.env.PORT, 5500),
   NODE_ENV: process.env.NODE_ENV?.trim() || 'development',
@@ -86,4 +91,7 @@ export const ENV = {
   RISK_ANOMALY_WEIGHT: parseNumber(process.env.RISK_ANOMALY_WEIGHT, 0.25),
   RISK_BAND_HIGH_THRESHOLD: parseNumber(process.env.RISK_BAND_HIGH_THRESHOLD, 70),
   RISK_BAND_CRITICAL_THRESHOLD: parseNumber(process.env.RISK_BAND_CRITICAL_THRESHOLD, 85),
+  GEMINI_API_KEY: parseOptionalString(process.env.GEMINI_API_KEY),
+  GEMINI_MODEL: parseOptionalString(process.env.GEMINI_MODEL) || 'gemini-2.0-flash',
+  GEMINI_TIMEOUT_MS: Math.max(2_000, parseNumber(process.env.GEMINI_TIMEOUT_MS, 15_000)),
 } as const;

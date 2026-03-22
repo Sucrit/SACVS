@@ -62,6 +62,26 @@ Artifacts produced:
 - `metrics/<version>_metrics.json`
 - `manifests/model_manifest.json`
 
+Training metrics now include:
+- ranking metrics (`valid_pr_auc`, `test_pr_auc`, `precision_at_top5pct`, `recall_at_top5pct`)
+- classification metrics (`accuracy`, `precision`, `recall`, `f1`, confusion matrices)
+- validation-selected threshold used for locked test reporting
+
+If validation or test lacks class balance, classification metrics are written as `null`
+and `evaluation_blocked_reasons` explains why.
+
+## 2b) Evaluate an existing trained artifact in VS Code
+
+```bash
+python python/evaluate_risk_model.py --model artifacts/models/ml-risk-YYYYMMDDHHMMSS.joblib --input artifacts/datasets/risk_dataset_YYYY-MM-DD.csv
+
+# optional:
+# python python/evaluate_risk_model.py --model artifacts/models/ml-risk-YYYYMMDDHHMMSS.joblib --input artifacts/datasets/risk_dataset_YYYY-MM-DD.csv --output artifacts/metrics/custom_eval.json
+# python python/train_risk_models.py --input artifacts/datasets/risk_dataset_YYYY-MM-DD.csv --output_dir artifacts --rebalance_eval_splits
+```
+
+This prints a terminal summary and writes a JSON evaluation report under `artifacts/metrics/`.
+
 ## 3) Register trained model metadata in DB
 
 ```bash
