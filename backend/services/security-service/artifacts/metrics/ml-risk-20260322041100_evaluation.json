@@ -1,0 +1,64 @@
+{
+  "valid_pr_auc": 0.719047619047619,
+  "test_pr_auc": 0.0,
+  "precision_at_top5pct": 0.0,
+  "recall_at_top5pct": 0.0,
+  "validation_selected_threshold": 0.5456389987443196,
+  "valid_accuracy": 0.7692307692307693,
+  "valid_precision": 0.6666666666666666,
+  "valid_recall": 1.0,
+  "valid_f1": 0.8,
+  "valid_confusion_matrix": {
+    "tn": 4,
+    "fp": 3,
+    "fn": 0,
+    "tp": 6
+  },
+  "valid_support_positive": 6,
+  "valid_support_negative": 7,
+  "test_accuracy": null,
+  "test_precision": null,
+  "test_recall": null,
+  "test_f1": null,
+  "test_confusion_matrix": null,
+  "test_support_positive": 0,
+  "test_support_negative": 13,
+  "comparison_metrics": {
+    "threshold_high": {
+      "accuracy": null,
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "confusion_matrix": null,
+      "support_positive": 0,
+      "support_negative": 13,
+      "blocked_reasons": [
+        "no_positive_labels_in_test_split"
+      ]
+    },
+    "threshold_critical": {
+      "accuracy": null,
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "confusion_matrix": null,
+      "support_positive": 0,
+      "support_negative": 13,
+      "blocked_reasons": [
+        "no_positive_labels_in_test_split"
+      ]
+    }
+  },
+  "evaluation_blocked_reasons": [
+    "insufficient_class_balance_for_classification_metrics",
+    "no_positive_labels_in_test_split"
+  ],
+  "split_metadata": {
+    "rebalance_applied": false,
+    "reason": "disabled"
+  },
+  "threshold_high": 0.5493584383076174,
+  "threshold_critical": 0.5993584383076175,
+  "model_path": "artifacts/models/ml-risk-20260322041100.joblib",
+  "dataset_path": "artifacts/datasets/risk_dataset_reviewed.csv"
+}

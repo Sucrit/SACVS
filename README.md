@@ -31,12 +31,15 @@ The blockchain interface service is designed to work against a local or deployed
 
 Ganache and truffle workflows:
 
-```gitbash
+``gitbash
 cd backend/services/blockchain-interface-service
 npx truffle compile
 npx truffle migrate --network development --reset
 npx truffle test --network development
 npx truffle console --network development
+
+## Model Evaluation
+python python/evaluate_risk_model.py --model artifacts/models/ml-risk-20260322041100.joblib --input artifacts/datasets/risk_dataset_reviewed.csv
 
 
 ## Documentation Policy

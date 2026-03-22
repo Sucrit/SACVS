@@ -38,6 +38,7 @@ Make sure `DATABASE_URL` points to the same SACVS DB.
 npm run dataset:extract
 # optional:
 # npm run dataset:extract -- --lookbackHours=4320 --output=risk_dataset_custom.csv
+# npm run dataset:extract -- --lookbackHours=8760 --output=risk_dataset_reviewed.csv --minEvalPositives=5 --minEvalNegatives=5
 ```
 
 Output goes to `./artifacts`.
@@ -47,6 +48,16 @@ Artifact layout:
 - `artifacts/models/`
 - `artifacts/metrics/`
 - `artifacts/manifests/`
+
+Each extraction also writes a diagnostics JSON next to the CSV. The diagnostics now include:
+- `splitCounts` with positive/negative and reviewed-label coverage per split
+- `latest30pctSummary` showing whether recent time windows have reviewed positives/negatives
+- `datasetReadyForTemporalEvaluation`
+- `readinessBlockedReasons`
+- `readinessRecommendations`
+
+Do not retrain just because a CSV exists. Check the diagnostics first and confirm the
+default time split has enough positives and negatives in both validation and test.
 
 ## 2) Train offline models
 
@@ -117,6 +128,10 @@ type RiskScoreResult = {
 1. Keep production in shadow mode.
 2. Triage `HIGH` and `CRITICAL` records in ops review.
 3. Update review status (`CONFIRMED_ABUSE` / `BENIGN` / `UNCERTAIN`) for future label quality.
-4. Retrain weekly initially.
-5. Do not move beyond shadow mode until validation and test splits contain enough
+4. When labels are sparse, focus reviews on the newest 15-30% of the timeline so
+   validation and test receive recent reviewed positives and negatives.
+5. After each review batch, re-run `dataset:extract` and inspect the diagnostics JSON.
+   Retrain only when `datasetReadyForTemporalEvaluation` is true.
+6. Retrain weekly initially.
+7. Do not move beyond shadow mode until validation and test splits contain enough
    positive reviewed events to produce meaningful precision and recall metrics.

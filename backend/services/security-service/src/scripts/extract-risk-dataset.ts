@@ -47,6 +47,44 @@ function safeRatio(numerator: number, denominator: number): number {
   return denominator > 0 ? numerator / denominator : 0;
 }
 
+function parsePositiveInt(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+}
+
+function summarizeSplit(
+  bucket: Array<{
+    eventId: string;
+    eventTs: string;
+    weakLabel: number;
+    labelSource: string;
+    reviewStatus: string;
+  }>,
+) {
+  const positive = bucket.filter((row) => row.weakLabel === 1).length;
+  const negative = bucket.filter((row) => row.weakLabel === 0).length;
+  const reviewedPositive = bucket.filter(
+    (row) => row.labelSource === 'analyst_review' && row.weakLabel === 1,
+  ).length;
+  const reviewedNegative = bucket.filter(
+    (row) => row.labelSource === 'analyst_review' && row.weakLabel === 0,
+  ).length;
+
+  return {
+    total: bucket.length,
+    positive,
+    negative,
+    positiveRate: safeRatio(positive, bucket.length),
+    reviewedPositive,
+    reviewedNegative,
+    reviewedTotal: reviewedPositive + reviewedNegative,
+    labelSourceCounts: bucket.reduce<Record<string, number>>((counts, row) => {
+      counts[row.labelSource] = (counts[row.labelSource] ?? 0) + 1;
+      return counts;
+    }, {}),
+  };
+}
+
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   const parsedLookbackHours =
@@ -54,6 +92,8 @@ async function main(): Promise<void> {
   const lookbackHours = Number.isFinite(parsedLookbackHours)
     ? parsedLookbackHours
     : ENV.RISK_DATASET_LOOKBACK_HOURS;
+  const minEvalPositives = parsePositiveInt(args.minEvalPositives, 5);
+  const minEvalNegatives = parsePositiveInt(args.minEvalNegatives, 5);
   const outputName = args.output ?? `risk_dataset_${new Date().toISOString().slice(0, 10)}.csv`;
   const outputPath = resolveArtifactPath('datasets', outputName);
   const diagnosticsPath = resolveArtifactPath(
@@ -390,30 +430,41 @@ async function main(): Promise<void> {
   const splitCounts = Object.fromEntries(
     Object.entries(splitBuckets).map(([name, bucket]) => [
       name,
-      {
-        total: bucket.length,
-        positive: bucket.filter((row) => row.weakLabel === 1).length,
-        negative: bucket.filter((row) => row.weakLabel === 0).length,
-        positiveRate: safeRatio(
-          bucket.filter((row) => row.weakLabel === 1).length,
-          bucket.length,
-        ),
-      },
+      summarizeSplit(bucket),
     ]),
   );
-  const monthCounts = sortedRows.reduce<Record<string, { total: number; positive: number; negative: number }>>(
+  const monthCounts = sortedRows.reduce<
+    Record<
+      string,
+      {
+        total: number;
+        positive: number;
+        negative: number;
+        reviewedPositive: number;
+        reviewedNegative: number;
+      }
+    >
+  >(
     (counts, row) => {
       const month = row.eventTs.slice(0, 7);
-      const bucket = counts[month] ?? { total: 0, positive: 0, negative: 0 };
+      const bucket = counts[month] ?? {
+        total: 0,
+        positive: 0,
+        negative: 0,
+        reviewedPositive: 0,
+        reviewedNegative: 0,
+      };
       bucket.total += 1;
       if (row.weakLabel === 1) bucket.positive += 1;
       else bucket.negative += 1;
+      if (row.labelSource === 'analyst_review' && row.weakLabel === 1) bucket.reviewedPositive += 1;
+      if (row.labelSource === 'analyst_review' && row.weakLabel === 0) bucket.reviewedNegative += 1;
       counts[month] = bucket;
       return counts;
     },
     {},
   );
-  const weekCounts = sortedRows.reduce<Record<string, { total: number; positive: number; negative: number }>>(
+  const weekCounts = sortedRows.reduce<Record<string, { total: number; positive: number; negative: number; reviewedPositive: number; reviewedNegative: number }>>(
     (counts, row) => {
       const eventDate = new Date(row.eventTs);
       const day = eventDate.getUTCDay() || 7;
@@ -421,15 +472,75 @@ async function main(): Promise<void> {
       const yearStart = new Date(Date.UTC(eventDate.getUTCFullYear(), 0, 1));
       const week = Math.ceil((((eventDate.getTime() - yearStart.getTime()) / 86_400_000) + 1) / 7);
       const key = `${eventDate.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
-      const bucket = counts[key] ?? { total: 0, positive: 0, negative: 0 };
+      const bucket = counts[key] ?? {
+        total: 0,
+        positive: 0,
+        negative: 0,
+        reviewedPositive: 0,
+        reviewedNegative: 0,
+      };
       bucket.total += 1;
       if (row.weakLabel === 1) bucket.positive += 1;
       else bucket.negative += 1;
+      if (row.labelSource === 'analyst_review' && row.weakLabel === 1) bucket.reviewedPositive += 1;
+      if (row.labelSource === 'analyst_review' && row.weakLabel === 0) bucket.reviewedNegative += 1;
       counts[key] = bucket;
       return counts;
     },
     {},
   );
+  const recentStart = Math.floor(sortedRows.length * 0.7);
+  const latest30pct = sortedRows.slice(recentStart);
+  const latest30pctSummary = summarizeSplit(latest30pct);
+  const readinessTargets = {
+    minEvalPositives,
+    minEvalNegatives,
+  };
+  const readinessChecks = {
+    valid: {
+      hasMinimumPositives: splitCounts.valid.positive >= minEvalPositives,
+      hasMinimumNegatives: splitCounts.valid.negative >= minEvalNegatives,
+    },
+    test: {
+      hasMinimumPositives: splitCounts.test.positive >= minEvalPositives,
+      hasMinimumNegatives: splitCounts.test.negative >= minEvalNegatives,
+    },
+    latest30pctReviewedCoverage: {
+      hasReviewedPositive: latest30pctSummary.reviewedPositive > 0,
+      hasReviewedNegative: latest30pctSummary.reviewedNegative > 0,
+    },
+  };
+  const readinessBlockedReasons: string[] = [];
+  if (!readinessChecks.valid.hasMinimumPositives) {
+    readinessBlockedReasons.push('validation_split_below_min_positive_target');
+  }
+  if (!readinessChecks.valid.hasMinimumNegatives) {
+    readinessBlockedReasons.push('validation_split_below_min_negative_target');
+  }
+  if (!readinessChecks.test.hasMinimumPositives) {
+    readinessBlockedReasons.push('test_split_below_min_positive_target');
+  }
+  if (!readinessChecks.test.hasMinimumNegatives) {
+    readinessBlockedReasons.push('test_split_below_min_negative_target');
+  }
+  if (!readinessChecks.latest30pctReviewedCoverage.hasReviewedPositive) {
+    readinessBlockedReasons.push('no_recent_reviewed_positive_labels_in_latest_30pct');
+  }
+  if (!readinessChecks.latest30pctReviewedCoverage.hasReviewedNegative) {
+    readinessBlockedReasons.push('no_recent_reviewed_negative_labels_in_latest_30pct');
+  }
+  const readinessRecommendations: string[] = [];
+  if (readinessBlockedReasons.length > 0) {
+    readinessRecommendations.push(
+      'Review the newest HIGH and CRITICAL risk events first so later time windows gain recent confirmed abuse labels.',
+    );
+    readinessRecommendations.push(
+      'Also review a sample of newer benign-looking or medium-risk events so later time windows gain reviewed negatives.',
+    );
+    readinessRecommendations.push(
+      'Re-run dataset extraction after each review batch and check splitCounts plus latest30pctSummary before retraining.',
+    );
+  }
   const diagnostics = {
     generatedAt: new Date().toISOString(),
     lookbackHours,
@@ -440,6 +551,12 @@ async function main(): Promise<void> {
     splitCounts,
     monthCounts,
     weekCounts,
+    latest30pctSummary,
+    readinessTargets,
+    readinessChecks,
+    datasetReadyForTemporalEvaluation: readinessBlockedReasons.length === 0,
+    readinessBlockedReasons,
+    readinessRecommendations,
   };
   fs.writeFileSync(diagnosticsPath, JSON.stringify(diagnostics, null, 2), 'utf-8');
   // eslint-disable-next-line no-console
@@ -448,6 +565,20 @@ async function main(): Promise<void> {
   );
   // eslint-disable-next-line no-console
   console.log(`Dataset diagnostics written to ${diagnosticsPath}.`);
+  // eslint-disable-next-line no-console
+  console.log(
+    `Split summary: train=${splitCounts.train.positive}/${splitCounts.train.negative}, valid=${splitCounts.valid.positive}/${splitCounts.valid.negative}, test=${splitCounts.test.positive}/${splitCounts.test.negative} (positive/negative).`,
+  );
+  // eslint-disable-next-line no-console
+  console.log(
+    `Recent reviewed labels (latest 30%): positive=${latest30pctSummary.reviewedPositive}, negative=${latest30pctSummary.reviewedNegative}.`,
+  );
+  // eslint-disable-next-line no-console
+  console.log(
+    diagnostics.datasetReadyForTemporalEvaluation
+      ? 'Dataset readiness: ready for time-based classification evaluation.'
+      : `Dataset readiness: blocked (${readinessBlockedReasons.join(', ')}).`,
+  );
 }
 
 main().catch((error) => {

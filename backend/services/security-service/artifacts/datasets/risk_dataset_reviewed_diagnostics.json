@@ -1,0 +1,116 @@
+{
+  "generatedAt": "2026-03-22T04:08:36.577Z",
+  "lookbackHours": 8760,
+  "outputPath": "C:\\Users\\smith\\Documents\\Projects\\SACVS\\backend\\services\\security-service\\artifacts\\datasets\\risk_dataset_reviewed.csv",
+  "totalRows": 84,
+  "labelCounts": {
+    "positive": 39,
+    "negative": 45
+  },
+  "labelSourceCounts": {
+    "weak_seed": 47,
+    "future_followup": 35,
+    "analyst_review": 2
+  },
+  "splitCounts": {
+    "train": {
+      "total": 58,
+      "positive": 33,
+      "negative": 25,
+      "positiveRate": 0.5689655172413793,
+      "reviewedPositive": 0,
+      "reviewedNegative": 0,
+      "reviewedTotal": 0,
+      "labelSourceCounts": {
+        "weak_seed": 27,
+        "future_followup": 31
+      }
+    },
+    "valid": {
+      "total": 13,
+      "positive": 6,
+      "negative": 7,
+      "positiveRate": 0.46153846153846156,
+      "reviewedPositive": 2,
+      "reviewedNegative": 0,
+      "reviewedTotal": 2,
+      "labelSourceCounts": {
+        "weak_seed": 7,
+        "future_followup": 4,
+        "analyst_review": 2
+      }
+    },
+    "test": {
+      "total": 13,
+      "positive": 0,
+      "negative": 13,
+      "positiveRate": 0,
+      "reviewedPositive": 0,
+      "reviewedNegative": 0,
+      "reviewedTotal": 0,
+      "labelSourceCounts": {
+        "weak_seed": 13
+      }
+    }
+  },
+  "monthCounts": {
+    "2026-03": {
+      "total": 84,
+      "positive": 39,
+      "negative": 45,
+      "reviewedPositive": 2,
+      "reviewedNegative": 0
+    }
+  },
+  "weekCounts": {
+    "2026-W12": {
+      "total": 84,
+      "positive": 39,
+      "negative": 45,
+      "reviewedPositive": 2,
+      "reviewedNegative": 0
+    }
+  },
+  "latest30pctSummary": {
+    "total": 26,
+    "positive": 6,
+    "negative": 20,
+    "positiveRate": 0.23076923076923078,
+    "reviewedPositive": 2,
+    "reviewedNegative": 0,
+    "reviewedTotal": 2,
+    "labelSourceCounts": {
+      "weak_seed": 20,
+      "future_followup": 4,
+      "analyst_review": 2
+    }
+  },
+  "readinessTargets": {
+    "minEvalPositives": 5,
+    "minEvalNegatives": 5
+  },
+  "readinessChecks": {
+    "valid": {
+      "hasMinimumPositives": true,
+      "hasMinimumNegatives": true
+    },
+    "test": {
+      "hasMinimumPositives": false,
+      "hasMinimumNegatives": true
+    },
+    "latest30pctReviewedCoverage": {
+      "hasReviewedPositive": true,
+      "hasReviewedNegative": false
+    }
+  },
+  "datasetReadyForTemporalEvaluation": false,
+  "readinessBlockedReasons": [
+    "test_split_below_min_positive_target",
+    "no_recent_reviewed_negative_labels_in_latest_30pct"
+  ],
+  "readinessRecommendations": [
+    "Review the newest HIGH and CRITICAL risk events first so later time windows gain recent confirmed abuse labels.",
+    "Also review a sample of newer benign-looking or medium-risk events so later time windows gain reviewed negatives.",
+    "Re-run dataset extraction after each review batch and check splitCounts plus latest30pctSummary before retraining."
+  ]
+}

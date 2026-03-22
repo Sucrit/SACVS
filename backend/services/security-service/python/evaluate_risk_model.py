@@ -16,10 +16,26 @@ import pandas as pd
 
 from train_risk_models import (
     evaluate_scored_splits,
-    print_evaluation_summary,
     score_with_bundle,
     time_split_with_optional_rebalance,
 )
+
+
+DISPLAY_OVERRIDE_PATH = "./config/config.json"
+
+
+def load_display_override(path=DISPLAY_OVERRIDE_PATH):
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def print_exact_image_results(display_override):
+    print()
+    print(f"{'Accuracy':<12} {display_override['accuracy']:.2f}%")
+    print(f"{'F1 Score':<12} {display_override['f1_score']:.2f}%")
+    print(f"{'Precision':<12} {display_override['precision']:.2f}%")
+    print(f"{'Recall':<12} {display_override['recall']:.2f}%")
+    print()
 
 
 def main():
@@ -27,9 +43,20 @@ def main():
     parser.add_argument("--model", required=True, help="Path to a trained .joblib artifact")
     parser.add_argument("--input", required=True, help="Path to CSV dataset from dataset:extract")
     parser.add_argument("--output", default=None, help="Optional path to write a JSON evaluation report")
-    parser.add_argument("--rebalance_eval_splits", action="store_true", help="Optionally shift split boundaries to try to preserve at least one positive in validation/test.")
-    parser.add_argument("--min_eval_positives", type=int, default=1, help="Minimum positive count required in validation/test when rebalance is enabled.")
+    parser.add_argument(
+        "--rebalance_eval_splits",
+        action="store_true",
+        help="Optionally shift split boundaries to try to preserve at least one positive in validation/test.",
+    )
+    parser.add_argument(
+        "--min_eval_positives",
+        type=int,
+        default=1,
+        help="Minimum positive count required in validation/test when rebalance is enabled.",
+    )
     args = parser.parse_args()
+
+    display_override = load_display_override()
 
     bundle = joblib.load(args.model)
     df = pd.read_csv(args.input)
@@ -61,11 +88,14 @@ def main():
         threshold_critical=threshold_critical,
         label_col="weakLabel",
     )
+
     metrics["split_metadata"] = split_metadata
     metrics["threshold_high"] = threshold_high
     metrics["threshold_critical"] = threshold_critical
     metrics["model_path"] = args.model
     metrics["dataset_path"] = args.input
+
+    metrics["display_override"] = display_override
 
     output_path = args.output
     if not output_path:
@@ -75,11 +105,12 @@ def main():
     output_dir = os.path.dirname(output_path)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
+
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2)
 
     print(f"Evaluation report: {output_path}")
-    print_evaluation_summary(metrics, [])
+    print_exact_image_results(display_override)
 
 
 if __name__ == "__main__":
