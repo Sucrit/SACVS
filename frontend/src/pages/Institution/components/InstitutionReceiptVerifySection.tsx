@@ -47,6 +47,37 @@ const TOKEN_STATUS_LABELS: Record<string, { label: string; className: string }> 
   INVALIDATED: { label: 'Token Invalidated', className: 'border-rose-200 bg-rose-50 text-rose-600' },
 };
 
+const SCANNER_ELEMENT_ID = 'institution-receipt-qr-scanner';
+
+const waitForScannerContainer = async () => {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const element = document.getElementById(SCANNER_ELEMENT_ID);
+    if (element) {
+      return element;
+    }
+    await new Promise(resolve => window.requestAnimationFrame(() => resolve(undefined)));
+  }
+
+  return null;
+};
+
+const pickPreferredCamera = (devices: Array<{ id: string; label?: string }>) => {
+  if (devices.length === 0) {
+    return null;
+  }
+
+  const scoredDevices = devices.map(device => {
+    const label = (device.label || '').toLowerCase();
+    let score = 0;
+    if (/(rear|back|environment|world)/.test(label)) score += 4;
+    if (/(front|user|facetime)/.test(label)) score -= 2;
+    return { device, score };
+  });
+
+  scoredDevices.sort((a, b) => b.score - a.score);
+  return scoredDevices[0]?.device?.id ?? devices[0].id;
+};
+
 export default function InstitutionReceiptVerifySection() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [mode, setMode] = useState<EntryMode>('code');
@@ -211,23 +242,25 @@ export default function InstitutionReceiptVerifySection() {
 
     setIsScannerOpen(true);
     setIsStartingScanner(true);
-    await new Promise(resolve => window.setTimeout(resolve, 0));
 
     try {
-      const permissionStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-      });
+      const scannerContainer = await waitForScannerContainer();
+      if (!scannerContainer) {
+        throw new Error('SCANNER_CONTAINER_NOT_READY');
+      }
+
+      const permissionStream = await navigator.mediaDevices.getUserMedia({ video: true });
       permissionStream.getTracks().forEach(track => track.stop());
 
       const moduleName = 'html5-qrcode';
       const scannerModule: any = await import(/* @vite-ignore */ moduleName);
       const Html5Qrcode = scannerModule.Html5Qrcode;
       const devices = await Html5Qrcode.getCameras();
-      const preferredCamera = devices[0]?.id ?? { facingMode: 'environment' };
-      const scanner = new Html5Qrcode('institution-receipt-qr-scanner');
+      const preferredCamera = pickPreferredCamera(devices);
+      const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID);
       scannerRef.current = scanner;
       await scanner.start(
-        preferredCamera,
+        preferredCamera ?? { facingMode: { ideal: 'environment' } },
         { fps: 10, qrbox: 220 },
         async (decodedText: string) => {
           setLinkInput(decodedText);
@@ -241,14 +274,32 @@ export default function InstitutionReceiptVerifySection() {
       setIsScannerActive(true);
       setIsStartingScanner(false);
     } catch (err: any) {
+      try {
+        await scannerRef.current?.clear?.();
+      } catch {
+        // Ignore cleanup failures on partial startup.
+      }
+
       const errorName = err?.name ?? '';
+      const errorMessage = typeof err?.message === 'string' ? err.message : '';
+
       if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
         setScannerError('Camera permission was denied. Allow camera access in your browser settings.');
       } else if (errorName === 'NotFoundError' || errorName === 'DevicesNotFoundError') {
         setScannerError('No camera device was found. You can still paste a verification link.');
+      } else if (errorName === 'NotReadableError' || errorName === 'TrackStartError') {
+        setScannerError('Camera is busy or unavailable. Close other apps using the camera and try again.');
+      } else if (errorName === 'OverconstrainedError') {
+        setScannerError('Preferred camera is unavailable on this device. Try again to use the default webcam.');
+      } else if (errorName === 'AbortError') {
+        setScannerError('Camera startup was interrupted. Try starting the scanner again.');
+      } else if (errorMessage === 'SCANNER_CONTAINER_NOT_READY') {
+        setScannerError('Camera view is still loading. Try the scanner again.');
       } else {
         setScannerError('Camera scan unavailable. You can still paste a verification link.');
       }
+
+      console.error('QR scanner startup failed:', err);
       setIsScannerActive(false);
       setIsStartingScanner(false);
       setIsScannerOpen(false);

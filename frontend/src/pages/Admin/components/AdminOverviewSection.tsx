@@ -500,7 +500,36 @@ export default function AdminOverviewSection({
               )}
               {!isLoadingUsers && pendingQueue.length > 0 && (
                 <div className="flex h-full flex-col space-y-3">
-                  <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
+                  <div className="space-y-2 md:hidden">
+                    {pendingQueue.slice(0, 5).map((user, index) => (
+                      <motion.div
+                        key={user.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm"
+                      >
+                        <div className="flex items-start gap-3">
+                          <UserAvatar initials={getInitials(user)} />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-semibold text-neutral-900">{getFullName(user)}</p>
+                            <p className="truncate text-xs text-neutral-500">{user.email}</p>
+                          </div>
+                        </div>
+                        <div className="mt-2.5 grid grid-cols-1 gap-1.5 text-[11px] text-neutral-600">
+                          <div>
+                            <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Institution</p>
+                            <p className="mt-1 break-words">{user.institution?.institutionName || 'Institution profile pending'}</p>
+                          </div>
+                          <div>
+                            <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Registered At</p>
+                            <p className="mt-1">{formatDate(user.createdAt)}</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                  <div className="hidden overflow-hidden rounded-lg border border-neutral-200 md:block">
                     <table className="min-w-full divide-y divide-neutral-200 bg-white text-sm">
                       <thead className="bg-neutral-50 text-left">
                         <tr>
@@ -635,3 +664,4 @@ export default function AdminOverviewSection({
     </div>
   );
 }
+

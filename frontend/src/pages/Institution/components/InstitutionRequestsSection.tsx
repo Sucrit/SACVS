@@ -134,6 +134,59 @@ export default function InstitutionRequestsSection({
     },
   ], [onFilterChange, requestStatusFilter]);
 
+  const renderRequestActions = (request: CredentialRequest, compact = false) => {
+    if (request.status === 'PENDING') {
+      return (
+        <div className={`flex items-center ${compact ? 'justify-start' : 'justify-end'}`}>
+          <ActionMenu
+            items={[
+              {
+                label: 'Approve',
+                icon: <Check size={14} className="text-emerald-600" />,
+                onClick: () => void onRequestAction(request.id, 'APPROVE'),
+                disabled: updatingRequestId === request.id,
+              },
+              {
+                label: 'Reject',
+                icon: <X size={14} className="text-rose-600" />,
+                onClick: () => void onRequestAction(request.id, 'REJECT'),
+                disabled: updatingRequestId === request.id,
+                className: 'text-rose-700',
+              }
+            ]}
+          />
+        </div>
+      );
+    }
+
+    if (request.status === 'APPROVED') {
+      return (
+        <div className={`flex items-center ${compact ? 'justify-start' : 'justify-end'} gap-2`}>
+          <ActionMenu
+            items={[
+              {
+                label: 'Issue Credential',
+                icon: <ClipboardCheck size={14} className="text-cyan-700" />,
+                onClick: () => setIssuingRequestId(request.id),
+                disabled: updatingRequestId === request.id || request.deliveryMethod === 'PHYSICAL',
+                className: 'text-cyan-800'
+              },
+              ...((request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') ? [{
+                label: 'Mark Claimed',
+                icon: <ClipboardCheck size={14} className="text-amber-700" />,
+                onClick: () => void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED'),
+                disabled: updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId),
+                className: 'text-amber-800'
+              }] : [])
+            ]}
+          />
+        </div>
+      );
+    }
+
+    return <span className="text-xs text-neutral-500">Completed</span>;
+  };
+
   return (
     <div className="space-y-6">
       <Card title="Student's Credential Requests">
@@ -178,7 +231,76 @@ export default function InstitutionRequestsSection({
           )}
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
+        <div className="space-y-2 lg:hidden">
+          {isLoadingRequests && (
+            <div className="rounded-lg border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
+              Loading verification requests...
+            </div>
+          )}
+          {!isLoadingRequests && requests.length === 0 && (
+            <div className="rounded-lg border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
+              No requests available.
+            </div>
+          )}
+          {!isLoadingRequests && requests.map((request, index) => {
+            const student = studentById.get(request.studentId);
+            return (
+              <motion.div
+                key={request.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm"
+                onClick={() => setSelectedRequestId(request.id)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedRequestIds.includes(request.id)}
+                      onChange={() => onToggleRequest(request.id)}
+                      onClick={event => event.stopPropagation()}
+                      className="mt-1 h-4 w-4 rounded border-neutral-300"
+                    />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-neutral-900">
+                        {student ? getStudentFullName(student) : 'Student record unavailable'}
+                      </p>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        {student?.profile?.studentNumber || student?.email || request.studentId}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="shrink-0" onClick={event => event.stopPropagation()}>
+                    <Badge status={request.status} />
+                  </div>
+                </div>
+                <div className="mt-2.5 grid grid-cols-1 gap-1.5 text-[11px] text-neutral-600 sm:grid-cols-2">
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Document</p>
+                    <p className="mt-1 break-words">{request.title}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Type</p>
+                    <p className="mt-1">{getRequestTypeLabel(request)}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Date</p>
+                    <p className="mt-1">{formatDate(request.createdAt)}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Actions</p>
+                    <div className="mt-1" onClick={event => event.stopPropagation()}>
+                      {renderRequestActions(request, true)}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        <div className="hidden overflow-hidden rounded-lg border border-neutral-200 lg:block">
           <table className="w-full text-left">
             <thead className="bg-neutral-50 text-xs font-semibold  text-neutral-500">
               <tr>
@@ -256,50 +378,7 @@ export default function InstitutionRequestsSection({
                   <td className="hidden px-4 py-3 text-sm text-neutral-600 md:table-cell">{formatDate(request.createdAt)}</td>
                   <td className="px-4 py-3"><Badge status={request.status} /></td>
                   <td className="px-4 py-3 text-right" onClick={event => event.stopPropagation()}>
-                    {request.status === 'PENDING' ? (
-                      <div className="flex items-center justify-end">
-                        <ActionMenu
-                          items={[
-                            {
-                              label: 'Approve',
-                              icon: <Check size={14} className="text-emerald-600" />,
-                              onClick: () => void onRequestAction(request.id, 'APPROVE'),
-                              disabled: updatingRequestId === request.id,
-                            },
-                            {
-                              label: 'Reject',
-                              icon: <X size={14} className="text-rose-600" />,
-                              onClick: () => void onRequestAction(request.id, 'REJECT'),
-                              disabled: updatingRequestId === request.id,
-                              className: 'text-rose-700',
-                            }
-                          ]}
-                        />
-                      </div>
-                    ) : request.status === 'APPROVED' ? (
-                      <div className="flex items-center justify-end gap-2">
-                        <ActionMenu
-                          items={[
-                            {
-                              label: 'Issue Credential',
-                              icon: <ClipboardCheck size={14} className="text-cyan-700" />,
-                              onClick: () => setIssuingRequestId(request.id),
-                              disabled: updatingRequestId === request.id || request.deliveryMethod === 'PHYSICAL',
-                              className: 'text-cyan-800'
-                            },
-                            ...((request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') ? [{
-                              label: 'Mark Claimed',
-                              icon: <ClipboardCheck size={14} className="text-amber-700" />,
-                              onClick: () => void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED'),
-                              disabled: updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId),
-                              className: 'text-amber-800'
-                            }] : [])
-                          ]}
-                        />
-                      </div>
-                    ) : (
-                      <span className="text-xs text-neutral-500 px-2">Completed</span>
-                    )}
+                    {renderRequestActions(request)}
                   </td>
                       </>
                     );
@@ -421,7 +500,7 @@ export default function InstitutionRequestsSection({
         open={selectedRequest !== null}
         onClose={() => setSelectedRequestId(null)}
         title={selectedRequest?.title || 'Request Details'}
-        description="Detailed request information"
+        description="Credential request information"
         sections={selectedRequest ? [
           {
             title: 'Student',
@@ -498,3 +577,4 @@ export default function InstitutionRequestsSection({
     </div>
   );
 }
+

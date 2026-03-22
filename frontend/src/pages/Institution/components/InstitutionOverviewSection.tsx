@@ -486,7 +486,42 @@ export default function InstitutionOverviewSection({
               />
             ) : (
               <div className="flex h-full flex-col">
-                <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
+                <div className="space-y-2 md:hidden">
+                  {directoryRows.map((student, index) => (
+                    <motion.div
+                      key={student.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.05 }}
+                      className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm"
+                    >
+                      <div className="flex items-start gap-3">
+                        <UserAvatar initials={getUserInitials(student)} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold text-neutral-900">{getStudentFullName(student)}</p>
+                          <p className="truncate text-xs text-neutral-500">{student.email}</p>
+                        </div>
+                      </div>
+                      <div className="mt-2.5 grid grid-cols-1 gap-1.5 text-[11px] text-neutral-600">
+                        <div>
+                          <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Student ID</p>
+                          <p className="mt-1">{student.profile?.studentNumber || '--'}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Program</p>
+                          <p className="mt-1 break-words">{student.profile?.courseOfStudy || '--'}</p>
+                        </div>
+                        <div>
+                          <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Status</p>
+                          <p className={`mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] ${getOverviewStatusTextClass(student.status)}`}>
+                            {formatStatusText(student.status)}
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+                <div className="hidden overflow-hidden rounded-lg border border-neutral-200 md:block">
                   <table className="min-w-full text-left text-sm">
                     <thead className="bg-neutral-50 text-xs font-semibold text-neutral-500">
                       <tr>
@@ -600,5 +635,6 @@ export default function InstitutionOverviewSection({
     </div>
   );
 }
+
 
 

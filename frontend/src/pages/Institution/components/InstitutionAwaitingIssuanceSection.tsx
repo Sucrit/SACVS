@@ -98,9 +98,100 @@ export default function InstitutionAwaitingIssuanceSection({
     setIssuingRequestId(null);
   };
 
+  const renderAwaitingActions = (request: CredentialRequest, compact = false) => (
+    <div className={`flex ${compact ? 'justify-start' : 'justify-end'} items-center gap-2`}>
+      <ActionMenu
+        items={[
+          ...((request.deliveryMethod !== 'PHYSICAL') ? [{
+            label: 'Issue Credential',
+            icon: <ClipboardCheck size={14} className="text-cyan-700" />,
+            onClick: () => setIssuingRequestId(request.id),
+            disabled: updatingRequestId === request.id,
+            className: 'text-cyan-800'
+          }] : []),
+          ...((request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') ? [{
+            label: 'Mark Claimed',
+            icon: <ClipboardCheck size={14} className="text-amber-700" />,
+            onClick: () => void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED'),
+            disabled: updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId),
+            className: 'text-amber-800'
+          }] : [])
+        ]}
+      />
+    </div>
+  );
+
   return (
     <Card title="Awaiting Issuance">
-      <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
+      <div className="space-y-2 lg:hidden">
+        {isLoadingRequests && (
+          <div className="rounded-lg border border-neutral-200 bg-white px-5 py-8 text-center text-sm text-neutral-500">
+            Loading approved requests...
+          </div>
+        )}
+        {!isLoadingRequests && readyToIssue.length === 0 && (
+          <div className="rounded-lg border border-neutral-200 bg-white px-5 py-8 text-center text-sm text-neutral-500">
+            No approved requests ready for issuance.
+          </div>
+        )}
+        {!isLoadingRequests && readyToIssue.map((request, index) => {
+          const student = studentById.get(request.studentId);
+          return (
+            <motion.div
+              key={request.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm"
+            >
+              <button
+                type="button"
+                onClick={() => setSelectedRequestId(request.id)}
+                className="w-full text-left"
+              >
+                <div className="flex items-start gap-3">
+                  {student ? <UserAvatar initials={getUserInitials(student)} /> : null}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-neutral-900">
+                      {student ? getStudentFullName(student) : request.studentId}
+                    </p>
+                    <p className="truncate text-xs text-neutral-500">{student?.email || 'Student record unavailable'}</p>
+                  </div>
+                </div>
+              </button>
+              <div className="mt-2.5 grid grid-cols-1 gap-1.5 text-[11px] text-neutral-600 sm:grid-cols-2">
+                <div>
+                  <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Request Title</p>
+                  <p className="mt-1 break-words">{request.title}</p>
+                </div>
+                <div>
+                  <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Credential Type</p>
+                  <p className="mt-1">{getRequestTypeLabel(request)}</p>
+                </div>
+                <div>
+                  <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Delivery Method</p>
+                  <p className="mt-1">
+                    {request.deliveryMethod === 'BOTH'
+                      ? 'Digital + physical'
+                      : request.deliveryMethod === 'DIGITAL'
+                        ? 'Digital'
+                        : 'Physical'}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Requested At</p>
+                  <p className="mt-1">{formatDateTime(request.createdAt)}</p>
+                </div>
+                <div className="sm:col-span-2" onClick={event => event.stopPropagation()}>
+                  <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Action</p>
+                  <div className="mt-1">{renderAwaitingActions(request, true)}</div>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+      <div className="hidden overflow-hidden rounded-lg border border-neutral-200 lg:block">
         <table className="min-w-[920px] w-full text-left">
           <thead className="bg-neutral-50 text-xs font-semibold text-neutral-500">
             <tr>
@@ -189,28 +280,7 @@ export default function InstitutionAwaitingIssuanceSection({
                           </p>
                         </td>
                         <td className="hidden px-4 py-3 text-sm text-neutral-600 lg:table-cell">{formatDateTime(request.createdAt)}</td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex min-w-[240px] flex-col items-end gap-2 whitespace-nowrap">
-                            <ActionMenu
-                              items={[
-                                ...((request.deliveryMethod !== 'PHYSICAL') ? [{
-                                  label: 'Issue Credential',
-                                  icon: <ClipboardCheck size={14} className="text-cyan-700" />,
-                                  onClick: () => setIssuingRequestId(request.id),
-                                  disabled: updatingRequestId === request.id,
-                                  className: 'text-cyan-800'
-                                }] : []),
-                                ...((request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') ? [{
-                                  label: 'Mark Claimed',
-                                  icon: <ClipboardCheck size={14} className="text-amber-700" />,
-                                  onClick: () => void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED'),
-                                  disabled: updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId),
-                                  className: 'text-amber-800'
-                                }] : [])
-                              ]}
-                            />
-                          </div>
-                        </td>
+                        <td className="px-4 py-3 text-right">{renderAwaitingActions(request)}</td>
                       </>
                     );
                   })()}
@@ -224,7 +294,7 @@ export default function InstitutionAwaitingIssuanceSection({
         open={selectedRequest !== null}
         onClose={() => setSelectedRequestId(null)}
         title={selectedRequest?.title || 'Request Details'}
-        description="Detailed request information"
+        description="Credential request information"
         sections={selectedRequest ? [
           {
             title: 'Student',
@@ -382,3 +452,4 @@ export default function InstitutionAwaitingIssuanceSection({
     </Card>
   );
 }
+

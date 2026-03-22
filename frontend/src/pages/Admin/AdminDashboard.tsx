@@ -449,8 +449,86 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
-          <table className="w-full text-left">
+        <div>
+          <div className="space-y-2 lg:hidden">
+            {isLoadingRiskEvents && (
+              <div className="rounded-lg border border-neutral-200 bg-white px-5 py-8 text-center text-sm text-neutral-500">
+                Loading risk events...
+              </div>
+            )}
+            {!isLoadingRiskEvents && riskEvents.length === 0 && (
+              <div className="rounded-lg border border-neutral-200 bg-white px-5 py-8 text-center text-sm text-neutral-500">
+                No risk events matched the current filters.
+              </div>
+            )}
+            {!isLoadingRiskEvents &&
+              riskEvents.map((event, index) => (
+                <motion.div
+                  key={event.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="cursor-pointer rounded-lg border border-neutral-200 bg-white p-3 shadow-sm"
+                  onClick={() => void openRiskEventDetails(event.id)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-neutral-900">{event.action}</p>
+                      <p className="mt-1 text-xs text-neutral-500">{event.targetType || 'System scope'}</p>
+                    </div>
+                    <span className={`shrink-0 font-semibold uppercase tracking-[0.08em] text-xs ${getRiskBandStyles(event.riskBand)}`}>
+                      {event.riskBand}
+                    </span>
+                  </div>
+                  <div className="mt-2.5 grid grid-cols-1 gap-1.5 text-[11px] text-neutral-600 sm:grid-cols-2">
+                    <div>
+                      <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Actor</p>
+                      <p className="mt-1">{event.actorRole || 'UNKNOWN'}</p>
+                      <p className="mt-1 text-neutral-500">{event.actorId ? 'Authenticated activity' : 'System generated'}</p>
+                    </div>
+                    <div>
+                      <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Score</p>
+                      <p className="mt-1 font-semibold text-neutral-900">{event.riskScore.toFixed(2)}</p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Review Status</p>
+                      <p className={`mt-1 inline-flex font-semibold text-xs tracking-[0.08em] ${getRiskReviewStyle(event.reviewStatus)}`}>
+                        {formatRiskReviewStatus(event.reviewStatus)}
+                      </p>
+                      <p className="mt-1 text-neutral-500">{event.reviewedAt ? formatDateTime(event.reviewedAt) : 'Not reviewed yet'}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3" onClick={eventClick => eventClick.stopPropagation()}>
+                    <ActionMenu
+                      items={[
+                        {
+                          label: reviewingRiskEventId === event.id && event.reviewStatus !== 'CONFIRMED_ABUSE' ? 'Saving...' : 'Confirm abuse',
+                          icon: <XCircle size={14} className="text-rose-600" />,
+                          onClick: () => void handleRiskReviewUpdate(event.id, 'CONFIRMED_ABUSE'),
+                          disabled: reviewingRiskEventId === event.id || event.reviewStatus === 'CONFIRMED_ABUSE',
+                          className: 'text-rose-700',
+                        },
+                        {
+                          label: 'Benign',
+                          icon: <Check size={14} className="text-emerald-600" />,
+                          onClick: () => void handleRiskReviewUpdate(event.id, 'BENIGN'),
+                          disabled: reviewingRiskEventId === event.id || event.reviewStatus === 'BENIGN',
+                          className: 'text-emerald-700',
+                        },
+                        {
+                          label: 'Uncertain',
+                          icon: <HelpCircle size={14} className="text-neutral-500" />,
+                          onClick: () => void handleRiskReviewUpdate(event.id, 'UNCERTAIN'),
+                          disabled: reviewingRiskEventId === event.id || event.reviewStatus === 'UNCERTAIN',
+                        },
+                      ]}
+                    />
+                  </div>
+                </motion.div>
+              ))}
+          </div>
+          <div className="hidden overflow-hidden rounded-lg border border-neutral-200 lg:block">
+            <table className="w-full text-left">
             <thead className="bg-neutral-50 text-xs font-medium text-neutral-500">
               <tr>
                 <th className="px-4 py-3">Action</th>
@@ -543,7 +621,8 @@ export default function AdminDashboard() {
                   </motion.tr>
                 ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
         {!isLoadingRiskEvents && riskTotal > 0 && (
           <div className="mt-3 flex items-center justify-between">
@@ -597,7 +676,50 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
+        <div className="space-y-2 lg:hidden">
+          {isLoadingAuditLogs && (
+            <div className="rounded-lg border border-neutral-200 bg-white px-5 py-8 text-center text-sm text-neutral-500">
+              Loading audit logs...
+            </div>
+          )}
+          {!isLoadingAuditLogs && filteredAdminAuditLogs.length === 0 && (
+            <div className="rounded-lg border border-neutral-200 bg-white px-5 py-8 text-center text-sm text-neutral-500">
+              No admin audit logs found.
+            </div>
+          )}
+          {!isLoadingAuditLogs &&
+            pagedAdminAuditLogs.map((log, index) => (
+              <motion.div
+                key={log.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className="cursor-pointer rounded-lg border border-neutral-200 bg-white p-3 shadow-sm"
+                onClick={() => setSelectedAuditLogId(log.id)}
+              >
+                <p className="text-sm font-semibold text-neutral-900">{log.action}</p>
+                <div className="mt-2.5 grid grid-cols-1 gap-1.5 text-[11px] text-neutral-600">
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Timestamp</p>
+                    <p className="mt-1">{new Date(log.createdAt).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Severity</p>
+                    <p className={`mt-1 font-semibold ${getAuditSeverityTextClass(log.severity)}`}>{log.severity}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Actor</p>
+                    <p className="mt-1 break-words">{log.actorEmail || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Description</p>
+                    <p className="mt-1 break-words">{log.description || '-'}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+        </div>
+        <div className="hidden overflow-hidden rounded-lg border border-neutral-200 lg:block">
           <table className="w-full text-left">
             <thead className="bg-neutral-50 text-xs font-medium text-neutral-500">
               <tr>
@@ -800,3 +922,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+

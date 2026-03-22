@@ -496,7 +496,101 @@ export default function InstitutionIssueSection({
       </AnimatePresence>
 
       <Card title="Issue From Approved Requests">
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
+        <div className="space-y-2 lg:hidden">
+          {isLoadingRequests && (
+            <div className="rounded-lg border border-neutral-200 bg-white px-5 py-8 text-center text-sm text-neutral-500">
+              Loading approved requests...
+            </div>
+          )}
+          {!isLoadingRequests && readyToIssue.length === 0 && (
+            <div className="rounded-lg border border-neutral-200 bg-white px-5 py-8 text-center text-sm text-neutral-500">
+              No approved requests ready for issuance.
+            </div>
+          )}
+          {!isLoadingRequests && readyToIssue.map((request, index) => {
+            const student = studentById.get(request.studentId);
+            return (
+              <motion.div
+                key={request.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm"
+                onClick={() => setSelectedRequestId(request.id)}
+              >
+                <div className="flex items-start gap-3">
+                  {student ? <UserAvatar initials={getUserInitials(student)} /> : null}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-neutral-900">
+                      {student ? getStudentFullName(student) : request.studentId}
+                    </p>
+                    <p className="truncate text-xs text-neutral-500">{student?.email || 'Student record unavailable'}</p>
+                  </div>
+                </div>
+                <div className="mt-2.5 grid grid-cols-1 gap-1.5 text-[11px] text-neutral-600 sm:grid-cols-2">
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Request</p>
+                    <p className="mt-1 break-words">{request.title}</p>
+                    <p className="mt-1 text-neutral-500">
+                      {request.deliveryMethod === 'BOTH'
+                        ? 'Digital + physical delivery'
+                        : request.deliveryMethod === 'DIGITAL'
+                          ? 'Digital delivery'
+                          : 'Physical delivery'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Type</p>
+                    <p className="mt-1">{getRequestTypeLabel(request)}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Requested</p>
+                    <p className="mt-1">{formatDateTime(request.createdAt)}</p>
+                  </div>
+                </div>
+                <div className="mt-2.5 flex flex-col gap-1.5 sm:flex-row" onClick={event => event.stopPropagation()}>
+                  <Button
+                    disabled={request.deliveryMethod === 'PHYSICAL'}
+                    onClick={event => {
+                      event.stopPropagation();
+                      setIssuingRequestId(request.id);
+                    }}
+                    size="sm"
+                    icon={<ClipboardCheck size={13} />}
+                    className="rounded-lg"
+                    title={
+                      request.deliveryMethod === 'PHYSICAL'
+                        ? 'Digital issuance is blocked for PHYSICAL delivery requests.'
+                        : 'Issue credential with upload form'
+                    }
+                  >
+                    Issue
+                  </Button>
+                  {(request.deliveryMethod === 'PHYSICAL' || request.deliveryMethod === 'BOTH') && (
+                    <Button
+                      disabled={updatingRequestId === request.id || (request.deliveryMethod === 'BOTH' && !request.credentialId)}
+                      onClick={event => {
+                        event.stopPropagation();
+                        void onRequestAction(request.id, 'MARK_PHYSICAL_CLAIMED');
+                      }}
+                      variant="secondary"
+                      size="sm"
+                      className="rounded-lg"
+                      title={
+                        request.deliveryMethod === 'BOTH' && !request.credentialId
+                          ? 'Issue/link the digital credential first for BOTH delivery.'
+                          : 'Mark physical credential as claimed and complete the request.'
+                      }
+                    >
+                      Mark Claimed
+                    </Button>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+        <div className="hidden overflow-hidden rounded-lg border border-neutral-200 lg:block">
           <table className="w-full text-left">
             <thead className="bg-neutral-50 text-xs font-semibold  text-neutral-500">
               <tr>
@@ -752,7 +846,7 @@ export default function InstitutionIssueSection({
         open={selectedRequest !== null}
         onClose={() => setSelectedRequestId(null)}
         title={selectedRequest?.title || 'Request Details'}
-        description="Detailed request information"
+        description="Credential request information"
         sections={selectedRequest ? [
           {
             title: 'Student',
@@ -793,7 +887,110 @@ export default function InstitutionIssueSection({
       />
 
       <Card title="Manage Student Credentials">
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
+        <div className="space-y-2 lg:hidden">
+          {isLoadingCredentials && (
+            <div className="rounded-lg border border-neutral-200 bg-white px-5 py-8 text-center text-sm text-neutral-500">
+              Loading institution credentials...
+            </div>
+          )}
+          {!isLoadingCredentials && institutionCredentials.length === 0 && (
+            <div className="rounded-lg border border-neutral-200 bg-white px-5 py-8 text-center text-sm text-neutral-500">
+              No credentials found for your institution.
+            </div>
+          )}
+          {!isLoadingCredentials && institutionCredentials.map((credential, index) => {
+            const isRevoked = credential.status === 'REVOKED';
+            const isExpired = credential.status === 'EXPIRED';
+            const isLockedForStatusUpdate = isRevoked || isExpired;
+            const allowedStatusOptions = CREDENTIAL_STATUS_OPTIONS[credential.status] ?? [credential.status];
+            const targetStatus = statusByCredentialId[credential.id] || credential.status;
+            const isStatusUnchanged = targetStatus === credential.status;
+            const student = studentById.get(credential.studentId);
+            return (
+              <motion.div
+                key={credential.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm"
+              >
+                <div className="flex items-start gap-3">
+                  {student ? <UserAvatar initials={getUserInitials(student)} /> : null}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-neutral-900">
+                      {student ? getStudentFullName(student) : credential.studentId}
+                    </p>
+                    <p className="truncate text-xs text-neutral-500">{student?.email || 'Student unavailable'}</p>
+                  </div>
+                  <Badge status={credential.status} />
+                </div>
+                <div className="mt-2.5 grid grid-cols-1 gap-1.5 text-[11px] text-neutral-600 sm:grid-cols-2">
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Credential</p>
+                    <p className="mt-1 break-words">{credential.title}</p>
+                    <p className="mt-1 text-neutral-500">{credential.type}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Last Update</p>
+                    <p className="mt-1">{formatDateTime(credential.updatedAt)}</p>
+                  </div>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <select
+                      value={targetStatus}
+                      onChange={event =>
+                        setStatusByCredentialId(previous => ({
+                          ...previous,
+                          [credential.id]: event.target.value as CredentialStatus,
+                        }))
+                      }
+                      disabled={isLockedForStatusUpdate}
+                      className="h-9 rounded-lg border border-neutral-200 bg-neutral-50 px-2 text-xs outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {allowedStatusOptions.map(status => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => {
+                        setUpdatingCredentialId(credential.id);
+                        void onCredentialStatusUpdate(credential.id, targetStatus)
+                          .catch(() => undefined)
+                          .finally(() =>
+                            setUpdatingCredentialId(current => (current === credential.id ? null : current)),
+                          );
+                      }}
+                      disabled={updatingCredentialId === credential.id || isLockedForStatusUpdate || isStatusUnchanged}
+                      className="inline-flex h-9 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-xs font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                    <Button
+                      onClick={() => {
+                        setReissueModalCredentialId(credential.id);
+                      }}
+                      disabled={reissuingCredentialId === credential.id || isRevoked}
+                      size="sm"
+                      icon={<ClipboardCheck size={12} />}
+                      className="rounded-lg"
+                    >
+                      Re-issue
+                    </Button>
+                  </div>
+                  {isLockedForStatusUpdate && (
+                    <span className="inline-flex h-9 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-[11px] font-semibold text-rose-700">
+                      Locked
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+        <div className="hidden overflow-hidden rounded-lg border border-neutral-200 lg:block">
           <table className="w-full text-left">
             <thead className="bg-neutral-50 text-xs font-semibold  text-neutral-500">
               <tr>
@@ -1058,3 +1255,4 @@ export default function InstitutionIssueSection({
     </div>
   );
 }
+

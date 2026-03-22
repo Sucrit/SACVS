@@ -94,6 +94,36 @@ export default function AdminUserSection({
     return filteredUsers.slice(start, start + pageSize);
   }, [filteredUsers, safeCurrentPage]);
 
+  const getUserActionItems = (user: User) => [
+    ...(user.status === 'PENDING' ? [
+      {
+        label: 'Approve',
+        icon: <Check size={14} className="text-emerald-600" />,
+        onClick: () => void handleStatusUpdate(user.id, 'APPROVED'),
+        disabled: isUpdatingStatus === user.id,
+      },
+      {
+        label: 'Reject',
+        icon: <XCircle size={14} className="text-rose-600" />,
+        onClick: () => void handleStatusUpdate(user.id, 'REJECTED'),
+        disabled: isUpdatingStatus === user.id,
+        className: 'text-rose-700',
+      }
+    ] : []),
+    ...(user.status === 'SUSPENDED' ? [{
+      label: 'Approve',
+      icon: <Check size={14} className="text-emerald-600" />,
+      onClick: () => void handleStatusUpdate(user.id, 'APPROVED'),
+      disabled: isUpdatingStatus === user.id,
+    }] : []),
+    ...(user.status === 'APPROVED' ? [{
+      label: 'Suspend',
+      icon: <PauseCircle size={14} className="text-orange-600" />,
+      onClick: () => void handleStatusUpdate(user.id, 'SUSPENDED'),
+      disabled: isUpdatingStatus === user.id,
+    }] : []),
+  ];
+
   return (
     <div className="min-h-[calc(100vh-220px)] space-y-4 pb-4">
       <Card title="User Management">
@@ -116,7 +146,61 @@ export default function AdminUserSection({
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
+        <div className="space-y-2 lg:hidden">
+          {isLoadingUsers && (
+            <div className="rounded-lg border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
+              Loading users...
+            </div>
+          )}
+          {!isLoadingUsers && filteredUsers.length === 0 && (
+            <div className="rounded-lg border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
+              No users matched your filters.
+            </div>
+          )}
+          {!isLoadingUsers && pagedUsers.map((user, index) => (
+            <motion.div
+              key={user.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              className={`cursor-pointer rounded-lg border border-neutral-200 bg-white p-3 shadow-sm transition-colors ${user.id === selectedUserId ? 'bg-neutral-50' : ''}`}
+              onClick={() => setSelectedUserId(user.id)}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex items-center gap-3">
+                  <UserAvatar initials={getInitials(user)} />
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-neutral-900">{getFullName(user)}</p>
+                    <p className="truncate text-xs text-neutral-500">{user.email}</p>
+                  </div>
+                </div>
+                <div className="shrink-0" onClick={e => e.stopPropagation()}>
+                  <ActionMenu items={getUserActionItems(user)} />
+                </div>
+              </div>
+              <div className="mt-2.5 grid grid-cols-1 gap-1.5 text-[11px] text-neutral-600 sm:grid-cols-2">
+                <div>
+                  <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Role</p>
+                  <p className={`mt-1 font-semibold tracking-[0.08em] ${getRoleStyles(user.role)}`}>{user.role}</p>
+                </div>
+                <div>
+                  <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Status</p>
+                  <div className="mt-1"><Badge status={user.status} /></div>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Organization</p>
+                  <p className="mt-1 break-words">{getLinkedOrganizationLabel(user)}</p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Created At</p>
+                  <p className="mt-1">{formatDate(user.createdAt)}</p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="hidden overflow-hidden rounded-lg border border-neutral-200 lg:block">
           <table className="w-full text-left">
             <thead className="bg-neutral-50 text-xs font-semibold text-neutral-500">
               <tr>
@@ -177,37 +261,7 @@ export default function AdminUserSection({
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                      <ActionMenu
-                        items={[
-                          ...(user.status === 'PENDING' ? [
-                            {
-                              label: 'Approve',
-                              icon: <Check size={14} className="text-emerald-600" />,
-                              onClick: () => void handleStatusUpdate(user.id, 'APPROVED'),
-                              disabled: isUpdatingStatus === user.id,
-                            },
-                            {
-                              label: 'Reject',
-                              icon: <XCircle size={14} className="text-rose-600" />,
-                              onClick: () => void handleStatusUpdate(user.id, 'REJECTED'),
-                              disabled: isUpdatingStatus === user.id,
-                              className: 'text-rose-700',
-                            }
-                          ] : []),
-                          ...(user.status === 'SUSPENDED' ? [{
-                            label: 'Approve',
-                            icon: <Check size={14} className="text-emerald-600" />,
-                            onClick: () => void handleStatusUpdate(user.id, 'APPROVED'),
-                            disabled: isUpdatingStatus === user.id,
-                          }] : []),
-                          ...(user.status === 'APPROVED' ? [{
-                            label: 'Suspend',
-                            icon: <PauseCircle size={14} className="text-orange-600" />,
-                            onClick: () => void handleStatusUpdate(user.id, 'SUSPENDED'),
-                            disabled: isUpdatingStatus === user.id,
-                          }] : []),
-                        ]}
-                      />
+                      <ActionMenu items={getUserActionItems(user)} />
                     </div>
                   </td>
                 </motion.tr>
@@ -239,3 +293,4 @@ export default function AdminUserSection({
     </div>
   );
 }
+

@@ -71,7 +71,43 @@ export default function InstitutionAnnouncementsSection({
           </button>
         }
       >
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 pb-[10px]">
+        <div className="space-y-2 md:hidden">
+          {notifications.length === 0 && (
+            <div className="rounded-lg border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
+              No announcements sent yet.
+            </div>
+          )}
+          {pagedNotifications.map((item, index) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              className="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-neutral-900">{item.title}</p>
+                  <p className="mt-1 text-xs font-semibold uppercase tracking-[0.08em] text-neutral-500">{item.target}</p>
+                </div>
+                <p className="shrink-0 text-xs text-neutral-500">{formatDateTime(item.createdAt)}</p>
+              </div>
+              <p className="mt-3 text-sm text-neutral-600">{item.message}</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-neutral-600">
+                <div>
+                  <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Recipients</p>
+                  <p className="mt-1">{item.recipientCount}</p>
+                </div>
+                <div>
+                  <p className="font-semibold uppercase tracking-[0.08em] text-neutral-500">Sent By</p>
+                  <p className="mt-1 break-words">{item.createdByName || item.createdByEmail}</p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="hidden overflow-hidden rounded-lg border border-neutral-200 md:block">
           <table className="w-full text-left">
             <thead className="bg-neutral-50 text-xs font-semibold text-neutral-500">
               <tr>
@@ -178,3 +214,4 @@ export default function InstitutionAnnouncementsSection({
     </div>
   );
 }
+

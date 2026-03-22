@@ -221,7 +221,7 @@ export default function InstitutionIssueFormSection({
       setDirectFile(null);
       setStudentSearchQuery('');
       setIsStudentPickerOpen(false);
-      showToast({ variant: 'success', message: 'Credential issued successfully.' });
+      // showToast({ variant: 'success', message: 'Credential issued successfully.' });
     } catch (error) {
       if (
         error instanceof Error &&
