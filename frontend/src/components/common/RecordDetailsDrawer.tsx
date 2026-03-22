@@ -2,13 +2,13 @@ import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import Drawer from '../ui/Drawer';
 
-type RecordDetailsField = {
+export type RecordDetailsField = {
   label: string;
   icon?: LucideIcon;
   value: ReactNode;
 };
 
-type RecordDetailsSection = {
+export type RecordDetailsSection = {
   title?: string;
   fields: RecordDetailsField[];
 };

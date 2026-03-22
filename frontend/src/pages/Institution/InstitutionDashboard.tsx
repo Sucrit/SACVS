@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { AlertTriangle, FileText } from 'lucide-react';
 import { AuditAction, AuditSeverity } from '../../services/audit.service';
 import Card from '../../components/common/Card';
 import SearchFilterModal, { SearchFilterGroup } from '../../components/common/SearchFilterModal';
 import RecordDetailsDrawer from '../../components/common/RecordDetailsDrawer';
+import { detailField } from '../../components/common/recordDetailsFieldIcons';
 import InstitutionStudentsSection from './components/InstitutionStudentsSection';
 import InstitutionRequestsSection from './components/InstitutionRequestsSection';
 import InstitutionIssueSection from './components/InstitutionIssueFormSection';
@@ -347,27 +349,33 @@ export default function InstitutionDashboard() {
               {
                 title: 'Audit Event',
                 fields: [
-                  { label: 'Timestamp', value: new Date(selectedAuditLog.createdAt).toLocaleString() },
-                  { label: 'Action', value: selectedAuditLog.action },
+                  detailField('Timestamp', new Date(selectedAuditLog.createdAt).toLocaleString()),
+                  detailField('Action', selectedAuditLog.action),
                   {
-                    label: 'Severity',
-                    value: (
-                      <span className={`font-semibold ${getAuditSeverityTextClass(selectedAuditLog.severity)}`}>
-                        {selectedAuditLog.severity}
-                      </span>
+                    ...detailField(
+                      'Severity',
+                      (
+                        <span className={`font-semibold ${getAuditSeverityTextClass(selectedAuditLog.severity)}`}>
+                          {selectedAuditLog.severity}
+                        </span>
+                      ),
+                      AlertTriangle,
                     ),
                   },
-                  { label: 'Actor Role', value: selectedAuditLog.actorRole || '--' },
-                  { label: 'Actor', value: selectedAuditLog.actorEmail || 'System' },
-                  { label: 'Target Type', value: selectedAuditLog.targetType || '--' },
-                  { label: 'Description', value: selectedAuditLog.description || '--' },
+                  detailField('Actor Role', selectedAuditLog.actorRole || '--'),
+                  detailField('Actor', selectedAuditLog.actorEmail || 'System'),
+                  detailField('Target Type', selectedAuditLog.targetType || '--'),
+                  detailField('Description', selectedAuditLog.description || '--'),
                   {
-                    label: 'Metadata',
-                    value: selectedAuditLog.metadata ? (
-                      <pre className="whitespace-pre-wrap text-xs text-neutral-700">
-                        {JSON.stringify(selectedAuditLog.metadata, null, 2)}
-                      </pre>
-                    ) : '--',
+                    ...detailField(
+                      'Metadata',
+                      selectedAuditLog.metadata ? (
+                        <pre className="whitespace-pre-wrap text-xs text-neutral-700">
+                          {JSON.stringify(selectedAuditLog.metadata, null, 2)}
+                        </pre>
+                      ) : '--',
+                      FileText,
+                    ),
                   },
                 ],
               },

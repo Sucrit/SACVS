@@ -2,10 +2,16 @@ import { FormEvent, useMemo, useState } from 'react';
 import UserAvatar from '../../../components/common/UserAvatar';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ClipboardCheck, Upload, X } from 'lucide-react';
+import {
+  ClipboardCheck,
+  Upload,
+  User as UserIcon,
+  X,
+} from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
+import { detailField } from '../../../components/common/recordDetailsFieldIcons';
 import Button from '../../../components/ui/Button';
 import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import { useToast } from '../../../hooks/useToast';
@@ -851,36 +857,24 @@ export default function InstitutionIssueSection({
           {
             title: 'Student',
             fields: [
-              {
-                label: 'Name',
-                value: selectedRequestStudent ? getStudentFullName(selectedRequestStudent) : 'Student record unavailable',
-              },
-              {
-                label: 'Student Number',
-                value: selectedRequestStudent?.profile?.studentNumber || '--',
-              },
-              {
-                label: 'Email',
-                value: selectedRequestStudent?.email || '--',
-              },
-              {
-                label: 'Program',
-                value: selectedRequestStudent?.profile?.courseOfStudy || '--',
-              },
+              detailField('Name', selectedRequestStudent ? getStudentFullName(selectedRequestStudent) : 'Student record unavailable', UserIcon),
+              detailField('Student Number', selectedRequestStudent?.profile?.studentNumber || '--'),
+              detailField('Email', selectedRequestStudent?.email || '--'),
+              detailField('Program', selectedRequestStudent?.profile?.courseOfStudy || '--'),
             ],
           },
           {
             title: 'Request',
             fields: [
-              { label: 'Document', value: selectedRequest.title },
-              { label: 'Type', value: getRequestTypeLabel(selectedRequest) },
-              { label: 'Status', value: <Badge status={selectedRequest.status} /> },
-              { label: 'Delivery', value: selectedRequest.deliveryMethod },
-              { label: 'Requested At', value: formatDateTime(selectedRequest.createdAt) },
-              { label: 'Processed At', value: selectedRequest.processedAt ? formatDateTime(selectedRequest.processedAt) : '--' },
-              { label: 'Purpose', value: selectedRequest.purpose || '--' },
-              { label: 'Description', value: selectedRequest.description || '--' },
-              { label: 'Notes', value: selectedRequest.notes || '--' },
+              detailField('Document', selectedRequest.title),
+              detailField('Type', getRequestTypeLabel(selectedRequest)),
+              detailField('Status', <Badge status={selectedRequest.status} />),
+              detailField('Delivery', selectedRequest.deliveryMethod),
+              detailField('Requested At', formatDateTime(selectedRequest.createdAt)),
+              detailField('Processed At', selectedRequest.processedAt ? formatDateTime(selectedRequest.processedAt) : '--'),
+              detailField('Purpose', selectedRequest.purpose || '--'),
+              detailField('Description', selectedRequest.description || '--'),
+              detailField('Notes', selectedRequest.notes || '--'),
             ],
           },
         ] : []}
@@ -1255,4 +1249,3 @@ export default function InstitutionIssueSection({
     </div>
   );
 }
-

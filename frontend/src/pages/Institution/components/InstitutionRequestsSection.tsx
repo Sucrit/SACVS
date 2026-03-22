@@ -1,9 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, ClipboardCheck, Search, Upload, X } from 'lucide-react';
+import {
+  AlignLeft,
+  CalendarCheck,
+  Check,
+  ClipboardCheck,
+  Search,
+  Upload,
+  User as UserIcon,
+  X,
+} from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
+import { detailField } from '../../../components/common/recordDetailsFieldIcons';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import ActionMenu from '../../../components/common/ActionMenu';
 import Button from '../../../components/ui/Button';
@@ -505,44 +515,36 @@ export default function InstitutionRequestsSection({
           {
             title: 'Student',
             fields: [
-              {
-                label: 'Name',
-                value: selectedRequestStudent ? getStudentFullName(selectedRequestStudent) : 'Student record unavailable',
-              },
-              {
-                label: 'Student Number',
-                value: selectedRequestStudent?.profile?.studentNumber || '--',
-              },
-              {
-                label: 'Email',
-                value: selectedRequestStudent?.email || '--',
-              },
-              {
-                label: 'Program',
-                value: selectedRequestStudent?.profile?.courseOfStudy || '--',
-              },
+              detailField(
+                'Name',
+                selectedRequestStudent ? getStudentFullName(selectedRequestStudent) : 'Student record unavailable',
+                UserIcon,
+              ),
+              detailField('Student Number', selectedRequestStudent?.profile?.studentNumber || '--'),
+              detailField('Email', selectedRequestStudent?.email || '--'),
+              detailField('Program', selectedRequestStudent?.profile?.courseOfStudy || '--'),
             ],
           },
           {
             title: 'Request',
             fields: [
-              { label: 'Document', value: selectedRequest.title },
-              { label: 'Type', value: getRequestTypeLabel(selectedRequest) },
-              { label: 'Status', value: <Badge status={selectedRequest.status} /> },
-              { label: 'Delivery', value: selectedRequest.deliveryMethod },
-              { label: 'Requested At', value: formatDate(selectedRequest.createdAt) },
-              { label: 'Processed At', value: selectedRequest.processedAt ? formatDate(selectedRequest.processedAt) : '--' },
-              { label: 'Purpose', value: selectedRequest.purpose || '--' },
-              { label: 'Description', value: selectedRequest.description || '--' },
-              { label: 'Notes', value: selectedRequest.notes || '--' },
+              detailField('Document', selectedRequest.title),
+              detailField('Type', getRequestTypeLabel(selectedRequest)),
+              detailField('Status', <Badge status={selectedRequest.status} />),
+              detailField('Delivery', selectedRequest.deliveryMethod),
+              detailField('Requested At', formatDate(selectedRequest.createdAt)),
+              detailField('Processed At', selectedRequest.processedAt ? formatDate(selectedRequest.processedAt) : '--'),
+              detailField('Purpose', selectedRequest.purpose || '--'),
+              detailField('Description', selectedRequest.description || '--'),
+              detailField('Notes', selectedRequest.notes || '--'),
             ],
           },
           {
             title: 'Processing',
             fields: [
-              {
-                label: 'Expiry Date',
-                value: supportsExpiryDate(selectedRequest.type) ? (
+              detailField(
+                'Expiry Date',
+                supportsExpiryDate(selectedRequest.type) ? (
                   <div className="space-y-2">
                     <input
                       type="date"
@@ -557,10 +559,11 @@ export default function InstitutionRequestsSection({
                     </p>
                   </div>
                 ) : 'Not applicable',
-              },
-              {
-                label: 'Rejection Reason',
-                value: (
+                CalendarCheck,
+              ),
+              detailField(
+                'Rejection Reason',
+                (
                   <textarea
                     value={rejectionReasonByRequestId[selectedRequest.id] || ''}
                     onChange={event => onReasonChange(selectedRequest.id, event.target.value)}
@@ -569,7 +572,8 @@ export default function InstitutionRequestsSection({
                     className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs outline-none"
                   />
                 ),
-              },
+                AlignLeft,
+              ),
             ],
           },
         ] : []}

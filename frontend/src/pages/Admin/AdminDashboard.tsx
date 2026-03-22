@@ -7,8 +7,9 @@ import ActionMenu from '../../components/common/ActionMenu';
 import {
   AlertCircle,
   AlertTriangle,
-  Clock3,
+  FileText,
   UserRoundCheck,
+  Clock3,
   Check,
   XCircle,
   HelpCircle,
@@ -17,6 +18,7 @@ import { AuditAction, AuditSeverity } from '../../services/audit.service';
 import { RiskBand, RiskReviewStatus, RiskService } from '../../services/risk.service';
 import Button from '../../components/ui/Button';
 import RecordDetailsDrawer from '../../components/common/RecordDetailsDrawer';
+import { detailField } from '../../components/common/recordDetailsFieldIcons';
 import AdminRiskEventDetailsDrawer from './components/AdminRiskEventDetailsDrawer';
 import AdminNotificationsSection from './components/AdminNotificationsSection';
 import AdminOverviewSection from './components/AdminOverviewSection';
@@ -808,27 +810,33 @@ export default function AdminDashboard() {
                 {
                   title: 'Audit Event',
                   fields: [
-                    { label: 'Timestamp', value: new Date(selectedAuditLog.createdAt).toLocaleString() },
-                    { label: 'Action', value: selectedAuditLog.action },
+                    detailField('Timestamp', new Date(selectedAuditLog.createdAt).toLocaleString()),
+                    detailField('Action', selectedAuditLog.action),
                     {
-                      label: 'Severity',
-                      value: (
-                        <span className={`font-semibold ${getAuditSeverityTextClass(selectedAuditLog.severity)}`}>
-                          {selectedAuditLog.severity}
-                        </span>
+                      ...detailField(
+                        'Severity',
+                        (
+                          <span className={`font-semibold ${getAuditSeverityTextClass(selectedAuditLog.severity)}`}>
+                            {selectedAuditLog.severity}
+                          </span>
+                        ),
+                        AlertTriangle,
                       ),
                     },
-                    { label: 'Actor Role', value: selectedAuditLog.actorRole || '--' },
-                    { label: 'Actor', value: selectedAuditLog.actorEmail || 'System' },
-                    { label: 'Target Type', value: selectedAuditLog.targetType || '--' },
-                    { label: 'Description', value: selectedAuditLog.description || '--' },
+                    detailField('Actor Role', selectedAuditLog.actorRole || '--'),
+                    detailField('Actor', selectedAuditLog.actorEmail || 'System'),
+                    detailField('Target Type', selectedAuditLog.targetType || '--'),
+                    detailField('Description', selectedAuditLog.description || '--'),
                     {
-                      label: 'Metadata',
-                      value: selectedAuditLog.metadata ? (
-                        <pre className="whitespace-pre-wrap text-xs text-neutral-700">
-                          {JSON.stringify(selectedAuditLog.metadata, null, 2)}
-                        </pre>
-                      ) : '--',
+                      ...detailField(
+                        'Metadata',
+                        selectedAuditLog.metadata ? (
+                          <pre className="whitespace-pre-wrap text-xs text-neutral-700">
+                            {JSON.stringify(selectedAuditLog.metadata, null, 2)}
+                          </pre>
+                        ) : '--',
+                        FileText,
+                      ),
                     },
                   ],
                 },
