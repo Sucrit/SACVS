@@ -249,9 +249,14 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
 
   // --- Notifications state ---
   const [, setActivityEvents] = useState<ActivityEvent[]>([]);
-  const [outboundNotifications, setOutboundNotifications] = useState<OutboundNotification[]>([]);
   const { data: inboundNotificationsData, isLoading: isLoadingInboundNotifications } = useQuery({ queryKey: appQueryKeys.institution.notifications(), queryFn: () => NotificationService.list({ page: 1, pageSize: 100 }), enabled: section === 'notifications' || section === 'reports', ...timeSensitiveQueryOptions });
   const inboundNotifications = inboundNotificationsData?.items || [];
+  const { data: outboundNotifications = [] } = useQuery({
+    queryKey: appQueryKeys.institution.announcementBroadcasts(),
+    queryFn: () => NotificationService.listInstitutionBroadcasts(),
+    enabled: section === 'announcement',
+    ...timeSensitiveQueryOptions,
+  });
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
   const [notificationTarget, setNotificationTarget] = useState<NotificationTarget>('ALL');
   const [notificationTitle, setNotificationTitle] = useState('');
@@ -268,6 +273,13 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   const { requestStepUpToken, stepUpModal } = useStepUp();
   const { showToast } = useToast();
   const hasInitializedRef = useRef(false);
+
+  const invalidateIfCached = useCallback((queryKey: readonly unknown[]) => {
+    const queryState = queryClient.getQueryState(queryKey);
+    if (queryState?.dataUpdatedAt) {
+      void queryClient.invalidateQueries({ queryKey });
+    }
+  }, [queryClient]);
 
   // --- Activity event helper ---
   const createEvent = useCallback((type: ActivityEvent['type'], title: string, description: string) => {
@@ -332,18 +344,6 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
       hasInitializedRef.current = true;
     }
   }, [createEvent]);
-
-  useEffect(() => {
-    if (section === 'announcement') {
-      void NotificationService.listInstitutionBroadcasts()
-        .then(setOutboundNotifications)
-        .catch(error => {
-          setOutboundNotifications([]);
-          setNotificationError(getApiErrorMessage(error) || 'Unable to load notification activity.');
-          console.error('Failed to load institution notifications:', error);
-        });
-    }
-  }, [section]);
 
   useEffect(() => {
     if (section !== 'requests') return;
@@ -420,21 +420,22 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
 
   const realtimeRefreshMap = useMemo(() => ({
     users: () => {
-      if (section === 'students' || section === 'overview' || section === 'analytics' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.students() });
+      void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.students() });
     },
     credentialRequests: () => {
-      if (section === 'requests' || section === 'issue' || section === 'overview' || section === 'analytics' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.requests() });
+      void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.requests() });
     },
     credentials: () => {
-      if (section === 'issue' || section === 'overview' || section === 'analytics' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.credentials() });
+      void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.credentials() });
     },
     notifications: () => {
-      if (section === 'notifications' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.notifications() });
+      invalidateIfCached(appQueryKeys.institution.notifications());
+      invalidateIfCached(appQueryKeys.institution.announcementBroadcasts());
     },
     audit: () => {
-      if (section === 'logs' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.auditLogs() });
+      invalidateIfCached(appQueryKeys.institution.auditLogs());
     },
-  }), [queryClient, section]);
+  }), [invalidateIfCached, queryClient]);
 
   useRealtimeSync(realtimeRefreshMap);
 
@@ -970,7 +971,10 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
         title: notificationTitle.trim(),
         message: notificationMessage.trim(),
       });
-      setOutboundNotifications(previous => [entry, ...previous]);
+      queryClient.setQueryData(
+        appQueryKeys.institution.announcementBroadcasts(),
+        (previous: OutboundNotification[] | undefined) => [entry, ...(previous || [])],
+      );
       setNotificationTitle('');
       setNotificationMessage('');
       setNotificationHint(

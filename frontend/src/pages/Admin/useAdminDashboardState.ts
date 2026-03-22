@@ -284,6 +284,13 @@ export function useAdminDashboardState(): AdminDashboardState {
   const { requestStepUpToken, stepUpModal } = useStepUp();
   const { showToast } = useToast();
 
+  const invalidateIfCached = useCallback((queryKey: readonly unknown[]) => {
+    const queryState = queryClient.getQueryState(queryKey);
+    if (queryState?.dataUpdatedAt) {
+      void queryClient.invalidateQueries({ queryKey });
+    }
+  }, [queryClient]);
+
   // --- Toast bridge ---
   useEffect(() => {
     if (usersError) showToast({ variant: 'error', message: usersError });
@@ -330,17 +337,15 @@ export function useAdminDashboardState(): AdminDashboardState {
   // --- Realtime sync ---
 
   const realtimeRefreshMap = useMemo(() => ({
-    users: () => { if (section !== 'logs') void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.users() }); },
+    users: () => { void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.users() }); },
     credentialRequests: () => { void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.requests() }); },
-    audit: () => { if (section === 'logs' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.auditLogs() }); },
-    notifications: () => { if (section === 'notifications' || section === 'reports') void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.notifications() }); },
+    audit: () => { invalidateIfCached(appQueryKeys.admin.auditLogs()); },
+    notifications: () => { invalidateIfCached(appQueryKeys.admin.notifications()); },
     'security:SECURITY_RISK_EVENTS_UPDATED': () => {
-      if (section === 'risk' || section === 'overview' || section === 'reports') {
-        void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.riskEventsRoot() });
-        void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.riskWorkerStatus() });
-      }
+      void queryClient.invalidateQueries({ queryKey: appQueryKeys.admin.riskEventsRoot() });
+      invalidateIfCached(appQueryKeys.admin.riskWorkerStatus());
     },
-  }), [queryClient, riskBandFilter, riskPage, riskPageSize, riskReviewFilter, reviewedOnly, section]);
+  }), [invalidateIfCached, queryClient]);
 
   useRealtimeSync(realtimeRefreshMap);
 

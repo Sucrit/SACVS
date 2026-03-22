@@ -185,6 +185,23 @@ export class NotificationService {
           scope: { userIds: recipientUserIds },
           payload: { institutionId, recipientCount: recipientUserIds.length },
         },
+        {
+          domain: 'notifications',
+          action: 'notification.broadcast_log_updated',
+          entityId: broadcast.id,
+          scope: { institutionIds: [institutionId], roles: ['INSTITUTION'] },
+          payload: { institutionId, recipientCount: recipientUserIds.length },
+        },
+      ]);
+    } else {
+      void realtimeClient.publishMany([
+        {
+          domain: 'notifications',
+          action: 'notification.broadcast_log_updated',
+          entityId: broadcast.id,
+          scope: { institutionIds: [institutionId], roles: ['INSTITUTION'] },
+          payload: { institutionId, recipientCount: 0 },
+        },
       ]);
     }
 

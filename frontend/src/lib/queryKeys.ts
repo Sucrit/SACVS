@@ -27,6 +27,7 @@ export const appQueryKeys = {
     auditLogs: () => ['institution-audit-logs'] as const,
     students: () => ['institution-students'] as const,
     notifications: () => ['institution-notifications'] as const,
+    announcementBroadcasts: () => ['institution-announcement-broadcasts'] as const,
     credentialDetail: (credentialId: string) => ['institution-credential-detail', credentialId] as const,
   },
   student: {
