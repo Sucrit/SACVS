@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import Drawer from '../ui/Drawer';
 
 type RecordDetailsField = {
   label: string;
+  icon?: LucideIcon;
   value: ReactNode;
 };
 
@@ -43,15 +45,21 @@ export default function RecordDetailsDrawer({
                 {section.title}
               </h3>
             )}
-            <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
-              {section.fields.map(field => (
-                <div key={field.label}>
-                  <p className="text-xs font-semibold text-neutral-500">
-                    {field.label}
-                  </p>
-                  <div className="mt-2 text-sm text-neutral-700 break-words">{field.value}</div>
-                </div>
-              ))}
+            <div className="mt-5 space-y-3">
+              {section.fields.map(field => {
+                const Icon = field.icon;
+                return (
+                  <div key={field.label} className="grid gap-2 sm:grid-cols-[160px_minmax(0,1fr)] sm:items-center">
+                    <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                      {Icon && <Icon size={14} />}
+                      {field.label}
+                    </p>
+                    <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                      {field.value}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         ))}

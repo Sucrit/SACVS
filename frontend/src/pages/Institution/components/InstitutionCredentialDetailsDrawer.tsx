@@ -1,6 +1,9 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, ExternalLink, Link2, X } from 'lucide-react';
+import { 
+  Download, ExternalLink, Link2, X, 
+  User, Mail, Hash, GraduationCap, Building, CalendarCheck, CalendarX, FileDigit, Box, Activity 
+} from 'lucide-react';
 import Badge from '../../../components/common/Badge';
 import { useToast } from '../../../hooks/useToast';
 import { appQueryKeys } from '../../../lib/queryKeys';
@@ -259,66 +262,119 @@ export default function InstitutionCredentialDetailsDrawer({
                     <Badge status={credential.status} />
                   </div>
 
-                  <dl className="mt-4 grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
-                    <div>
-                      <dt className="text-neutral-500">Student</dt>
-                      <dd className="font-semibold text-neutral-900">{getStudentName(credential)}</dd>
+                  <div className="mt-5 space-y-3">
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <User size={14} />
+                        Student
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {getStudentName(credential)}
+                      </div>
                     </div>
-                    <div>
-                      <dt className="text-neutral-500">Student Email</dt>
-                      <dd className="font-semibold text-neutral-900">{credential.student?.email || '--'}</dd>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <Mail size={14} />
+                        Student Email
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {credential.student?.email || '--'}
+                      </div>
                     </div>
-                    <div>
-                      <dt className="text-neutral-500">Student Number</dt>
-                      <dd className="font-semibold text-neutral-900">{credential.student?.profile?.studentNumber || '--'}</dd>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <Hash size={14} />
+                        Student Number
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {credential.student?.profile?.studentNumber || '--'}
+                      </div>
                     </div>
-                    <div>
-                      <dt className="text-neutral-500">Program</dt>
-                      <dd className="font-semibold text-neutral-900">{credential.student?.profile?.courseOfStudy || '--'}</dd>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <GraduationCap size={14} />
+                        Program
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {credential.student?.profile?.courseOfStudy || '--'}
+                      </div>
                     </div>
-                    <div>
-                      <dt className="text-neutral-500">Institution</dt>
-                      <dd className="font-semibold text-neutral-900">{getInstitutionName(credential)}</dd>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <Building size={14} />
+                        Institution
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {getInstitutionName(credential)}
+                      </div>
                     </div>
-                    <div>
-                      <dt className="text-neutral-500">Issued Date</dt>
-                      <dd className="font-semibold text-neutral-900">{formatDateTime(credential.issuedDate)}</dd>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <CalendarCheck size={14} />
+                        Issued Date
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {formatDateTime(credential.issuedDate)}
+                      </div>
                     </div>
-                    <div>
-                      <dt className="text-neutral-500">Expiry Date</dt>
-                      <dd className="font-semibold text-neutral-900">{formatDateTime(credential.expiryDate)}</dd>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <CalendarX size={14} />
+                        Expiry Date
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {formatDateTime(credential.expiryDate)}
+                      </div>
                     </div>
-                    <div>
-                      <dt className="text-neutral-500">File Hash</dt>
-                      <dd className="break-all font-semibold text-neutral-900">{credential.fileHash || '--'}</dd>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-start">
+                      <p className="flex items-center gap-2 pt-2 text-sm font-medium text-neutral-600">
+                        <FileDigit size={14} />
+                        File Hash
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {credential.fileHash || '--'}
+                      </div>
                     </div>
-                    <div>
-                      <dt className="text-neutral-500">Chain</dt>
-                      <dd className="font-semibold text-neutral-900">{credential.chain || '--'}</dd>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <Link2 size={14} />
+                        Chain
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {credential.chain || '--'}
+                      </div>
                     </div>
-                    <div>
-                      <dt className="text-neutral-500">Block Number</dt>
-                      <dd className="font-semibold text-neutral-900">
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <Box size={14} />
+                        Block Number
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
                         {typeof credential.blockNumber === 'number' ? credential.blockNumber : '--'}
-                      </dd>
+                      </div>
                     </div>
-                    <div className="md:col-span-2">
-                      <dt className="text-neutral-500">Transaction Hash</dt>
-                      <dd className="flex items-center gap-2 break-all font-semibold text-neutral-900">
-                        <span>{credential.txHash || '--'}</span>
-                        {credential.txHash && (
-                          <button
-                            type="button"
-                            onClick={handleCopyTxHash}
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-100"
-                            title="Copy transaction hash"
-                          >
-                            <Link2 size={13} />
-                          </button>
-                        )}
-                      </dd>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-start">
+                      <p className="flex items-center gap-2 pt-2 text-sm font-medium text-neutral-600">
+                        <Activity size={14} />
+                        Transaction Hash
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        <div className="flex items-center gap-2">
+                          <span className="break-all">{credential.txHash || '--'}</span>
+                          {credential.txHash && (
+                            <button
+                              type="button"
+                              onClick={handleCopyTxHash}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-100 shrink-0"
+                              title="Copy transaction hash"
+                            >
+                              <Link2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </dl>
+                  </div>
                 </section>
               </>
             )}

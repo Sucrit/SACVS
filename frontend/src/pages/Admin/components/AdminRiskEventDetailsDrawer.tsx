@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, RefreshCw, Sparkles, X } from 'lucide-react';
+import { ChevronDown, RefreshCw, Sparkles, X, Activity, Shield, CheckSquare, Tag, AlignLeft, User, Cpu, Clock, CalendarCheck } from 'lucide-react';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
@@ -185,50 +185,96 @@ export default function AdminRiskEventDetailsDrawer({
 
               {!isLoading && event && (
                 <div className="space-y-8">
-                  <section className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                    <div>
-                      <p className="text-xs font-semibold  text-neutral-500">Action</p>
-                      <p className="mt-2 text-lg font-semibold text-neutral-900">{event.action}</p>
+                  <section className="space-y-3">
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <Activity size={14} />
+                        Action
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {event.action}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold  text-neutral-500">Risk Score</p>
-                      <p className="mt-2 text-lg font-semibold text-neutral-900">{event.riskScore.toFixed(2)}</p>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <Activity size={14} />
+                        Risk Score
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {event.riskScore.toFixed(2)}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold  text-neutral-500">Risk Band</p>
-                      <p className="mt-2 text-base font-semibold text-neutral-900">{event.riskBand}</p>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <Shield size={14} />
+                        Risk Band
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {event.riskBand}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold  text-neutral-500">Review Status</p>
-                      <p className={`mt-2 text-sm font-semibold tracking-[0.08em] ${getRiskReviewStyle(event.reviewStatus)}`}>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <CheckSquare size={14} />
+                        Review Status
+                      </p>
+                      <div className={`rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold tracking-[0.08em] uppercase ${getRiskReviewStyle(event.reviewStatus)}`}>
                         {formatRiskReviewStatus(event.reviewStatus)}
+                      </div>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <Tag size={14} />
+                        Reason Code
                       </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {event.reviewReasonCode || '-'}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold  text-neutral-500">Reason Code</p>
-                      <p className="mt-2 text-sm text-neutral-700">{event.reviewReasonCode || '-'}</p>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-start">
+                      <p className="flex items-center gap-2 pt-2 text-sm font-medium text-neutral-600">
+                        <AlignLeft size={14} />
+                        Reason Detail
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {event.reviewReasonDetail || '-'}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold  text-neutral-500">Reason Detail</p>
-                      <p className="mt-2 text-sm text-neutral-700">{event.reviewReasonDetail || '-'}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold  text-neutral-500">Actor</p>
-                      <p className="mt-2 text-sm text-neutral-700">
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <User size={14} />
+                        Actor
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
                         {event.actorRole || 'UNKNOWN'} | {event.actorId || '-'}
+                      </div>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <Cpu size={14} />
+                        Model Version
                       </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {event.modelVersion}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold  text-neutral-500">Model Version</p>
-                      <p className="mt-2 text-sm text-neutral-700">{event.modelVersion}</p>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <Clock size={14} />
+                        Observed At
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {formatDateTime(event.observedAt)}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold  text-neutral-500">Observed At</p>
-                      <p className="mt-2 text-sm text-neutral-700">{formatDateTime(event.observedAt)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold  text-neutral-500">Reviewed At</p>
-                      <p className="mt-2 text-sm text-neutral-700">{formatDateTime(event.reviewedAt)}</p>
+                    <div className="grid gap-2 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+                      <p className="flex items-center gap-2 text-sm font-medium text-neutral-600">
+                        <CalendarCheck size={14} />
+                        Reviewed At
+                      </p>
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-semibold text-neutral-900 break-words">
+                        {formatDateTime(event.reviewedAt)}
+                      </div>
                     </div>
                   </section>
 
