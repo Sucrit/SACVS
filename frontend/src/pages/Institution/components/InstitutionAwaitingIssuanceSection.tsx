@@ -10,7 +10,7 @@ import ActionMenu from '../../../components/common/ActionMenu';
 import Badge from '../../../components/common/Badge';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import { detailField } from '../../../components/common/recordDetailsFieldIcons';
-import Modal from '../../../components/ui/Modal';
+import Modal, { ModalFooter } from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import {
@@ -333,6 +333,27 @@ export default function InstitutionAwaitingIssuanceSection({
         title="Issue Credential"
         description="Attach the required document and specify expiry details for the credential."
         size="md"
+        footer={
+          issuingRequest ? (
+            <ModalFooter
+              leftActions={<Button variant="outline" onClick={() => setIssuingRequestId(null)}>Cancel</Button>}
+              rightActions={
+                <Button
+                  variant="primary"
+                  onClick={handleConfirmIssue}
+                  disabled={
+                    updatingRequestId === issuingRequest.id ||
+                    (!issuingRequest.credentialId && !issueFileByRequestId[issuingRequest.id]) ||
+                    (issuingRequestRequiresExpiry && !issueExpiryByRequestId[issuingRequest.id])
+                  }
+                  loading={updatingRequestId === issuingRequest.id}
+                >
+                  Confirm & Issue
+                </Button>
+              }
+            />
+          ) : null
+        }
       >
         {issuingRequest && (
           <div className="flex flex-col gap-5">
@@ -421,24 +442,6 @@ export default function InstitutionAwaitingIssuanceSection({
                 />
               </div>
             )}
-
-            <div className="mt-4 flex items-center justify-end gap-3 pt-4 border-t border-neutral-100">
-              <Button variant="outline" onClick={() => setIssuingRequestId(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleConfirmIssue}
-                disabled={
-                  updatingRequestId === issuingRequest.id ||
-                  (!issuingRequest.credentialId && !issueFileByRequestId[issuingRequest.id]) ||
-                  (issuingRequestRequiresExpiry && !issueExpiryByRequestId[issuingRequest.id])
-                }
-                loading={updatingRequestId === issuingRequest.id}
-              >
-                Confirm & Issue
-              </Button>
-            </div>
           </div>
         )}
       </Modal>

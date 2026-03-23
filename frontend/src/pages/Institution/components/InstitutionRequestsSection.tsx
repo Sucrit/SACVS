@@ -17,7 +17,7 @@ import { detailField } from '../../../components/common/recordDetailsFieldIcons'
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import ActionMenu from '../../../components/common/ActionMenu';
 import Button from '../../../components/ui/Button';
-import Modal from '../../../components/ui/Modal';
+import Modal, { ModalFooter } from '../../../components/ui/Modal';
 import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import { CredentialRequest, CredentialType } from '../../../services/credential.service';
 import { User } from '../../../services/user.service';
@@ -409,6 +409,36 @@ export default function InstitutionRequestsSection({
         title="Issue Credential"
         description="Attach the required document and specify expiry details for the credential."
         size="md"
+        footer={
+          issuingRequest ? (
+            <ModalFooter
+              leftActions={
+                <Button variant="outline" onClick={() => { setIssuingRequestId(null); setIsIssueFileDragOver(false); }}>
+                  Cancel
+                </Button>
+              }
+              rightActions={
+                <Button
+                  variant="primary"
+                  onClick={() =>
+                    void onRequestAction(issuingRequest.id, 'ISSUE').then(() => {
+                      setIssuingRequestId(null);
+                      setIsIssueFileDragOver(false);
+                    })
+                  }
+                  disabled={
+                    updatingRequestId === issuingRequest.id ||
+                    (!issuingRequest.credentialId && !issueFileByRequestId[issuingRequest.id]) ||
+                    (issuingRequestRequiresExpiry && !issueExpiryByRequestId[issuingRequest.id])
+                  }
+                  loading={updatingRequestId === issuingRequest.id}
+                >
+                  Confirm & Issue
+                </Button>
+              }
+            />
+          ) : null
+        }
       >
         {issuingRequest && (
           <div className="flex flex-col gap-5">
@@ -480,28 +510,6 @@ export default function InstitutionRequestsSection({
                 />
               </div>
             )}
-            <div className="flex items-center justify-end gap-3 border-t border-neutral-100 pt-4">
-              <Button variant="outline" onClick={() => { setIssuingRequestId(null); setIsIssueFileDragOver(false); }}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() =>
-                  void onRequestAction(issuingRequest.id, 'ISSUE').then(() => {
-                    setIssuingRequestId(null);
-                    setIsIssueFileDragOver(false);
-                  })
-                }
-                disabled={
-                  updatingRequestId === issuingRequest.id ||
-                  (!issuingRequest.credentialId && !issueFileByRequestId[issuingRequest.id]) ||
-                  (issuingRequestRequiresExpiry && !issueExpiryByRequestId[issuingRequest.id])
-                }
-                loading={updatingRequestId === issuingRequest.id}
-              >
-                Confirm & Issue
-              </Button>
-            </div>
           </div>
         )}
       </Modal>

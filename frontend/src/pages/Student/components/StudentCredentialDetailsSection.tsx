@@ -17,6 +17,7 @@ import {
 import QRCode from 'qrcode';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/ui/Button';
+import { ModalFooter } from '../../../components/ui/Modal';
 import {
   Credential,
   CredentialService,
@@ -166,6 +167,7 @@ export default function StudentCredentialDetailsSection({
 
   const selectedCredentialHasImage = selectedCredential?.mimeType?.startsWith('image/') ?? false;
   const isRevoked = selectedCredential?.status === 'REVOKED';
+  const isExpired = selectedCredential?.status === 'EXPIRED';
   const isAnchored = Boolean(
     selectedCredential?.chain ||
     selectedCredential?.txHash ||
@@ -263,6 +265,17 @@ export default function StudentCredentialDetailsSection({
                 </p>
                 <p className="mt-1 text-xs text-rose-700/90">
                   This credential has been revoked by {issuerInstitutionName} and is no longer usable.
+                </p>
+              </div>
+            )}
+            {isExpired && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                <p className="inline-flex items-center gap-2 font-semibold">
+                  <AlertTriangle size={14} />
+                  Expired Credential
+                </p>
+                <p className="mt-1 text-xs text-amber-700/90">
+                  This credential has expired and should no longer be treated as an active proof.
                 </p>
               </div>
             )}
@@ -516,26 +529,32 @@ export default function StudentCredentialDetailsSection({
                 Allow document download
               </label>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                icon={<Link2 size={13} />}
-                onClick={() => void handleCopyQrLink()}
-              >
-                Copy Link
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                icon={<RefreshIcon />}
-                onClick={() => void handleGenerateQr()}
-                loading={isGeneratingQr}
-                title="Regenerate one-time QR"
-              >
-                Regenerate
-              </Button>
+            <div className="mt-4 border-t border-neutral-200 pt-4">
+              <ModalFooter
+                leftActions={(
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    icon={<Link2 size={13} />}
+                    onClick={() => void handleCopyQrLink()}
+                  >
+                    Copy Link
+                  </Button>
+                )}
+                rightActions={(
+                  <Button
+                    type="button"
+                    size="sm"
+                    icon={<RefreshIcon />}
+                    onClick={() => void handleGenerateQr()}
+                    loading={isGeneratingQr}
+                    title="Regenerate one-time QR"
+                  >
+                    Regenerate
+                  </Button>
+                )}
+              />
             </div>
             </div>
             </div>

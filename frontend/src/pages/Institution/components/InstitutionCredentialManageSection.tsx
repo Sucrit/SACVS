@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ClipboardCheck, MoreVertical, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
-import Modal from '../../../components/ui/Modal';
+import Modal, { ModalFooter } from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import UserAvatar from '../../../components/common/UserAvatar';
 import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
@@ -237,6 +237,50 @@ export default function InstitutionCredentialManageSection({
         title="Re-issue Credential"
         description="Upload a replacement credential file before re-issuing this record."
         size="md"
+        footer={
+          reissueCredential ? (
+            <ModalFooter
+              leftActions={
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setReissueModalCredentialId(null);
+                    setIsReissueFileDragOver(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+              }
+              rightActions={
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    setReissuingCredentialId(reissueCredential.id);
+                    const file = reissueFileByCredentialId[reissueCredential.id] ?? undefined;
+                    void onCredentialReissue(reissueCredential.id, file)
+                      .then(() => {
+                        setReissueFileByCredentialId(previous => {
+                          const next = { ...previous };
+                          delete next[reissueCredential.id];
+                          return next;
+                        });
+                        setReissueModalCredentialId(null);
+                        setIsReissueFileDragOver(false);
+                      })
+                      .catch(() => undefined)
+                      .finally(() => {
+                        setReissuingCredentialId(current => (current === reissueCredential.id ? null : current));
+                      });
+                  }}
+                  disabled={!reissueFileByCredentialId[reissueCredential.id] || reissuingCredentialId === reissueCredential.id}
+                  loading={reissuingCredentialId === reissueCredential.id}
+                >
+                  Confirm & Re-issue
+                </Button>
+              }
+            />
+          ) : null
+        }
       >
         {reissueCredential && (
           <div className="flex flex-col gap-5">
@@ -302,42 +346,6 @@ export default function InstitutionCredentialManageSection({
                   }))
                 }
               />
-            </div>
-            <div className="flex items-center justify-end gap-3 border-t border-neutral-100 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setReissueModalCredentialId(null);
-                  setIsReissueFileDragOver(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setReissuingCredentialId(reissueCredential.id);
-                  const file = reissueFileByCredentialId[reissueCredential.id] ?? undefined;
-                  void onCredentialReissue(reissueCredential.id, file)
-                    .then(() => {
-                      setReissueFileByCredentialId(previous => {
-                        const next = { ...previous };
-                        delete next[reissueCredential.id];
-                        return next;
-                      });
-                      setReissueModalCredentialId(null);
-                      setIsReissueFileDragOver(false);
-                    })
-                    .catch(() => undefined)
-                    .finally(() => {
-                      setReissuingCredentialId(current => (current === reissueCredential.id ? null : current));
-                    });
-                }}
-                disabled={!reissueFileByCredentialId[reissueCredential.id] || reissuingCredentialId === reissueCredential.id}
-                loading={reissuingCredentialId === reissueCredential.id}
-              >
-                Confirm & Re-issue
-              </Button>
             </div>
           </div>
         )}

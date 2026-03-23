@@ -4,7 +4,7 @@ import { Bell } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import PaginationControls from '../../../components/common/PaginationControls';
-import Modal from '../../../components/ui/Modal';
+import Modal, { ModalFooter } from '../../../components/ui/Modal';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Textarea from '../../../components/ui/Textarea';
@@ -164,8 +164,32 @@ export default function InstitutionAnnouncementsSection({
         title="Send Announcement to Students"
         description="Compose a message and choose which students should receive it."
         size="lg"
+        footer={
+          <ModalFooter
+            leftActions={
+              <button
+                type="button"
+                onClick={() => setIsComposeModalOpen(false)}
+                className="inline-flex h-10 items-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50"
+              >
+                Cancel
+              </button>
+            }
+            rightActions={
+              <button
+                type="submit"
+                form="institution-announcement-form"
+                disabled={isSubmitting}
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Bell size={14} />
+                {isSubmitting ? <ButtonLoadingContent label="Sending" /> : 'Send Announcement'}
+              </button>
+            }
+          />
+        }
       >
-        <form className="space-y-4" onSubmit={event => void handleSubmit(event)}>
+        <form id="institution-announcement-form" className="space-y-4" onSubmit={event => void handleSubmit(event)}>
           <Select
             label="Recipients"
             value={notificationTarget}
@@ -192,23 +216,6 @@ export default function InstitutionAnnouncementsSection({
             required
             className="bg-neutral-50"
           />
-          <div className="flex items-center justify-end gap-3 border-t border-neutral-200 pt-4">
-            <button
-              type="button"
-              onClick={() => setIsComposeModalOpen(false)}
-              className="inline-flex h-10 items-center rounded-xl border border-neutral-200 bg-white px-4 text-sm font-semibold text-neutral-700 transition hover:border-neutral-300 hover:bg-neutral-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Bell size={14} />
-              {isSubmitting ? <ButtonLoadingContent label="Sending" /> : 'Send Announcement'}
-            </button>
-          </div>
         </form>
       </Modal>
     </div>

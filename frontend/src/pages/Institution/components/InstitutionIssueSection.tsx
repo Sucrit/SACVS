@@ -13,6 +13,7 @@ import Badge from '../../../components/common/Badge';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import { detailField } from '../../../components/common/recordDetailsFieldIcons';
 import Button from '../../../components/ui/Button';
+import { ModalFooter } from '../../../components/ui/Modal';
 import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import { useToast } from '../../../hooks/useToast';
 import {
@@ -473,26 +474,32 @@ export default function InstitutionIssueSection({
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="submit"
-                    size="lg"
-                    loading={isDirectIssuing}
-                    icon={<ClipboardCheck size={14} />}
-                    className="rounded-xl"
-                  >
-                    Issue Credential
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="lg"
-                    icon={<X size={14} />}
-                    className="rounded-xl"
-                    onClick={() => setIsDirectIssueModalOpen(false)}
-                  >
-                    Close
-                  </Button>
+                <div className="border-t border-neutral-200 pt-4">
+                  <ModalFooter
+                    leftActions={(
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="lg"
+                        icon={<X size={14} />}
+                        className="rounded-xl"
+                        onClick={() => setIsDirectIssueModalOpen(false)}
+                      >
+                        Close
+                      </Button>
+                    )}
+                    rightActions={(
+                      <Button
+                        type="submit"
+                        size="lg"
+                        loading={isDirectIssuing}
+                        icon={<ClipboardCheck size={14} />}
+                        className="rounded-xl"
+                      >
+                        Issue Credential
+                      </Button>
+                    )}
+                  />
                 </div>
               </form>
             </motion.div>
@@ -818,28 +825,34 @@ export default function InstitutionIssueSection({
                     />
                   </div>
                 )}
-                <div className="flex items-center justify-end gap-3 border-t border-neutral-100 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIssuingRequestId(null);
-                      setIsIssueFileDragActive(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    onClick={handleConfirmRequestIssue}
-                    disabled={
-                      updatingRequestId === issuingRequest.id ||
-                      (!issuingRequest.credentialId && !issueFileByRequestId[issuingRequest.id]) ||
-                      (issuingRequestRequiresExpiry && !issueExpiryByRequestId[issuingRequest.id])
-                    }
-                    loading={updatingRequestId === issuingRequest.id}
-                  >
-                    Confirm & Issue
-                  </Button>
+                <div className="border-t border-neutral-100 pt-4">
+                  <ModalFooter
+                    leftActions={(
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIssuingRequestId(null);
+                          setIsIssueFileDragActive(false);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                    rightActions={(
+                      <Button
+                        variant="primary"
+                        onClick={handleConfirmRequestIssue}
+                        disabled={
+                          updatingRequestId === issuingRequest.id ||
+                          (!issuingRequest.credentialId && !issueFileByRequestId[issuingRequest.id]) ||
+                          (issuingRequestRequiresExpiry && !issueExpiryByRequestId[issuingRequest.id])
+                        }
+                        loading={updatingRequestId === issuingRequest.id}
+                      >
+                        Confirm & Issue
+                      </Button>
+                    )}
+                  />
                 </div>
               </div>
             </motion.div>
@@ -1214,31 +1227,37 @@ export default function InstitutionIssueSection({
                     }
                   />
                 </div>
-                <div className="flex items-center justify-end gap-3 border-t border-neutral-100 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setReissueModalCredentialId(null);
-                      setIsReissueFileDragActive(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      setReissuingCredentialId(reissueCredential.id);
-                      void handleConfirmCredentialReissue()
-                        .catch(() => undefined)
-                        .finally(() =>
-                          setReissuingCredentialId(current => (current === reissueCredential.id ? null : current)),
-                        );
-                    }}
-                    disabled={!reissueFileByCredentialId[reissueCredential.id] || reissuingCredentialId === reissueCredential.id}
-                    loading={reissuingCredentialId === reissueCredential.id}
-                  >
-                    Confirm & Re-issue
-                  </Button>
+                <div className="border-t border-neutral-100 pt-4">
+                  <ModalFooter
+                    leftActions={(
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setReissueModalCredentialId(null);
+                          setIsReissueFileDragActive(false);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                    rightActions={(
+                      <Button
+                        variant="primary"
+                        onClick={() => {
+                          setReissuingCredentialId(reissueCredential.id);
+                          void handleConfirmCredentialReissue()
+                            .catch(() => undefined)
+                            .finally(() =>
+                              setReissuingCredentialId(current => (current === reissueCredential.id ? null : current)),
+                            );
+                        }}
+                        disabled={!reissueFileByCredentialId[reissueCredential.id] || reissuingCredentialId === reissueCredential.id}
+                        loading={reissuingCredentialId === reissueCredential.id}
+                      >
+                        Confirm & Re-issue
+                      </Button>
+                    )}
+                  />
                 </div>
               </div>
             </motion.div>

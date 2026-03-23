@@ -9,6 +9,7 @@ interface ModalProps {
   title?: string;
   description?: string;
   children: ReactNode;
+  footer?: ReactNode;
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
@@ -20,7 +21,28 @@ const sizeClasses: Record<string, string> = {
   xl: 'max-w-xl',
 };
 
-export default function Modal({ open, onClose, title, description, children, className, size = 'md' }: ModalProps) {
+interface ModalFooterProps {
+  leftActions?: ReactNode;
+  rightActions?: ReactNode;
+  className?: string;
+}
+
+export function ModalFooter({ leftActions, rightActions, className }: ModalFooterProps) {
+  const alignmentClass = leftActions && rightActions
+    ? 'sm:justify-between'
+    : rightActions
+      ? 'sm:justify-end'
+      : 'sm:justify-start';
+
+  return (
+    <div className={twMerge('flex flex-col gap-3 sm:flex-row sm:items-center', alignmentClass, className)}>
+      {leftActions ? <div className="flex flex-wrap items-center gap-2">{leftActions}</div> : null}
+      {rightActions ? <div className="flex flex-wrap items-center gap-2 sm:justify-end">{rightActions}</div> : null}
+    </div>
+  );
+}
+
+export default function Modal({ open, onClose, title, description, children, footer, className, size = 'md' }: ModalProps) {
   return (
     <AnimatePresence>
       {open && (
@@ -60,6 +82,7 @@ export default function Modal({ open, onClose, title, description, children, cla
               </div>
             )}
             <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
+            {footer ? <div className="border-t border-neutral-200 px-5 py-4">{footer}</div> : null}
           </motion.div>
         </motion.div>
       )}

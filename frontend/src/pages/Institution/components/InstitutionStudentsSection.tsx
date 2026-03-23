@@ -8,7 +8,7 @@ import ButtonLoadingContent from '../../../components/common/ButtonLoadingConten
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import Input from '../../../components/ui/Input';
-import Modal from '../../../components/ui/Modal';
+import Modal, { ModalFooter } from '../../../components/ui/Modal';
 import Select from '../../../components/ui/Select';
 import { User, UserStatus } from '../../../services/user.service';
 import { StudentFormState, StudentStatusFilter, STUDENT_STATUS_OPTIONS } from '../types';
@@ -536,19 +536,25 @@ export default function InstitutionStudentsSection({
                     ))}
                 </Select>
               </div>
-              <div className="flex items-center gap-2">
-                <button type="submit" disabled={isSubmittingStudent} className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-black disabled:opacity-60">
-                  <UserPlus size={14} />
-                  {isSubmittingStudent ? <ButtonLoadingContent label="Creating" /> : 'Create Student'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
-                >
-                  <X size={14} />
-                  Close
-                </button>
+              <div className="border-t border-neutral-200 pt-4">
+                <ModalFooter
+                  leftActions={(
+                    <button
+                      type="button"
+                      onClick={() => setActiveModal(null)}
+                      className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
+                    >
+                      <X size={14} />
+                      Close
+                    </button>
+                  )}
+                  rightActions={(
+                    <button type="submit" disabled={isSubmittingStudent} className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-black disabled:opacity-60">
+                      <UserPlus size={14} />
+                      {isSubmittingStudent ? <ButtonLoadingContent label="Creating" /> : 'Create Student'}
+                    </button>
+                  )}
+                />
               </div>
             </form>
           </motion.div>
@@ -741,9 +747,15 @@ export default function InstitutionStudentsSection({
                     ))}
                 </Select>
               </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-black"><Check size={14} />Save Changes</button>
-                <button type="button" onClick={onCancelEditStudent} className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"><X size={14} />Cancel</button>
+              <div className="border-t border-neutral-200 pt-4">
+                <ModalFooter
+                  leftActions={(
+                    <button type="button" onClick={onCancelEditStudent} className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"><X size={14} />Cancel</button>
+                  )}
+                  rightActions={(
+                    <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-neutral-900 px-4 text-sm font-semibold text-white hover:bg-black"><Check size={14} />Save Changes</button>
+                  )}
+                />
               </div>
             </form>
           </motion.div>

@@ -6,6 +6,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/ui/Button';
+import { ModalFooter } from '../../../components/ui/Modal';
 import SearchFilterModal, { SearchFilterGroup } from '../../../components/common/SearchFilterModal';
 import {
   Credential,
@@ -25,6 +26,7 @@ import {
 
 type CredentialTypeFilter = 'ALL' | CredentialType;
 type DateRangeFilter = 'ALL' | 'TODAY' | 'THIS_WEEK' | 'THIS_MONTH';
+type VisibilityFilterFlag = 'true' | 'false';
 
 interface StudentCredentialsSectionProps {
   credentials: Credential[];
@@ -56,9 +58,11 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 const CredentialPreview = ({
   credential,
   isRevoked,
+  isExpired,
 }: {
   credential: Credential;
   isRevoked: boolean;
+  isExpired: boolean;
 }) => {
   const isImage = credential.mimeType?.startsWith('image/') ?? false;
   const isPdf = isPdfFile(credential);
@@ -136,6 +140,15 @@ const CredentialPreview = ({
     );
   }
 
+  if (isExpired) {
+    return (
+      <div className="flex h-36 w-full flex-col items-center justify-center gap-2 bg-neutral-100 text-neutral-500">
+        <FileText size={24} />
+        <p className="text-xs font-medium uppercase tracking-wide">This credential has expired.</p>
+      </div>
+    );
+  }
+
   if (isImage && previewUrl) {
     return (
       <img
@@ -188,6 +201,8 @@ export default function StudentCredentialsSection({
   const [searchTerm, setSearchTerm] = useSearchParamsState<string>('cq', '');
   const [typeFilter, setTypeFilter] = useSearchParamsState<CredentialTypeFilter>('ct', 'ALL');
   const [dateFilter, setDateFilter] = useSearchParamsState<DateRangeFilter>('cd', 'ALL');
+  const [hideRevokedFlag, setHideRevokedFlag] = useSearchParamsState<VisibilityFilterFlag>('chr', 'false');
+  const [hideExpiredFlag, setHideExpiredFlag] = useSearchParamsState<VisibilityFilterFlag>('che', 'false');
   const [shareCredential, setShareCredential] = useState<Credential | null>(null);
   const [qrToken, setQrToken] = useState<GeneratedQrTokenResponse | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -197,6 +212,8 @@ export default function StudentCredentialsSection({
   const [allowDocumentDownload, setAllowDocumentDownload] = useState(false);
   const { requestStepUpToken, stepUpModal } = useStepUp();
   const { showToast } = useToast();
+  const hideRevoked = hideRevokedFlag === 'true';
+  const hideExpired = hideExpiredFlag === 'true';
 
   const matchesDateRange = (value: string | null | undefined, range: DateRangeFilter) => {
     if (range === 'ALL') return true;
@@ -358,6 +375,12 @@ export default function StudentCredentialsSection({
   const filteredCredentials = useMemo(() => {
     const keyword = searchTerm.trim().toLowerCase();
     return credentials.filter(credential => {
+      if (hideRevoked && credential.status === 'REVOKED') {
+        return false;
+      }
+      if (hideExpired && credential.status === 'EXPIRED') {
+        return false;
+      }
       if (typeFilter !== 'ALL' && credential.type !== typeFilter) {
         return false;
       }
@@ -379,7 +402,7 @@ export default function StudentCredentialsSection({
 
       return searchable.includes(keyword);
     });
-  }, [credentials, dateFilter, searchTerm, typeFilter]);
+  }, [credentials, dateFilter, hideExpired, hideRevoked, searchTerm, typeFilter]);
 
   const filterGroups = useMemo<SearchFilterGroup[]>(() => [
     {
@@ -404,7 +427,27 @@ export default function StudentCredentialsSection({
       })),
       onChange: value => setDateFilter(value as DateRangeFilter),
     },
-  ], [dateFilter, typeFilter]);
+    {
+      id: 'credential-hide-revoked',
+      type: 'boolean',
+      label: 'Revoked credentials',
+      value: hideRevoked,
+      defaultValue: false,
+      trueLabel: 'Hide revoked',
+      falseLabel: 'Show revoked',
+      onChange: value => setHideRevokedFlag(value ? 'true' : 'false'),
+    },
+    {
+      id: 'credential-hide-expired',
+      type: 'boolean',
+      label: 'Expired credentials',
+      value: hideExpired,
+      defaultValue: false,
+      trueLabel: 'Hide expired',
+      falseLabel: 'Show expired',
+      onChange: value => setHideExpiredFlag(value ? 'true' : 'false'),
+    },
+  ], [dateFilter, hideExpired, hideRevoked, setDateFilter, setHideExpiredFlag, setHideRevokedFlag, setTypeFilter, typeFilter]);
 
   return (
     <Card title={heading || 'Digital Credentials'}>
@@ -426,6 +469,32 @@ export default function StudentCredentialsSection({
             description="Refine the credential gallery by type or issuance window."
           />
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setHideRevokedFlag(hideRevoked ? 'false' : 'true')}
+            className={`inline-flex h-8 items-center rounded-full border px-3 text-xs font-semibold transition-colors ${
+              hideRevoked
+                ? 'border-neutral-900 bg-neutral-900 text-white hover:bg-black'
+                : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
+            }`}
+            aria-pressed={hideRevoked}
+          >
+            {hideRevoked ? 'Revoked hidden' : 'Hide revoked'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setHideExpiredFlag(hideExpired ? 'false' : 'true')}
+            className={`inline-flex h-8 items-center rounded-full border px-3 text-xs font-semibold transition-colors ${
+              hideExpired
+                ? 'border-neutral-900 bg-neutral-900 text-white hover:bg-black'
+                : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50'
+            }`}
+            aria-pressed={hideExpired}
+          >
+            {hideExpired ? 'Expired hidden' : 'Hide expired'}
+          </button>
+        </div>
         {isLoadingCredentials && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map(key => (
@@ -446,12 +515,13 @@ export default function StudentCredentialsSection({
             {filteredCredentials.map(credential => {
               const isSelected = credential.id === selectedCredentialId;
               const isRevoked = credential.status === 'REVOKED';
+              const isExpired = credential.status === 'EXPIRED';
 
               return (
                 <article
                   key={credential.id}
                   onClick={() => onSelectCredential(credential.id)}
-                  className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-lg border bg-white transition-all duration-150 hover:shadow-md ${isSelected ? 'border-neutral-900 ring-1 ring-neutral-900' : 'border-neutral-200'} ${isRevoked ? 'border-error-200' : ''}`}
+                  className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-lg border bg-white transition-all duration-150 hover:shadow-md ${isSelected ? 'border-neutral-900 ring-1 ring-neutral-900' : 'border-neutral-200'} ${isRevoked ? 'border-error-200' : ''} ${isExpired ? 'border-amber-200' : ''}`}
                 >
                   <div className="flex flex-1 flex-col p-3">
                     <div className="mb-2 flex items-center justify-between gap-2">
@@ -459,7 +529,7 @@ export default function StudentCredentialsSection({
                         <span className="text-[11px] font-medium text-neutral-500">
                           {credential.type}
                         </span>
-                        {isRevoked && (
+                        {(isRevoked || isExpired) && (
                           <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.08em] ${getStudentStatusTextClass(credential.status)}`}>
                             <AlertTriangle size={10} />
                             {formatStudentStatusLabel(credential.status)}
@@ -504,7 +574,7 @@ export default function StudentCredentialsSection({
                     </div>
 
                     <div className="relative mb-3 overflow-hidden rounded-md bg-neutral-50">
-                      <CredentialPreview credential={credential} isRevoked={isRevoked} />
+                      <CredentialPreview credential={credential} isRevoked={isRevoked} isExpired={isExpired} />
                     </div>
                     <h3 className="line-clamp-2 text-center text-sm font-semibold leading-snug text-neutral-900">{credential.title}</h3>
                   </div>
@@ -607,25 +677,31 @@ export default function StudentCredentialsSection({
                 </span>
               </label>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                icon={<Link2 size={13} />}
-                onClick={() => void handleCopyQrLink()}
-              >
-                Copy Link
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => void handleRegenerateQr()}
-                loading={isGeneratingQr}
-                title="Regenerate one-time QR"
-              >
-                Regenerate
-              </Button>
+            <div className="mt-4 border-t border-neutral-200 pt-4">
+              <ModalFooter
+                leftActions={(
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    icon={<Link2 size={13} />}
+                    onClick={() => void handleCopyQrLink()}
+                  >
+                    Copy Link
+                  </Button>
+                )}
+                rightActions={(
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void handleRegenerateQr()}
+                    loading={isGeneratingQr}
+                    title="Regenerate one-time QR"
+                  >
+                    Regenerate
+                  </Button>
+                )}
+              />
             </div>
             </div>
             </div>
