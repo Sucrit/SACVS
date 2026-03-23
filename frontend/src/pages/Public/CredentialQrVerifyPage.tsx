@@ -297,9 +297,9 @@ export default function CredentialQrVerifyPage() {
               <>
                 {!result?.valid && (
                   <section className="border-b border-neutral-200 px-0 pb-4 pt-0.5 sm:pb-5">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                    <div className="flex min-h-[180px] flex-col items-center justify-center gap-3 text-center">
                       {summary.mediaSrc ? (
-                        <div className="shrink-0">
+                        <div className="flex flex-col items-center">
                           {summary.shortDeniedMessage ? (
                             <p className="mb-2 text-sm font-semibold text-neutral-700">
                               {summary.shortDeniedMessage}

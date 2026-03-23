@@ -1,6 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import {
   Credential,
   CredentialRequest,
@@ -43,9 +44,21 @@ const timeSensitiveQueryOptions = {
   refetchOnWindowFocus: 'always' as const,
 };
 
+const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
+
 const studentCredentialsQueryOptions = () => ({
   queryKey: appQueryKeys.student.credentials(),
-  queryFn: () => CredentialService.listMine(),
+  queryFn: async () => {
+    try {
+      return await CredentialService.listMine();
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 401) {
+        await wait(350);
+        return await CredentialService.listMine();
+      }
+      throw error;
+    }
+  },
 });
 
 const studentRequestsQueryOptions = () => ({

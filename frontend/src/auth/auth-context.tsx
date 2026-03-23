@@ -18,6 +18,8 @@ interface LegacyAuthContextValue {
 
 const LegacyAuthContext = createContext<LegacyAuthContextValue | undefined>(undefined);
 
+const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
+
 export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
   const { isLoaded, isSignedIn, getToken, signOut } = useAuth();
   const [user, setUser] = useState<User | null>(null);
@@ -29,6 +31,23 @@ export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
     queryClient.clear();
     lastResolvedUserIdRef.current = null;
   }, []);
+
+  const resolveAuthToken = useCallback(async (): Promise<string | null> => {
+    const retryDelaysMs = [0, 150, 350, 750];
+
+    for (const delayMs of retryDelaysMs) {
+      if (delayMs > 0) {
+        await wait(delayMs);
+      }
+
+      const token = await getToken();
+      if (token) {
+        return token;
+      }
+    }
+
+    return null;
+  }, [getToken]);
 
   const refreshUser = useCallback(async (): Promise<User | null> => {
     if (!isSignedIn) {
@@ -49,14 +68,15 @@ export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
           queryKey: appQueryKeys.auth.currentUser(),
           staleTime: 1000 * 60,
           queryFn: async () => {
-            setAuthTokenGetter(async () => {
-              const token = await getToken();
-              return token ?? null;
-            });
+            setAuthTokenGetter(resolveAuthToken);
 
             try {
               return await UserService.getMe();
             } catch (error) {
+              if (isAxiosError(error) && error.response?.status === 401) {
+                await wait(300);
+                return await UserService.getMe();
+              }
               if (isAxiosError(error) && error.response?.status === 404) {
                 return null;
               }
@@ -93,7 +113,7 @@ export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
 
     refreshInFlightRef.current = request;
     return request;
-  }, [getToken, isSignedIn, resetSessionCache]);
+  }, [isSignedIn, resetSessionCache, resolveAuthToken]);
 
   useEffect(() => {
     if (!isLoaded) {
@@ -125,15 +145,23 @@ export const LegacyAuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) {
+      setAuthTokenGetter(null);
+      return;
+    }
+
+    setAuthTokenGetter(resolveAuthToken);
+  }, [isLoaded, isSignedIn, resolveAuthToken]);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) {
       realtimeService.stop();
       return;
     }
     realtimeService.start(async () => {
-      const token = await getToken();
-      return token ?? null;
+      return resolveAuthToken();
     });
     return () => realtimeService.stop();
-  }, [getToken, isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, resolveAuthToken]);
 
   const logout = useCallback(async () => {
     await signOut({ redirectUrl: '/' });
