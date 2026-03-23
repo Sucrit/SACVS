@@ -587,19 +587,23 @@ export default function InstitutionRequestsSection({
                 ) : 'Not applicable',
                 CalendarCheck,
               ),
-              detailField(
-                'Rejection Reason',
-                (
-                  <textarea
-                    value={rejectionReasonByRequestId[selectedRequest.id] || ''}
-                    onChange={event => onReasonChange(selectedRequest.id, event.target.value)}
-                    placeholder="Reason if rejecting..."
-                    rows={4}
-                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs outline-none"
-                  />
-                ),
-                AlignLeft,
-              ),
+              ...(selectedRequest.status === 'PENDING'
+                ? [
+                    detailField(
+                      'Rejection Reason',
+                      (
+                        <textarea
+                          value={rejectionReasonByRequestId[selectedRequest.id] || ''}
+                          onChange={event => onReasonChange(selectedRequest.id, event.target.value)}
+                          placeholder="Reason if rejecting..."
+                          rows={4}
+                          className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs outline-none"
+                        />
+                      ),
+                      AlignLeft,
+                    ),
+                  ]
+                : []),
             ],
           },
         ] : []}

@@ -7,11 +7,10 @@ import {
   useUser,
 } from '@clerk/clerk-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Building2, Check, Send, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Check, Send, ShieldAlert } from 'lucide-react';
 import { useLegacyAuth } from '../auth/auth-context';
 import {
   CompleteOrganizationOnboardingPayload,
-  OrganizationRole,
   UserRole,
   User,
   UserService,
@@ -24,7 +23,6 @@ import { useToast } from '../hooks/useToast';
 import { toErrorMessage } from '../utils/toast-message';
 
 type AuthMode = 'signin' | 'signup';
-const SIGNUP_ROLE_STORAGE_KEY = 'sacvs.signup.role';
 
 const ROLE_HOME_ROUTES: Record<UserRole, string> = {
   STUDENT: '/student',
@@ -70,7 +68,6 @@ export default function AuthPage() {
 
   const normalizedMode: AuthMode = mode === 'signin' || mode === 'signup' ? mode : 'signup';
   const [authMode, setAuthMode] = useState<AuthMode>(normalizedMode);
-  const [selectedRole, setSelectedRole] = useState<OrganizationRole | null>(null);
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -89,21 +86,6 @@ export default function AuthPage() {
 
   const getRoleHomeRoute = useCallback((role: UserRole) => ROLE_HOME_ROUTES[role], []);
 
-  const setAndPersistRole = useCallback((role: OrganizationRole | null) => {
-    setSelectedRole(role);
-
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (role) {
-      window.sessionStorage.setItem(SIGNUP_ROLE_STORAGE_KEY, role);
-      return;
-    }
-
-    window.sessionStorage.removeItem(SIGNUP_ROLE_STORAGE_KEY);
-  }, []);
-
   useEffect(() => {
     setAuthMode(normalizedMode);
     setAuthError(null);
@@ -112,19 +94,6 @@ export default function AuthPage() {
     setIsHydratingSignup(false);
     setSuspendedUser(null);
     setConfirmVerification(false);
-
-    if (normalizedMode === 'signup' && typeof window !== 'undefined') {
-      const persistedRole = window.sessionStorage.getItem(SIGNUP_ROLE_STORAGE_KEY);
-      if (persistedRole === 'INSTITUTION') {
-        setSelectedRole(persistedRole);
-      } else {
-        setSelectedRole(null);
-      }
-    }
-
-    if (normalizedMode !== 'signup') {
-      setSelectedRole(null);
-    }
   }, [normalizedMode]);
 
   useEffect(() => {
@@ -173,7 +142,6 @@ export default function AuthPage() {
 
         if (localUser) {
           if (localUser.role === 'INSTITUTION') {
-            setAndPersistRole(localUser.role);
             setFirstName(localUser.firstName || clerkUser.firstName || '');
             setMiddleName(localUser.middleName || '');
             setLastName(localUser.lastName || clerkUser.lastName || '');
@@ -213,7 +181,7 @@ export default function AuthPage() {
     return () => {
       isCancelled = true;
     };
-  }, [authMode, clerkUser, currentEmail, getRoleHomeRoute, isClerkLoaded, isSignedIn, navigate, refreshUser, setAndPersistRole, showToast]);
+  }, [authMode, clerkUser, currentEmail, getRoleHomeRoute, isClerkLoaded, isSignedIn, navigate, refreshUser, showToast]);
 
   useEffect(() => {
     if (!isClerkLoaded || !isSignedIn || authMode !== 'signin') {
@@ -264,10 +232,6 @@ export default function AuthPage() {
   }, [currentEmail, organizationEmail]);
 
   const validateOrganizationOnboarding = () => {
-    if (!selectedRole) {
-      return 'Choose your account type to continue.';
-    }
-
     if (!firstName.trim()) {
       return 'First name is required.';
     }
@@ -296,7 +260,7 @@ export default function AuthPage() {
       return 'Phone number must use +63 followed by 10 digits (e.g. +639123456789).';
     }
 
-    if (selectedRole === 'INSTITUTION' && !accreditationNumber.trim()) {
+    if (!accreditationNumber.trim()) {
       return 'Accreditation number is required for institution accounts.';
     }
 
@@ -321,11 +285,6 @@ export default function AuthPage() {
 
     if (!isSignedIn) {
       setAuthError('Authentication session expired. Please authenticate again.');
-      return;
-    }
-
-    if (!selectedRole) {
-      setAuthError('Choose your account type to continue.');
       return;
     }
 
@@ -362,11 +321,9 @@ export default function AuthPage() {
     }
   };
 
-  const currentStep = !selectedRole ? 1 : isSignedIn ? 3 : 2;
-  const isRoleStep = !selectedRole;
-  const isAuthStep = !!selectedRole && !isSignedIn;
-  const isProfileStep = !!selectedRole && isSignedIn;
-  const roleDisplay = 'Institution';
+  const currentStep = isSignedIn ? 2 : 1;
+  const isAuthStep = !isSignedIn;
+  const isProfileStep = isSignedIn;
   const authPageBackgroundStyle = {
     backgroundImage: `url(${heroBg})`,
     backgroundSize: 'cover',
@@ -509,17 +466,17 @@ export default function AuthPage() {
       </div>
 
       <div className="mx-auto mb-5 w-full max-w-[560px]">
-        <div className="mx-auto flex w-full max-w-[460px] items-center gap-2 px-1 md:px-2">
+        <div className="mx-auto flex w-full max-w-[360px] items-center gap-2 px-1 md:px-2">
           <div className="flex flex-col items-center gap-2">
             <div
               className={`flex size-8 items-center justify-center rounded-full border text-xs font-semibold ${
                 currentStep >= 1 ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-300 bg-white text-neutral-400'
               }`}
             >
-              {currentStep > 1 ? <Check size={14} /> : 1}
+              1
             </div>
             <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${currentStep >= 1 ? 'text-neutral-900' : 'text-neutral-400'}`}>
-              Role
+              Account
             </span>
           </div>
           <div className={`h-px flex-1 ${currentStep >= 2 ? 'bg-neutral-400' : 'bg-neutral-200'}`}></div>
@@ -532,19 +489,6 @@ export default function AuthPage() {
               {currentStep > 2 ? <Check size={14} /> : 2}
             </div>
             <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${currentStep >= 2 ? 'text-neutral-900' : 'text-neutral-400'}`}>
-              Account
-            </span>
-          </div>
-          <div className={`h-px flex-1 ${currentStep >= 3 ? 'bg-neutral-400' : 'bg-neutral-200'}`}></div>
-          <div className="flex flex-col items-center gap-2">
-            <div
-              className={`flex size-8 items-center justify-center rounded-full border text-xs font-semibold ${
-                currentStep >= 3 ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-300 bg-white text-neutral-400'
-              }`}
-            >
-              3
-            </div>
-            <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${currentStep >= 3 ? 'text-neutral-900' : 'text-neutral-400'}`}>
               Details
             </span>
           </div>
@@ -576,31 +520,12 @@ export default function AuthPage() {
           </div>
         )}
 
-        {isRoleStep && (
-          <div className="space-y-6">
+        {isAuthStep && isClerkLoaded && !isHydratingSignup && (
+          <div className="space-y-4">
             <div className="space-y-1 text-center">
               <h3 className="text-lg font-semibold tracking-tight text-neutral-900">Institution Registration</h3>
               <p className="text-sm text-neutral-500">Self-signup is available only for institution accounts.</p>
             </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              <button
-                type="button"
-                onClick={() => setAndPersistRole('INSTITUTION')}
-                className="rounded-lg border border-neutral-200 bg-neutral-50 p-5 text-left transition hover:border-neutral-400 hover:bg-white"
-              >
-                <div className="mb-3 inline-flex rounded-full bg-neutral-900/5 p-2 text-neutral-700">
-                  <Building2 size={18} />
-                </div>
-                <p className="text-base font-semibold text-neutral-900">Institution</p>
-                <p className="mt-1 text-sm text-neutral-600">For schools and academic institutions issuing and validating records.</p>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {isAuthStep && isClerkLoaded && !isHydratingSignup && (
-          <div className="space-y-4">
             <SignedOut>
               <div className="flex justify-center">
                 <SignUp
@@ -628,7 +553,7 @@ export default function AuthPage() {
         {isProfileStep && !isHydratingSignup && (
           <form className="space-y-6" onSubmit={handleFinalizeOnboarding}>
             <div className="space-y-1 text-center">
-              <h3 className="text-lg font-semibold tracking-tight text-neutral-900">Complete {roleDisplay} Profile</h3>
+              <h3 className="text-lg font-semibold tracking-tight text-neutral-900">Complete Institution Profile</h3>
               <p className="text-sm text-neutral-500">Provide required details that match your organization record.</p>
               {currentEmail && <p className="text-xs text-neutral-500">Authenticated email: {currentEmail}</p>}
             </div>
@@ -704,7 +629,7 @@ export default function AuthPage() {
           </form>
         )}
 
-        {authError && (isRoleStep || isAuthStep) && <p className="mt-4 text-sm text-rose-700">{authError}</p>}
+        {authError && isAuthStep && <p className="mt-4 text-sm text-rose-700">{authError}</p>}
       </div>
     </div>
   );

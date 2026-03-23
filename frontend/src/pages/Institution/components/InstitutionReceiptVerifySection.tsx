@@ -78,6 +78,46 @@ const pickPreferredCamera = (devices: Array<{ id: string; label?: string }>) => 
   return scoredDevices[0]?.device?.id ?? devices[0].id;
 };
 
+const startScannerWithFallbacks = async (
+  scanner: any,
+  preferredCameraId: string | null,
+  onDecoded: (decodedText: string) => Promise<void> | void,
+) => {
+  const startConfig = { fps: 10, qrbox: 220 };
+  const candidates: Array<string | MediaTrackConstraints> = [];
+
+  if (preferredCameraId) {
+    candidates.push(preferredCameraId);
+  }
+
+  candidates.push(
+    { facingMode: { ideal: 'environment' } },
+    { facingMode: 'environment' },
+    { facingMode: 'user' },
+    {},
+  );
+
+  let lastError: unknown = null;
+
+  for (const candidate of candidates) {
+    try {
+      await scanner.start(
+        candidate,
+        startConfig,
+        onDecoded,
+        () => {
+          // no-op decode error callback
+        },
+      );
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
+};
+
 export default function InstitutionReceiptVerifySection() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [mode, setMode] = useState<EntryMode>('code');
@@ -252,25 +292,23 @@ export default function InstitutionReceiptVerifySection() {
       const permissionStream = await navigator.mediaDevices.getUserMedia({ video: true });
       permissionStream.getTracks().forEach(track => track.stop());
 
-      const moduleName = 'html5-qrcode';
-      const scannerModule: any = await import(/* @vite-ignore */ moduleName);
+      const scannerModule: any = await import('html5-qrcode');
       const Html5Qrcode = scannerModule.Html5Qrcode;
-      const devices = await Html5Qrcode.getCameras();
-      const preferredCamera = pickPreferredCamera(devices);
+      let preferredCamera: string | null = null;
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        preferredCamera = pickPreferredCamera(devices);
+      } catch (cameraQueryError) {
+        console.warn('Unable to enumerate cameras for QR scanner, falling back to default constraints.', cameraQueryError);
+      }
+
       const scanner = new Html5Qrcode(SCANNER_ELEMENT_ID);
       scannerRef.current = scanner;
-      await scanner.start(
-        preferredCamera ?? { facingMode: { ideal: 'environment' } },
-        { fps: 10, qrbox: 220 },
-        async (decodedText: string) => {
+      await startScannerWithFallbacks(scanner, preferredCamera, async (decodedText: string) => {
           setLinkInput(decodedText);
           void handleVerifyToken(decodedText);
           await stopScanner();
-        },
-        () => {
-          // no-op decode error callback
-        },
-      );
+        });
       setIsScannerActive(true);
       setIsStartingScanner(false);
     } catch (err: any) {
