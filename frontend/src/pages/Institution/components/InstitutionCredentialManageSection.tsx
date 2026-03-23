@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ClipboardCheck, MoreVertical, Upload } from 'lucide-react';
 import Card from '../../../components/common/Card';
+import LocalDocumentPreview from '../../../components/common/LocalDocumentPreview';
 import Modal, { ModalFooter } from '../../../components/ui/Modal';
 import Button from '../../../components/ui/Button';
 import UserAvatar from '../../../components/common/UserAvatar';
@@ -346,6 +347,7 @@ export default function InstitutionCredentialManageSection({
                   }))
                 }
               />
+              <LocalDocumentPreview file={reissueFileByCredentialId[reissueCredential.id] ?? null} />
             </div>
           </div>
         )}

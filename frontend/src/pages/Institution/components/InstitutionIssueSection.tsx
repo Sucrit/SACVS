@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import Card from '../../../components/common/Card';
 import Badge from '../../../components/common/Badge';
+import LocalDocumentPreview from '../../../components/common/LocalDocumentPreview';
 import RecordDetailsDrawer from '../../../components/common/RecordDetailsDrawer';
 import { detailField } from '../../../components/common/recordDetailsFieldIcons';
 import Button from '../../../components/ui/Button';
@@ -472,6 +473,7 @@ export default function InstitutionIssueSection({
                       Selected: <span className="font-semibold text-neutral-800">{directFile.name}</span>
                     </p>
                   )}
+                  <LocalDocumentPreview file={directFile} />
                 </div>
 
                 <div className="border-t border-neutral-200 pt-4">
@@ -808,6 +810,7 @@ export default function InstitutionIssueSection({
                     className="hidden"
                     onChange={event => onIssueFileChange(issuingRequest.id, event.target.files?.[0] ?? null)}
                   />
+                  <LocalDocumentPreview file={issueFileByRequestId[issuingRequest.id] ?? null} />
                 </div>
                 {supportsExpiryDate(issuingRequest.type) && (
                   <div className="flex flex-col gap-1.5">
@@ -1226,6 +1229,7 @@ export default function InstitutionIssueSection({
                       }))
                     }
                   />
+                  <LocalDocumentPreview file={reissueFileByCredentialId[reissueCredential.id] ?? null} />
                 </div>
                 <div className="border-t border-neutral-100 pt-4">
                   <ModalFooter

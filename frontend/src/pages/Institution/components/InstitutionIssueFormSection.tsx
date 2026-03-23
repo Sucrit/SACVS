@@ -2,6 +2,7 @@ import { FormEvent, useDeferredValue, useEffect, useMemo, useRef, useState } fro
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, ClipboardCheck, Search, Upload, X } from 'lucide-react';
 import Card from '../../../components/common/Card';
+import LocalDocumentPreview from '../../../components/common/LocalDocumentPreview';
 import UserAvatar from '../../../components/common/UserAvatar';
 import { getUploadDropzoneClass, UPLOAD_DROPZONE_CTA_CLASS } from '../../../components/common/uploadSurface';
 import Button from '../../../components/ui/Button';
@@ -527,6 +528,7 @@ export default function InstitutionIssueFormSection({
                   )}
                 </p>
               </label>
+              <LocalDocumentPreview file={directFile} />
             </div>
         </div>
 
