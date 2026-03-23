@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, RefreshCw, Sparkles, X, Activity, Shield, CheckSquare, Tag, AlignLeft, User, Cpu, Clock, CalendarCheck } from 'lucide-react';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
+import { DrawerActions } from '../../../components/common/RecordDetailsDrawer';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
-import { ModalFooter } from '../../../components/ui/Modal';
 import Select from '../../../components/ui/Select';
 import Textarea from '../../../components/ui/Textarea';
 import {
@@ -549,51 +549,45 @@ export default function AdminRiskEventDetailsDrawer({
                       Save notes only or assign a final review label for this event.
                     </p>
                     <div className="mt-5">
-                      <ModalFooter
-                        leftActions={(
+                      <DrawerActions>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          disabled={isSavingReview || (!hasUnsavedNotes && !hasUnsavedReviewMeta)}
+                          onClick={() =>
+                            void onSaveReview(
+                              event.id,
+                              event.reviewStatus,
+                              draftReasonCode || null,
+                              draftReasonDetail.trim() || null,
+                              draftNotes.trim() || null,
+                            )
+                          }
+                        >
+                          {isSavingReview ? <ButtonLoadingContent label="Saving" /> : 'Save notes'}
+                        </Button>
+                        {REVIEW_ACTIONS.map(action => (
                           <Button
+                            key={action.status}
                             type="button"
-                            variant="secondary"
+                            variant={action.status === 'CONFIRMED_ABUSE' ? 'danger' : action.status === 'BENIGN' ? 'success' : 'secondary'}
                             size="sm"
-                            disabled={isSavingReview || (!hasUnsavedNotes && !hasUnsavedReviewMeta)}
+                            disabled={isSavingReview}
                             onClick={() =>
                               void onSaveReview(
                                 event.id,
-                                event.reviewStatus,
-                                draftReasonCode || null,
+                                action.status,
+                                draftReasonCode || REVIEW_REASON_OPTIONS[action.status][0]?.value || null,
                                 draftReasonDetail.trim() || null,
                                 draftNotes.trim() || null,
                               )
                             }
                           >
-                            {isSavingReview ? <ButtonLoadingContent label="Saving" /> : 'Save notes'}
+                            {isSavingReview && event.reviewStatus !== action.status ? <ButtonLoadingContent label="Saving" /> : action.label}
                           </Button>
-                        )}
-                        rightActions={(
-                          <>
-                            {REVIEW_ACTIONS.map(action => (
-                              <Button
-                                key={action.status}
-                                type="button"
-                                variant={action.status === 'CONFIRMED_ABUSE' ? 'danger' : action.status === 'BENIGN' ? 'success' : 'secondary'}
-                                size="sm"
-                                disabled={isSavingReview}
-                                onClick={() =>
-                                  void onSaveReview(
-                                    event.id,
-                                    action.status,
-                                    draftReasonCode || REVIEW_REASON_OPTIONS[action.status][0]?.value || null,
-                                    draftReasonDetail.trim() || null,
-                                    draftNotes.trim() || null,
-                                  )
-                                }
-                              >
-                                {isSavingReview && event.reviewStatus !== action.status ? <ButtonLoadingContent label="Saving" /> : action.label}
-                              </Button>
-                            ))}
-                          </>
-                        )}
-                      />
+                        ))}
+                      </DrawerActions>
                     </div>
                   </section>
                 </div>

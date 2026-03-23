@@ -591,7 +591,7 @@ export default function DashboardLayout() {
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 overflow-y-auto px-2 py-3">
+        <nav className="dashboard-sidenav-scroll flex-1 overflow-y-auto px-2 py-3">
           <div className="space-y-4">
             {navSections.map(section => (
               <div key={section.id} className="space-y-1">

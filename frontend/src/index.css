@@ -191,6 +191,13 @@ body {
   background: var(--color-neutral-100) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12'%3E%3Cpath d='M8 6L0 12V0z' fill='%236b7280'/%3E%3C/svg%3E") no-repeat center;
 }
 
+/* Sidebar-only scrollbar override: remove vertical arrow buttons */
+.dashboard-sidenav-scroll::-webkit-scrollbar-button:vertical:decrement,
+.dashboard-sidenav-scroll::-webkit-scrollbar-button:vertical:increment {
+  display: none;
+  height: 0;
+}
+
 @layer utilities {
   @keyframes sparkline-reveal {
     0% {

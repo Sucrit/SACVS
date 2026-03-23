@@ -24,6 +24,19 @@ interface RecordDetailsDrawerProps {
   actionsTitle?: string;
 }
 
+interface DrawerActionsProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export function DrawerActions({ children, className = '' }: DrawerActionsProps) {
+  return (
+    <div className={`flex flex-wrap items-center justify-end gap-2 ${className}`.trim()}>
+      {children}
+    </div>
+  );
+}
+
 export default function RecordDetailsDrawer({
   open,
   onClose,
@@ -70,7 +83,9 @@ export default function RecordDetailsDrawer({
             <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
               {actionsTitle}
             </h3>
-            <div className="mt-5">{actions}</div>
+            <div className="mt-5">
+              <DrawerActions>{actions}</DrawerActions>
+            </div>
           </section>
         ) : null}
       </div>

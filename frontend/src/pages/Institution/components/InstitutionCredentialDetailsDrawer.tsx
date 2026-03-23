@@ -5,7 +5,7 @@ import {
   User, Mail, Hash, GraduationCap, Building, CalendarCheck, CalendarX, FileDigit, Box, Activity 
 } from 'lucide-react';
 import Badge from '../../../components/common/Badge';
-import { ModalFooter } from '../../../components/ui/Modal';
+import { DrawerActions } from '../../../components/common/RecordDetailsDrawer';
 import { useToast } from '../../../hooks/useToast';
 import { appQueryKeys } from '../../../lib/queryKeys';
 import { Credential, CredentialService } from '../../../services/credential.service';
@@ -383,21 +383,19 @@ export default function InstitutionCredentialDetailsDrawer({
                     Actions
                   </h3>
                   <div className="mt-5">
-                    <ModalFooter
-                      leftActions={
-                        previewUrl ? (
-                          <a
-                            href={previewUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
-                          >
-                            <ExternalLink size={14} />
-                            Preview
-                          </a>
-                        ) : null
-                      }
-                      rightActions={
+                    <DrawerActions>
+                      {previewUrl ? (
+                        <a
+                          href={previewUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
+                        >
+                          <ExternalLink size={14} />
+                          Preview
+                        </a>
+                      ) : null}
+                      {
                         <button
                           type="button"
                           onClick={handleDownload}
@@ -408,7 +406,7 @@ export default function InstitutionCredentialDetailsDrawer({
                           Download
                         </button>
                       }
-                    />
+                    </DrawerActions>
                   </div>
                 </section>
               </>
