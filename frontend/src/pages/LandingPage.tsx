@@ -6,6 +6,7 @@ import { useLegacyAuth } from '../auth/auth-context';
 import { UserRole } from '../services/user.service';
 import studentsGraduateImage from '../assets/students-graduates.jpg';
 import logo2 from '../assets/logo2.png';
+import heroBg from '../assets/hero_bg.jpg';
 
 const platformLinks = ['How it works', 'Blockchain', 'Verification', 'Security'];
 const audienceLinks = ['For Institutions', 'For Students', 'For Public Verification'];
@@ -51,6 +52,12 @@ export default function LandingPage() {
 
   const isApprovedSession = isSessionAuthenticated && !!user && user.status === 'APPROVED';
   const shouldContinueOnboarding = isSessionAuthenticated && !isApprovedSession;
+  const heroBackgroundStyle = {
+    backgroundImage: `url(${heroBg})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
 
   const extractTokenFromInput = (raw: string): string => {
     const trimmed = raw.trim();
@@ -152,7 +159,8 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        <section className="credence-hero-gradient relative overflow-hidden pb-32 pt-40">
+        <section className="relative overflow-hidden pb-32 pt-40" style={heroBackgroundStyle}>
+          <div className="absolute inset-0 bg-white/68"></div>
           <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center px-4 text-center sm:px-6 md:px-20">
             <h1 className="mb-6 max-w-4xl text-3xl font-extrabold leading-[1.1] tracking-tight text-neutral-900 sm:text-5xl md:text-7xl">
               Securing Academic Excellence with <span className="text-neutral-500">Blockchain</span> and <span className="text-neutral-500">AI</span>
@@ -207,7 +215,7 @@ export default function LandingPage() {
                 return (
                   <div
                     key={feature.title}
-                    className="credence-glass-card group rounded-lg border border-neutral-100 p-8 transition-all hover:border-neutral-300"
+                    className="group rounded-[1.25rem] border border-neutral-200 bg-white p-8 shadow-[0_14px_34px_rgba(15,23,42,0.08)] transition-all hover:border-neutral-300 hover:shadow-[0_18px_40px_rgba(15,23,42,0.12)]"
                   >
                     <div className="mb-6 inline-flex">
                       <div className="relative flex size-14 items-center justify-center rounded-lg border border-neutral-300 bg-white/90 shadow-[0_10px_25px_-14px_rgba(15,23,42,0.35)] transition-transform group-hover:scale-110">

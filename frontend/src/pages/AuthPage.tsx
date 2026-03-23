@@ -81,6 +81,7 @@ export default function AuthPage() {
   const [authHint, setAuthHint] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [onboardingSubmitted, setOnboardingSubmitted] = useState(false);
+  const [hasExistingPendingOnboarding, setHasExistingPendingOnboarding] = useState(false);
   const [isHydratingSignup, setIsHydratingSignup] = useState(false);
   const [suspendedUser, setSuspendedUser] = useState<User | null>(null);
 
@@ -91,6 +92,7 @@ export default function AuthPage() {
     setAuthError(null);
     setAuthHint(null);
     setOnboardingSubmitted(false);
+    setHasExistingPendingOnboarding(false);
     setIsHydratingSignup(false);
     setSuspendedUser(null);
     setConfirmVerification(false);
@@ -151,6 +153,7 @@ export default function AuthPage() {
             setOrganizationEmail(localUser.institution?.email || currentEmail);
             setPhoneNumber(localUser.institution?.phoneNumber || '');
             setAuthHint(null);
+            setHasExistingPendingOnboarding(localUser.status === 'PENDING');
             return;
           }
 
@@ -306,6 +309,7 @@ export default function AuthPage() {
       await refreshUser();
 
       setOnboardingSubmitted(true);
+      setHasExistingPendingOnboarding(false);
       showToast({
         variant: 'success',
         message: 'Your account creation request is now pending admin approval.',
@@ -558,12 +562,17 @@ export default function AuthPage() {
               {currentEmail && <p className="text-xs text-neutral-500">Authenticated email: {currentEmail}</p>}
             </div>
 
-            {onboardingSubmitted ? (
+            {onboardingSubmitted || hasExistingPendingOnboarding ? (
               <div className="space-y-4 rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900">
-                <p className="text-base font-semibold">Account creation request submitted.</p>
+                <p className="text-base font-semibold">
+                  {hasExistingPendingOnboarding ? 'Institution registration already pending.' : 'Account creation request submitted.'}
+                </p>
                 <p>
                   Your account is now <span className="font-semibold">PENDING</span> and must be approved by admin
                   before dashboard access is enabled.
+                </p>
+                <p className="text-sm text-emerald-900/80">
+                  Please allow a few business days for review and approval before trying to continue onboarding again.
                 </p>
                 <div className="flex flex-wrap gap-3 pt-1">
                   <Link
