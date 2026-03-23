@@ -5,6 +5,7 @@ import {
   User, Mail, Hash, GraduationCap, Building, CalendarCheck, CalendarX, FileDigit, Box, Activity 
 } from 'lucide-react';
 import Badge from '../../../components/common/Badge';
+import { ModalFooter } from '../../../components/ui/Modal';
 import { useToast } from '../../../hooks/useToast';
 import { appQueryKeys } from '../../../lib/queryKeys';
 import { Credential, CredentialService } from '../../../services/credential.service';
@@ -254,7 +255,7 @@ export default function InstitutionCredentialDetailsDrawer({
                   </div>
                 </section>
 
-                <section className="border-t border-neutral-200 pt-5">
+                <section className="border-t border-neutral-200 pt-6">
                   <p className="text-xs font-semibold  text-neutral-500">Credential</p>
                   <h4 className="mt-2 text-xl font-semibold text-neutral-900">{credential.title}</h4>
                   <div className="mt-2 flex items-center gap-2">
@@ -376,33 +377,42 @@ export default function InstitutionCredentialDetailsDrawer({
                     </div>
                   </div>
                 </section>
+
+                <section className="border-t border-neutral-200 pt-6">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                    Actions
+                  </h3>
+                  <div className="mt-5">
+                    <ModalFooter
+                      leftActions={
+                        previewUrl ? (
+                          <a
+                            href={previewUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
+                          >
+                            <ExternalLink size={14} />
+                            Preview
+                          </a>
+                        ) : null
+                      }
+                      rightActions={
+                        <button
+                          type="button"
+                          onClick={handleDownload}
+                          disabled={!documentBlob}
+                          className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
+                        >
+                          <Download size={14} />
+                          Download
+                        </button>
+                      }
+                    />
+                  </div>
+                </section>
               </>
             )}
-          </div>
-
-          <div className="border-t border-neutral-200 bg-neutral-50 px-5 py-4 shrink-0">
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              {previewUrl && (
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-100"
-                >
-                  <ExternalLink size={14} />
-                  Preview
-                </a>
-              )}
-              <button
-                type="button"
-                onClick={handleDownload}
-                disabled={!documentBlob}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 text-sm font-semibold text-neutral-700 hover:bg-neutral-100 disabled:opacity-50"
-              >
-                <Download size={14} />
-                Download
-              </button>
-            </div>
           </div>
         </div>
       </aside>

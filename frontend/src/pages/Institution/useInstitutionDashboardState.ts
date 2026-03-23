@@ -482,6 +482,12 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     });
   }, [requestSearch, requestStatusFilter, requests, students]);
 
+  useEffect(() => {
+    setSelectedRequestIds(previous =>
+      previous.filter(requestId => requests.some(request => request.id === requestId && request.status === 'PENDING')),
+    );
+  }, [requests]);
+
   const institutionAuditActionOptions = useMemo(
     () => ['ALL', ...Array.from(new Set(auditLogs.map(log => log.action))).sort()] as Array<'ALL' | AuditAction>,
     [auditLogs],
@@ -839,9 +845,13 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   };
 
   const handleBulkRequestAction = async (action: 'APPROVE' | 'REJECT') => {
-    if (selectedRequestIds.length === 0) { setRequestsError('Select at least one request for bulk action.'); return; }
+    const eligibleRequestIds = selectedRequestIds.filter(requestId =>
+      requests.some(request => request.id === requestId && request.status === 'PENDING'),
+    );
+
+    if (eligibleRequestIds.length === 0) { setRequestsError('Select at least one pending request for bulk action.'); return; }
     const results: Array<'fulfilled' | 'rejected'> = [];
-    for (const requestId of selectedRequestIds) {
+    for (const requestId of eligibleRequestIds) {
       try {
         if (action === 'APPROVE') { await updateRequestStatus(requestId, 'APPROVED'); results.push('fulfilled'); continue; }
         if (action === 'REJECT') {
@@ -859,7 +869,7 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     const failed = results.length - succeeded;
     setSelectedRequestIds([]);
     setRequestsHint(`Bulk ${action.toLowerCase()} complete: ${succeeded} updated, ${failed} failed.`);
-    createEvent('REQUEST', 'Bulk request processing', `${action} applied to ${results.length} requests; ${succeeded} succeeded.`);
+    createEvent('REQUEST', 'Bulk request processing', `${action} applied to ${eligibleRequestIds.length} pending requests; ${succeeded} succeeded.`);
     void queryClient.invalidateQueries({ queryKey: appQueryKeys.institution.credentials() });
   };
 

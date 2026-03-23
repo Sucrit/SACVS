@@ -144,6 +144,14 @@ export default function InstitutionRequestsSection({
     },
   ], [onFilterChange, requestStatusFilter]);
 
+  const eligibleSelectedRequestIds = useMemo(
+    () =>
+      selectedRequestIds.filter(requestId =>
+        requests.some(request => request.id === requestId && request.status === 'PENDING'),
+      ),
+    [requests, selectedRequestIds],
+  );
+
   const renderRequestActions = (request: CredentialRequest, compact = false) => {
     if (request.status === 'PENDING') {
       return (
@@ -217,7 +225,7 @@ export default function InstitutionRequestsSection({
               description="Refine incoming requests by their current approval state."
             />
           </div>
-          {selectedRequestIds.length >= 2 && (
+          {eligibleSelectedRequestIds.length >= 2 && (
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Button
                 size="sm"
@@ -254,6 +262,7 @@ export default function InstitutionRequestsSection({
           )}
           {!isLoadingRequests && requests.map((request, index) => {
             const student = studentById.get(request.studentId);
+            const isSelectable = request.status === 'PENDING';
             return (
               <motion.div
                 key={request.id}
@@ -268,9 +277,13 @@ export default function InstitutionRequestsSection({
                     <input
                       type="checkbox"
                       checked={selectedRequestIds.includes(request.id)}
-                      onChange={() => onToggleRequest(request.id)}
+                      onChange={() => {
+                        if (!isSelectable) return;
+                        onToggleRequest(request.id);
+                      }}
                       onClick={event => event.stopPropagation()}
-                      className="mt-1 h-4 w-4 rounded border-neutral-300"
+                      disabled={!isSelectable}
+                      className="mt-1 h-4 w-4 rounded border-neutral-300 disabled:cursor-not-allowed disabled:opacity-40"
                     />
                     <div className="min-w-0">
                       <p className="font-semibold text-neutral-900">
@@ -347,15 +360,20 @@ export default function InstitutionRequestsSection({
                   onClick={() => setSelectedRequestId(request.id)}
                 >
                   {(() => {
+                    const isSelectable = request.status === 'PENDING';
                     return (
                       <>
                   <td className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selectedRequestIds.includes(request.id)}
-                      onChange={() => onToggleRequest(request.id)}
+                      onChange={() => {
+                        if (!isSelectable) return;
+                        onToggleRequest(request.id);
+                      }}
                       onClick={event => event.stopPropagation()}
-                      className="h-4 w-4 rounded border-neutral-300"
+                      disabled={!isSelectable}
+                      className="h-4 w-4 rounded border-neutral-300 disabled:cursor-not-allowed disabled:opacity-40"
                     />
                   </td>
                   <td className="px-4 py-3 text-sm text-neutral-700">

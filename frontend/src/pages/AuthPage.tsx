@@ -7,6 +7,7 @@ import {
   useUser,
 } from '@clerk/clerk-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Building2, Check, Send, ShieldAlert } from 'lucide-react';
 import { useLegacyAuth } from '../auth/auth-context';
 import {
   CompleteOrganizationOnboardingPayload,
@@ -30,10 +31,6 @@ const ROLE_HOME_ROUTES: Record<UserRole, string> = {
   ADMIN: '/admin',
   INSTITUTION: '/institution',
 };
-
-function Icon({ name, className = '' }: { name: string; className?: string }) {
-  return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
-}
 
 const clerkAppearance = {
   elements: {
@@ -383,7 +380,7 @@ export default function AuthPage() {
         <div className="w-full max-w-[640px] rounded-lg border border-rose-200 bg-white/95 p-8 shadow-[0_24px_80px_rgba(15,23,42,0.1)]">
           <div className="mb-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-100 text-rose-700">
-              <Icon className="text-lg" name="gpp_bad" />
+              <ShieldAlert size={18} />
             </div>
             <h2 className="text-lg font-semibold text-neutral-900">Account Suspended</h2>
           </div>
@@ -398,7 +395,7 @@ export default function AuthPage() {
               className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-50"
               to="/"
             >
-              <Icon className="text-sm" name="arrow_back" />
+              <ArrowLeft size={16} />
               Back to Home
             </Link>
           </div>
@@ -505,7 +502,7 @@ export default function AuthPage() {
             className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50"
             to="/"
           >
-            <Icon className="text-sm" name="arrow_back" />
+            <ArrowLeft size={14} />
             Back to Home
           </Link>
         </div>
@@ -519,7 +516,7 @@ export default function AuthPage() {
                 currentStep >= 1 ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-300 bg-white text-neutral-400'
               }`}
             >
-              {currentStep > 1 ? <Icon className="text-sm" name="check" /> : 1}
+              {currentStep > 1 ? <Check size={14} /> : 1}
             </div>
             <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${currentStep >= 1 ? 'text-neutral-900' : 'text-neutral-400'}`}>
               Role
@@ -532,7 +529,7 @@ export default function AuthPage() {
                 currentStep >= 2 ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-300 bg-white text-neutral-400'
               }`}
             >
-              {currentStep > 2 ? <Icon className="text-sm" name="check" /> : 2}
+              {currentStep > 2 ? <Check size={14} /> : 2}
             </div>
             <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${currentStep >= 2 ? 'text-neutral-900' : 'text-neutral-400'}`}>
               Account
@@ -593,7 +590,7 @@ export default function AuthPage() {
                 className="rounded-lg border border-neutral-200 bg-neutral-50 p-5 text-left transition hover:border-neutral-400 hover:bg-white"
               >
                 <div className="mb-3 inline-flex rounded-full bg-neutral-900/5 p-2 text-neutral-700">
-                  <Icon className="text-lg" name="apartment" />
+                  <Building2 size={18} />
                 </div>
                 <p className="text-base font-semibold text-neutral-900">Institution</p>
                 <p className="mt-1 text-sm text-neutral-600">For schools and academic institutions issuing and validating records.</p>
@@ -699,7 +696,7 @@ export default function AuthPage() {
                     className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 px-5 text-sm font-semibold text-white transition hover:bg-black disabled:opacity-60"
                   >
                     {isSubmitting ? <ButtonLoadingContent label="Submitting" /> : 'Submit for Approval'}
-                    <Icon className="text-base" name="send" />
+                    <Send size={16} />
                   </button>
                 </div>
               </>

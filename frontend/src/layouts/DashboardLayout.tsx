@@ -51,6 +51,12 @@ interface NavItem {
   children?: Array<{ to: string; label: string; icon: LucideIcon }>;
 }
 
+interface NavSection {
+  id: string;
+  label?: string;
+  items: NavItem[];
+}
+
 const NAV_LINKS: Record<UserRole, NavItem[]> = {
   STUDENT: [
     { to: '/student/credentials', label: 'Credentials', icon: GraduationCap },
@@ -85,6 +91,45 @@ const NAV_LINKS: Record<UserRole, NavItem[]> = {
     { to: '/admin/logs', label: 'Audit Logs', icon: History },
   ],
 };
+
+const INSTITUTION_NAV_SECTIONS: NavSection[] = [
+  {
+    id: 'workspace',
+    label: 'Workspace',
+    items: [
+      { to: '/institution', label: 'Overview', icon: LayoutDashboard },
+    ],
+  },
+  {
+    id: 'operations',
+    label: 'Operations',
+    items: [
+      {
+        to: '/institution/issue',
+        label: 'Credentials',
+        icon: GraduationCap,
+        children: [
+          { to: '/institution/issue', label: 'Issue Credential', icon: ClipboardCheck },
+          { to: '/institution/issue/awaiting', label: 'Awaiting Issuance', icon: Clock3 },
+          { to: '/institution/issue/manage', label: 'Management', icon: FolderOpen },
+        ],
+      },
+      { to: '/institution/students', label: 'Students', icon: Users },
+      { to: '/institution/requests', label: 'Requests', icon: FileText },
+      { to: '/institution/announcement', label: 'Announcement', icon: Bell },
+      { to: '/institution/receipt-verify', label: 'Verify Receipt', icon: FileSearch },
+    ],
+  },
+  {
+    id: 'oversight',
+    label: 'Oversight',
+    items: [
+      { to: '/institution/analytics', label: 'Analytics', icon: ChartColumnBig },
+      { to: '/institution/reports', label: 'Reports', icon: Download },
+      { to: '/institution/logs', label: 'Audit Logs', icon: History },
+    ],
+  },
+];
 
 const parseNotificationMetadataString = (
   metadata: Record<string, unknown> | null,
@@ -239,6 +284,9 @@ export default function DashboardLayout() {
 
   const expectedRoutePrefix = roleRoutes[role];
   const navLinks = NAV_LINKS[role] || [];
+  const navSections: NavSection[] = role === 'INSTITUTION'
+    ? INSTITUTION_NAV_SECTIONS
+    : [{ id: 'primary', items: navLinks }];
   const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email;
   const firstName = user.firstName || displayName;
 
@@ -544,170 +592,179 @@ export default function DashboardLayout() {
 
         {/* Nav links */}
         <nav className="flex-1 overflow-y-auto px-2 py-3">
-          <div className="space-y-0.5">
-            {navLinks.map((link: NavItem) => {
-              const showRequestAlert =
-                role === 'INSTITUTION' &&
-                link.to === '/institution/requests' &&
-                hasNewInstitutionRequests;
-              const NavIcon = link.icon;
+          <div className="space-y-4">
+            {navSections.map(section => (
+              <div key={section.id} className="space-y-1">
+                {section.label && !sidebarCollapsed && (
+                  <p className="px-2.5 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+                    {section.label}
+                  </p>
+                )}
+                {section.items.map((link: NavItem) => {
+                  const showRequestAlert =
+                    role === 'INSTITUTION' &&
+                    link.to === '/institution/requests' &&
+                    hasNewInstitutionRequests;
+                  const NavIcon = link.icon;
 
-              if (link.children) {
-                const childLinks = link.children;
-                const isGroupActive = path.startsWith(link.to);
-                const isExpanded = expandedNavGroup === link.to;
+                  if (link.children) {
+                    const childLinks = link.children;
+                    const isGroupActive = path.startsWith(link.to);
+                    const isExpanded = expandedNavGroup === link.to;
 
-                return (
-                  <div key={link.to}>
-                    <button
-                      type="button"
-                      onClick={event => {
-                        if (sidebarCollapsed) {
-                          const buttonRect = event.currentTarget.getBoundingClientRect();
-                          if (buttonRect) {
-                            const flyoutHeightEstimate = 72 + childLinks.length * 42;
-                            const viewportPadding = 16;
-                            const maxTop = window.innerHeight - flyoutHeightEstimate - viewportPadding;
-                            setCollapsedFlyoutTop(Math.max(viewportPadding, Math.min(buttonRect.top, maxTop)));
-                          }
-                          setCollapsedFlyoutGroup(prev => (prev === link.to ? null : link.to));
-                          return;
-                        }
-                        setExpandedNavGroup(prev => (prev === link.to ? null : link.to));
-                      }}
-                      className={`group relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
-                        isGroupActive
-                          ? 'bg-neutral-100 text-neutral-900'
-                          : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
-                      } ${sidebarCollapsed ? 'justify-center' : ''}`}
+                    return (
+                      <div key={link.to}>
+                        <button
+                          type="button"
+                          onClick={event => {
+                            if (sidebarCollapsed) {
+                              const buttonRect = event.currentTarget.getBoundingClientRect();
+                              if (buttonRect) {
+                                const flyoutHeightEstimate = 72 + childLinks.length * 42;
+                                const viewportPadding = 16;
+                                const maxTop = window.innerHeight - flyoutHeightEstimate - viewportPadding;
+                                setCollapsedFlyoutTop(Math.max(viewportPadding, Math.min(buttonRect.top, maxTop)));
+                              }
+                              setCollapsedFlyoutGroup(prev => (prev === link.to ? null : link.to));
+                              return;
+                            }
+                            setExpandedNavGroup(prev => (prev === link.to ? null : link.to));
+                          }}
+                          className={`group relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
+                            isGroupActive
+                              ? 'bg-neutral-100 text-neutral-900'
+                              : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                          } ${sidebarCollapsed ? 'justify-center' : ''}`}
+                          title={sidebarCollapsed ? link.label : undefined}
+                        >
+                          <span className="shrink-0"><NavIcon size={16} /></span>
+                          {!sidebarCollapsed && (
+                            <>
+                              <span className="flex-1 truncate text-left">{link.label}</span>
+                              {isExpanded ? <ChevronDown size={14} className="shrink-0 text-neutral-400" /> : <ChevronRight size={14} className="shrink-0 text-neutral-400" />}
+                            </>
+                          )}
+                        </button>
+                        <AnimatePresence initial={false}>
+                          {sidebarCollapsed && collapsedFlyoutGroup === link.to && (
+                            <motion.div
+                              ref={collapsedFlyoutRef}
+                              initial={{ opacity: 0, x: -8, scale: 0.98 }}
+                              animate={{ opacity: 1, x: 0, scale: 1 }}
+                              exit={{ opacity: 0, x: -8, scale: 0.98 }}
+                              transition={{ duration: 0.16, ease: 'easeOut' }}
+                              className="fixed left-18 z-[60] w-60 rounded-xl border border-neutral-200 bg-white p-2 shadow-2xl"
+                              style={{ top: collapsedFlyoutTop }}
+                            >
+                              <div className="border-b border-neutral-200 px-3 py-2">
+                                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">
+                                  {link.label}
+                                </p>
+                              </div>
+                              <div className="mt-1 space-y-1">
+                                {childLinks.map((child: NonNullable<NavItem['children']>[number]) => {
+                                  const ChildIcon = child.icon;
+                                  return (
+                                    <NavLink
+                                      key={child.to}
+                                      to={child.to}
+                                      end
+                                      onClick={() => {
+                                        setCollapsedFlyoutGroup(null);
+                                        setMobileNavOpen(false);
+                                      }}
+                                      className={({ isActive }) =>
+                                        `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                                          isActive
+                                            ? 'bg-neutral-100 text-neutral-900'
+                                            : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                                        }`
+                                      }
+                                    >
+                                      <ChildIcon size={15} />
+                                      <span className="truncate">{child.label}</span>
+                                    </NavLink>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        <AnimatePresence initial={false}>
+                          {!sidebarCollapsed && isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0, y: -6 }}
+                              animate={{ height: 'auto', opacity: 1, y: 0 }}
+                              exit={{ height: 0, opacity: 0, y: -6 }}
+                              transition={{ duration: 0.18, ease: 'easeOut' }}
+                              className="overflow-hidden"
+                            >
+                              <div className="mt-0.5 space-y-0.5 pl-4">
+                                {childLinks.map((child: NonNullable<NavItem['children']>[number], index: number) => {
+                                  const ChildIcon = child.icon;
+                                  return (
+                                    <motion.div
+                                      key={child.to}
+                                      initial={{ opacity: 0, x: -6 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      exit={{ opacity: 0, x: -6 }}
+                                      transition={{ duration: 0.16, ease: 'easeOut', delay: index * 0.03 }}
+                                    >
+                                      <NavLink
+                                        to={child.to}
+                                        end
+                                        onClick={() => setMobileNavOpen(false)}
+                                        className={({ isActive }) =>
+                                          `group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors ${
+                                            isActive
+                                              ? 'bg-neutral-100 text-neutral-900'
+                                              : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900'
+                                          }`
+                                        }
+                                      >
+                                        <ChildIcon size={14} />
+                                        <span className="truncate">{child.label}</span>
+                                      </NavLink>
+                                    </motion.div>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <NavLink
+                      key={link.to}
+                      to={link.to}
+                      end={link.to === expectedRoutePrefix}
+                      onClick={() => setMobileNavOpen(false)}
+                      className={({ isActive }) =>
+                        `group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
+                          isActive
+                            ? 'bg-neutral-100 text-neutral-900'
+                            : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
+                        } ${sidebarCollapsed ? 'justify-center' : ''}`
+                      }
                       title={sidebarCollapsed ? link.label : undefined}
                     >
-                      <span className="shrink-0"><NavIcon size={16} /></span>
-                      {!sidebarCollapsed && (
-                        <>
-                          <span className="flex-1 truncate text-left">{link.label}</span>
-                          {isExpanded ? <ChevronDown size={14} className="shrink-0 text-neutral-400" /> : <ChevronRight size={14} className="shrink-0 text-neutral-400" />}
-                        </>
-                      )}
-                    </button>
-                    <AnimatePresence initial={false}>
-                      {sidebarCollapsed && collapsedFlyoutGroup === link.to && (
-                        <motion.div
-                          ref={collapsedFlyoutRef}
-                          initial={{ opacity: 0, x: -8, scale: 0.98 }}
-                          animate={{ opacity: 1, x: 0, scale: 1 }}
-                          exit={{ opacity: 0, x: -8, scale: 0.98 }}
-                          transition={{ duration: 0.16, ease: 'easeOut' }}
-                          className="fixed left-18 z-[60] w-60 rounded-xl border border-neutral-200 bg-white p-2 shadow-2xl"
-                          style={{ top: collapsedFlyoutTop }}
-                        >
-                          <div className="border-b border-neutral-200 px-3 py-2">
-                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-400">
-                              {link.label}
-                            </p>
-                          </div>
-                          <div className="mt-1 space-y-1">
-                            {childLinks.map((child: NonNullable<NavItem['children']>[number]) => {
-                              const ChildIcon = child.icon;
-                              return (
-                                <NavLink
-                                  key={child.to}
-                                  to={child.to}
-                                  end
-                                  onClick={() => {
-                                    setCollapsedFlyoutGroup(null);
-                                    setMobileNavOpen(false);
-                                  }}
-                                  className={({ isActive }) =>
-                                    `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                                      isActive
-                                        ? 'bg-neutral-100 text-neutral-900'
-                                        : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
-                                    }`
-                                  }
-                                >
-                                  <ChildIcon size={15} />
-                                  <span className="truncate">{child.label}</span>
-                                </NavLink>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                    <AnimatePresence initial={false}>
-                      {!sidebarCollapsed && isExpanded && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0, y: -6 }}
-                          animate={{ height: 'auto', opacity: 1, y: 0 }}
-                          exit={{ height: 0, opacity: 0, y: -6 }}
-                          transition={{ duration: 0.18, ease: 'easeOut' }}
-                          className="overflow-hidden"
-                        >
-                          <div className="mt-0.5 space-y-0.5 pl-4">
-                            {childLinks.map((child: NonNullable<NavItem['children']>[number], index: number) => {
-                              const ChildIcon = child.icon;
-                              return (
-                                <motion.div
-                                  key={child.to}
-                                  initial={{ opacity: 0, x: -6 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  exit={{ opacity: 0, x: -6 }}
-                                  transition={{ duration: 0.16, ease: 'easeOut', delay: index * 0.03 }}
-                                >
-                                  <NavLink
-                                    to={child.to}
-                                    end
-                                    onClick={() => setMobileNavOpen(false)}
-                                    className={({ isActive }) =>
-                                      `group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors ${
-                                        isActive
-                                          ? 'bg-neutral-100 text-neutral-900'
-                                          : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900'
-                                      }`
-                                    }
-                                  >
-                                    <ChildIcon size={14} />
-                                    <span className="truncate">{child.label}</span>
-                                  </NavLink>
-                                </motion.div>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              }
-
-              return (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  end={link.to === expectedRoutePrefix}
-                  onClick={() => setMobileNavOpen(false)}
-                  className={({ isActive }) =>
-                    `group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors ${
-                      isActive
-                        ? 'bg-neutral-100 text-neutral-900'
-                        : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900'
-                    } ${sidebarCollapsed ? 'justify-center' : ''}`
-                  }
-                  title={sidebarCollapsed ? link.label : undefined}
-                >
-                    <span className="relative shrink-0">
-                      <NavIcon size={16} />
-                      {showRequestAlert && (
-                        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-error-500" />
-                      )}
-                    </span>
-                    {!sidebarCollapsed && (
-                      <span className="truncate flex-1">{link.label}</span>
-                    )}
-                </NavLink>
-              );
-            })}
+                        <span className="relative shrink-0">
+                          <NavIcon size={16} />
+                          {showRequestAlert && (
+                            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-error-500" />
+                          )}
+                        </span>
+                        {!sidebarCollapsed && (
+                          <span className="truncate flex-1">{link.label}</span>
+                        )}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </nav>
 

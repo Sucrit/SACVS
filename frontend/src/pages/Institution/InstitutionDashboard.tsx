@@ -155,6 +155,8 @@ export default function InstitutionDashboard() {
           onSearchChange={state.setRequestSearch}
           onFilterChange={state.setRequestStatusFilter}
           onToggleRequest={(requestId: string) => {
+            const request = state.requests.find(entry => entry.id === requestId);
+            if (!request || request.status !== 'PENDING') return;
             state.setSelectedRequestIds(previous => previous.includes(requestId) ? previous.filter(id => id !== requestId) : [...previous, requestId]);
           }}
           onReasonChange={(requestId: string, reason: string) => {

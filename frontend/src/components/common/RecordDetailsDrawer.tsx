@@ -20,7 +20,8 @@ interface RecordDetailsDrawerProps {
   description?: string;
   sections: RecordDetailsSection[];
   width?: string;
-  footer?: ReactNode;
+  actions?: ReactNode;
+  actionsTitle?: string;
 }
 
 export default function RecordDetailsDrawer({
@@ -30,10 +31,11 @@ export default function RecordDetailsDrawer({
   description,
   sections,
   width = 'max-w-2xl',
-  footer,
+  actions,
+  actionsTitle = 'Actions',
 }: RecordDetailsDrawerProps) {
   return (
-    <Drawer open={open} onClose={onClose} title={title} description={description} width={width} footer={footer}>
+    <Drawer open={open} onClose={onClose} title={title} description={description} width={width}>
       <div className="space-y-8">
         {sections.map((section, sectionIndex) => (
           <section
@@ -63,6 +65,14 @@ export default function RecordDetailsDrawer({
             </div>
           </section>
         ))}
+        {actions ? (
+          <section className="border-t border-neutral-200 pt-6">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+              {actionsTitle}
+            </h3>
+            <div className="mt-5">{actions}</div>
+          </section>
+        ) : null}
       </div>
     </Drawer>
   );

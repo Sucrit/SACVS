@@ -5,6 +5,7 @@ import Badge from '../../../components/common/Badge';
 import UserAvatar from '../../../components/common/UserAvatar';
 import ButtonLoadingContent from '../../../components/common/ButtonLoadingContent';
 import Button from '../../../components/ui/Button';
+import { ModalFooter } from '../../../components/ui/Modal';
 import { User, UserRole, UserStatus } from '../../../services/user.service';
 import { formatDateTime } from '../../../utils/formatting';
 import {
@@ -176,64 +177,73 @@ export default function AdminUserDetailsDrawer({
                     <span className="font-semibold">Privacy guardrail:</span> student & institution profile data payload is hidden from admin-level tools by default unless requested for risk review.
                   </div>
                 </section>
-              </div>
-            </div>
+                <section className="border-t border-neutral-200 pt-6">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                    Actions
+                  </h3>
+                  <div className="mt-5 space-y-6">
+                    <div>
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                        Role Actions
+                      </p>
+                      <ModalFooter
+                        rightActions={(
+                          <>
+                            {USER_ROLE_ACTIONS.map(nextRole => (
+                              <Button
+                                key={nextRole}
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                disabled={isUpdatingRole === user.id || user.role === nextRole}
+                                onClick={() => void onRoleUpdate(user.id, nextRole)}
+                                className={user.role === nextRole ? 'border-neutral-200 bg-neutral-100 text-neutral-400' : ''}
+                              >
+                                <span className="inline-flex items-center gap-1.5">
+                                  {isUpdatingRole === user.id && user.role !== nextRole
+                                    ? <ButtonLoadingContent label="" />
+                                    : nextRole}
+                                </span>
+                              </Button>
+                            ))}
+                          </>
+                        )}
+                      />
+                    </div>
 
-            {/* Sticky Actions */}
-            <div className="border-t border-neutral-200 bg-neutral-50 px-4 py-4 sm:px-7 shrink-0 space-y-6">
-              {/* Role actions */}
-              <div>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                  Role Actions
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {USER_ROLE_ACTIONS.map(nextRole => (
-                    <Button
-                      key={nextRole}
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={isUpdatingRole === user.id || user.role === nextRole}
-                      onClick={() => void onRoleUpdate(user.id, nextRole)}
-                      className={user.role === nextRole ? 'border-neutral-200 bg-neutral-100 text-neutral-400' : ''}
-                    >
-                      <span className="inline-flex items-center gap-1.5">
-                        {isUpdatingRole === user.id && user.role !== nextRole
-                          ? <ButtonLoadingContent label="" />
-                          : nextRole}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Status actions */}
-              <div>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                  Status Actions
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {(VALID_STATUS_TRANSITIONS[user.status] ?? []).length === 0 ? (
-                    <p className="text-sm text-neutral-400">No status transitions available.</p>
-                  ) : (
-                    (VALID_STATUS_TRANSITIONS[user.status] ?? []).map(nextStatus => (
-                      <Button
-                        key={nextStatus}
-                        type="button"
-                        variant={nextStatus === 'REJECTED' || nextStatus === 'SUSPENDED' ? 'danger' : 'secondary'}
-                        size="sm"
-                        disabled={isUpdatingStatus === user.id}
-                        onClick={() => void onStatusUpdate(user.id, nextStatus)}
-                      >
-                        <span className="inline-flex items-center gap-1.5">
-                          {isUpdatingStatus === user.id
-                            ? <ButtonLoadingContent label="" />
-                            : nextStatus}
-                        </span>
-                      </Button>
-                    ))
-                  )}
-                </div>
+                    <div>
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-neutral-500">
+                        Status Actions
+                      </p>
+                      {(VALID_STATUS_TRANSITIONS[user.status] ?? []).length === 0 ? (
+                        <p className="text-sm text-neutral-400">No status transitions available.</p>
+                      ) : (
+                        <ModalFooter
+                          rightActions={(
+                            <>
+                              {(VALID_STATUS_TRANSITIONS[user.status] ?? []).map(nextStatus => (
+                                <Button
+                                  key={nextStatus}
+                                  type="button"
+                                  variant={nextStatus === 'REJECTED' || nextStatus === 'SUSPENDED' ? 'danger' : 'secondary'}
+                                  size="sm"
+                                  disabled={isUpdatingStatus === user.id}
+                                  onClick={() => void onStatusUpdate(user.id, nextStatus)}
+                                >
+                                  <span className="inline-flex items-center gap-1.5">
+                                    {isUpdatingStatus === user.id
+                                      ? <ButtonLoadingContent label="" />
+                                      : nextStatus}
+                                  </span>
+                                </Button>
+                              ))}
+                            </>
+                          )}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
           </motion.aside>
