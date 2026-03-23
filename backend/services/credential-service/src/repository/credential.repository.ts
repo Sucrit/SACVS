@@ -130,6 +130,17 @@ export class CredentialRepository {
     });
   }
 
+  async getUserInstitutionId(userId: string): Promise<string | null> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        institutionId: true,
+      },
+    });
+
+    return user?.institutionId ?? null;
+  }
+
   async listCredentials(
     where: Prisma.CredentialWhereInput,
     skip: number,
@@ -252,6 +263,53 @@ export class CredentialRepository {
             institutionId: true,
           },
         },
+      },
+    });
+  }
+
+  async findDuplicateCredentialByFileHash(params: {
+    institutionId: string;
+    fileHash: string;
+    excludeCredentialId?: string | null;
+  }): Promise<{
+    id: string;
+    title: string;
+    type: CredentialType;
+    status: CredentialStatus;
+    studentId: string;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null> {
+    const { institutionId, fileHash, excludeCredentialId } = params;
+
+    return prisma.credential.findFirst({
+      where: {
+        fileHash,
+        ...(excludeCredentialId ? { id: { not: excludeCredentialId } } : {}),
+        OR: [
+          {
+            student: {
+              institutionId,
+            },
+          },
+          {
+            issuedBy: {
+              institutionId,
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        type: true,
+        status: true,
+        studentId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
   }

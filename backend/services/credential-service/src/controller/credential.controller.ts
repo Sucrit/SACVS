@@ -283,13 +283,17 @@ export class CredentialController {
         error: 'Credential file encryption key format is invalid.',
       },
       CREDENTIAL_FILE_INVALID: { code: 500, error: 'Credential file payload is invalid.' },
-      CREDENTIAL_FILE_TAMPERED: {
-        code: 409,
-        error: 'Credential file integrity check failed.',
-      },
-      MISSING_CREDENTIAL_FILE: { code: 400, error: 'A credential file is required before issuing.' },
-      DIRECT_ISSUED_CREATE_NOT_ALLOWED: {
-        code: 400,
+        CREDENTIAL_FILE_TAMPERED: {
+          code: 409,
+          error: 'Credential file integrity check failed.',
+        },
+        CREDENTIAL_FILE_DUPLICATE: {
+          code: 409,
+          error: 'This document has already been used for another credential in your institution. Use the existing credential instead of uploading it again.',
+        },
+        MISSING_CREDENTIAL_FILE: { code: 400, error: 'A credential file is required before issuing.' },
+        DIRECT_ISSUED_CREATE_NOT_ALLOWED: {
+          code: 400,
         error: 'Create credentials as pending and use the issue endpoint to issue them.',
       },
       CREDENTIAL_NOT_ISSUED: {
@@ -800,4 +804,3 @@ export class CredentialController {
     }
   }
 }
-

@@ -50,6 +50,7 @@ const CODE_MESSAGE_MAP: Record<string, string> = {
   INVALID_QR_OPTIONS: 'The QR options are invalid. Please try again.',
   REQUEST_RECEIPT_TOKEN_PEPPER_MISSING: 'Receipt verification is not available right now. Please try again later.',
   MISSING_CREDENTIAL_FILE: 'Attach a credential file before continuing.',
+  CREDENTIAL_FILE_DUPLICATE: 'This document has already been used for another credential in your institution. Use the existing credential instead of uploading it again.',
   INVALID_FILE_TYPE: 'That file type is not supported. Please upload a PDF or image file.',
   INVALID_BLOCK_NUMBER: 'The block number is invalid.',
   INVALID_METADATA_JSON: 'The metadata format is invalid.',
@@ -77,6 +78,7 @@ const LITERAL_MESSAGE_MAP: Record<string, string> = {
   'invalid status transition.': 'That change is not allowed right now.',
   'invalid file type. use png, jpeg, webp, or pdf.': 'That file type is not supported. Please upload a PDF or image file.',
   'a credential file is required before issuing.': 'Attach a credential file before issuing.',
+  'this document has already been used for another credential in your institution. use the existing credential instead of uploading it again.': 'This document has already been used for another credential in your institution. Use the existing credential instead of uploading it again.',
   'expired credentials are locked. use re-issue to renew.': 'This credential has expired and is locked. Re-issue it to renew access.',
   'institution accounts cannot override issuedbyid.': 'This institution action is not allowed.',
 };

@@ -137,6 +137,16 @@ interface CredentialStatusBuildResult {
   effectiveFileHash: string | null;
 }
 
+interface DuplicateCredentialRecord {
+  id: string;
+  title: string;
+  type: CredentialType;
+  status: CredentialStatus;
+  studentId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export class CredentialService {
   private static autoExpirySweepInFlight = false;
   private static lastAutoExpirySweepAt = 0;
@@ -437,6 +447,31 @@ export class CredentialService {
       throw new Error('CREDENTIAL_NOT_FOUND');
     }
     return scope;
+  }
+
+  private async ensureNoDuplicateFileHashForInstitution(params: {
+    institutionId: string | null | undefined;
+    fileHash: string | null;
+    excludeCredentialId?: string | null;
+  }): Promise<DuplicateCredentialRecord | null> {
+    const institutionId = parseOptionalString(params.institutionId);
+    const fileHash = parseOptionalString(params.fileHash);
+
+    if (!institutionId || !fileHash) {
+      return null;
+    }
+
+    const duplicate = await credentialRepository.findDuplicateCredentialByFileHash({
+      institutionId,
+      fileHash,
+      excludeCredentialId: params.excludeCredentialId ?? null,
+    });
+
+    if (duplicate) {
+      throw new Error('CREDENTIAL_FILE_DUPLICATE');
+    }
+
+    return null;
   }
 
   private assertCredentialStatusTransitionAllowed(
@@ -881,6 +916,13 @@ export class CredentialService {
     if (status === CredentialStatus.ISSUED) {
       throw new Error('DIRECT_ISSUED_CREATE_NOT_ALLOWED');
     }
+
+    const issuedByInstitutionId = actor.institutionId ?? await credentialRepository.getUserInstitutionId(issuedById);
+    await this.ensureNoDuplicateFileHashForInstitution({
+      institutionId: student.institutionId ?? issuedByInstitutionId,
+      fileHash: parseOptionalString(data.fileHash),
+    });
+
     const createData: Prisma.CredentialUncheckedCreateInput = {
       title,
       type: data.type,
@@ -973,6 +1015,11 @@ export class CredentialService {
     const nextStatus = statusData.status as CredentialStatus;
     this.assertCredentialStatusTransitionAllowed(scope.status, nextStatus, options);
     const build = this.buildCredentialStatusUpdate(scope, statusData);
+    await this.ensureNoDuplicateFileHashForInstitution({
+      institutionId: actor.institutionId ?? scope.student.institutionId,
+      fileHash: parseOptionalString(statusData.fileHash),
+      excludeCredentialId: scope.id,
+    });
     await this.runBlockchainSideEffects(scope, build);
     const updated = await credentialRepository.updateCredential(credentialId, build.updateData);
     await this.recordCredentialStatusEffects(actor, scope, updated, build, options);

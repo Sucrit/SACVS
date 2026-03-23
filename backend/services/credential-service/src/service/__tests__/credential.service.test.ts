@@ -10,11 +10,15 @@ const {
     listDueIssuedCredentialsForAutoExpiry: vi.fn(),
     markCredentialAsExpiredIfDue: vi.fn(),
     createAuditLog: vi.fn(),
+    findDuplicateCredentialByFileHash: vi.fn(),
+    getUserInstitutionId: vi.fn(),
     getCredentialScopeById: vi.fn(),
     updateCredential: vi.fn(),
     getCredentialById: vi.fn(),
     getCredentialForAiDocument: vi.fn(),
     invalidateActiveQrTokens: vi.fn(),
+    getStudentContextById: vi.fn(),
+    createCredential: vi.fn(),
   },
   mockNotificationClient: {
     sendCredentialIssuedNotification: vi.fn(),
@@ -94,7 +98,16 @@ describe('CredentialService', () => {
     vi.clearAllMocks();
     mockRepository.listDueIssuedCredentialsForAutoExpiry.mockResolvedValue([]);
     mockRepository.createAuditLog.mockResolvedValue(undefined);
+    mockRepository.findDuplicateCredentialByFileHash.mockResolvedValue(null);
+    mockRepository.getUserInstitutionId.mockResolvedValue('inst-1');
     mockRepository.updateCredential.mockResolvedValue(buildUpdatedCredential());
+    mockRepository.getStudentContextById.mockResolvedValue({
+      id: 'student-1',
+      role: 'STUDENT',
+      status: 'APPROVED',
+      institutionId: 'inst-1',
+    });
+    mockRepository.createCredential.mockResolvedValue(buildUpdatedCredential({ status: 'PENDING' }));
     mockNotificationClient.sendCredentialIssuedNotification.mockResolvedValue(undefined);
     mockNotificationClient.sendCredentialStatusChangedNotification.mockResolvedValue(undefined);
     mockRealtimeClient.publishMany.mockResolvedValue(undefined);
@@ -214,6 +227,80 @@ describe('CredentialService', () => {
         { status: 'ISSUED' },
       ),
     ).rejects.toThrow('EXPIRY_DATE_REQUIRED');
+  });
+
+  it('blocks duplicate file hashes during direct credential creation within the same institution', async () => {
+    const service = new CredentialService();
+    mockRepository.findDuplicateCredentialByFileHash.mockResolvedValue({
+      id: 'cred-dup',
+      title: 'Transcript',
+      type: 'TRANSCRIPT',
+      status: 'ISSUED',
+      studentId: 'student-2',
+      createdAt: new Date('2026-03-20T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-20T00:00:00.000Z'),
+    });
+
+    await expect(
+      service.createCredential(
+        { userId: 'institution-user-1', role: 'INSTITUTION', institutionId: 'inst-1' },
+        {
+          studentId: 'student-1',
+          title: 'Transcript',
+          type: 'TRANSCRIPT',
+          fileHash: 'hash-duplicate',
+        },
+      ),
+    ).rejects.toThrow('CREDENTIAL_FILE_DUPLICATE');
+
+    expect(mockRepository.createCredential).not.toHaveBeenCalled();
+  });
+
+  it('blocks duplicate file hashes when issuing a different credential record', async () => {
+    const service = new CredentialService();
+    mockRepository.getCredentialScopeById.mockResolvedValue(buildScope({ status: 'PENDING', fileHash: 'hash-1' }));
+    mockRepository.findDuplicateCredentialByFileHash.mockResolvedValue({
+      id: 'cred-dup',
+      title: 'Transcript',
+      type: 'TRANSCRIPT',
+      status: 'REVOKED',
+      studentId: 'student-2',
+      createdAt: new Date('2026-03-20T00:00:00.000Z'),
+      updatedAt: new Date('2026-03-20T00:00:00.000Z'),
+    });
+
+    await expect(
+      service.issueCredential(
+        { userId: 'institution-user-1', role: 'INSTITUTION', institutionId: 'inst-1' },
+        'cred-1',
+        {
+          fileHash: 'hash-duplicate',
+        },
+      ),
+    ).rejects.toThrow('CREDENTIAL_FILE_DUPLICATE');
+
+    expect(mockRepository.updateCredential).not.toHaveBeenCalled();
+  });
+
+  it('allows re-issuing the same credential when the file hash is unchanged on that record', async () => {
+    const service = new CredentialService();
+    mockRepository.getCredentialScopeById.mockResolvedValue(buildScope({ status: 'EXPIRED', fileHash: 'hash-1' }));
+
+    await expect(
+      service.issueCredential(
+        { userId: 'institution-user-1', role: 'INSTITUTION', institutionId: 'inst-1' },
+        'cred-1',
+        {
+          fileHash: 'hash-1',
+        },
+      ),
+    ).resolves.toEqual(expect.objectContaining({ id: 'cred-1' }));
+
+    expect(mockRepository.findDuplicateCredentialByFileHash).toHaveBeenCalledWith({
+      institutionId: 'inst-1',
+      fileHash: 'hash-1',
+      excludeCredentialId: 'cred-1',
+    });
   });
 
   it('rejects invalid certificate categories', async () => {
