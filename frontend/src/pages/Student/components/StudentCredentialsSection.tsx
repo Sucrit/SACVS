@@ -199,10 +199,22 @@ export default function StudentCredentialsSection({
   heading,
 }: StudentCredentialsSectionProps) {
   const [searchTerm, setSearchTerm] = useSearchParamsState<string>('cq', '');
-  const [typeFilter, setTypeFilter] = useSearchParamsState<CredentialTypeFilter>('ct', 'ALL');
-  const [dateFilter, setDateFilter] = useSearchParamsState<DateRangeFilter>('cd', 'ALL');
-  const [hideRevokedFlag, setHideRevokedFlag] = useSearchParamsState<VisibilityFilterFlag>('chr', 'false');
-  const [hideExpiredFlag, setHideExpiredFlag] = useSearchParamsState<VisibilityFilterFlag>('che', 'false');
+  const [typeFilter, setTypeFilter] = useSearchParamsState<CredentialTypeFilter>('ct', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.studentCredentials.type',
+  });
+  const [dateFilter, setDateFilter] = useSearchParamsState<DateRangeFilter>('cd', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.studentCredentials.date',
+  });
+  const [hideRevokedFlag, setHideRevokedFlag] = useSearchParamsState<VisibilityFilterFlag>('chr', 'false', {
+    persist: true,
+    storageKey: 'credence.filters.studentCredentials.hideRevoked',
+  });
+  const [hideExpiredFlag, setHideExpiredFlag] = useSearchParamsState<VisibilityFilterFlag>('che', 'false', {
+    persist: true,
+    storageKey: 'credence.filters.studentCredentials.hideExpired',
+  });
   const [shareCredential, setShareCredential] = useState<Credential | null>(null);
   const [qrToken, setQrToken] = useState<GeneratedQrTokenResponse | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);

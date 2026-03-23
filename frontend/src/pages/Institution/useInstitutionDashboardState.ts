@@ -33,6 +33,7 @@ import {
   getInstitutionSection,
   parseCsvStudents,
 } from './utils';
+import { useSearchParamsState } from '../../hooks/useSearchParamsState';
 import { useStepUp } from '../../hooks/useStepUp';
 import { useRealtimeSync } from '../../hooks/useRealtimeSync';
 import { useToast } from '../../hooks/useToast';
@@ -212,7 +213,10 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   const [requestsHint, setRequestsHint] = useState<string | null>(null);
   const [updatingRequestId, setUpdatingRequestId] = useState<string | null>(null);
   const [requestSearch, setRequestSearch] = useState('');
-  const [requestStatusFilter, setRequestStatusFilter] = useState<RequestStatusFilter>('ALL');
+  const [requestStatusFilter, setRequestStatusFilter] = useSearchParamsState<RequestStatusFilter>('irs', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.institutionRequests.status',
+  });
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
   const [rejectionReasonByRequestId, setRejectionReasonByRequestId] = useState<Record<string, string>>({});
   const [issueFileByRequestId, setIssueFileByRequestId] = useState<Record<string, File | null>>({});
@@ -224,8 +228,14 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
 
   // --- Audit logs state ---
   const { data: auditLogs = [], isLoading: isLoadingAuditLogs } = useQuery({ queryKey: appQueryKeys.institution.auditLogs(), queryFn: () => AuditService.list(), enabled: section === 'logs' || section === 'reports', ...timeSensitiveQueryOptions });
-  const [auditActionFilter, setAuditActionFilter] = useState<'ALL' | AuditAction>('ALL');
-  const [auditSeverityFilter, setAuditSeverityFilter] = useState<'ALL' | AuditSeverity>('ALL');
+  const [auditActionFilter, setAuditActionFilter] = useSearchParamsState<'ALL' | AuditAction>('iaa', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.institutionAudit.action',
+  });
+  const [auditSeverityFilter, setAuditSeverityFilter] = useSearchParamsState<'ALL' | AuditSeverity>('ias', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.institutionAudit.severity',
+  });
   const [auditPage, setAuditPage] = useState(1);
   const [auditPageSize, setAuditPageSize] = useState(20);
 
@@ -239,8 +249,14 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
   const [isSubmittingStudent, setIsSubmittingStudent] = useState(false);
   const [isBulkImporting, setIsBulkImporting] = useState(false);
   const [studentSearch, setStudentSearch] = useState('');
-  const [studentStatusFilter, setStudentStatusFilter] = useState<StudentStatusFilter>('ALL');
-  const [studentDepartmentFilter, setStudentDepartmentFilter] = useState('ALL');
+  const [studentStatusFilter, setStudentStatusFilter] = useSearchParamsState<StudentStatusFilter>('iss', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.institutionStudents.status',
+  });
+  const [studentDepartmentFilter, setStudentDepartmentFilter] = useSearchParamsState<string>('isd', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.institutionStudents.department',
+  });
   const [studentForm, setStudentForm] = useState<StudentFormState>(DEFAULT_STUDENT_FORM);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [editStudentForm, setEditStudentForm] = useState<StudentFormState>(DEFAULT_STUDENT_FORM);

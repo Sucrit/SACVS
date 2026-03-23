@@ -195,8 +195,14 @@ export function useAdminDashboardState(): AdminDashboardState {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
   const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
   const [search, setSearch] = useSearchParamsState<string>('q', '');
-  const [roleFilter, setRoleFilter] = useSearchParamsState<RoleFilter>('rf', 'ALL');
-  const [statusFilter, setStatusFilter] = useSearchParamsState<StatusFilter>('sf', 'ALL');
+  const [roleFilter, setRoleFilter] = useSearchParamsState<RoleFilter>('rf', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.adminUsers.role',
+  });
+  const [statusFilter, setStatusFilter] = useSearchParamsState<StatusFilter>('sf', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.adminUsers.status',
+  });
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   // --- Notification state ---
@@ -246,15 +252,34 @@ export function useAdminDashboardState(): AdminDashboardState {
 
   // --- Audit logs state ---
   const { data: auditLogs = [], isLoading: isLoadingAuditLogs } = useQuery({ queryKey: appQueryKeys.admin.auditLogs(), queryFn: () => AuditService.list(), enabled: section === 'logs' || section === 'reports', ...timeSensitiveQueryOptions });
-  const [auditActionFilter, setAuditActionFilter] = useSearchParamsState<'ALL' | AuditAction>('aa', 'ALL');
-  const [auditSeverityFilter, setAuditSeverityFilter] = useSearchParamsState<'ALL' | AuditSeverity>('as', 'ALL');
+  const [auditActionFilter, setAuditActionFilter] = useSearchParamsState<'ALL' | AuditAction>('aa', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.adminAudit.action',
+  });
+  const [auditSeverityFilter, setAuditSeverityFilter] = useSearchParamsState<'ALL' | AuditSeverity>('as', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.adminAudit.severity',
+  });
   const [auditPage, setAuditPage] = useState(1);
   const [auditPageSize, setAuditPageSize] = useState(20);
 
   // --- Risk events state ---
-  const [riskBandFilter, setRiskBandFilter] = useSearchParamsState<RiskBand | 'ALL'>('rb', 'ALL');
-  const [riskReviewFilter, setRiskReviewFilter] = useSearchParamsState<RiskReviewStatus | 'ALL'>('rr', 'ALL');
-  const [reviewedOnly, setReviewedOnly] = useState(false);
+  const [riskBandFilter, setRiskBandFilter] = useSearchParamsState<RiskBand | 'ALL'>('rb', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.adminRisk.band',
+  });
+  const [riskReviewFilter, setRiskReviewFilter] = useSearchParamsState<RiskReviewStatus | 'ALL'>('rr', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.adminRisk.reviewStatus',
+  });
+  const [reviewedOnlyFlag, setReviewedOnlyFlag] = useSearchParamsState<'true' | 'false'>('ro', 'false', {
+    persist: true,
+    storageKey: 'credence.filters.adminRisk.reviewedOnly',
+  });
+  const reviewedOnly = reviewedOnlyFlag === 'true';
+  const setReviewedOnly = useCallback((value: boolean) => {
+    setReviewedOnlyFlag(value ? 'true' : 'false');
+  }, [setReviewedOnlyFlag]);
   const [riskPage, setRiskPage] = useState(1);
   const [riskPageSize, setRiskPageSize] = useState(20);
 

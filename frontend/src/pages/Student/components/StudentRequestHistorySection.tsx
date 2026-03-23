@@ -71,8 +71,14 @@ export default function StudentRequestHistorySection({
 }: StudentRequestHistorySectionProps) {
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useSearchParamsState<string>('rhq', '');
-  const [typeFilter, setTypeFilter] = useSearchParamsState<RequestTypeFilter>('rht', 'ALL');
-  const [dateFilter, setDateFilter] = useSearchParamsState<DateRangeFilter>('rhd', 'ALL');
+  const [typeFilter, setTypeFilter] = useSearchParamsState<RequestTypeFilter>('rht', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.studentRequests.type',
+  });
+  const [dateFilter, setDateFilter] = useSearchParamsState<DateRangeFilter>('rhd', 'ALL', {
+    persist: true,
+    storageKey: 'credence.filters.studentRequests.date',
+  });
   const [openMenuRequestId, setOpenMenuRequestId] = useState<string | null>(null);
   const [detailsRequest, setDetailsRequest] = useState<(CredentialRequest & { _uiKey?: string }) | null>(null);
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
