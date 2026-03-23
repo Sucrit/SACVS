@@ -1,11 +1,11 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
-import { isAxiosError } from 'axios';
 import { StepUpAction, UserService } from '../../services/user.service';
 import { useLegacyAuth } from '../../auth/auth-context';
 import ButtonLoadingContent from './ButtonLoadingContent';
 import { useToast } from '../../hooks/useToast';
+import { toErrorMessage } from '../../utils/errors';
 import {
   MODAL_BACKDROP_VARIANTS,
   MODAL_PANEL_VARIANTS,
@@ -69,45 +69,6 @@ const ACTION_META: Record<StepUpAction, ActionMeta> = {
 
 const OTP_LENGTH = 6;
 
-const getApiErrorCode = (error: unknown): string | null => {
-  if (!isAxiosError(error)) return null;
-  if (typeof error.response?.data === 'string') return null;
-  const payload = error.response?.data as { error?: string; code?: string; message?: string } | undefined;
-  if (typeof payload?.error === 'string' && payload.error.trim()) return payload.error.trim();
-  if (typeof payload?.code === 'string' && payload.code.trim()) return payload.code.trim();
-  if (typeof payload?.message === 'string' && payload.message.trim()) return payload.message.trim();
-  return null;
-};
-
-const getApiErrorMessage = (error: unknown): string => {
-  const code = getApiErrorCode(error);
-  if (code === 'STEP_UP_MISCONFIGURED') {
-    return 'Step-up OTP is not configured on the server yet. Contact your administrator.';
-  }
-  if (code === 'STEP_UP_DELIVERY_NOT_CONFIGURED') {
-    return 'OTP email delivery is not configured on the server.';
-  }
-  if (code === 'STEP_UP_DELIVERY_FAILED') {
-    return 'Failed to send OTP email. Please try again in a moment.';
-  }
-  if (code === 'STEP_UP_CHALLENGE_LOCKED') {
-    return 'Too many invalid OTP attempts. Request a new code.';
-  }
-  if (code === 'STEP_UP_TOKEN_EXPIRED') {
-    return 'This OTP session expired. Request a new code.';
-  }
-  if (code === 'STEP_UP_TOKEN_INVALID' || code === 'STEP_UP_REQUIRED') {
-    return 'Invalid or expired OTP code. Try again.';
-  }
-  if (isAxiosError(error) && typeof error.response?.data === 'string' && error.response.data.trim().length > 0) {
-    return error.response.data;
-  }
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
-  }
-  return 'Unable to verify OTP. Please try again.';
-};
-
 const formatRemaining = (seconds: number) => {
   const mm = Math.floor(Math.max(0, seconds) / 60);
   const ss = Math.max(0, seconds) % 60;
@@ -168,7 +129,7 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
         if (!cancelled) {
           setChallengeId(null);
           setExpiresAt(null);
-          showToast({ variant: 'error', message: getApiErrorMessage(requestError) });
+          showToast({ variant: 'error', message: toErrorMessage(requestError, 'Unable to send a verification code right now.') });
         }
       } finally {
         if (!cancelled) setIsSending(false);
@@ -247,7 +208,7 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
       setChallengeId(response.challengeId);
       setExpiresAt(response.expiresAt);
     } catch (requestError) {
-      showToast({ variant: 'error', message: getApiErrorMessage(requestError) });
+      showToast({ variant: 'error', message: toErrorMessage(requestError, 'Unable to send a verification code right now.') });
     } finally {
       setIsSending(false);
     }
@@ -267,7 +228,7 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
       setDigits(Array.from({ length: OTP_LENGTH }, () => ''));
       showToast({ variant: 'success', message: 'OTP verified successfully.' });
     } catch (verifyError) {
-      showToast({ variant: 'error', message: getApiErrorMessage(verifyError) });
+      showToast({ variant: 'error', message: toErrorMessage(verifyError, 'Unable to verify that code. Please try again.') });
     } finally {
       setIsVerifying(false);
     }
