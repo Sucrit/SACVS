@@ -1,4 +1,4 @@
-﻿import { ChevronRight, Globe, Globe2, Share2, ShieldCheck } from 'lucide-react';
+﻿import { ChevronRight, FileScan, Globe, Orbit, ScanSearch, Share2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -18,19 +18,19 @@ const features: Array<{
   description: string;
 }> = [
     {
-      icon: ShieldCheck,
+      icon: FileScan,
       title: 'Tamper-Proof Records',
       description:
         'Our decentralized ledger technology ensures academic records can never be altered, forged, or deleted once issued.',
     },
     {
-      icon: ShieldCheck,
+      icon: ScanSearch,
       title: 'Trusted Verification',
       description:
         'Institution-issued records are validated through secure, auditable workflows before sharing.',
     },
     {
-      icon: Globe2,
+      icon: Orbit,
       title: 'Global Portability',
       description:
         'Share your achievements across borders instantly. Compatible with major job boards and immigration systems worldwide.',
