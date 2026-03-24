@@ -672,7 +672,7 @@ export class RiskRepository {
   async listRiskEventRecords(query: RiskEventListQuery) {
     const where = this.buildRiskEventWhere(query);
 
-    const [total, items, pendingReviewCount, highRiskCount, criticalRiskCount, confirmedAbuseCount] =
+    const [total, items, statusGroup, bandGroup] =
       await Promise.all([
         prisma.riskEventRecord.count({ where }),
         prisma.riskEventRecord.findMany({
@@ -682,19 +682,20 @@ export class RiskRepository {
           take: query.pageSize,
           select: this.riskEventSelect,
         }),
-        prisma.riskEventRecord.count({
-          where: { reviewStatus: RiskReviewStatus.PENDING_REVIEW },
+        prisma.riskEventRecord.groupBy({
+          by: ['reviewStatus'],
+          _count: { _all: true },
         }),
-        prisma.riskEventRecord.count({
-          where: { riskBand: RiskBand.HIGH },
-        }),
-        prisma.riskEventRecord.count({
-          where: { riskBand: RiskBand.CRITICAL },
-        }),
-        prisma.riskEventRecord.count({
-          where: { reviewStatus: RiskReviewStatus.CONFIRMED_ABUSE },
+        prisma.riskEventRecord.groupBy({
+          by: ['riskBand'],
+          _count: { _all: true },
         }),
       ]);
+
+    const pendingReviewCount = statusGroup.find(g => g.reviewStatus === RiskReviewStatus.PENDING_REVIEW)?._count._all || 0;
+    const confirmedAbuseCount = statusGroup.find(g => g.reviewStatus === RiskReviewStatus.CONFIRMED_ABUSE)?._count._all || 0;
+    const highRiskCount = bandGroup.find(g => g.riskBand === RiskBand.HIGH)?._count._all || 0;
+    const criticalRiskCount = bandGroup.find(g => g.riskBand === RiskBand.CRITICAL)?._count._all || 0;
 
     return {
       total,
