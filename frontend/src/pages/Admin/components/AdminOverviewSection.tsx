@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -85,82 +86,114 @@ export default function AdminOverviewSection({
     .slice(0, 5);
   const mergedRiskCount = riskSummary.highRiskCount + riskSummary.criticalRiskCount;
 
-  const last7DaysCounts = Array(7).fill(0);
-  let previous7DaysCount = 0;
-  let usersCreatedLast30Days = 0;
-  
-  const now = new Date().getTime();
-  const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+  const {
+    last7DaysCounts,
+    totalUsersGrowthNum,
+    totalUsersGrowthStr,
+    registrationsGrowthNum,
+    formattedRegGrowth,
+  } = useMemo(() => {
+    const now = new Date().getTime();
+    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+    const counts = Array(7).fill(0);
+    let previous7DaysCount = 0;
+    let usersCreatedLast30Days = 0;
 
-  users.forEach(u => {
-    const timeMs = new Date(u.createdAt).getTime();
-    const diff = now - timeMs;
-    const daysAgo = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (daysAgo >= 0 && daysAgo < 7) {
-      last7DaysCounts[6 - daysAgo]++;
-    } else if (daysAgo >= 7 && daysAgo < 14) {
-      previous7DaysCount++;
-    }
-
-    if (timeMs >= thirtyDaysAgo) {
-      usersCreatedLast30Days++;
-    }
-  });
-  // Removed .reverse() to keep the newest day (index 6) on the right
-
-  // Real data metrics
-  const usersTotalLastMonth = Math.max(users.length - usersCreatedLast30Days, 1);
-  const totalUsersGrowthNum = (usersCreatedLast30Days / usersTotalLastMonth) * 100;
-  const totalUsersGrowthStr = totalUsersGrowthNum > 0 ? `+${totalUsersGrowthNum.toFixed(1)}%` : `${totalUsersGrowthNum.toFixed(1)}%`;
-  
-  const recentRegistrationsCount = last7DaysCounts.reduce((a, b) => a + b, 0);
-  let registrationsGrowthNum = 0;
-  if (previous7DaysCount === 0) {
-    registrationsGrowthNum = recentRegistrationsCount > 0 ? 100 : 0;
-  } else {
-    registrationsGrowthNum = ((recentRegistrationsCount - previous7DaysCount) / previous7DaysCount) * 100;
-  }
-  const formattedRegGrowth = registrationsGrowthNum > 0 ? `+${registrationsGrowthNum.toFixed(0)}%` : `${registrationsGrowthNum.toFixed(0)}%`;
-
-  // Credential Issuance Trend (Last 30 Days)
-  const last30DaysCredCounts = Array(30).fill(0);
-  let totalCredentialsLastMonth = 0;
-  let previous30DaysCredCount = 0;
-
-  credentialRequests
-    .filter(req => req.status === 'APPROVED' || req.status === 'COMPLETED')
-    .forEach(req => {
-      const timeMs = new Date(req.updatedAt || req.createdAt).getTime();
+    users.forEach(u => {
+      const timeMs = new Date(u.createdAt).getTime();
       const diff = now - timeMs;
       const daysAgo = Math.floor(diff / (1000 * 60 * 60 * 24));
-      
-      if (daysAgo >= 0 && daysAgo < 30) {
-        last30DaysCredCounts[29 - daysAgo]++;
-        totalCredentialsLastMonth++;
-      } else if (daysAgo >= 30 && daysAgo < 60) {
-        previous30DaysCredCount++;
+
+      if (daysAgo >= 0 && daysAgo < 7) {
+        counts[6 - daysAgo]++;
+      } else if (daysAgo >= 7 && daysAgo < 14) {
+        previous7DaysCount++;
+      }
+
+      if (timeMs >= thirtyDaysAgo) {
+        usersCreatedLast30Days++;
       }
     });
-  
-  let credGrowthNum = 0;
-  if (previous30DaysCredCount === 0) {
-    credGrowthNum = totalCredentialsLastMonth > 0 ? 100 : 0;
-  } else {
-    credGrowthNum = ((totalCredentialsLastMonth - previous30DaysCredCount) / previous30DaysCredCount) * 100;
-  }
-  const formattedCredGrowth = credGrowthNum > 0 ? `+${credGrowthNum.toFixed(0)}%` : `${credGrowthNum.toFixed(0)}%`;
 
-  let last30DaysRiskCount = 0;
-  const mergedRiskEvents = riskEvents.filter(event => event.riskBand === 'HIGH' || event.riskBand === 'CRITICAL');
-
-  mergedRiskEvents.forEach(event => {
-    const diff = now - new Date(event.observedAt).getTime();
-    const daysAgo = Math.floor(diff / (1000 * 60 * 60 * 24));
-    if (daysAgo >= 0 && daysAgo < 30) {
-      last30DaysRiskCount += 1;
+    const usersTotalLastMonth = Math.max(users.length - usersCreatedLast30Days, 1);
+    const growthNum = (usersCreatedLast30Days / usersTotalLastMonth) * 100;
+    const growthStr = growthNum > 0 ? `+${growthNum.toFixed(1)}%` : `${growthNum.toFixed(1)}%`;
+    
+    const recentRegistrationsCount = counts.reduce((a, b) => a + b, 0);
+    let regGrowthNum = 0;
+    if (previous7DaysCount === 0) {
+      regGrowthNum = recentRegistrationsCount > 0 ? 100 : 0;
+    } else {
+      regGrowthNum = ((recentRegistrationsCount - previous7DaysCount) / previous7DaysCount) * 100;
     }
-  });
+    const formattedReg = regGrowthNum > 0 ? `+${regGrowthNum.toFixed(0)}%` : `${regGrowthNum.toFixed(0)}%`;
+
+    return {
+      last7DaysCounts: counts,
+      totalUsersGrowthNum: growthNum,
+      totalUsersGrowthStr: growthStr,
+      registrationsGrowthNum: regGrowthNum,
+      formattedRegGrowth: formattedReg,
+    };
+  }, [users]);
+
+  // Credential Issuance Trend (Last 30 Days)
+  const {
+    last30DaysCredCounts,
+    totalCredentialsLastMonth,
+    credGrowthNum,
+    formattedCredGrowth,
+  } = useMemo(() => {
+    const now = new Date().getTime();
+    const counts = Array(30).fill(0);
+    let totalLastMonth = 0;
+    let previous30DaysCount = 0;
+
+    credentialRequests
+      .filter(req => req.status === 'APPROVED' || req.status === 'COMPLETED')
+      .forEach(req => {
+        const timeMs = new Date(req.updatedAt || req.createdAt).getTime();
+        const diff = now - timeMs;
+        const daysAgo = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+        if (daysAgo >= 0 && daysAgo < 30) {
+          counts[29 - daysAgo]++;
+          totalLastMonth++;
+        } else if (daysAgo >= 30 && daysAgo < 60) {
+          previous30DaysCount++;
+        }
+      });
+
+    let growthNum = 0;
+    if (previous30DaysCount === 0) {
+      growthNum = totalLastMonth > 0 ? 100 : 0;
+    } else {
+      growthNum = ((totalLastMonth - previous30DaysCount) / previous30DaysCount) * 100;
+    }
+    const formattedGrowth = growthNum > 0 ? `+${growthNum.toFixed(0)}%` : `${growthNum.toFixed(0)}%`;
+
+    return {
+      last30DaysCredCounts: counts,
+      totalCredentialsLastMonth: totalLastMonth,
+      credGrowthNum: growthNum,
+      formattedCredGrowth: formattedGrowth,
+    };
+  }, [credentialRequests]);
+
+  const last30DaysRiskCount = useMemo(() => {
+    const now = new Date().getTime();
+    let count = 0;
+    const mergedRiskEvents = riskEvents.filter(event => event.riskBand === 'HIGH' || event.riskBand === 'CRITICAL');
+
+    mergedRiskEvents.forEach(event => {
+      const diff = now - new Date(event.observedAt).getTime();
+      const daysAgo = Math.floor(diff / (1000 * 60 * 60 * 24));
+      if (daysAgo >= 0 && daysAgo < 30) {
+        count += 1;
+      }
+    });
+    return count;
+  }, [riskEvents]);
 
   const riskBlocks = [
     {
@@ -208,21 +241,25 @@ export default function AdminOverviewSection({
     return securityAlertBandStyles.HIGH;
   };
 
-  const registrationSparkline = buildSparkline(last7DaysCounts, { minimumCeiling: 4 });
-  const credentialSparkline = buildSparkline(last30DaysCredCounts, { minimumCeiling: 4 });
+  const registrationSparkline = useMemo(() => buildSparkline(last7DaysCounts, { minimumCeiling: 4 }), [last7DaysCounts]);
+  const credentialSparkline = useMemo(() => buildSparkline(last30DaysCredCounts, { minimumCeiling: 4 }), [last30DaysCredCounts]);
 
-  const pendingLast7DaysCounts = Array(7).fill(0);
-  pendingQueue.forEach(u => {
-    const timeMs = new Date(u.createdAt).getTime();
-    const diff = now - timeMs;
-    const daysAgo = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (daysAgo >= 0 && daysAgo < 7) {
-      pendingLast7DaysCounts[6 - daysAgo]++;
-    }
-  });
+  const pendingLast7DaysCounts = useMemo(() => {
+    const now = new Date().getTime();
+    const counts = Array(7).fill(0);
+    pendingQueue.forEach(u => {
+      const timeMs = new Date(u.createdAt).getTime();
+      const diff = now - timeMs;
+      const daysAgo = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-  const pendingSparkline = buildSparkline(pendingLast7DaysCounts, { minimumCeiling: 4 });
+      if (daysAgo >= 0 && daysAgo < 7) {
+        counts[6 - daysAgo]++;
+      }
+    });
+    return counts;
+  }, [pendingQueue]);
+
+  const pendingSparkline = useMemo(() => buildSparkline(pendingLast7DaysCounts, { minimumCeiling: 4 }), [pendingLast7DaysCounts]);
 
   return (
     <div className="space-y-6">
