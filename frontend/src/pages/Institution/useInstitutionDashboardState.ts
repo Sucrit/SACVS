@@ -615,7 +615,6 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
 
     const stepUpToken = await requestStepUpToken({
       action: 'CREDENTIAL_ISSUE',
-      targetId: credentialId || undefined,
       title: 'Confirm Credential Issuance',
       description: 'Enter the OTP sent to your email to issue this credential.',
     });
@@ -966,7 +965,6 @@ export function useInstitutionDashboardState(): InstitutionDashboardState {
     try {
       const stepUpToken = await requestStepUpToken({
         action: 'CREDENTIAL_ISSUE',
-        targetId: credentialId,
         title: 'Confirm Credential Re-Issuance',
         description: 'Enter the OTP sent to your email to re-issue this credential.',
       });

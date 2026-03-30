@@ -8,7 +8,7 @@ import studentsGraduateImage from '../assets/students-graduates.jpg';
 import logo2 from '../assets/logo2.png';
 import heroBg from '../assets/hero_bg.jpg';
 
-const platformLinks = ['How it works', 'Blockchain', 'Verification', 'Security'];
+const platformLinks = ['Blockchain', 'Web', 'AI'];
 const audienceLinks = ['For Institutions', 'For Students', 'For Public Verification'];
 const companyLinks = ['About Us', 'Privacy Policy', 'Terms of Service', 'Contact Support'];
 

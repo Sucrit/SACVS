@@ -685,13 +685,17 @@ export class UserService {
 
     const rawSessionToken = crypto.randomBytes(32).toString('base64url');
     const sessionTokenHash = this.hashStepUpValue(rawSessionToken);
-    const sessionTtlSeconds = Math.max(60, Math.min(600, Math.floor(ENV.STEP_UP_SESSION_TTL_SECONDS)));
+    const isIssuanceAction = challenge.action === 'CREDENTIAL_ISSUE';
+    const sessionTtlSeconds = isIssuanceAction
+      ? Math.max(60, Math.min(1800, Math.floor(ENV.STEP_UP_ISSUANCE_SESSION_TTL_SECONDS)))
+      : Math.max(60, Math.min(600, Math.floor(ENV.STEP_UP_SESSION_TTL_SECONDS)));
     const sessionExpiresAt = new Date(Date.now() + sessionTtlSeconds * 1000);
     const session = await userRepository.verifyStepUpChallengeAndCreateSession({
       challengeId: challenge.id,
       userId,
       tokenHash: sessionTokenHash,
       expiresAt: sessionExpiresAt,
+      reusable: isIssuanceAction,
     });
 
     await userRepository.createAuditLog({

@@ -74,7 +74,7 @@ router.put(
   requireAuth,
   requireApprovedAccount,
   requireRoles('ADMIN', 'INSTITUTION'),
-  requireStepUp('CREDENTIAL_ISSUE', req => (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id)),
+  requireStepUp('CREDENTIAL_ISSUE'),
   credentialUpload.single('file'),
   credentialController.issueCredential.bind(credentialController),
 );

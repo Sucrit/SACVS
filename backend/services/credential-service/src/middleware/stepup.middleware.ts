@@ -35,16 +35,22 @@ const consumeSession = async (data: {
         payloadHash: true,
         expiresAt: true,
         usedAt: true,
+        reusable: true,
       },
     });
 
     if (!candidate) return 'INVALID';
-    if (candidate.usedAt) return 'USED';
+    if (candidate.usedAt && !candidate.reusable) return 'USED';
     if (candidate.expiresAt <= data.now) return 'EXPIRED';
 
     if (candidate.userId !== data.userId || candidate.action !== data.action) return 'MISMATCH';
     if (candidate.targetId && candidate.targetId !== (data.targetId ?? null)) return 'MISMATCH';
     if (candidate.payloadHash && candidate.payloadHash !== (data.payloadHash ?? null)) return 'MISMATCH';
+
+    // Reusable sessions (e.g. CREDENTIAL_ISSUE) are validated but not consumed.
+    if (candidate.reusable) {
+      return 'CONSUMED';
+    }
 
     const updated = await tx.stepUpSession.updateMany({
       where: {

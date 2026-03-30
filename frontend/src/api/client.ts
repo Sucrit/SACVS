@@ -40,4 +40,18 @@ api.interceptors.request.use(async config => {
   return config;
 });
 
-api.interceptors.response.use(response => response, error => Promise.reject(error));
+import { clearCachedIssuanceToken } from '../hooks/useStepUp';
+
+api.interceptors.response.use(
+  response => response,
+  error => {
+    // Clear cached issuance step-up tokens when the server rejects them.
+    if (axios.isAxiosError(error) && error.response?.status === 403) {
+      const serverError = error.response.data?.error;
+      if (serverError === 'STEP_UP_TOKEN_INVALID' || serverError === 'STEP_UP_TOKEN_EXPIRED') {
+        clearCachedIssuanceToken();
+      }
+    }
+    return Promise.reject(error);
+  },
+);

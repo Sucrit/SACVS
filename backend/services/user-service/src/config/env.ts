@@ -18,6 +18,7 @@ export const ENV = {
   STEP_UP_TOKEN_PEPPER: process.env.STEP_UP_TOKEN_PEPPER?.trim(),
   STEP_UP_OTP_TTL_SECONDS: parseNumber(process.env.STEP_UP_OTP_TTL_SECONDS, 300),
   STEP_UP_SESSION_TTL_SECONDS: parseNumber(process.env.STEP_UP_SESSION_TTL_SECONDS, 300),
+  STEP_UP_ISSUANCE_SESSION_TTL_SECONDS: parseNumber(process.env.STEP_UP_ISSUANCE_SESSION_TTL_SECONDS, 900),
   STEP_UP_MAX_ATTEMPTS: parseNumber(process.env.STEP_UP_MAX_ATTEMPTS, 5),
   STEP_UP_ENFORCEMENT_MODE: (process.env.STEP_UP_ENFORCEMENT_MODE || 'log_only').toLowerCase(),
   SMTP_HOST: process.env.SMTP_HOST,

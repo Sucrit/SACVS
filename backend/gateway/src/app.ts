@@ -7,6 +7,7 @@ import { hasInternalEventAuth, parseRealtimeEvents, realtimeHub } from './realti
 import { GatewayTelemetryRepository } from './repository/gateway-telemetry.repository';
 
 const app = express();
+app.disable('x-powered-by');
 const telemetryRepository = ENV.GATEWAY_TELEMETRY_ENABLED ? new GatewayTelemetryRepository() : null;
 const jsonParser = express.json({ limit: '256kb' });
 app.use((req, res, next) => {
@@ -28,11 +29,14 @@ app.use((req, res, next) => {
 
 // Security headers
 app.use((_req, res, next) => {
+  res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'");
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-site');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   next();
 });
 
@@ -46,24 +50,23 @@ app.use((req, res, next) => {
 });
 
 // CORS
-if (!ENV.CORS_ORIGIN) {
-  app.use(cors());
-} else {
-  const allowed = ENV.CORS_ORIGIN.split(',').map(s => s.trim()).filter(Boolean);
-  const loopbackRegex = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
-  const corsOptions = {
-    origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
-      if (!origin) return cb(null, true);
-      if (allowed.includes(origin)) return cb(null, true);
-      if (ENV.NODE_ENV === 'development' && loopbackRegex.test(origin)) return cb(null, true);
-      cb(new Error('Not allowed by CORS'));
-    },
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-step-up-token', 'x-correlation-id'],
-    credentials: true,
-  };
-  app.use(cors(corsOptions));
-}
+const allowed = (ENV.CORS_ORIGIN || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+const loopbackRegex = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const corsOptions = {
+  origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
+    if (!origin) return cb(null, true);
+    if (allowed.includes(origin)) return cb(null, true);
+    if (ENV.NODE_ENV === 'development' && loopbackRegex.test(origin)) return cb(null, true);
+    cb(new Error('Not allowed by CORS'));
+  },
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-step-up-token', 'x-correlation-id'],
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 type RouteClass = 'PUBLIC_VERIFY' | 'HIGH_RISK_MUTATION' | 'INTERNAL' | 'STANDARD_AUTH';
 type RatePolicy = {

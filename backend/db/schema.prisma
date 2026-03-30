@@ -418,6 +418,7 @@ model StepUpSession {
   tokenHash   String          @unique
   expiresAt   DateTime
   usedAt      DateTime?
+  reusable    Boolean         @default(false)
   createdAt   DateTime        @default(now())
 
   @@index([userId, action, expiresAt])

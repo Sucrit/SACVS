@@ -5,6 +5,49 @@ interface PendingStepUp {
   prompt: StepUpPrompt;
 }
 
+/* ── Issuance token sessionStorage cache ── */
+
+const ISSUANCE_CACHE_KEY = 'sacvs.stepup.CREDENTIAL_ISSUE';
+
+interface CachedIssuanceToken {
+  token: string;
+  expiresAt: string; // ISO string
+}
+
+function getCachedIssuanceToken(): string | null {
+  try {
+    const raw = sessionStorage.getItem(ISSUANCE_CACHE_KEY);
+    if (!raw) return null;
+    const cached: CachedIssuanceToken = JSON.parse(raw);
+    if (new Date(cached.expiresAt).getTime() <= Date.now()) {
+      sessionStorage.removeItem(ISSUANCE_CACHE_KEY);
+      return null;
+    }
+    return cached.token;
+  } catch {
+    sessionStorage.removeItem(ISSUANCE_CACHE_KEY);
+    return null;
+  }
+}
+
+function setCachedIssuanceToken(token: string, expiresAt: string): void {
+  try {
+    sessionStorage.setItem(ISSUANCE_CACHE_KEY, JSON.stringify({ token, expiresAt }));
+  } catch {
+    // sessionStorage may be full or unavailable; silently ignore.
+  }
+}
+
+export function clearCachedIssuanceToken(): void {
+  try {
+    sessionStorage.removeItem(ISSUANCE_CACHE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+/* ── Hook ── */
+
 export function useStepUp() {
   const [pending, setPending] = useState<PendingStepUp | null>(null);
   const resolveRef = useRef<((token: string) => void) | null>(null);
@@ -20,6 +63,14 @@ export function useStepUp() {
   }, []);
 
   const requestStepUpToken = useCallback((prompt: StepUpPrompt): Promise<string> => {
+    // For CREDENTIAL_ISSUE, check sessionStorage cache first.
+    if (prompt.action === 'CREDENTIAL_ISSUE') {
+      const cached = getCachedIssuanceToken();
+      if (cached) {
+        return Promise.resolve(cached);
+      }
+    }
+
     return new Promise((resolve, reject) => {
       if (resolveRef.current || rejectRef.current || pending) {
         reject(new Error('STEP_UP_IN_PROGRESS'));
@@ -31,14 +82,21 @@ export function useStepUp() {
     });
   }, [pending]);
 
-  const handleVerified = useCallback((token: string) => {
+  const handleVerified = useCallback((token: string, expiresAt?: string) => {
+    const prompt = pending?.prompt;
     setPending(null);
+
+    // Cache CREDENTIAL_ISSUE tokens in sessionStorage for reuse.
+    if (prompt?.action === 'CREDENTIAL_ISSUE' && expiresAt) {
+      setCachedIssuanceToken(token, expiresAt);
+    }
+
     if (resolveRef.current) {
       resolveRef.current(token);
     }
     resolveRef.current = null;
     rejectRef.current = null;
-  }, []);
+  }, [pending]);
 
   const modal = useMemo(
     () => (
@@ -53,6 +111,7 @@ export function useStepUp() {
 
   return {
     requestStepUpToken,
+    clearCachedIssuanceToken,
     stepUpModal: modal,
   };
 }

@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { StepUpAction, UserService } from '../../services/user.service';
@@ -23,7 +23,7 @@ export interface StepUpPrompt {
 interface StepUpOtpModalProps {
   prompt: StepUpPrompt | null;
   onClose: () => void;
-  onVerified: (stepUpToken: string) => void;
+  onVerified: (stepUpToken: string, expiresAt?: string) => void;
 }
 
 /* ── Per-action metadata ── */
@@ -49,9 +49,9 @@ const ACTION_META: Record<StepUpAction, ActionMeta> = {
   },
   CREDENTIAL_ISSUE: {
     riskLabel: 'Immutable Record Creation',
-    riskDescription: 'Issuing a credential writes a permanent blockchain record that cannot be reversed.',
+    riskDescription: 'Issuing credentials writes permanent blockchain records. One verification unlocks issuance for 15 minutes.',
     contextLabel: 'Issue Credential',
-    contextDetail: 'Publish an immutable credential to the blockchain',
+    contextDetail: 'Verify once to issue credentials for the next 15 minutes',
   },
   BULK_STUDENT_CREATE: {
     riskLabel: 'Bulk Account Creation',
@@ -224,7 +224,7 @@ export default function StepUpOtpModal({ prompt, onClose, onVerified }: StepUpOt
     setIsVerifying(true);
     try {
       const result = await UserService.verifyStepUpChallenge(challengeId, code);
-      onVerified(result.stepUpToken);
+      onVerified(result.stepUpToken, result.expiresAt);
       setDigits(Array.from({ length: OTP_LENGTH }, () => ''));
       showToast({ variant: 'success', message: 'OTP verified successfully.' });
     } catch (verifyError) {
