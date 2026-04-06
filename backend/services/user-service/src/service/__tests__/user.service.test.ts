@@ -305,4 +305,31 @@ describe('UserService', () => {
       }),
     ).rejects.toThrow('INVALID_GUARDIAN_FULL_NAME');
   });
+
+  it('generates a 6-digit numeric OTP code for step-up challenges', async () => {
+    const service = new UserService();
+    mockUserRepository.getUserById.mockResolvedValue({
+      id: 'user-1',
+      email: 'user@example.com',
+    });
+    mockUserRepository.createStepUpChallenge.mockResolvedValue({
+      id: 'challenge-1',
+      expiresAt: new Date(),
+    });
+
+    await service.createStepUpChallenge('user-1', {
+      action: 'ROLE_CHANGE',
+    });
+
+    expect(mockEmailClient.sendStepUpOtpEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        otpCode: expect.stringMatching(/^\d{6}$/),
+      }),
+    );
+
+    const otpCode = mockEmailClient.sendStepUpOtpEmail.mock.calls[0][0].otpCode;
+    const otpInt = parseInt(otpCode, 10);
+    expect(otpInt).toBeGreaterThanOrEqual(100000);
+    expect(otpInt).toBeLessThan(1000000);
+  });
 });
