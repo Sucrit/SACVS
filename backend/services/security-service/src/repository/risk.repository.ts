@@ -672,29 +672,35 @@ export class RiskRepository {
   async listRiskEventRecords(query: RiskEventListQuery) {
     const where = this.buildRiskEventWhere(query);
 
-    const [total, items, pendingReviewCount, highRiskCount, criticalRiskCount, confirmedAbuseCount] =
-      await Promise.all([
-        prisma.riskEventRecord.count({ where }),
-        prisma.riskEventRecord.findMany({
-          where,
-          orderBy: [{ inferenceTs: 'desc' }, { createdAt: 'desc' }],
-          skip: (query.page - 1) * query.pageSize,
-          take: query.pageSize,
-          select: this.riskEventSelect,
-        }),
-        prisma.riskEventRecord.count({
-          where: { reviewStatus: RiskReviewStatus.PENDING_REVIEW },
-        }),
-        prisma.riskEventRecord.count({
-          where: { riskBand: RiskBand.HIGH },
-        }),
-        prisma.riskEventRecord.count({
-          where: { riskBand: RiskBand.CRITICAL },
-        }),
-        prisma.riskEventRecord.count({
-          where: { reviewStatus: RiskReviewStatus.CONFIRMED_ABUSE },
-        }),
-      ]);
+    const [total, items, statusGroups, bandGroups] = await Promise.all([
+      prisma.riskEventRecord.count({ where }),
+      prisma.riskEventRecord.findMany({
+        where,
+        orderBy: [{ inferenceTs: 'desc' }, { createdAt: 'desc' }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+        select: this.riskEventSelect,
+      }),
+      prisma.riskEventRecord.groupBy({
+        by: ['reviewStatus'],
+        _count: { reviewStatus: true },
+        where: {
+          reviewStatus: { in: [RiskReviewStatus.PENDING_REVIEW, RiskReviewStatus.CONFIRMED_ABUSE] },
+        },
+      }),
+      prisma.riskEventRecord.groupBy({
+        by: ['riskBand'],
+        _count: { riskBand: true },
+        where: {
+          riskBand: { in: [RiskBand.HIGH, RiskBand.CRITICAL] },
+        },
+      }),
+    ]);
+
+    const pendingReviewCount = statusGroups.find(g => g.reviewStatus === RiskReviewStatus.PENDING_REVIEW)?._count.reviewStatus ?? 0;
+    const confirmedAbuseCount = statusGroups.find(g => g.reviewStatus === RiskReviewStatus.CONFIRMED_ABUSE)?._count.reviewStatus ?? 0;
+    const highRiskCount = bandGroups.find(g => g.riskBand === RiskBand.HIGH)?._count.riskBand ?? 0;
+    const criticalRiskCount = bandGroups.find(g => g.riskBand === RiskBand.CRITICAL)?._count.riskBand ?? 0;
 
     return {
       total,
