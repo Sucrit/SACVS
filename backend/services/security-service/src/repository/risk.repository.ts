@@ -672,29 +672,33 @@ export class RiskRepository {
   async listRiskEventRecords(query: RiskEventListQuery) {
     const where = this.buildRiskEventWhere(query);
 
-    const [total, items, pendingReviewCount, highRiskCount, criticalRiskCount, confirmedAbuseCount] =
-      await Promise.all([
-        prisma.riskEventRecord.count({ where }),
-        prisma.riskEventRecord.findMany({
-          where,
-          orderBy: [{ inferenceTs: 'desc' }, { createdAt: 'desc' }],
-          skip: (query.page - 1) * query.pageSize,
-          take: query.pageSize,
-          select: this.riskEventSelect,
-        }),
-        prisma.riskEventRecord.count({
-          where: { reviewStatus: RiskReviewStatus.PENDING_REVIEW },
-        }),
-        prisma.riskEventRecord.count({
-          where: { riskBand: RiskBand.HIGH },
-        }),
-        prisma.riskEventRecord.count({
-          where: { riskBand: RiskBand.CRITICAL },
-        }),
-        prisma.riskEventRecord.count({
-          where: { reviewStatus: RiskReviewStatus.CONFIRMED_ABUSE },
-        }),
-      ]);
+    const [total, items, groups] = await Promise.all([
+      prisma.riskEventRecord.count({ where }),
+      prisma.riskEventRecord.findMany({
+        where,
+        orderBy: [{ inferenceTs: 'desc' }, { createdAt: 'desc' }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+        select: this.riskEventSelect,
+      }),
+      prisma.riskEventRecord.groupBy({
+        by: ['reviewStatus', 'riskBand'],
+        _count: { _all: true },
+      }),
+    ]);
+
+    let pendingReviewCount = 0;
+    let highRiskCount = 0;
+    let criticalRiskCount = 0;
+    let confirmedAbuseCount = 0;
+
+    for (const group of groups) {
+      const count = group._count._all;
+      if (group.reviewStatus === RiskReviewStatus.PENDING_REVIEW) pendingReviewCount += count;
+      if (group.reviewStatus === RiskReviewStatus.CONFIRMED_ABUSE) confirmedAbuseCount += count;
+      if (group.riskBand === RiskBand.HIGH) highRiskCount += count;
+      if (group.riskBand === RiskBand.CRITICAL) criticalRiskCount += count;
+    }
 
     return {
       total,
