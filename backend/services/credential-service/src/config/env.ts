@@ -14,7 +14,7 @@ export const ENV = {
     NODE_ENV: process.env.NODE_ENV || 'development',
     PORT: process.env.PORT,
     DATABASE_URL: process.env.DATABASE_URL,
-    PRISMA_SCHEMA_PATH: process.env.PRISMA_SCHEMA_PATH,
+    PRISMA_SCHEMA_PATH: process.env.PRISMA_SCHEMA_PATH || '../../db/schema.prisma',
     CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY,
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
     NOTIFICATION_SERVICE_URL: process.env.NOTIFICATION_SERVICE_URL || 'http://localhost:5300',
