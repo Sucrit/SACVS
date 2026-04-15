@@ -64,7 +64,13 @@ start_service() {
       dev_cmd=("node" "node_modules/ts-node/dist/bin.js" "src/server.ts")
       ;;
     *)
-      dev_cmd=("node" "node_modules/nodemon/bin/nodemon.js")
+      dev_cmd=(
+        "node"
+        "node_modules/nodemon/bin/nodemon.js"
+        "--exec"
+        "node node_modules/ts-node/dist/bin.js"
+        "src/server.ts"
+      )
       ;;
   esac
 
