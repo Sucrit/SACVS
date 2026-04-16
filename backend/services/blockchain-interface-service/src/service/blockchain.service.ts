@@ -70,6 +70,7 @@ export class BlockchainService {
   private wallet: ethers.Wallet | null = null;
   private contract: ethers.Contract | null = null;
   private readOnlyContract: ethers.Contract | null = null;
+  private resolvedContractAddress: string | null = null;
   private readonly chainName: string = ENV.CHAIN_NAME;
 
   private resolveAddressFromArtifact(artifact: ArtifactJson): string | null {
@@ -83,7 +84,59 @@ export class BlockchainService {
     return ethers.keccak256(ethers.toUtf8Bytes(credentialId));
   }
 
-  private getContract(): ethers.Contract {
+  private async resolveContractAddress(): Promise<string> {
+    if (this.resolvedContractAddress) {
+      return this.resolvedContractAddress;
+    }
+
+    if (!this.provider) {
+      this.provider = new ethers.JsonRpcProvider(ENV.RPC_URL);
+    }
+
+    const artifactPath = path.resolve(
+      __dirname,
+      '../../build/contracts/AcademicCredentialRegistry.json',
+    );
+    const artifact = JSON.parse(readFileSync(artifactPath, 'utf8')) as ArtifactJson;
+    const configuredAddress = ENV.CONTRACT_ADDRESS;
+    const artifactAddress = this.resolveAddressFromArtifact(artifact);
+
+    const hasCode = async (address: string | null | undefined): Promise<boolean> => {
+      if (!address) return false;
+      const code = await this.provider!.getCode(address);
+      return code !== '0x';
+    };
+
+    if (configuredAddress && await hasCode(configuredAddress)) {
+      this.resolvedContractAddress = configuredAddress;
+      return configuredAddress;
+    }
+
+    if (artifactAddress && await hasCode(artifactAddress)) {
+      if (
+        configuredAddress &&
+        configuredAddress.toLowerCase() !== artifactAddress.toLowerCase()
+      ) {
+        console.warn(
+          `Configured BLOCKCHAIN_CONTRACT_ADDRESS ${configuredAddress} has no code. Falling back to deployed artifact address ${artifactAddress}.`,
+        );
+      }
+      this.resolvedContractAddress = artifactAddress;
+      return artifactAddress;
+    }
+
+    if (configuredAddress) {
+      throw new Error(
+        `Unable to resolve blockchain contract address. No contract code found at configured address ${configuredAddress}.`,
+      );
+    }
+
+    throw new Error(
+      'Unable to resolve blockchain contract address. Set BLOCKCHAIN_CONTRACT_ADDRESS or deploy the contract artifact.',
+    );
+  }
+
+  private async getContract(): Promise<ethers.Contract> {
     if (!this.contract) {
       if (!ENV.PRIVATE_KEY) {
         throw new Error(
@@ -91,7 +144,7 @@ export class BlockchainService {
         );
       }
 
-      const readOnly = this.getReadOnlyContract();
+      const readOnly = await this.getReadOnlyContract();
       if (!this.provider) {
         this.provider = new ethers.JsonRpcProvider(ENV.RPC_URL);
       }
@@ -106,7 +159,7 @@ export class BlockchainService {
     return contract;
   }
 
-  private getReadOnlyContract(): ethers.Contract {
+  private async getReadOnlyContract(): Promise<ethers.Contract> {
     if (this.readOnlyContract) {
       return this.readOnlyContract;
     }
@@ -115,18 +168,7 @@ export class BlockchainService {
       this.provider = new ethers.JsonRpcProvider(ENV.RPC_URL);
     }
 
-    const artifactPath = path.resolve(
-      __dirname,
-      '../../build/contracts/AcademicCredentialRegistry.json',
-    );
-    const artifact = JSON.parse(readFileSync(artifactPath, 'utf8')) as ArtifactJson;
-    const contractAddress = ENV.CONTRACT_ADDRESS ?? this.resolveAddressFromArtifact(artifact);
-
-    if (!contractAddress) {
-      throw new Error(
-        'Unable to resolve blockchain contract address. Set BLOCKCHAIN_CONTRACT_ADDRESS.',
-      );
-    }
+    const contractAddress = await this.resolveContractAddress();
 
     this.readOnlyContract = new ethers.Contract(
       contractAddress,
@@ -147,8 +189,8 @@ export class BlockchainService {
     const onChainCredentialId = this.toOnChainCredentialId(input.credentialId);
     const studentHash = toHmacBytes32('student', input.studentId);
     const documentHash = toHmacBytes32('document', input.fileHash);
-    const readOnlyContract = this.getReadOnlyContract();
-    const contract = this.getContract();
+    const readOnlyContract = await this.getReadOnlyContract();
+    const contract = await this.getContract();
 
     const existing = (await readOnlyContract.getCredential(onChainCredentialId)) as ContractCredentialTuple;
     const exists = Number(existing[3]) > 0;
@@ -183,7 +225,7 @@ export class BlockchainService {
     onChainCredentialId: string;
   }> {
     const onChainCredentialId = this.toOnChainCredentialId(input.credentialId);
-    const contract = this.getContract();
+    const contract = await this.getContract();
 
     const tx = await contract.revokeCredential(onChainCredentialId);
     const receipt = await tx.wait();
@@ -208,7 +250,7 @@ export class BlockchainService {
     documentHash: string | null;
   }> {
     const onChainCredentialId = this.toOnChainCredentialId(credentialId);
-    const contract = this.getReadOnlyContract();
+    const contract = await this.getReadOnlyContract();
 
     const credential = (await contract.getCredential(
       onChainCredentialId,
@@ -248,7 +290,7 @@ export class BlockchainService {
   }> {
     const onChainCredentialId = this.toOnChainCredentialId(credentialId);
     const hmacDocumentHash = toHmacBytes32('document', fileHash);
-    const contract = this.getReadOnlyContract();
+    const contract = await this.getReadOnlyContract();
 
     const hmacVerify = (await contract.verifyCredentialDocument(
       onChainCredentialId,
