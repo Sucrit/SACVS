@@ -29,12 +29,11 @@ npx prisma generate
 ## Blockchain
 The blockchain interface service is designed to work against a local or deployed EVM-compatible chain. If you are using Ganache locally, ensure the chain endpoint, contract address, and signing configuration are aligned with the current environment before running issuance flows.
 
-Ganache and truffle workflows:
+Ganache and truffle workflows (blockchain-interface-service):
 
-``gitbash
-cd backend/services/blockchain-interface-service
+```gitbash
 npx truffle compile
 npx truffle migrate --network development --reset
 npx truffle test --network development
 npx truffle console --network development
-``
+```
