@@ -37,11 +37,3 @@ npx truffle compile
 npx truffle migrate --network development --reset
 npx truffle test --network development
 npx truffle console --network development
-
-## Model Evaluation
-``gitbash
-cd backend/services/security-service/python
-python evaluate_risk_model.py --model ../artifacts/models/ml-risk-20260322041100.joblib --input ../artifacts/datasets/risk_dataset_reviewed.csv
-
-## Documentation Policy
-The `docs/` folder is the authoritative documentation set. If code behavior and documentation diverge, correct the code to match intended behavior. Historical notes should not remain the primary source of truth.
